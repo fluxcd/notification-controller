@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-controller
+  labels:
+    control-plane: controller
+spec:
+  selector:
+    matchLabels:
+      app: notification-controller
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: notification-controller
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8484"
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: manager
+        image: fluxcd/notification-controller
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+        ports:
+          - containerPort: 8484
+            name: http-prom
+        env:
+          - name: RUNTIME_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        livenessProbe:
+          httpGet:
+            port: http-prom
+            path: /metrics
+        args:
+        - --enable-leader-election
+        - --log-json
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+          - name: temp
+            mountPath: /tmp
+      volumes:
+        - name: temp
+          emptyDir: {}
