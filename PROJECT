@@ -4,4 +4,7 @@ resources:
 - group: notification
   kind: Provider
   version: v1alpha1
+- group: notification
+  kind: Alert
+  version: v1alpha1
 version: "2"

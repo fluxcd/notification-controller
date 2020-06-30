@@ -1,0 +1,24 @@
+# permissions for end users to edit alerts.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: alert-editor-role
+rules:
+- apiGroups:
+  - notification.fluxcd.io
+  resources:
+  - alerts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - notification.fluxcd.io
+  resources:
+  - alerts/status
+  verbs:
+  - get

@@ -17,36 +17,47 @@ limitations under the License.
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ProviderSpec defines the desired state of Provider
-type ProviderSpec struct {
-	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;webhook
+// AlertSpec defines an alerting rule for events involving a list of objects
+type AlertSpec struct {
+	// Send events using this provider
 	// +required
-	Type string `json:"type"`
+	ProviderRef Provider `json:"providerRef"`
 
-	// Alert channel for this provider
+	// Filter events based on severity, defaults to ('info').
+	// +kubebuilder:validation:Enum=info;error
 	// +optional
-	Channel string `json:"channel,omitempty"`
+	EventSeverity string `json:"eventSeverity,omitempty"`
 
-	// Bot username for this provider
-	// +optional
-	Username string `json:"username,omitempty"`
-
-	// HTTP(S) webhook address of this provider
-	// +optional
-	Address string `json:"address,omitempty"`
-
-	// Secret reference containing the provider webhook URL
-	// +optional
-	SecretRef *corev1.LocalObjectReference `json:"secretRef,omitempty"`
+	// Filter events based on the involved objects
+	// +required
+	EventSources []CrossNamespaceObjectReference `json:"eventSources"`
 }
 
-// ProviderStatus defines the observed state of Provider
-type ProviderStatus struct {
+// CrossNamespaceObjectReference contains enough information to let you locate the
+// typed referenced object at cluster level
+type CrossNamespaceObjectReference struct {
+	// API version of the referent
+	// +optional
+	APIVersion string `json:"apiVersion,omitempty"`
+
+	// Kind of the referent
+	// +required
+	Kind string `json:"kind,omitempty"`
+
+	// Name of the referent
+	// +required
+	Name string `json:"name"`
+
+	// Namespace of the referent
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+}
+
+// AlertStatus defines the observed state of Alert
+type AlertStatus struct {
 	// +optional
 	Conditions []Condition `json:"conditions,omitempty"`
 }
@@ -59,24 +70,24 @@ type ProviderStatus struct {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message",description=""
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 
-// Provider is the Schema for the providers API
-type Provider struct {
+// Alert is the Schema for the alerts API
+type Alert struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ProviderSpec   `json:"spec,omitempty"`
-	Status ProviderStatus `json:"status,omitempty"`
+	Spec   AlertSpec   `json:"spec,omitempty"`
+	Status AlertStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// ProviderList contains a list of Provider
-type ProviderList struct {
+// AlertList contains a list of Alert
+type AlertList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Provider `json:"items"`
+	Items           []Alert `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Provider{}, &ProviderList{})
+	SchemeBuilder.Register(&Alert{}, &AlertList{})
 }

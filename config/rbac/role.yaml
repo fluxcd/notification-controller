@@ -9,6 +9,26 @@ rules:
 - apiGroups:
   - notification.fluxcd.io
   resources:
+  - alerts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - notification.fluxcd.io
+  resources:
+  - alerts/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - notification.fluxcd.io
+  resources:
   - providers
   verbs:
   - create
