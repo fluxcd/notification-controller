@@ -49,7 +49,7 @@ type Condition struct {
 
 const (
 	// ReadyCondition represents the fact that a given object has passed
-	// validation and was successfully reconciled on the cluster.
+	// validation and was acknowledge by the controller.
 	ReadyCondition string = "Ready"
 )
 
