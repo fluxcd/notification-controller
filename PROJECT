@@ -1,3 +1,7 @@
 domain: fluxcd.io
 repo: github.com/fluxcd/notification-controller
+resources:
+- group: notification
+  kind: Provider
+  version: v1alpha1
 version: "2"
