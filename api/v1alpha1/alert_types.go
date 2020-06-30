@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,7 +25,7 @@ import (
 type AlertSpec struct {
 	// Send events using this provider
 	// +required
-	ProviderRef Provider `json:"providerRef"`
+	ProviderRef corev1.ObjectReference `json:"providerRef"`
 
 	// Filter events based on severity, defaults to ('info').
 	// +kubebuilder:validation:Enum=info;error
@@ -34,6 +35,11 @@ type AlertSpec struct {
 	// Filter events based on the involved objects
 	// +required
 	EventSources []CrossNamespaceObjectReference `json:"eventSources"`
+
+	// This flag tells the controller to suspend subsequent events dispatching.
+	// Defaults to false.
+	// +optional
+	Suspend bool `json:"suspend,omitempty"`
 }
 
 // CrossNamespaceObjectReference contains enough information to let you locate the

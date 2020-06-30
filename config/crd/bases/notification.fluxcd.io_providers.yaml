@@ -80,7 +80,8 @@ spec:
           properties:
             conditions:
               items:
-                description: Condition contains condition information for a kustomization.
+                description: Condition contains condition information for a notification
+                  object.
                 properties:
                   lastTransitionTime:
                     description: LastTransitionTime is the timestamp corresponding
