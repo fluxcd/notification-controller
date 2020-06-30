@@ -21,7 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Condition contains condition information for a kustomization.
+// Condition contains condition information for a notification object.
 type Condition struct {
 	// Type of the condition, currently ('Ready').
 	// +required

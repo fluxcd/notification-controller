@@ -8,6 +8,16 @@ metadata:
   creationTimestamp: null
   name: alerts.notification.fluxcd.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.conditions[?(@.type=="Ready")].status
+    name: Ready
+    type: string
+  - JSONPath: .status.conditions[?(@.type=="Ready")].message
+    name: Status
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: Age
+    type: date
   group: notification.fluxcd.io
   names:
     kind: Alert
@@ -15,6 +25,8 @@ spec:
     plural: alerts
     singular: alert
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: Alert is the Schema for the alerts API
