@@ -4,4 +4,3 @@ resources:
 - bases/notification.fluxcd.io_providers.yaml
 - bases/notification.fluxcd.io_alerts.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
-

@@ -22,21 +22,36 @@ type Event struct {
 
 	// A human-readable description of this event.
 	// Maximum length 39,000 characters
-	// +optional
-	Message string `json:"message,omitempty"`
+	// +required
+	Message string `json:"message"`
 
 	// A machine understandable string that gives the reason
 	// for the transition into the object's current status.
-	// +optional
-	Reason string `json:"reason,omitempty"`
+	// +required
+	Reason string `json:"reason"`
 
 	// Metadata of this event, e.g. apply change set.
 	// +optional
 	Metadata map[string]string `json:"metadata,omitempty"`
 
 	// Name of the controller that emitted this event, e.g. `source-controller`.
+	// +required
+	ReportingController string `json:"reportingController"`
+
+	// ID of the controller instance, e.g. `source-controller-xyzf`.
 	// +optional
-	ReportingController string `json:"reportingController,omitempty"`
+	ReportingInstance string `json:"reportingInstance,omitempty"`
 }
 ```
 
+Event severity:
+
+```go
+const (
+	EventSeverityInfo string = "info"
+	EventSeverityError string = "error"
+)
+```
+
+Controller implementations can use the [fluxcd/pkg/recorder](https://github.com/fluxcd/pkg/tree/master/recorder)
+package to push events to notification-controller API.
