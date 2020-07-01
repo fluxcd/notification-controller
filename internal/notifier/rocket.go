@@ -57,7 +57,6 @@ func (s *Rocket) Post(event recorder.Event) error {
 	payload := SlackPayload{
 		Channel:   s.Channel,
 		Username:  s.Username,
-		IconEmoji: ":rocket:",
 	}
 
 	color := "#0076D7"

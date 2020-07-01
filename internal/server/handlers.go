@@ -1,10 +1,18 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"github.com/fluxcd/notification-controller/internal/notifier"
 	"io/ioutil"
 	"net/http"
+	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	apiv1 "github.com/fluxcd/notification-controller/api/v1alpha1"
 	"github.com/fluxcd/pkg/recorder"
 )
 
@@ -18,12 +26,124 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 		}
 		defer r.Body.Close()
 
-		payload := &recorder.Event{}
-		err = json.Unmarshal(body, payload)
+		event := &recorder.Event{}
+		err = json.Unmarshal(body, event)
 		if err != nil {
 			s.logger.Error(err, "decoding the request body failed")
 			w.WriteHeader(http.StatusBadRequest)
 			return
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		var allAlerts apiv1.AlertList
+		err = s.kubeClient.List(ctx, &allAlerts, client.InNamespace(event.InvolvedObject.Namespace))
+		if err != nil {
+			s.logger.Error(err, "listing alerts failed")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		// find matching alerts
+		alerts := make([]apiv1.Alert, 0)
+		for _, alert := range allAlerts.Items {
+			// skip suspended alerts
+			if alert.Spec.Suspend {
+				continue
+			}
+
+			// filter alerts by object and severity
+			for _, source := range alert.Spec.EventSources {
+				if source.Namespace == "" {
+					source.Namespace = alert.Namespace
+				}
+				if event.InvolvedObject.Name == source.Name &&
+					event.InvolvedObject.Namespace == source.Namespace &&
+					event.InvolvedObject.Kind == source.Kind {
+					if event.Severity == alert.Spec.EventSeverity ||
+						alert.Spec.EventSeverity == recorder.EventSeverityInfo {
+						alerts = append(alerts, alert)
+					}
+				}
+			}
+		}
+
+		if len(alerts) == 0 {
+			s.logger.Info("Discarding event, no alerts found for the involved object",
+				"object", event.InvolvedObject.Name)
+			w.WriteHeader(http.StatusAccepted)
+			return
+		}
+
+		// find providers
+		for _, alert := range alerts {
+			var provider apiv1.Provider
+			providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
+
+			err = s.kubeClient.Get(ctx, providerName, &provider)
+			if err != nil {
+				s.logger.Error(err, "failed to read provider",
+					"provider", providerName.Name)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			webhook := provider.Spec.Address
+			if provider.Spec.SecretRef != nil {
+				var secret corev1.Secret
+				secretName := types.NamespacedName{Namespace: alert.Namespace, Name: provider.Spec.SecretRef.Name}
+
+				err = s.kubeClient.Get(ctx, secretName, &secret)
+				if err != nil {
+					s.logger.Error(err, "failed to read secret",
+						"provider", providerName.Name,
+						"secret", secretName.Name)
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+
+				if address, ok := secret.Data["address"]; ok {
+					webhook = string(address)
+				} else {
+					s.logger.Error(err, "secret does not contain an address",
+						"provider", providerName.Name,
+						"secret", secretName.Name)
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+			}
+
+			if webhook == "" {
+				s.logger.Error(nil, "provider has no address",
+					"provider", providerName.Name)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			s.logger.Info("Sending notification",
+				"object", event.InvolvedObject.Name,
+				"provider", provider.Name,
+				"webhook", webhook)
+
+			factory := notifier.NewFactory(webhook, provider.Spec.Username, provider.Spec.Channel)
+			sender, err := factory.Notifier(provider.Spec.Type)
+			if err != nil {
+				s.logger.Error(err, "failed to initialise provider",
+					"provider", providerName.Name,
+					"type", provider.Spec.Type)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			if err := sender.Post(*event); err != nil {
+				s.logger.Error(err, "failed to send notification",
+					"provider", providerName.Name,
+					"type", provider.Spec.Type)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
 		}
 
 		w.WriteHeader(http.StatusAccepted)

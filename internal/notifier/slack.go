@@ -76,9 +76,8 @@ func NewSlack(hookURL string, username string, channel string) (*Slack, error) {
 // Post Slack message
 func (s *Slack) Post(event recorder.Event) error {
 	payload := SlackPayload{
-		Channel:   s.Channel,
-		Username:  s.Username,
-		IconEmoji: ":rocket:",
+		Channel:  s.Channel,
+		Username: s.Username,
 	}
 	if payload.Username == "" {
 		payload.Username = event.ReportingController

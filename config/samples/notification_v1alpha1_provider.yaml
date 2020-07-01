@@ -1,7 +1,10 @@
 apiVersion: notification.fluxcd.io/v1alpha1
 kind: Provider
 metadata:
-  name: provider-sample
+  name: slack
+  namespace: gitops-system
 spec:
-  # Add fields here
-  foo: bar
+  type: slack
+  channel: general
+  secretRef:
+    name: slack-url

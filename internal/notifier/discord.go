@@ -66,7 +66,6 @@ func (s *Discord) Post(event recorder.Event) error {
 	payload := SlackPayload{
 		Channel:   s.Channel,
 		Username:  s.Username,
-		IconEmoji: ":rocket:",
 	}
 	if payload.Username == "" {
 		payload.Username = event.ReportingController

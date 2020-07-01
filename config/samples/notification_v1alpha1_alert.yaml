@@ -1,7 +1,16 @@
 apiVersion: notification.fluxcd.io/v1alpha1
 kind: Alert
 metadata:
-  name: alert-sample
+  name: on-call-webapp
+  namespace: gitops-system
 spec:
-  # Add fields here
-  foo: bar
+  providerRef:
+    name: slack
+  eventSeverity: info
+  eventSources:
+    - kind: GitRepository
+      name: webapp
+    - kind: Kustomization
+      name: webapp-frontend
+    - kind: Kustomization
+      name: webapp-backend
