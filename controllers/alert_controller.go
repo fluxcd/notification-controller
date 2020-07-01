@@ -18,13 +18,16 @@ package controllers
 
 import (
 	"context"
+	"strings"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	notificationv1alpha1 "github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1alpha1"
 )
 
 // AlertReconciler reconciles a Alert object
@@ -38,16 +41,44 @@ type AlertReconciler struct {
 // +kubebuilder:rbac:groups=notification.fluxcd.io,resources=alerts/status,verbs=get;update;patch
 
 func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("alert", req.NamespacedName)
+	ctx := context.Background()
 
-	// your logic here
+	var alert v1alpha1.Alert
+	if err := r.Get(ctx, req.NamespacedName, &alert); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	log := r.Log.WithValues(strings.ToLower(alert.Kind), req.NamespacedName)
+
+	init := true
+	for _, condition := range alert.Status.Conditions {
+		if condition.Type == v1alpha1.ReadyCondition && condition.Status == corev1.ConditionTrue {
+			init = false
+			break
+		}
+	}
+
+	if init {
+		alert.Status.Conditions = []v1alpha1.Condition{
+			{
+				Type:               v1alpha1.ReadyCondition,
+				Status:             corev1.ConditionTrue,
+				LastTransitionTime: metav1.Now(),
+				Reason:             v1alpha1.InitializedReason,
+				Message:            v1alpha1.InitializedReason,
+			},
+		}
+		if err := r.Status().Update(ctx, &alert); err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
+		log.Info("Alert initialised")
+	}
 
 	return ctrl.Result{}, nil
 }
 
 func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&notificationv1alpha1.Alert{}).
+		For(&v1alpha1.Alert{}).
 		Complete(r)
 }
