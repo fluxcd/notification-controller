@@ -1,0 +1,24 @@
+# permissions for end users to edit providers.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: provider-editor-role
+rules:
+- apiGroups:
+  - notification.fluxcd.io
+  resources:
+  - providers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - notification.fluxcd.io
+  resources:
+  - providers/status
+  verbs:
+  - get
