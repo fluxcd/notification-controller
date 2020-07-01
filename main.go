@@ -18,7 +18,6 @@ package main
 
 import (
 	"flag"
-	"github.com/fluxcd/notification-controller/internal/server"
 	"os"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,6 +28,7 @@ import (
 
 	notificationv1alpha1 "github.com/fluxcd/notification-controller/api/v1alpha1"
 	"github.com/fluxcd/notification-controller/controllers"
+	"github.com/fluxcd/notification-controller/internal/server"
 	// +kubebuilder:scaffold:imports
 )
 

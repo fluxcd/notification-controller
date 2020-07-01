@@ -18,13 +18,16 @@ package controllers
 
 import (
 	"context"
+	"strings"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	notificationv1alpha1 "github.com/fluxcd/notification-controller/api/v1alpha1"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1alpha1"
 )
 
 // ProviderReconciler reconciles a Provider object
@@ -38,16 +41,44 @@ type ProviderReconciler struct {
 // +kubebuilder:rbac:groups=notification.fluxcd.io,resources=providers/status,verbs=get;update;patch
 
 func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("provider", req.NamespacedName)
+	ctx := context.Background()
 
-	// your logic here
+	var provider apiv1.Provider
+	if err := r.Get(ctx, req.NamespacedName, &provider); err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	log := r.Log.WithValues(strings.ToLower(provider.Kind), req.NamespacedName)
+
+	init := true
+	for _, condition := range provider.Status.Conditions {
+		if condition.Type == apiv1.ReadyCondition && condition.Status == corev1.ConditionTrue {
+			init = false
+			break
+		}
+	}
+
+	if init {
+		provider.Status.Conditions = []apiv1.Condition{
+			{
+				Type:               apiv1.ReadyCondition,
+				Status:             corev1.ConditionTrue,
+				LastTransitionTime: metav1.Now(),
+				Reason:             apiv1.InitializedReason,
+				Message:            apiv1.InitializedReason,
+			},
+		}
+		if err := r.Status().Update(ctx, &provider); err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
+		log.Info("Provider initialised")
+	}
 
 	return ctrl.Result{}, nil
 }
 
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&notificationv1alpha1.Provider{}).
+		For(&apiv1.Provider{}).
 		Complete(r)
 }
