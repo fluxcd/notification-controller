@@ -26,7 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	notificationv1alpha1 "github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1alpha1"
 	"github.com/fluxcd/notification-controller/controllers"
 	"github.com/fluxcd/notification-controller/internal/server"
 	// +kubebuilder:scaffold:imports
@@ -40,7 +40,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
-	_ = notificationv1alpha1.AddToScheme(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

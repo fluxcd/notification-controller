@@ -1,18 +1,33 @@
+/*
+Copyright 2020 The Flux CD contributors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package server
 
 import (
 	"context"
 	"encoding/json"
-	"github.com/fluxcd/notification-controller/internal/notifier"
 	"io/ioutil"
-	"net/http"
-	"time"
-
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"time"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/internal/notifier"
 	"github.com/fluxcd/pkg/recorder"
 )
 
@@ -37,7 +52,7 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 
-		var allAlerts apiv1.AlertList
+		var allAlerts v1alpha1.AlertList
 		err = s.kubeClient.List(ctx, &allAlerts, client.InNamespace(event.InvolvedObject.Namespace))
 		if err != nil {
 			s.logger.Error(err, "listing alerts failed")
@@ -46,7 +61,7 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 		}
 
 		// find matching alerts
-		alerts := make([]apiv1.Alert, 0)
+		alerts := make([]v1alpha1.Alert, 0)
 		for _, alert := range allAlerts.Items {
 			// skip suspended alerts
 			if alert.Spec.Suspend {
@@ -78,7 +93,7 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 
 		// find providers
 		for _, alert := range alerts {
-			var provider apiv1.Provider
+			var provider v1alpha1.Provider
 			providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
 
 			err = s.kubeClient.Get(ctx, providerName, &provider)

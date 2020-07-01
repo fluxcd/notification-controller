@@ -27,7 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1alpha1"
 )
 
 // AlertReconciler reconciles a Alert object
@@ -43,7 +43,7 @@ type AlertReconciler struct {
 func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
-	var alert apiv1.Alert
+	var alert v1alpha1.Alert
 	if err := r.Get(ctx, req.NamespacedName, &alert); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -52,20 +52,20 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	init := true
 	for _, condition := range alert.Status.Conditions {
-		if condition.Type == apiv1.ReadyCondition && condition.Status == corev1.ConditionTrue {
+		if condition.Type == v1alpha1.ReadyCondition && condition.Status == corev1.ConditionTrue {
 			init = false
 			break
 		}
 	}
 
 	if init {
-		alert.Status.Conditions = []apiv1.Condition{
+		alert.Status.Conditions = []v1alpha1.Condition{
 			{
-				Type:               apiv1.ReadyCondition,
+				Type:               v1alpha1.ReadyCondition,
 				Status:             corev1.ConditionTrue,
 				LastTransitionTime: metav1.Now(),
-				Reason:             apiv1.InitializedReason,
-				Message:            apiv1.InitializedReason,
+				Reason:             v1alpha1.InitializedReason,
+				Message:            v1alpha1.InitializedReason,
 			},
 		}
 		if err := r.Status().Update(ctx, &alert); err != nil {
@@ -79,6 +79,6 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&apiv1.Alert{}).
+		For(&v1alpha1.Alert{}).
 		Complete(r)
 }

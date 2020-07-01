@@ -27,7 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1alpha1"
 )
 
 // ProviderReconciler reconciles a Provider object
@@ -43,7 +43,7 @@ type ProviderReconciler struct {
 func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
-	var provider apiv1.Provider
+	var provider v1alpha1.Provider
 	if err := r.Get(ctx, req.NamespacedName, &provider); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -52,20 +52,20 @@ func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	init := true
 	for _, condition := range provider.Status.Conditions {
-		if condition.Type == apiv1.ReadyCondition && condition.Status == corev1.ConditionTrue {
+		if condition.Type == v1alpha1.ReadyCondition && condition.Status == corev1.ConditionTrue {
 			init = false
 			break
 		}
 	}
 
 	if init {
-		provider.Status.Conditions = []apiv1.Condition{
+		provider.Status.Conditions = []v1alpha1.Condition{
 			{
-				Type:               apiv1.ReadyCondition,
+				Type:               v1alpha1.ReadyCondition,
 				Status:             corev1.ConditionTrue,
 				LastTransitionTime: metav1.Now(),
-				Reason:             apiv1.InitializedReason,
-				Message:            apiv1.InitializedReason,
+				Reason:             v1alpha1.InitializedReason,
+				Message:            v1alpha1.InitializedReason,
 			},
 		}
 		if err := r.Status().Update(ctx, &provider); err != nil {
@@ -79,6 +79,6 @@ func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&apiv1.Provider{}).
+		For(&v1alpha1.Provider{}).
 		Complete(r)
 }
