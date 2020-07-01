@@ -26,6 +26,8 @@ spec:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
         ports:
+          - containerPort: 8888
+            name: http
           - containerPort: 8484
             name: http-prom
         env:
