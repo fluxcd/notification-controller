@@ -55,8 +55,8 @@ func NewRocket(hookURL string, username string, channel string) (*Rocket, error)
 // Post Rocket message
 func (s *Rocket) Post(event recorder.Event) error {
 	payload := SlackPayload{
-		Channel:   s.Channel,
-		Username:  s.Username,
+		Channel:  s.Channel,
+		Username: s.Username,
 	}
 
 	color := "#0076D7"

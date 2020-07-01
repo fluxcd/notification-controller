@@ -42,6 +42,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	var n Interface
 	var err error
 	switch provider {
+	case "webhook":
+		n, err = NewForwarder(f.URL)
 	case "slack":
 		n, err = NewSlack(f.URL, f.Username, f.Channel)
 	case "discord":

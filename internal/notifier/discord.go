@@ -64,8 +64,8 @@ func NewDiscord(hookURL string, username string, channel string) (*Discord, erro
 // Post Discord message
 func (s *Discord) Post(event recorder.Event) error {
 	payload := SlackPayload{
-		Channel:   s.Channel,
-		Username:  s.Username,
+		Channel:  s.Channel,
+		Username: s.Username,
 	}
 	if payload.Username == "" {
 		payload.Username = event.ReportingController
