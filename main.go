@@ -52,8 +52,8 @@ func main() {
 		concurrent           int
 		logJSON              bool
 	)
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8484", "The address the metric endpoint binds to.")
-	flag.StringVar(&eventsAddr, "events-addr", ":8888", "The address the event endpoint binds to.")
+	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&eventsAddr, "events-addr", ":9090", "The address the event endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
