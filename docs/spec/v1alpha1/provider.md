@@ -58,3 +58,35 @@ const (
 	ReadyCondition string = "Ready"
 )
 ```
+
+## Example
+
+```yaml
+apiVersion: notification.fluxcd.io/v1alpha1
+kind: Provider
+metadata:
+  name: slack
+  namespace: gitops-system
+spec:
+  type: slack
+  channel: general
+  # webhook address (ignored if secretRef is specified)
+  address: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+  # secret containing the webhook address (optional)
+  secretRef:
+    name: webhook-url
+```
+
+Webhook URL secret:
+
+```sh
+kubectl -n gitops-system create secret generic webhook-url \
+--from-literal=address=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+```
+
+Note that the secret must contain an `address` field.
+
+The provider type can be: `slack`, `msteams`, `rocket`, `discord` or `webhook`. 
+
+When type `webhook` is specified, the notification controller will post the
+incoming [event](event.md) in JSON format to the webhook address. 

@@ -76,7 +76,7 @@ spec:
   eventSeverity: info
   eventSources:
     - kind: GitRepository
-      name: webapp
+      name: '*'
     - kind: Kustomization
       name: webapp-frontend
     - kind: Kustomization
