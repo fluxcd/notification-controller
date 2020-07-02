@@ -29,6 +29,11 @@ Notification API:
 * [Alert](v1alpha1/alert.md)
 * [Event](v1alpha1/event.md)
 
+The alert delivery method is **at-most once** with a timeout of 15 seconds.
+The controller performs automatic retries for connection errors and 500-range response code.
+If the webhook receiver returns an error, the controller will retry sending an alert for four times
+with an exponential backoff of maximum 30 seconds.
+
 ## Example
 
 After installing notification-controller, we can configure alerting for events issued

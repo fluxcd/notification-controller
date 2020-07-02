@@ -84,6 +84,8 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 			}
 		}
 
+		// find providers
+		alertProviders := make([]notifier.Interface, 0)
 		if len(alerts) == 0 {
 			s.logger.Info("Discarding event, no alerts found for the involved object",
 				"object", event.InvolvedObject.Name)
@@ -136,11 +138,6 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 				return
 			}
 
-			s.logger.Info("Sending notification",
-				"object", event.InvolvedObject.Name,
-				"provider", provider.Name,
-				"webhook", webhook)
-
 			factory := notifier.NewFactory(webhook, provider.Spec.Username, provider.Spec.Channel)
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {
@@ -151,14 +148,17 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 				return
 			}
 
-			if err := sender.Post(*event); err != nil {
-				s.logger.Error(err, "failed to send notification",
-					"provider", providerName.Name,
-					"type", provider.Spec.Type)
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
+			alertProviders = append(alertProviders, sender)
+		}
 
+		// send notifications in the background
+		for _, provider := range alertProviders {
+			go func(p notifier.Interface, e recorder.Event) {
+				if err := p.Post(e); err != nil {
+					s.logger.Error(err, "failed to send notification",
+						"object", e.InvolvedObject.Namespace+"/"+e.InvolvedObject.Name)
+				}
+			}(provider, *event)
 		}
 
 		w.WriteHeader(http.StatusAccepted)
