@@ -2,9 +2,15 @@ apiVersion: notification.fluxcd.io/v1alpha1
 kind: Provider
 metadata:
   name: slack
-  namespace: gitops-system
 spec:
   type: slack
   channel: general
   secretRef:
     name: slack-url
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: slack-url
+data:
+  address: aHR0cHM6Ly9ob29rcy5zbGFjay5jb20vc2VydmljZXMv

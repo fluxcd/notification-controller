@@ -60,6 +60,35 @@ type ReceiverStatus struct {
 	URL string `json:"url,omitempty"`
 }
 
+func ReceiverReady(receiver Receiver, reason, message, url string) Receiver {
+	receiver.Status.Conditions = []Condition{
+		{
+			Type:               ReadyCondition,
+			Status:             corev1.ConditionTrue,
+			LastTransitionTime: metav1.Now(),
+			Reason:             reason,
+			Message:            message,
+		},
+	}
+	receiver.Status.URL = url
+
+	return receiver
+}
+
+func ReceiverNotReady(receiver Receiver, reason, message string) Receiver {
+	receiver.Status.Conditions = []Condition{
+		{
+			Type:               ReadyCondition,
+			Status:             corev1.ConditionFalse,
+			LastTransitionTime: metav1.Now(),
+			Reason:             reason,
+			Message:            message,
+		},
+	}
+
+	return receiver
+}
+
 // +genclient
 // +genclient:Namespaced
 // +kubebuilder:object:root=true
