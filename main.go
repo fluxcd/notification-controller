@@ -29,6 +29,7 @@ import (
 	"github.com/fluxcd/notification-controller/api/v1alpha1"
 	"github.com/fluxcd/notification-controller/controllers"
 	"github.com/fluxcd/notification-controller/internal/server"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -41,12 +42,14 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = v1alpha1.AddToScheme(scheme)
+	_ = sourcev1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
 	var (
 		eventsAddr           string
+		receiverAddr         string
 		metricsAddr          string
 		enableLeaderElection bool
 		concurrent           int
@@ -54,6 +57,8 @@ func main() {
 	)
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&eventsAddr, "events-addr", ":9090", "The address the event endpoint binds to.")
+	flag.StringVar(&receiverAddr, "receiverAddr", ":9292", "The address the webhook receiver endpoint binds to.")
+
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -105,9 +110,13 @@ func main() {
 
 	stopCh := ctrl.SetupSignalHandler()
 
-	setupLog.Info("starting HTTP server", "addr", metricsAddr)
-	httpServer := server.NewHTTPServer(eventsAddr, zapLogger, mgr.GetClient())
-	go httpServer.ListenAndServe(stopCh)
+	setupLog.Info("starting event server", "addr", eventsAddr)
+	eventServer := server.NewEventServer(eventsAddr, zapLogger, mgr.GetClient())
+	go eventServer.ListenAndServe(stopCh)
+
+	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)
+	receiverServer := server.NewReceiverServer(receiverAddr, zapLogger, mgr.GetClient())
+	go receiverServer.ListenAndServe(stopCh)
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(stopCh); err != nil {

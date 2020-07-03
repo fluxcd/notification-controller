@@ -26,24 +26,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// HTTPServer handles event POST requests
-type HTTPServer struct {
+// EventServer handles event POST requests
+type EventServer struct {
 	port       string
 	logger     logr.Logger
 	kubeClient client.Client
 }
 
-// NewHTTPServer returns an HTTP server
-func NewHTTPServer(port string, logger logr.Logger, kubeClient client.Client) *HTTPServer {
-	return &HTTPServer{
+// NewEventServer returns an HTTP server that handles events
+func NewEventServer(port string, logger logr.Logger, kubeClient client.Client) *EventServer {
+	return &EventServer{
 		port:       port,
-		logger:     logger.WithName("server"),
+		logger:     logger.WithName("event-server"),
 		kubeClient: kubeClient,
 	}
 }
 
 // ListenAndServe starts the HTTP server on the specified port
-func (s *HTTPServer) ListenAndServe(stopCh <-chan struct{}) {
+func (s *EventServer) ListenAndServe(stopCh <-chan struct{}) {
 	mux := http.DefaultServeMux
 
 	mux.HandleFunc("/", s.handleEvent())
@@ -55,7 +55,7 @@ func (s *HTTPServer) ListenAndServe(stopCh <-chan struct{}) {
 
 	go func() {
 		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-			s.logger.Error(err, "HTTP server crashed")
+			s.logger.Error(err, "Event server crashed")
 			os.Exit(1)
 		}
 	}()
@@ -66,8 +66,8 @@ func (s *HTTPServer) ListenAndServe(stopCh <-chan struct{}) {
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		s.logger.Error(err, "HTTP server graceful shutdown failed")
+		s.logger.Error(err, "Event server graceful shutdown failed")
 	} else {
-		s.logger.Info("HTTP server stopped")
+		s.logger.Info("Event server stopped")
 	}
 }

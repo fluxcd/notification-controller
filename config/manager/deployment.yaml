@@ -28,6 +28,8 @@ spec:
         ports:
           - containerPort: 9090
             name: http
+          - containerPort: 9292
+            name: http-webhook
           - containerPort: 8080
             name: http-prom
         env:
