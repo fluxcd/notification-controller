@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.0.1-beta.1 (2020-07-03)
+
+This beta release comes with wildcard support for defining alerts
+that target all resources of a particular kind in a namespace.
+
 ## 0.0.1-alpha.2 (2020-07-02)
 
 This alpha release comes with improvements to alerts delivering.
