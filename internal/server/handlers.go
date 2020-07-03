@@ -73,7 +73,7 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 				if source.Namespace == "" {
 					source.Namespace = alert.Namespace
 				}
-				if event.InvolvedObject.Name == source.Name &&
+				if (source.Name == "*" || event.InvolvedObject.Name == source.Name) &&
 					event.InvolvedObject.Namespace == source.Namespace &&
 					event.InvolvedObject.Kind == source.Kind {
 					if event.Severity == alert.Spec.EventSeverity ||
@@ -88,7 +88,7 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 		alertProviders := make([]notifier.Interface, 0)
 		if len(alerts) == 0 {
 			s.logger.Info("Discarding event, no alerts found for the involved object",
-				"object", event.InvolvedObject.Name)
+				"object", event.InvolvedObject.Namespace+"/"+event.InvolvedObject.Name)
 			w.WriteHeader(http.StatusAccepted)
 			return
 		}
@@ -101,7 +101,7 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 			err = s.kubeClient.Get(ctx, providerName, &provider)
 			if err != nil {
 				s.logger.Error(err, "failed to read provider",
-					"provider", providerName.Name)
+					"provider", providerName)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
@@ -114,7 +114,7 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 				err = s.kubeClient.Get(ctx, secretName, &secret)
 				if err != nil {
 					s.logger.Error(err, "failed to read secret",
-						"provider", providerName.Name,
+						"provider", providerName,
 						"secret", secretName.Name)
 					w.WriteHeader(http.StatusBadRequest)
 					return
@@ -124,7 +124,7 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 					webhook = string(address)
 				} else {
 					s.logger.Error(err, "secret does not contain an address",
-						"provider", providerName.Name,
+						"provider", providerName,
 						"secret", secretName.Name)
 					w.WriteHeader(http.StatusBadRequest)
 					return
@@ -133,7 +133,7 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 
 			if webhook == "" {
 				s.logger.Error(nil, "provider has no address",
-					"provider", providerName.Name)
+					"provider", providerName)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
@@ -142,7 +142,7 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {
 				s.logger.Error(err, "failed to initialise provider",
-					"provider", providerName.Name,
+					"provider", providerName,
 					"type", provider.Spec.Type)
 				w.WriteHeader(http.StatusBadRequest)
 				return
@@ -150,6 +150,10 @@ func (s *HTTPServer) handleEvent() func(w http.ResponseWriter, r *http.Request) 
 
 			alertProviders = append(alertProviders, sender)
 		}
+
+		s.logger.Info("Dispatching event",
+			"object", event.InvolvedObject.Namespace+"/"+event.InvolvedObject.Name,
+			"message", event.Message)
 
 		// send notifications in the background
 		for _, provider := range alertProviders {

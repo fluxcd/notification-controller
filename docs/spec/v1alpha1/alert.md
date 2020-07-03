@@ -47,3 +47,47 @@ const (
 	ReadyCondition string = "Ready"
 )
 ```
+
+## Example
+
+```yaml
+apiVersion: notification.fluxcd.io/v1alpha1
+kind: Alert
+metadata:
+  name: webapp
+  namespace: gitops-system
+spec:
+  providerRef: 
+    name: on-call-slack
+  eventSeverity: info
+  eventSources:
+    - kind: GitRepository
+      name: webapp
+    - kind: Kustomization
+      name: webapp-backend
+    - kind: Kustomization
+      name: webapp-frontend
+```
+
+The event severity can be set to `info` or `error`. 
+
+To target all resources of a particular kind in a namespace, you can use the `*` wildcard:
+
+```yaml
+apiVersion: notification.fluxcd.io/v1alpha1
+kind: Alert
+metadata:
+  name: all-kustomizations
+  namespace: gitops-system
+spec:
+  providerRef: 
+    name: dev-msteams
+  eventSeverity: error
+  eventSources:
+    - kind: Kustomization
+      namespace: gitops-system
+      name: '*'
+  suspend: false
+```
+
+If you don't specify an event source namespace, the alert namespace will be used.
