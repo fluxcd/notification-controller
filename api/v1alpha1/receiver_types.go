@@ -21,31 +21,43 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// AlertSpec defines an alerting rule for events involving a list of objects
-type AlertSpec struct {
-	// Send events using this provider
+// ReceiverSpec defines the desired state of Receiver
+type ReceiverSpec struct {
+	// Type of webhook sender, used to determine
+	// the validation procedure and payload deserialization.
+	// +kubebuilder:validation:Enum=github;gitlab
 	// +required
-	ProviderRef corev1.LocalObjectReference `json:"providerRef"`
+	Type string `json:"type"`
 
-	// Filter events based on severity, defaults to ('info').
-	// +kubebuilder:validation:Enum=info;error
-	// +optional
-	EventSeverity string `json:"eventSeverity,omitempty"`
-
-	// Filter events based on the involved objects
+	// A list of events to handle
+	// e.g. 'push' for GitHub or 'Push Hook' for GitLab.
 	// +required
-	EventSources []CrossNamespaceObjectReference `json:"eventSources"`
+	Events []string `json:"events"`
 
-	// This flag tells the controller to suspend subsequent events dispatching.
+	// A list of resources to be notified about changes.
+	// +required
+	Resources []CrossNamespaceObjectReference `json:"resources"`
+
+	// Secret reference containing the token used
+	// to validate the payload authenticity
+	// +required
+	SecretRef corev1.LocalObjectReference `json:"secretRef,omitempty"`
+
+	// This flag tells the controller to suspend subsequent events handling.
 	// Defaults to false.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
 }
 
-// AlertStatus defines the observed state of Alert
-type AlertStatus struct {
+// ReceiverStatus defines the observed state of Receiver
+type ReceiverStatus struct {
 	// +optional
 	Conditions []Condition `json:"conditions,omitempty"`
+
+	// Generated webhook URL in the format
+	// of '/hook/sha256sum(token+name+namespace)'.
+	// +optional
+	URL string `json:"url,omitempty"`
 }
 
 // +genclient
@@ -56,24 +68,24 @@ type AlertStatus struct {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message",description=""
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 
-// Alert is the Schema for the alerts API
-type Alert struct {
+// Receiver is the Schema for the receivers API
+type Receiver struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AlertSpec   `json:"spec,omitempty"`
-	Status AlertStatus `json:"status,omitempty"`
+	Spec   ReceiverSpec   `json:"spec,omitempty"`
+	Status ReceiverStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// AlertList contains a list of Alert
-type AlertList struct {
+// ReceiverList contains a list of Receiver
+type ReceiverList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Alert `json:"items"`
+	Items           []Receiver `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Alert{}, &AlertList{})
+	SchemeBuilder.Register(&Receiver{}, &ReceiverList{})
 }

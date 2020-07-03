@@ -46,3 +46,23 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - notification.fluxcd.io
+  resources:
+  - receivers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - notification.fluxcd.io
+  resources:
+  - receivers/status
+  verbs:
+  - get
+  - patch
+  - update

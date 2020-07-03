@@ -12,6 +12,8 @@ Resource Types:
 <a href="#notification.fluxcd.io/v1alpha1.Alert">Alert</a>
 </li><li>
 <a href="#notification.fluxcd.io/v1alpha1.Provider">Provider</a>
+</li><li>
+<a href="#notification.fluxcd.io/v1alpha1.Receiver">Receiver</a>
 </li></ul>
 <h3 id="notification.fluxcd.io/v1alpha1.Alert">Alert
 </h3>
@@ -277,6 +279,146 @@ ProviderStatus
 </table>
 </div>
 </div>
+<h3 id="notification.fluxcd.io/v1alpha1.Receiver">Receiver
+</h3>
+<p>Receiver is the Schema for the receivers API</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiVersion</code><br>
+string</td>
+<td>
+<code>notification.fluxcd.io/v1alpha1</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code><br>
+string
+</td>
+<td>
+<code>Receiver</code>
+</td>
+</tr>
+<tr>
+<td>
+<code>metadata</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br>
+<em>
+<a href="#notification.fluxcd.io/v1alpha1.ReceiverSpec">
+ReceiverSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>type</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Type of webhook sender, used to determine
+the validation procedure and payload deserialization.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>events</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>A list of events to handle
+e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br>
+<em>
+<a href="#notification.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">
+[]CrossNamespaceObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>A list of resources to be notified about changes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>Secret reference containing the token used
+to validate the payload authenticity</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suspend</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>This flag tells the controller to suspend subsequent events handling.
+Defaults to false.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+<tr>
+<td>
+<code>status</code><br>
+<em>
+<a href="#notification.fluxcd.io/v1alpha1.ReceiverStatus">
+ReceiverStatus
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="notification.fluxcd.io/v1alpha1.AlertSpec">AlertSpec
 </h3>
 <p>
@@ -388,7 +530,8 @@ Defaults to false.</p>
 <p>
 (<em>Appears on:</em>
 <a href="#notification.fluxcd.io/v1alpha1.AlertStatus">AlertStatus</a>, 
-<a href="#notification.fluxcd.io/v1alpha1.ProviderStatus">ProviderStatus</a>)
+<a href="#notification.fluxcd.io/v1alpha1.ProviderStatus">ProviderStatus</a>, 
+<a href="#notification.fluxcd.io/v1alpha1.ReceiverStatus">ReceiverStatus</a>)
 </p>
 <p>Condition contains condition information for a notification object.</p>
 <div class="md-typeset__scrollwrap">
@@ -472,7 +615,8 @@ transition, complementing reason.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.fluxcd.io/v1alpha1.AlertSpec">AlertSpec</a>)
+<a href="#notification.fluxcd.io/v1alpha1.AlertSpec">AlertSpec</a>, 
+<a href="#notification.fluxcd.io/v1alpha1.ReceiverSpec">ReceiverSpec</a>)
 </p>
 <p>CrossNamespaceObjectReference contains enough information to let you locate the
 typed referenced object at cluster level</p>
@@ -646,6 +790,138 @@ Kubernetes core/v1.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="notification.fluxcd.io/v1alpha1.ReceiverSpec">ReceiverSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#notification.fluxcd.io/v1alpha1.Receiver">Receiver</a>)
+</p>
+<p>ReceiverSpec defines the desired state of Receiver</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>type</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Type of webhook sender, used to determine
+the validation procedure and payload deserialization.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>events</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>A list of events to handle
+e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resources</code><br>
+<em>
+<a href="#notification.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">
+[]CrossNamespaceObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>A list of resources to be notified about changes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code><br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
+Kubernetes core/v1.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>Secret reference containing the token used
+to validate the payload authenticity</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suspend</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>This flag tells the controller to suspend subsequent events handling.
+Defaults to false.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="notification.fluxcd.io/v1alpha1.ReceiverStatus">ReceiverStatus
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#notification.fluxcd.io/v1alpha1.Receiver">Receiver</a>)
+</p>
+<p>ReceiverStatus defines the observed state of Receiver</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>conditions</code><br>
+<em>
+<a href="#notification.fluxcd.io/v1alpha1.Condition">
+[]Condition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>url</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Generated webhook URL in the format
+of &lsquo;/hook/sha256sum(token+name+namespace)&rsquo;.</p>
 </td>
 </tr>
 </tbody>

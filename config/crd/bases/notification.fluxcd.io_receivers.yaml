@@ -6,7 +6,7 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: alerts.notification.fluxcd.io
+  name: receivers.notification.fluxcd.io
 spec:
   additionalPrinterColumns:
   - JSONPath: .status.conditions[?(@.type=="Ready")].status
@@ -20,16 +20,16 @@ spec:
     type: date
   group: notification.fluxcd.io
   names:
-    kind: Alert
-    listKind: AlertList
-    plural: alerts
-    singular: alert
+    kind: Receiver
+    listKind: ReceiverList
+    plural: receivers
+    singular: receiver
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: Alert is the Schema for the alerts API
+      description: Receiver is the Schema for the receivers API
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -44,17 +44,16 @@ spec:
         metadata:
           type: object
         spec:
-          description: AlertSpec defines an alerting rule for events involving a list
-            of objects
+          description: ReceiverSpec defines the desired state of Receiver
           properties:
-            eventSeverity:
-              description: Filter events based on severity, defaults to ('info').
-              enum:
-              - info
-              - error
-              type: string
-            eventSources:
-              description: Filter events based on the involved objects
+            events:
+              description: A list of events to handle e.g. 'push' for GitHub or 'Push
+                Hook' for GitLab.
+              items:
+                type: string
+              type: array
+            resources:
+              description: A list of resources to be notified about changes.
               items:
                 description: CrossNamespaceObjectReference contains enough information
                   to let you locate the typed referenced object at cluster level
@@ -81,8 +80,9 @@ spec:
                 - name
                 type: object
               type: array
-            providerRef:
-              description: Send events using this provider
+            secretRef:
+              description: Secret reference containing the token used to validate
+                the payload authenticity
               properties:
                 name:
                   description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
@@ -91,14 +91,22 @@ spec:
               type: object
             suspend:
               description: This flag tells the controller to suspend subsequent events
-                dispatching. Defaults to false.
+                handling. Defaults to false.
               type: boolean
+            type:
+              description: Type of webhook sender, used to determine the validation
+                procedure and payload deserialization.
+              enum:
+              - github
+              - gitlab
+              type: string
           required:
-          - eventSources
-          - providerRef
+          - events
+          - resources
+          - type
           type: object
         status:
-          description: AlertStatus defines the observed state of Alert
+          description: ReceiverStatus defines the observed state of Receiver
           properties:
             conditions:
               items:
@@ -130,6 +138,9 @@ spec:
                 - type
                 type: object
               type: array
+            url:
+              description: Generated webhook URL in the format of '/hook/sha256sum(token+name+namespace)'.
+              type: string
           type: object
       type: object
   version: v1alpha1
