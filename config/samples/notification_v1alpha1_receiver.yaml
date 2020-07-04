@@ -1,7 +1,7 @@
 apiVersion: notification.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
-  name: github-receiver
+  name: receiver-sample
 spec:
   type: github
   events:

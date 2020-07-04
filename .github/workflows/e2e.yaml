@@ -51,6 +51,12 @@ jobs:
           kubectl -n notification-system rollout status deploy/notification-controller --timeout=1m
         env:
           KUBEBUILDER_ASSETS: ${{ github.workspace }}/kubebuilder/bin
+      - name: Run smoke tests
+        run: |
+          kubectl -n notification-system apply -f ./config/samples
+          kubectl -n notification-system wait provider/provider-sample --for=condition=ready --timeout=1m
+          kubectl -n notification-system wait alert/alert-sample --for=condition=ready --timeout=1m
+          kubectl -n notification-system wait receiver/receiver-sample --for=condition=ready --timeout=1m
       - name: Logs
         run: |
           kubectl -n notification-system logs deploy/notification-controller
@@ -59,3 +65,5 @@ jobs:
         run: |
           kubectl -n notification-system get providers -oyaml
           kubectl -n notification-system get alerts -oyaml
+          kubectl -n notification-system get receivers -oyaml
+          kubectl -n notification-system logs deploy/notification-controller

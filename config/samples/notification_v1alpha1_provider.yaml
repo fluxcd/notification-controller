@@ -1,7 +1,7 @@
 apiVersion: notification.fluxcd.io/v1alpha1
 kind: Provider
 metadata:
-  name: slack
+  name: provider-sample
 spec:
   type: slack
   channel: general

@@ -45,7 +45,7 @@ type ReceiverReconciler struct {
 // +kubebuilder:rbac:groups=source.fluxcd.io,resources=gitrepositories/status,verbs=get
 // +kubebuilder:rbac:groups=source.fluxcd.io,resources=helmrepositories,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=source.fluxcd.io,resources=helmrepositories/status,verbs=get
-// +kubebuilder:rbac:groups="",resources=secret,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
