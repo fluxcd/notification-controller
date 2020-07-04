@@ -19,13 +19,13 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/google/go-github/v32/github"
-	corev1 "k8s.io/api/core/v1"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
 
+	"github.com/google/go-github/v32/github"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -61,10 +61,12 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 			return
 		}
 
+		withErrors := false
 		for _, receiver := range receivers {
 			if err := s.validate(ctx, receiver, r); err != nil {
 				s.logger.Error(err, "unable to validate payload",
 					"receiver", receiver.Name)
+				withErrors = true
 				continue
 			}
 
@@ -73,11 +75,18 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 				if err := s.annotate(ctx, resource, receiver.Namespace); err != nil {
 					s.logger.Error(err, "unable to annotate resource",
 						"receiver", receiver.Name)
+					withErrors = true
 				} else {
 					s.logger.Info("resource annotated", "receiver", receiver.Name,
 						"resource", resource.Name)
 				}
 			}
+		}
+
+		if withErrors {
+			w.WriteHeader(http.StatusBadRequest)
+		} else {
+			w.WriteHeader(http.StatusOK)
 		}
 	}
 }
@@ -119,6 +128,25 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1alpha1.Receive
 		s.logger.Info("handling GitHub event: "+event, "receiver", receiver.Name)
 		return nil
 	case v1alpha1.GitLabReceiver:
+		if r.Header.Get("X-Gitlab-Token") != token {
+			return fmt.Errorf("the GitLab token does not match")
+		}
+
+		event := r.Header.Get("X-Gitlab-Event")
+		if len(receiver.Spec.Events) > 0 {
+			allowed := false
+			for _, e := range receiver.Spec.Events {
+				if strings.ToLower(event) == strings.ToLower(e) {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				return fmt.Errorf("GitLab event '%s' is not authorised", event)
+			}
+		}
+
+		s.logger.Info("handling GitLab event: "+event, "receiver", receiver.Name)
 		return nil
 	}
 	return nil
@@ -140,7 +168,7 @@ func (s *ReceiverServer) token(ctx context.Context, receiver v1alpha1.Receiver) 
 	if val, ok := secret.Data["token"]; ok {
 		token = string(val)
 	} else {
-		return "", fmt.Errorf("invalid '%s' secret data: required fields 'token'", secretName)
+		return "", fmt.Errorf("invalid '%s' secret data: required field 'token'", secretName)
 	}
 
 	return token, nil
