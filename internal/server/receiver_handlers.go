@@ -51,7 +51,7 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 
 		receivers := make([]v1alpha1.Receiver, 0)
 		for _, receiver := range allReceivers.Items {
-			if receiver.Status.URL == fmt.Sprintf("/hook/%s", digest) {
+			if receiver.Status.URL == fmt.Sprintf("/hook/%s", digest) && !receiver.Spec.Suspend {
 				receivers = append(receivers, receiver)
 			}
 		}
