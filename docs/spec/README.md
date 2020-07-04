@@ -48,7 +48,7 @@ with an exponential backoff of maximum 30 seconds.
 The notification controller should handle webhook requests on a dedicated port.
 This port can be used to create a Kubernetes LoadBalancer Service or
 Ingress to expose the receiver endpoint outside the cluster
-to be accessed by GitHub, GitLab, BitBucket, Jenkins, etc.
+to be accessed by GitHub, GitLab, Harbor, BitBucket, Jenkins, etc.
 
 Receiver API:
 

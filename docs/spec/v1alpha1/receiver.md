@@ -9,7 +9,7 @@ reconciliation for a group of resources.
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
-	// +kubebuilder:validation:Enum=generic;github;gitlab
+	// +kubebuilder:validation:Enum=generic;github;gitlab;harbor
 	// +required
 	Type string `json:"type"`
 
@@ -41,6 +41,7 @@ const (
 	GenericReceiver string = "generic"
 	GitHubReceiver  string = "github"
 	GitLabReceiver  string = "gitlab"
+	HarborReceiver  string = "harbor"
 )
 ```
 
@@ -89,6 +90,9 @@ spec:
       name: webapp
 ```
 
+Note that you have to set the generated token as the GitHub webhook secret value.
+The controller uses the `X-Hub-Signature` HTTP header to verify that the request is legitimate.
+
 GitLab receiver:
 
 ```yaml
@@ -110,6 +114,29 @@ spec:
     - kind: GitRepository
       name: webapp-backend
 ```
+
+Note that you have to configure the GitLab webhook with the generated token.
+The controller uses the `X-Gitlab-Token` HTTP header to verify that the request is legitimate.
+
+Harbor receiver:
+
+```yaml
+apiVersion: notification.fluxcd.io/v1alpha1
+kind: Receiver
+metadata:
+  name: harbor-receiver
+  namespace: gitops-system
+spec:
+  type: harbor
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: HelmRepository
+      name: webapp
+```
+
+Note that you have to set the generated token as the Harbor webhook authentication header.
+The controller uses the `Authentication` HTTP header to verify that the request is legitimate.
 
 Generic receiver:
 
