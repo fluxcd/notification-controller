@@ -356,7 +356,8 @@ the validation procedure and payload deserialization.</p>
 </em>
 </td>
 <td>
-<p>A list of events to handle
+<em>(Optional)</em>
+<p>A list of events to handle,
 e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </td>
 </tr>
@@ -833,7 +834,8 @@ the validation procedure and payload deserialization.</p>
 </em>
 </td>
 <td>
-<p>A list of events to handle
+<em>(Optional)</em>
+<p>A list of events to handle,
 e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </td>
 </tr>

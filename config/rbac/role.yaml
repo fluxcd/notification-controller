@@ -7,6 +7,14 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - secret
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - notification.fluxcd.io
   resources:
   - alerts

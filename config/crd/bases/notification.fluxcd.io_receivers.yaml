@@ -47,7 +47,7 @@ spec:
           description: ReceiverSpec defines the desired state of Receiver
           properties:
             events:
-              description: A list of events to handle e.g. 'push' for GitHub or 'Push
+              description: A list of events to handle, e.g. 'push' for GitHub or 'Push
                 Hook' for GitLab.
               items:
                 type: string
@@ -97,11 +97,11 @@ spec:
               description: Type of webhook sender, used to determine the validation
                 procedure and payload deserialization.
               enum:
+              - generic
               - github
               - gitlab
               type: string
           required:
-          - events
           - resources
           - type
           type: object

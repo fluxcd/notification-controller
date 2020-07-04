@@ -25,13 +25,13 @@ import (
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
-	// +kubebuilder:validation:Enum=github;gitlab
+	// +kubebuilder:validation:Enum=generic;github;gitlab
 	// +required
 	Type string `json:"type"`
 
-	// A list of events to handle
+	// A list of events to handle,
 	// e.g. 'push' for GitHub or 'Push Hook' for GitLab.
-	// +required
+	// +optional
 	Events []string `json:"events"`
 
 	// A list of resources to be notified about changes.
@@ -59,6 +59,12 @@ type ReceiverStatus struct {
 	// +optional
 	URL string `json:"url,omitempty"`
 }
+
+const (
+	GenericReceiver string = "generic"
+	GitHubReceiver  string = "github"
+	GitLabReceiver  string = "gitlab"
+)
 
 func ReceiverReady(receiver Receiver, reason, message, url string) Receiver {
 	receiver.Status.Conditions = []Condition{
