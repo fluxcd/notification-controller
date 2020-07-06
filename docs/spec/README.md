@@ -45,10 +45,10 @@ with an exponential backoff of maximum 30 seconds.
 
 ### Webhook receivers
 
-The notification controller should handle webhook requests on a dedicated port.
+The notification controller handles webhook requests on a dedicated port.
 This port can be used to create a Kubernetes LoadBalancer Service or
 Ingress to expose the receiver endpoint outside the cluster
-to be accessed by GitHub, GitLab, Harbor, BitBucket, Jenkins, etc.
+to be accessed by GitHub, GitLab, Bitbucket, Harbor, Jenkins, etc.
 
 Receiver API:
 
@@ -61,7 +61,7 @@ When the controller receives a POST request:
 * extract the SHA265 digest from the URL
 * loads the `Receiver` using the digest field selector
 * extracts the signature from HTTP headers based on `spec.type`
-* validates the signature using `status.Token`
+* validates the signature using the `token` secret
 * extract the event type from the payload 
 * triggers a reconciliation for `spec.resources` if the event type matches one of the `spec.events` items
 
@@ -138,7 +138,3 @@ Kustomization apply event example:
   }
 }
 ```
-
-Slack message example:
-
-![info alert](https://raw.githubusercontent.com/fluxcd/kustomize-controller/master/docs/diagrams/slack-info-alert.png)

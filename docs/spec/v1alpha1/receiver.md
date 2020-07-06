@@ -38,10 +38,11 @@ Receiver types:
 
 ```go
 const (
-	GenericReceiver string = "generic"
-	GitHubReceiver  string = "github"
-	GitLabReceiver  string = "gitlab"
-	HarborReceiver  string = "harbor"
+	GenericReceiver   string = "generic"
+	GitHubReceiver    string = "github"
+	GitLabReceiver    string = "gitlab"
+	BitbucketReceiver string = "bitbucket"
+	HarborReceiver    string = "harbor"
 )
 ```
 
@@ -118,6 +119,28 @@ spec:
 Note that you have to configure the GitLab webhook with the generated token.
 The controller uses the `X-Gitlab-Token` HTTP header to verify that the request is legitimate.
 
+Bitbucket server receiver:
+
+```yaml
+apiVersion: notification.fluxcd.io/v1alpha1
+kind: Receiver
+metadata:
+  name: bitbucket-receiver
+  namespace: gitops-system
+spec:
+  type: bitbucket
+  events:
+    - "repo:refs_changed"
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: GitRepository
+      name: webapp
+```
+
+Note that you have to set the generated token as the Bitbucket server webhook secret value.
+The controller uses the `X-Hub-Signature` HTTP header to verify that the request is legitimate.
+
 Harbor receiver:
 
 ```yaml
@@ -144,7 +167,7 @@ Generic receiver:
 apiVersion: notification.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
-  name: ci-receiver
+  name: generic-receiver
   namespace: gitops-system
 spec:
   type: generic
