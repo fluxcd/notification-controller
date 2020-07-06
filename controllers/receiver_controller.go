@@ -57,17 +57,6 @@ func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	log := r.Log.WithValues(strings.ToLower(receiver.Kind), req.NamespacedName)
 
-	init := true
-	for _, condition := range receiver.Status.Conditions {
-		if condition.Type == v1alpha1.ReadyCondition && condition.Status == corev1.ConditionTrue {
-			init = false
-			break
-		}
-	}
-	if !init {
-		return ctrl.Result{}, nil
-	}
-
 	token, err := r.token(ctx, receiver)
 	if err != nil {
 		receiver = v1alpha1.ReceiverNotReady(receiver, v1alpha1.TokenNotFoundReason, err.Error())
@@ -77,7 +66,20 @@ func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
+	isReady := false
+	for _, condition := range receiver.Status.Conditions {
+		if condition.Type == v1alpha1.ReadyCondition && condition.Status == corev1.ConditionTrue {
+			isReady = true
+			break
+		}
+	}
+
 	receiverURL := fmt.Sprintf("/hook/%s", sha256sum(token+receiver.Name+receiver.Namespace))
+
+	if receiver.Status.URL == receiverURL && isReady {
+		return ctrl.Result{}, nil
+	}
+
 	receiver = v1alpha1.ReceiverReady(receiver,
 		v1alpha1.InitializedReason,
 		"Receiver initialised with URL: "+receiverURL,
