@@ -18,6 +18,8 @@ package notifier
 
 import (
 	"fmt"
+
+	"github.com/fluxcd/notification-controller/api/v1alpha1"
 )
 
 type Factory struct {
@@ -42,15 +44,15 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	var n Interface
 	var err error
 	switch provider {
-	case "webhook":
+	case v1alpha1.GenericProvider:
 		n, err = NewForwarder(f.URL)
-	case "slack":
+	case v1alpha1.SlackProvider:
 		n, err = NewSlack(f.URL, f.Username, f.Channel)
-	case "discord":
+	case v1alpha1.DiscordProvider:
 		n, err = NewDiscord(f.URL, f.Username, f.Channel)
-	case "rocket":
+	case v1alpha1.RocketProvider:
 		n, err = NewRocket(f.URL, f.Username, f.Channel)
-	case "msteams":
+	case v1alpha1.MSTeamsProvider:
 		n, err = NewMSTeams(f.URL)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)

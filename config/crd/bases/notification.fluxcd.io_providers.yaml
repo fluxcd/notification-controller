@@ -67,7 +67,7 @@ spec:
               - discord
               - msteams
               - rocket
-              - webhook
+              - generic
               type: string
             username:
               description: Bot username for this provider

@@ -9,7 +9,7 @@ Spec:
 ```go
 type ProviderSpec struct {
 	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;webhook
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic
 	// +required
 	Type string `json:"type"`
 
@@ -86,7 +86,7 @@ kubectl -n gitops-system create secret generic webhook-url \
 
 Note that the secret must contain an `address` field.
 
-The provider type can be: `slack`, `msteams`, `rocket`, `discord` or `webhook`. 
+The provider type can be: `slack`, `msteams`, `rocket`, `discord` or `generic`. 
 
-When type `webhook` is specified, the notification controller will post the
+When type `generic` is specified, the notification controller will post the
 incoming [event](event.md) in JSON format to the webhook address. 
