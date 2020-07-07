@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.0.1 (2020-07-07)
+
+This prerelease comes with webhook receivers support.
+With the [Receiver API](https://github.com/fluxcd/notification-controller/blob/master/docs/spec/v1alpha1/receiver.md)
+you can define a webhook receiver (GitHub, GitLab, Bitbucket, Harbour, generic)
+that triggers reconciliation for a group of resources.
+
 ## 0.0.1-beta.1 (2020-07-03)
 
 This beta release comes with wildcard support for defining alerts

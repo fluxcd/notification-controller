@@ -4,9 +4,10 @@ This is the v1alpha1 API specification for defining events handling and dispatch
 
 ## Specification
 
+* [Alert](alert.md)
 * [Event](event.md)
 * [Provider](provider.md)
-* [Alert](alert.md)
+* [Receiver](receiver.md)
 
 ## Go Client
 
