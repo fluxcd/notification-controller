@@ -61,6 +61,9 @@ const (
 	// is underway.
 	ProgressingReason string = "Progressing"
 
+	// TokenNotFound represents the fact that receiver token can't be found.
+	TokenNotFoundReason string = "TokenNotFound"
+
 	// SuspendedReason represents the fact that the resource reconciliation is suspended.
 	SuspendedReason string = "Suspended"
 )

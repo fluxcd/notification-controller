@@ -7,4 +7,7 @@ resources:
 - group: notification
   kind: Alert
   version: v1alpha1
+- group: notification
+  kind: Receiver
+  version: v1alpha1
 version: "2"

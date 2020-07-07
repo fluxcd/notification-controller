@@ -42,26 +42,6 @@ type AlertSpec struct {
 	Suspend bool `json:"suspend,omitempty"`
 }
 
-// CrossNamespaceObjectReference contains enough information to let you locate the
-// typed referenced object at cluster level
-type CrossNamespaceObjectReference struct {
-	// API version of the referent
-	// +optional
-	APIVersion string `json:"apiVersion,omitempty"`
-
-	// Kind of the referent
-	// +required
-	Kind string `json:"kind,omitempty"`
-
-	// Name of the referent
-	// +required
-	Name string `json:"name"`
-
-	// Namespace of the referent
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
-}
-
 // AlertStatus defines the observed state of Alert
 type AlertStatus struct {
 	// +optional

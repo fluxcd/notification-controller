@@ -9,13 +9,13 @@ reconciliation for a group of resources.
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
-	// +kubebuilder:validation:Enum=github;gitlab
+	// +kubebuilder:validation:Enum=generic;github;gitlab;harbor
 	// +required
 	Type string `json:"type"`
 
-	// A list of events to handle
+	// A list of events to handle,
 	// e.g. 'push' for GitHub or 'Push Hook' for GitLab.
-	// +required
+	// +optional
 	Events []string `json:"events"`
 
 	// A list of resources to be notified about changes.
@@ -34,12 +34,15 @@ type ReceiverSpec struct {
 }
 ```
 
-Webhook sender type:
+Receiver types:
 
 ```go
 const (
-	GitHubWebhook string = "github"
-	GitLabWebhook string = "gitlab"
+	GenericReceiver   string = "generic"
+	GitHubReceiver    string = "github"
+	GitLabReceiver    string = "gitlab"
+	BitbucketReceiver string = "bitbucket"
+	HarborReceiver    string = "harbor"
 )
 ```
 
@@ -54,20 +57,127 @@ type ReceiverStatus struct {
 }
 ```
 
-## Implementation
+## Example
 
-The controller handles the webhook requests on a dedicated port. This port can be used to create
-a Kubernetes LoadBalancer Service or Ingress to expose the receiver endpoint outside the cluster.
+Generate a random string and create a secret with a `token` field:
 
-When a `Receiver` is created, the controller sets the `Receiver`
-status to Ready and generates the URL in the format `/hook/sha256sum(token+name+namespace)`.
-The `ReceiverReconciler` creates an indexer for the SHA265 digest
-so that it can be used as a field selector.
+```sh
+TOKEN=$(head -c 12 /dev/urandom | shasum | cut -d ' ' -f1)
+echo $TOKEN
 
-When the controller receives a POST request:
-* extract the SHA265 digest from the URL
-* loads the `Receiver` using the digest field selector
-* extracts the signature from HTTP headers based on `spec.type`
-* validates the signature using `status.Token` based on `spec.type`
-* extract the event type from the payload 
-* triggers a reconciliation for `spec.resources` if the event type matches one of the `spec.events` items
+kubectl -n gitops-system create secret generic webhook-token \	
+--from-literal=token=$TOKEN
+```
+
+GitHub receiver:
+
+```yaml
+apiVersion: notification.fluxcd.io/v1alpha1
+kind: Receiver
+metadata:
+  name: github-receiver
+  namespace: gitops-system
+spec:
+  type: github
+  events:
+    - "ping"
+    - "push"
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: GitRepository
+      name: webapp
+    - kind: HelmRepository
+      name: webapp
+```
+
+Note that you have to set the generated token as the GitHub webhook secret value.
+The controller uses the `X-Hub-Signature` HTTP header to verify that the request is legitimate.
+
+GitLab receiver:
+
+```yaml
+apiVersion: notification.fluxcd.io/v1alpha1
+kind: Receiver
+metadata:
+  name: gitlab-receiver
+  namespace: gitops-system
+spec:
+  type: gitlab
+  events:
+    - "Push Hook"
+    - "Tag Push Hook"
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: GitRepository
+      name: webapp-frontend
+    - kind: GitRepository
+      name: webapp-backend
+```
+
+Note that you have to configure the GitLab webhook with the generated token.
+The controller uses the `X-Gitlab-Token` HTTP header to verify that the request is legitimate.
+
+Bitbucket server receiver:
+
+```yaml
+apiVersion: notification.fluxcd.io/v1alpha1
+kind: Receiver
+metadata:
+  name: bitbucket-receiver
+  namespace: gitops-system
+spec:
+  type: bitbucket
+  events:
+    - "repo:refs_changed"
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: GitRepository
+      name: webapp
+```
+
+Note that you have to set the generated token as the Bitbucket server webhook secret value.
+The controller uses the `X-Hub-Signature` HTTP header to verify that the request is legitimate.
+
+Harbor receiver:
+
+```yaml
+apiVersion: notification.fluxcd.io/v1alpha1
+kind: Receiver
+metadata:
+  name: harbor-receiver
+  namespace: gitops-system
+spec:
+  type: harbor
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: HelmRepository
+      name: webapp
+```
+
+Note that you have to set the generated token as the Harbor webhook authentication header.
+The controller uses the `Authentication` HTTP header to verify that the request is legitimate.
+
+Generic receiver:
+
+```yaml
+apiVersion: notification.fluxcd.io/v1alpha1
+kind: Receiver
+metadata:
+  name: generic-receiver
+  namespace: gitops-system
+spec:
+  type: generic
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: GitRepository
+      name: webapp
+    - kind: HelmRepository
+      name: webapp
+```
+
+When the receiver type is set to `generic`, the controller will not perform token validation nor event filtering.

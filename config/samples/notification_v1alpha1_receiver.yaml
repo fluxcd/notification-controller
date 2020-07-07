@@ -1,0 +1,21 @@
+apiVersion: notification.fluxcd.io/v1alpha1
+kind: Receiver
+metadata:
+  name: receiver-sample
+spec:
+  type: github
+  events:
+    - ping
+    - push
+  resources:
+    - kind: GitRepository
+      name: podinfo
+  secretRef:
+    name: github-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-token
+data:
+  token: YUhSMGNITTZMeTlvYjI5cmN5NXpiR0ZqYXk1amIyMHZjMlZ5ZG1salpYTXY=
