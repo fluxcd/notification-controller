@@ -24,7 +24,7 @@ import (
 // ProviderSpec defines the desired state of Provider
 type ProviderSpec struct {
 	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;webhook
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic
 	// +required
 	Type string `json:"type"`
 
@@ -44,6 +44,14 @@ type ProviderSpec struct {
 	// +optional
 	SecretRef *corev1.LocalObjectReference `json:"secretRef,omitempty"`
 }
+
+const (
+	GenericProvider string = "generic"
+	SlackProvider   string = "slack"
+	DiscordProvider string = "discord"
+	MSTeamsProvider string = "msteams"
+	RocketProvider  string = "rocket"
+)
 
 // ProviderStatus defines the observed state of Provider
 type ProviderStatus struct {
