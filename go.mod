@@ -3,8 +3,8 @@ module github.com/fluxcd/notification-controller
 go 1.13
 
 require (
-	github.com/fluxcd/pkg v0.0.2
-	github.com/fluxcd/source-controller v0.0.2
+	github.com/fluxcd/pkg v0.0.3
+	github.com/fluxcd/source-controller v0.0.5
 	github.com/go-logr/logr v0.1.0
 	github.com/google/go-github/v32 v32.0.0
 	github.com/hashicorp/go-retryablehttp v0.6.6
