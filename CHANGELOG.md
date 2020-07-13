@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.0.2 (2020-07-13)
+
+This prerelease comes with improvements to logging.
+The default logging format is JSON and the timestamp format is ISO8601.
+
 ## 0.0.1 (2020-07-07)
 
 This prerelease comes with webhook receivers support.
