@@ -20,11 +20,11 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
+	"net/http"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"net/http"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"time"
 
 	"github.com/fluxcd/notification-controller/api/v1alpha1"
 	"github.com/fluxcd/notification-controller/internal/notifier"
@@ -53,7 +53,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		defer cancel()
 
 		var allAlerts v1alpha1.AlertList
-		err = s.kubeClient.List(ctx, &allAlerts, client.InNamespace(event.InvolvedObject.Namespace))
+		err = s.kubeClient.List(ctx, &allAlerts)
 		if err != nil {
 			s.logger.Error(err, "listing alerts failed")
 			w.WriteHeader(http.StatusBadRequest)
@@ -88,7 +88,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		alertProviders := make([]notifier.Interface, 0)
 		if len(alerts) == 0 {
 			s.logger.Info("Discarding event, no alerts found for the involved object",
-				"object", event.InvolvedObject.Namespace+"/"+event.InvolvedObject.Name)
+				"object", event.InvolvedObject.Namespace+"/"+event.InvolvedObject.Name,
+				"kind", event.InvolvedObject.Kind)
 			w.WriteHeader(http.StatusAccepted)
 			return
 		}
@@ -153,6 +154,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 		s.logger.Info("Dispatching event",
 			"object", event.InvolvedObject.Namespace+"/"+event.InvolvedObject.Name,
+			"kind", event.InvolvedObject.Kind,
 			"message", event.Message)
 
 		// send notifications in the background
@@ -160,7 +162,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			go func(p notifier.Interface, e recorder.Event) {
 				if err := p.Post(e); err != nil {
 					s.logger.Error(err, "failed to send notification",
-						"object", e.InvolvedObject.Namespace+"/"+e.InvolvedObject.Name)
+						"object", e.InvolvedObject.Namespace+"/"+e.InvolvedObject.Name,
+						"kind", event.InvolvedObject.Kind)
 				}
 			}(provider, *event)
 		}
