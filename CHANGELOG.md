@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.0.3 (2020-07-14)
+
+This prerelease allows alert rules to be reconciled
+outside of the controller's namespace.
+
 ## 0.0.2 (2020-07-13)
 
 This prerelease comes with improvements to logging.
