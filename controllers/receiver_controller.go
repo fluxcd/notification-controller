@@ -55,13 +55,12 @@ func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	log := r.Log.WithValues(strings.ToLower(receiver.Kind), req.NamespacedName)
+	log := r.Log.WithValues("controller", strings.ToLower(receiver.Kind), "request", req.NamespacedName)
 
 	token, err := r.token(ctx, receiver)
 	if err != nil {
 		receiver = v1alpha1.ReceiverNotReady(receiver, v1alpha1.TokenNotFoundReason, err.Error())
 		if err := r.Status().Update(ctx, &receiver); err != nil {
-			log.Error(err, "unable to update Receiver status")
 			return ctrl.Result{Requeue: true}, err
 		}
 	}
@@ -85,7 +84,6 @@ func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		"Receiver initialised with URL: "+receiverURL,
 		receiverURL)
 	if err := r.Status().Update(ctx, &receiver); err != nil {
-		log.Error(err, "unable to update Receiver status")
 		return ctrl.Result{Requeue: true}, err
 	}
 
