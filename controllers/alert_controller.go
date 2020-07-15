@@ -48,7 +48,7 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	log := r.Log.WithValues(strings.ToLower(alert.Kind), req.NamespacedName)
+	log := r.Log.WithValues("controller", strings.ToLower(alert.Kind), "request", req.NamespacedName)
 
 	init := true
 	for _, condition := range alert.Status.Conditions {

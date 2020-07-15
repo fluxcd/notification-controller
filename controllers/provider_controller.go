@@ -48,7 +48,7 @@ func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	log := r.Log.WithValues(strings.ToLower(provider.Kind), req.NamespacedName)
+	log := r.Log.WithValues("controller", strings.ToLower(provider.Kind), "request", req.NamespacedName)
 
 	init := true
 	for _, condition := range provider.Status.Conditions {
