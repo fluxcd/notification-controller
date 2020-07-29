@@ -68,6 +68,7 @@ spec:
                 - msteams
                 - rocket
                 - generic
+                - github
                 type: string
               username:
                 description: Bot username for this provider
