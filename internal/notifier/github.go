@@ -68,7 +68,8 @@ func (g *GitHub) Post(event recorder.Event) error {
 		return err
 	}
 
-	desc := fmt.Sprintf("%v %v %v", event.InvolvedObject.Kind, event.InvolvedObject.Name, event.Reason)
+	reason := strings.Join(split(event.Reason), " ")
+	desc := fmt.Sprintf("%v %v %v", event.InvolvedObject.Kind, event.InvolvedObject.Name, reason)
 	status := &github.RepoStatus{
 		State:       &state,
 		Context:     github.String("cd/flux"),
