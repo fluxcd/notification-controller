@@ -18,13 +18,14 @@ package notifier
 
 import (
 	"encoding/json"
-	"github.com/fluxcd/pkg/recorder"
 	"io/ioutil"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/fluxcd/pkg/recorder"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/require"
 )

@@ -2,20 +2,20 @@
 <p>Packages:</p>
 <ul class="simple">
 <li>
-<a href="#notification.fluxcd.io%2fv1alpha1">notification.fluxcd.io/v1alpha1</a>
+<a href="#notification.toolkit.fluxcd.io%2fv1alpha1">notification.toolkit.fluxcd.io/v1alpha1</a>
 </li>
 </ul>
-<h2 id="notification.fluxcd.io/v1alpha1">notification.fluxcd.io/v1alpha1</h2>
+<h2 id="notification.toolkit.fluxcd.io/v1alpha1">notification.toolkit.fluxcd.io/v1alpha1</h2>
 <p>Package v1alpha1 contains API Schema definitions for the notification v1alpha1 API group</p>
 Resource Types:
 <ul class="simple"><li>
-<a href="#notification.fluxcd.io/v1alpha1.Alert">Alert</a>
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Alert">Alert</a>
 </li><li>
-<a href="#notification.fluxcd.io/v1alpha1.Provider">Provider</a>
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Provider">Provider</a>
 </li><li>
-<a href="#notification.fluxcd.io/v1alpha1.Receiver">Receiver</a>
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Receiver">Receiver</a>
 </li></ul>
-<h3 id="notification.fluxcd.io/v1alpha1.Alert">Alert
+<h3 id="notification.toolkit.fluxcd.io/v1alpha1.Alert">Alert
 </h3>
 <p>Alert is the Schema for the alerts API</p>
 <div class="md-typeset__scrollwrap">
@@ -33,7 +33,7 @@ Resource Types:
 <code>apiVersion</code><br>
 string</td>
 <td>
-<code>notification.fluxcd.io/v1alpha1</code>
+<code>notification.toolkit.fluxcd.io/v1alpha1</code>
 </td>
 </tr>
 <tr>
@@ -63,7 +63,7 @@ Refer to the Kubernetes API documentation for the fields of the
 <td>
 <code>spec</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.AlertSpec">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.AlertSpec">
 AlertSpec
 </a>
 </em>
@@ -101,7 +101,7 @@ string
 <td>
 <code>eventSources</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">
 []CrossNamespaceObjectReference
 </a>
 </em>
@@ -130,7 +130,7 @@ Defaults to false.</p>
 <td>
 <code>status</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.AlertStatus">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.AlertStatus">
 AlertStatus
 </a>
 </em>
@@ -142,7 +142,7 @@ AlertStatus
 </table>
 </div>
 </div>
-<h3 id="notification.fluxcd.io/v1alpha1.Provider">Provider
+<h3 id="notification.toolkit.fluxcd.io/v1alpha1.Provider">Provider
 </h3>
 <p>Provider is the Schema for the providers API</p>
 <div class="md-typeset__scrollwrap">
@@ -160,7 +160,7 @@ AlertStatus
 <code>apiVersion</code><br>
 string</td>
 <td>
-<code>notification.fluxcd.io/v1alpha1</code>
+<code>notification.toolkit.fluxcd.io/v1alpha1</code>
 </td>
 </tr>
 <tr>
@@ -190,7 +190,7 @@ Refer to the Kubernetes API documentation for the fields of the
 <td>
 <code>spec</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.ProviderSpec">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.ProviderSpec">
 ProviderSpec
 </a>
 </em>
@@ -267,7 +267,7 @@ Kubernetes core/v1.LocalObjectReference
 <td>
 <code>status</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.ProviderStatus">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.ProviderStatus">
 ProviderStatus
 </a>
 </em>
@@ -279,7 +279,7 @@ ProviderStatus
 </table>
 </div>
 </div>
-<h3 id="notification.fluxcd.io/v1alpha1.Receiver">Receiver
+<h3 id="notification.toolkit.fluxcd.io/v1alpha1.Receiver">Receiver
 </h3>
 <p>Receiver is the Schema for the receivers API</p>
 <div class="md-typeset__scrollwrap">
@@ -297,7 +297,7 @@ ProviderStatus
 <code>apiVersion</code><br>
 string</td>
 <td>
-<code>notification.fluxcd.io/v1alpha1</code>
+<code>notification.toolkit.fluxcd.io/v1alpha1</code>
 </td>
 </tr>
 <tr>
@@ -327,7 +327,7 @@ Refer to the Kubernetes API documentation for the fields of the
 <td>
 <code>spec</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.ReceiverSpec">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.ReceiverSpec">
 ReceiverSpec
 </a>
 </em>
@@ -365,7 +365,7 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>resources</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">
 []CrossNamespaceObjectReference
 </a>
 </em>
@@ -408,7 +408,7 @@ Defaults to false.</p>
 <td>
 <code>status</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.ReceiverStatus">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.ReceiverStatus">
 ReceiverStatus
 </a>
 </em>
@@ -420,11 +420,11 @@ ReceiverStatus
 </table>
 </div>
 </div>
-<h3 id="notification.fluxcd.io/v1alpha1.AlertSpec">AlertSpec
+<h3 id="notification.toolkit.fluxcd.io/v1alpha1.AlertSpec">AlertSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.fluxcd.io/v1alpha1.Alert">Alert</a>)
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Alert">Alert</a>)
 </p>
 <p>AlertSpec defines an alerting rule for events involving a list of objects</p>
 <div class="md-typeset__scrollwrap">
@@ -466,7 +466,7 @@ string
 <td>
 <code>eventSources</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">
 []CrossNamespaceObjectReference
 </a>
 </em>
@@ -492,11 +492,11 @@ Defaults to false.</p>
 </table>
 </div>
 </div>
-<h3 id="notification.fluxcd.io/v1alpha1.AlertStatus">AlertStatus
+<h3 id="notification.toolkit.fluxcd.io/v1alpha1.AlertStatus">AlertStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.fluxcd.io/v1alpha1.Alert">Alert</a>)
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Alert">Alert</a>)
 </p>
 <p>AlertStatus defines the observed state of Alert</p>
 <div class="md-typeset__scrollwrap">
@@ -513,7 +513,7 @@ Defaults to false.</p>
 <td>
 <code>conditions</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.Condition">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Condition">
 []Condition
 </a>
 </em>
@@ -526,13 +526,13 @@ Defaults to false.</p>
 </table>
 </div>
 </div>
-<h3 id="notification.fluxcd.io/v1alpha1.Condition">Condition
+<h3 id="notification.toolkit.fluxcd.io/v1alpha1.Condition">Condition
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.fluxcd.io/v1alpha1.AlertStatus">AlertStatus</a>, 
-<a href="#notification.fluxcd.io/v1alpha1.ProviderStatus">ProviderStatus</a>, 
-<a href="#notification.fluxcd.io/v1alpha1.ReceiverStatus">ReceiverStatus</a>)
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.AlertStatus">AlertStatus</a>, 
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.ProviderStatus">ProviderStatus</a>, 
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.ReceiverStatus">ReceiverStatus</a>)
 </p>
 <p>Condition contains condition information for a notification object.</p>
 <div class="md-typeset__scrollwrap">
@@ -612,12 +612,12 @@ transition, complementing reason.</p>
 </table>
 </div>
 </div>
-<h3 id="notification.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">CrossNamespaceObjectReference
+<h3 id="notification.toolkit.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">CrossNamespaceObjectReference
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.fluxcd.io/v1alpha1.AlertSpec">AlertSpec</a>, 
-<a href="#notification.fluxcd.io/v1alpha1.ReceiverSpec">ReceiverSpec</a>)
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.AlertSpec">AlertSpec</a>, 
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.ReceiverSpec">ReceiverSpec</a>)
 </p>
 <p>CrossNamespaceObjectReference contains enough information to let you locate the
 typed referenced object at cluster level</p>
@@ -681,11 +681,11 @@ string
 </table>
 </div>
 </div>
-<h3 id="notification.fluxcd.io/v1alpha1.ProviderSpec">ProviderSpec
+<h3 id="notification.toolkit.fluxcd.io/v1alpha1.ProviderSpec">ProviderSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.fluxcd.io/v1alpha1.Provider">Provider</a>)
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Provider">Provider</a>)
 </p>
 <p>ProviderSpec defines the desired state of Provider</p>
 <div class="md-typeset__scrollwrap">
@@ -763,11 +763,11 @@ Kubernetes core/v1.LocalObjectReference
 </table>
 </div>
 </div>
-<h3 id="notification.fluxcd.io/v1alpha1.ProviderStatus">ProviderStatus
+<h3 id="notification.toolkit.fluxcd.io/v1alpha1.ProviderStatus">ProviderStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.fluxcd.io/v1alpha1.Provider">Provider</a>)
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Provider">Provider</a>)
 </p>
 <p>ProviderStatus defines the observed state of Provider</p>
 <div class="md-typeset__scrollwrap">
@@ -784,7 +784,7 @@ Kubernetes core/v1.LocalObjectReference
 <td>
 <code>conditions</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.Condition">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Condition">
 []Condition
 </a>
 </em>
@@ -797,11 +797,11 @@ Kubernetes core/v1.LocalObjectReference
 </table>
 </div>
 </div>
-<h3 id="notification.fluxcd.io/v1alpha1.ReceiverSpec">ReceiverSpec
+<h3 id="notification.toolkit.fluxcd.io/v1alpha1.ReceiverSpec">ReceiverSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.fluxcd.io/v1alpha1.Receiver">Receiver</a>)
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Receiver">Receiver</a>)
 </p>
 <p>ReceiverSpec defines the desired state of Receiver</p>
 <div class="md-typeset__scrollwrap">
@@ -843,7 +843,7 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>resources</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.CrossNamespaceObjectReference">
 []CrossNamespaceObjectReference
 </a>
 </em>
@@ -883,11 +883,11 @@ Defaults to false.</p>
 </table>
 </div>
 </div>
-<h3 id="notification.fluxcd.io/v1alpha1.ReceiverStatus">ReceiverStatus
+<h3 id="notification.toolkit.fluxcd.io/v1alpha1.ReceiverStatus">ReceiverStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.fluxcd.io/v1alpha1.Receiver">Receiver</a>)
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Receiver">Receiver</a>)
 </p>
 <p>ReceiverStatus defines the observed state of Receiver</p>
 <div class="md-typeset__scrollwrap">
@@ -904,7 +904,7 @@ Defaults to false.</p>
 <td>
 <code>conditions</code><br>
 <em>
-<a href="#notification.fluxcd.io/v1alpha1.Condition">
+<a href="#notification.toolkit.fluxcd.io/v1alpha1.Condition">
 []Condition
 </a>
 </em>

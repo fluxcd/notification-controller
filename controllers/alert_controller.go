@@ -37,8 +37,8 @@ type AlertReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=notification.fluxcd.io,resources=alerts,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=notification.fluxcd.io,resources=alerts/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=alerts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=alerts/status,verbs=get;update;patch
 
 func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()

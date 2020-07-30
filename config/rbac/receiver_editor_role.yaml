@@ -5,7 +5,7 @@ metadata:
   name: receiver-editor-role
 rules:
 - apiGroups:
-  - notification.fluxcd.io
+  - notification.toolkit.fluxcd.io
   resources:
   - receivers
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - notification.fluxcd.io
+  - notification.toolkit.fluxcd.io
   resources:
   - receivers/status
   verbs:

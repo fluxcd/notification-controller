@@ -6,7 +6,7 @@
 [![release](https://img.shields.io/github/release/fluxcd/notification-controller/all.svg)](https://github.com/fluxcd/notification-controller/releases)
 
 Experimental event forwarded and notification dispatcher for the GitOps Toolkit controllers.
-The notification-controller is an implementation of the [notification.fluxcd.io](docs/spec/v1alpha1/README.md)
+The notification-controller is an implementation of the [notification.toolkit.fluxcd.io](docs/spec/v1alpha1/README.md)
 API based on the specifications described in the [RFC](docs/spec/README.md).
 
 ![overview](docs/diagrams/notification-controller-overview.png)

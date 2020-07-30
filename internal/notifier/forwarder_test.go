@@ -18,11 +18,12 @@ package notifier
 
 import (
 	"encoding/json"
-	"github.com/fluxcd/pkg/recorder"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/fluxcd/pkg/recorder"
 
 	"github.com/stretchr/testify/require"
 )

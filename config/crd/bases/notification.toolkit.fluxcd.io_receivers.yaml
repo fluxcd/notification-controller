@@ -6,14 +6,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.3.0
   creationTimestamp: null
-  name: providers.notification.fluxcd.io
+  name: receivers.notification.toolkit.fluxcd.io
 spec:
-  group: notification.fluxcd.io
+  group: notification.toolkit.fluxcd.io
   names:
-    kind: Provider
-    listKind: ProviderList
-    plural: providers
-    singular: provider
+    kind: Receiver
+    listKind: ReceiverList
+    plural: receivers
+    singular: receiver
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -29,7 +29,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Provider is the Schema for the providers API
+        description: Receiver is the Schema for the receivers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -44,39 +44,71 @@ spec:
           metadata:
             type: object
           spec:
-            description: ProviderSpec defines the desired state of Provider
+            description: ReceiverSpec defines the desired state of Receiver
             properties:
-              address:
-                description: HTTP(S) webhook address of this provider
-                type: string
-              channel:
-                description: Alert channel for this provider
-                type: string
+              events:
+                description: A list of events to handle, e.g. 'push' for GitHub or
+                  'Push Hook' for GitLab.
+                items:
+                  type: string
+                type: array
+              resources:
+                description: A list of resources to be notified about changes.
+                items:
+                  description: CrossNamespaceObjectReference contains enough information
+                    to let you locate the typed referenced object at cluster level
+                  properties:
+                    apiVersion:
+                      description: API version of the referent
+                      type: string
+                    kind:
+                      description: Kind of the referent
+                      enum:
+                      - GitRepository
+                      - Kustomization
+                      - HelmRelease
+                      - HelmChart
+                      - HelmRepository
+                      type: string
+                    name:
+                      description: Name of the referent
+                      type: string
+                    namespace:
+                      description: Namespace of the referent
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
               secretRef:
-                description: Secret reference containing the provider webhook URL
+                description: Secret reference containing the token used to validate
+                  the payload authenticity
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              suspend:
+                description: This flag tells the controller to suspend subsequent
+                  events handling. Defaults to false.
+                type: boolean
               type:
-                description: Type of provider
+                description: Type of webhook sender, used to determine the validation
+                  procedure and payload deserialization.
                 enum:
-                - slack
-                - discord
-                - msteams
-                - rocket
                 - generic
-                type: string
-              username:
-                description: Bot username for this provider
+                - github
+                - gitlab
+                - bitbucket
+                - harbor
                 type: string
             required:
+            - resources
             - type
             type: object
           status:
-            description: ProviderStatus defines the observed state of Provider
+            description: ReceiverStatus defines the observed state of Receiver
             properties:
               conditions:
                 items:
@@ -108,6 +140,9 @@ spec:
                   - type
                   type: object
                 type: array
+              url:
+                description: Generated webhook URL in the format of '/hook/sha256sum(token+name+namespace)'.
+                type: string
             type: object
         type: object
     served: true

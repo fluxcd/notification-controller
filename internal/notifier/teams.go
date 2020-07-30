@@ -18,8 +18,9 @@ package notifier
 
 import (
 	"fmt"
-	"github.com/fluxcd/pkg/recorder"
 	"net/url"
+
+	"github.com/fluxcd/pkg/recorder"
 )
 
 // MS Teams holds the incoming webhook URL

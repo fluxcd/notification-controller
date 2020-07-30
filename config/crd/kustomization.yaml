@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- bases/notification.fluxcd.io_providers.yaml
-- bases/notification.fluxcd.io_alerts.yaml
-- bases/notification.fluxcd.io_receivers.yaml
+- bases/notification.toolkit.fluxcd.io_providers.yaml
+- bases/notification.toolkit.fluxcd.io_alerts.yaml
+- bases/notification.toolkit.fluxcd.io_receivers.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
