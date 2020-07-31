@@ -26,9 +26,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/fluxcd/pkg/recorder"
+
 	"github.com/fluxcd/notification-controller/api/v1alpha1"
 	"github.com/fluxcd/notification-controller/internal/notifier"
-	"github.com/fluxcd/pkg/recorder"
 )
 
 func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request) {

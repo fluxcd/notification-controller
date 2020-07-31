@@ -30,8 +30,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/fluxcd/notification-controller/api/v1alpha1"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1alpha1"
+
+	"github.com/fluxcd/notification-controller/api/v1alpha1"
 )
 
 func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {

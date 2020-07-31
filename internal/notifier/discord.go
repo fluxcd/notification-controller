@@ -19,10 +19,11 @@ package notifier
 import (
 	"errors"
 	"fmt"
-	"github.com/fluxcd/pkg/recorder"
 	"net/url"
 	"path"
 	"strings"
+
+	"github.com/fluxcd/pkg/recorder"
 )
 
 // Discord holds the hook URL

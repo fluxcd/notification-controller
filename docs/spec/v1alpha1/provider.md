@@ -62,7 +62,7 @@ const (
 ## Example
 
 ```yaml
-apiVersion: notification.fluxcd.io/v1alpha1
+apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Provider
 metadata:
   name: slack

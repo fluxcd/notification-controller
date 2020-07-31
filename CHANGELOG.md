@@ -26,7 +26,7 @@ The default logging format is JSON and the timestamp format is ISO8601.
 ## 0.0.1 (2020-07-07)
 
 This prerelease comes with webhook receivers support.
-With the [Receiver API](https://github.com/fluxcd/notification-controller/blob/master/docs/spec/v1alpha1/receiver.md)
+With the [Receiver API](https://github.com/fluxcd/notification-controller/blob/v0.0.1/docs/spec/v1alpha1/receiver.md)
 you can define a webhook receiver (GitHub, GitLab, Bitbucket, Harbour, generic)
 that triggers reconciliation for a group of resources.
 

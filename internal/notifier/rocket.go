@@ -19,8 +19,9 @@ package notifier
 import (
 	"errors"
 	"fmt"
-	"github.com/fluxcd/pkg/recorder"
 	"net/url"
+
+	"github.com/fluxcd/pkg/recorder"
 )
 
 // Rocket holds the hook URL

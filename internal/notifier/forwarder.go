@@ -2,8 +2,9 @@ package notifier
 
 import (
 	"fmt"
-	"github.com/fluxcd/pkg/recorder"
 	"net/url"
+
+	"github.com/fluxcd/pkg/recorder"
 )
 
 type Forwarder struct {

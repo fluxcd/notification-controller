@@ -15,7 +15,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - notification.fluxcd.io
+  - notification.toolkit.fluxcd.io
   resources:
   - alerts
   verbs:
@@ -27,7 +27,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - notification.fluxcd.io
+  - notification.toolkit.fluxcd.io
   resources:
   - alerts/status
   verbs:
@@ -35,7 +35,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - notification.fluxcd.io
+  - notification.toolkit.fluxcd.io
   resources:
   - providers
   verbs:
@@ -47,7 +47,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - notification.fluxcd.io
+  - notification.toolkit.fluxcd.io
   resources:
   - providers/status
   verbs:
@@ -55,7 +55,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - notification.fluxcd.io
+  - notification.toolkit.fluxcd.io
   resources:
   - receivers
   verbs:
@@ -67,7 +67,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - notification.fluxcd.io
+  - notification.toolkit.fluxcd.io
   resources:
   - receivers/status
   verbs:

@@ -6,14 +6,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.3.0
   creationTimestamp: null
-  name: alerts.notification.fluxcd.io
+  name: providers.notification.toolkit.fluxcd.io
 spec:
-  group: notification.fluxcd.io
+  group: notification.toolkit.fluxcd.io
   names:
-    kind: Alert
-    listKind: AlertList
-    plural: alerts
-    singular: alert
+    kind: Provider
+    listKind: ProviderList
+    plural: providers
+    singular: provider
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
@@ -29,7 +29,7 @@ spec:
     name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Alert is the Schema for the alerts API
+        description: Provider is the Schema for the providers API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -44,61 +44,39 @@ spec:
           metadata:
             type: object
           spec:
-            description: AlertSpec defines an alerting rule for events involving a
-              list of objects
+            description: ProviderSpec defines the desired state of Provider
             properties:
-              eventSeverity:
-                description: Filter events based on severity, defaults to ('info').
-                enum:
-                - info
-                - error
+              address:
+                description: HTTP(S) webhook address of this provider
                 type: string
-              eventSources:
-                description: Filter events based on the involved objects
-                items:
-                  description: CrossNamespaceObjectReference contains enough information
-                    to let you locate the typed referenced object at cluster level
-                  properties:
-                    apiVersion:
-                      description: API version of the referent
-                      type: string
-                    kind:
-                      description: Kind of the referent
-                      enum:
-                      - GitRepository
-                      - Kustomization
-                      - HelmRelease
-                      - HelmChart
-                      - HelmRepository
-                      type: string
-                    name:
-                      description: Name of the referent
-                      type: string
-                    namespace:
-                      description: Namespace of the referent
-                      type: string
-                  required:
-                  - name
-                  type: object
-                type: array
-              providerRef:
-                description: Send events using this provider
+              channel:
+                description: Alert channel for this provider
+                type: string
+              secretRef:
+                description: Secret reference containing the provider webhook URL
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
-              suspend:
-                description: This flag tells the controller to suspend subsequent
-                  events dispatching. Defaults to false.
-                type: boolean
+              type:
+                description: Type of provider
+                enum:
+                - slack
+                - discord
+                - msteams
+                - rocket
+                - generic
+                type: string
+              username:
+                description: Bot username for this provider
+                type: string
             required:
-            - eventSources
-            - providerRef
+            - type
             type: object
           status:
-            description: AlertStatus defines the observed state of Alert
+            description: ProviderStatus defines the observed state of Provider
             properties:
               conditions:
                 items:

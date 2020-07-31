@@ -5,7 +5,7 @@ metadata:
   name: provider-viewer-role
 rules:
 - apiGroups:
-  - notification.fluxcd.io
+  - notification.toolkit.fluxcd.io
   resources:
   - providers
   verbs:
@@ -13,7 +13,7 @@ rules:
   - list
   - watch
 - apiGroups:
-  - notification.fluxcd.io
+  - notification.toolkit.fluxcd.io
   resources:
   - providers/status
   verbs:

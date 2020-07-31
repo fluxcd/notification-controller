@@ -51,7 +51,7 @@ const (
 ## Example
 
 ```yaml
-apiVersion: notification.fluxcd.io/v1alpha1
+apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Alert
 metadata:
   name: webapp
@@ -74,7 +74,7 @@ The event severity can be set to `info` or `error`.
 To target all resources of a particular kind in a namespace, you can use the `*` wildcard:
 
 ```yaml
-apiVersion: notification.fluxcd.io/v1alpha1
+apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Alert
 metadata:
   name: all-kustomizations
