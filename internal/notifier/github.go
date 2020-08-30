@@ -105,7 +105,7 @@ func parseGithubAddress(addr string) (string, string, error) {
 func parseRevision(rev string) (string, error) {
 	comp := strings.Split(rev, "/")
 	if len(comp) < 2 {
-		return "", errors.New("Revision string format incorrect")
+		return "", fmt.Errorf("Revision string format incorrect: %v", rev)
 	}
 
 	return comp[1], nil
