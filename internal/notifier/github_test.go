@@ -17,35 +17,10 @@ limitations under the License.
 package notifier
 
 import (
-	/*"encoding/json"
-	"io/ioutil"
-	"net/http"
-	"net/http/httptest"*/
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
-
-/*func TestGithub_Post(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, err := ioutil.ReadAll(r.Body)
-		require.NoError(t, err)
-
-		var payload = SlackPayload{}
-		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
-		require.Equal(t, "webapp.gitops-system", payload.Attachments[0].AuthorName)
-		require.Equal(t, "metadata", payload.Attachments[0].Fields[0].Value)
-	}))
-	defer ts.Close()
-
-	addr := "https://github.com/stefanprodan/podinfo"
-	github, err := NewGitHub(addr, "")
-	require.NoError(t, err)
-
-	err = github.Post(testEvent())
-	require.NoError(t, err)
-}*/
 
 func TestGithub_ParseAddress(t *testing.T) {
 	addr := "https://github.com/stefanprodan/podinfo"
