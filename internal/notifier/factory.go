@@ -26,13 +26,15 @@ type Factory struct {
 	URL      string
 	Username string
 	Channel  string
+	Token    string
 }
 
-func NewFactory(url string, username string, channel string) *Factory {
+func NewFactory(url string, username string, channel string, token string) *Factory {
 	return &Factory{
 		URL:      url,
 		Channel:  channel,
 		Username: username,
+		Token:    token,
 	}
 }
 
@@ -54,6 +56,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewRocket(f.URL, f.Username, f.Channel)
 	case v1alpha1.MSTeamsProvider:
 		n, err = NewMSTeams(f.URL)
+	case v1alpha1.GitHubProvider:
+		n, err = NewGitHub(f.URL, f.Token)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
