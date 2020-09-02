@@ -21,12 +21,19 @@ jobs:
           cd config/release
           kustomize edit set image fluxcd/notification-controller=fluxcd/notification-controller:${{ steps.get_version.outputs.VERSION }}
           kustomize build . > notification-controller.yaml
-      - name: Push image
+      - name: Push image Docker Hub
         uses: docker/build-push-action@v1
         with:
           username: ${{ secrets.DOCKER_FLUXCD_USER }}
           password: ${{ secrets.DOCKER_FLUXCD_PASSWORD }}
           repository: fluxcd/notification-controller
+          tag_with_ref: true
+      - name: Push image to GHCR
+        uses: docker/build-push-action@v1
+        with:
+          username: fluxcdbot
+          password: ${{ secrets.GHCR_TOKEN }}
+          repository: ghcr.io/fluxcd/notification-controller
           tag_with_ref: true
       - name: Create release
         id: create_release
