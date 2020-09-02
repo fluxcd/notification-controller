@@ -21,20 +21,28 @@ jobs:
           cd config/release
           kustomize edit set image fluxcd/notification-controller=fluxcd/notification-controller:${{ steps.get_version.outputs.VERSION }}
           kustomize build . > notification-controller.yaml
-      - name: Push image Docker Hub
-        uses: docker/build-push-action@v1
-        with:
-          username: ${{ secrets.DOCKER_FLUXCD_USER }}
-          password: ${{ secrets.DOCKER_FLUXCD_PASSWORD }}
-          repository: fluxcd/notification-controller
-          tag_with_ref: true
-      - name: Push image to GHCR
-        uses: docker/build-push-action@v1
-        with:
-          username: fluxcdbot
-          password: ${{ secrets.GHCR_TOKEN }}
-          repository: ghcr.io/fluxcd/notification-controller
-          tag_with_ref: true
+      - uses: crazy-max/ghaction-docker-buildx@v1
+      - name: Publish image
+        run: |
+          echo "${{ secrets.DOCKER_FLUXCD_PASSWORD }}" | docker login --username fluxcdbot --password-stdin
+          echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io --username fluxcdbot --password-stdin
+
+          docker buildx build --platform "linux/amd64" \
+            --output "type=image,push=true" \
+            --build-arg "REVISION=${GITHUB_SHA}" \
+            --build-arg "VERSION=${{ steps.get_version.outputs.VERSION }}" \
+            --build-arg "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --tag "ghcr.io/fluxcd/notification-controller:${{ steps.get_version.outputs.VERSION }}" \
+            --tag "docker.io/fluxcd/notification-controller:${{ steps.get_version.outputs.VERSION }}" \
+            --file Dockerfile .
+
+          docker buildx build --platform "linux/arm64" \
+            --output "type=image,push=true" \
+            --build-arg "REVISION=${GITHUB_SHA}" \
+            --build-arg "VERSION=${{ steps.get_version.outputs.VERSION }}" \
+            --build-arg "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --tag "ghcr.io/fluxcd/notification-controller-arm64:${{ steps.get_version.outputs.VERSION }}" \
+            --file Dockerfile .
       - name: Create release
         id: create_release
         uses: actions/create-release@latest
