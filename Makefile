@@ -79,6 +79,10 @@ docker-build: test
 docker-push:
 	docker push ${IMG}
 
+# Set the docker image in-cluster
+docker-deploy:
+	kubectl -n gitops-system set image deployment/notification-controller manager=${IMG}
+
 # Find or download controller-gen
 controller-gen:
 ifeq (, $(shell which controller-gen))

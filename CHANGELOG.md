@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.0.8 (2020-09-02)
+
+This prerelease comes with support for publishing events to GitHub commit status API.
+
 ## 0.0.7 (2020-08-05)
 
 This prerelease comes with a fix to the Prometheus scraping endpoint.
