@@ -38,7 +38,7 @@ spec:
             path: /metrics
         args:
         - --enable-leader-election
-        - --log-level=debug
+        - --log-level=info
         - --log-json
         resources:
           limits:
