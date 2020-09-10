@@ -3,8 +3,8 @@ module github.com/fluxcd/notification-controller
 go 1.14
 
 require (
-	github.com/fluxcd/pkg/logger v0.0.1
 	github.com/fluxcd/pkg/recorder v0.0.6
+	github.com/fluxcd/pkg/runtime v0.0.1
 	github.com/fluxcd/source-controller/api v0.0.13
 	github.com/go-logr/logr v0.1.0
 	github.com/google/go-github/v32 v32.0.0

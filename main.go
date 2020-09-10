@@ -28,7 +28,7 @@ import (
 	"github.com/fluxcd/notification-controller/api/v1alpha1"
 	"github.com/fluxcd/notification-controller/controllers"
 	"github.com/fluxcd/notification-controller/internal/server"
-	"github.com/fluxcd/pkg/logger"
+	"github.com/fluxcd/pkg/runtime/logger"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
