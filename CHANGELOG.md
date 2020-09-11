@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.0.9 (2020-09-11)
+
+This prerelease makes the `api` package available as
+a dedicated versioned module.
+
 ## 0.0.8 (2020-09-02)
 
 This prerelease comes with support for publishing events to GitHub commit status API.
