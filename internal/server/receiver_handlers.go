@@ -30,9 +30,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	sourcev1 "github.com/fluxcd/source-controller/api/v1alpha1"
-
 	"github.com/fluxcd/notification-controller/api/v1alpha1"
+	consts "github.com/fluxcd/pkg/runtime"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1alpha1"
 )
 
 func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {
@@ -225,7 +225,7 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1alpha1.CrossNa
 		if source.Annotations == nil {
 			source.Annotations = make(map[string]string)
 		}
-		source.Annotations[sourcev1.ReconcileAtAnnotation] = metav1.Now().String()
+		source.Annotations[consts.ReconcileAtAnnotation] = metav1.Now().String()
 		if err := s.kubeClient.Update(ctx, &source); err != nil {
 			return fmt.Errorf("unable to annotate GitRepository '%s' error: %w", resourceName, err)
 		}
@@ -237,7 +237,7 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1alpha1.CrossNa
 		if source.Annotations == nil {
 			source.Annotations = make(map[string]string)
 		}
-		source.Annotations[sourcev1.ReconcileAtAnnotation] = metav1.Now().String()
+		source.Annotations[consts.ReconcileAtAnnotation] = metav1.Now().String()
 		if err := s.kubeClient.Update(ctx, &source); err != nil {
 			return fmt.Errorf("unable to annotate HelmRepository '%s' error: %w", resourceName, err)
 		}
