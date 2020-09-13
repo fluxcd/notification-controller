@@ -24,7 +24,7 @@ import (
 // ProviderSpec defines the desired state of Provider
 type ProviderSpec struct {
 	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab
 	// +required
 	Type string `json:"type"`
 
@@ -52,6 +52,7 @@ const (
 	MSTeamsProvider string = "msteams"
 	RocketProvider  string = "rocket"
 	GitHubProvider  string = "github"
+	GitLabProvider  string = "gitlab"
 )
 
 // ProviderStatus defines the observed state of Provider

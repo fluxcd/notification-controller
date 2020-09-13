@@ -69,6 +69,7 @@ spec:
                 - rocket
                 - generic
                 - github
+                - gitlab
                 type: string
               username:
                 description: Bot username for this provider
