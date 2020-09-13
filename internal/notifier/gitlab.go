@@ -84,9 +84,9 @@ func (g *GitLab) Post(event recorder.Event) error {
 
 func toGitLabState(severity string) (gitlab.BuildStateValue, error) {
 	switch severity {
-	case "info":
+	case recorder.EventSeverityInfo:
 		return gitlab.Success, nil
-	case "error":
+	case recorder.EventSeverityError:
 		return gitlab.Failed, nil
 	default:
 		return "", errors.New("Can't convert to GitLab state")

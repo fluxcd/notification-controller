@@ -90,9 +90,9 @@ func (g *GitHub) Post(event recorder.Event) error {
 
 func toGitHubState(severity string) (string, error) {
 	switch severity {
-	case "info":
+	case recorder.EventSeverityInfo:
 		return "success", nil
-	case "error":
+	case recorder.EventSeverityError:
 		return "failure", nil
 	default:
 		return "", errors.New("Can't convert to GitHub state")
