@@ -28,6 +28,7 @@ type AlertSpec struct {
 	ProviderRef corev1.LocalObjectReference `json:"providerRef"`
 
 	// Filter events based on severity, defaults to ('info').
+	// If set to 'info' no events will be filtered.
 	// +kubebuilder:validation:Enum=info;error
 	// +optional
 	EventSeverity string `json:"eventSeverity,omitempty"`
