@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/fluxcd/notification-controller/api/v1alpha1"
-	"github.com/fluxcd/pkg/recorder"
 )
 
 // AlertReconciler reconciles a Alert object
@@ -47,14 +46,6 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	var alert v1alpha1.Alert
 	if err := r.Get(ctx, req.NamespacedName, &alert); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	if len(alert.Spec.EventSeverity) == 0 {
-		alert.Spec.EventSeverity = recorder.EventSeverityInfo
-		err := r.Update(ctx, &alert)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
 	}
 
 	log := r.Log.WithValues("controller", strings.ToLower(alert.Kind), "request", req.NamespacedName)

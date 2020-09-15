@@ -30,6 +30,7 @@ type AlertSpec struct {
 	// Filter events based on severity, defaults to ('info').
 	// If set to 'info' no events will be filtered.
 	// +kubebuilder:validation:Enum=info;error
+	// +kubebuilder:default:=info
 	// +optional
 	EventSeverity string `json:"eventSeverity,omitempty"`
 
