@@ -22,6 +22,8 @@ RUN CGO_ENABLED=0 go build -a -o notification-controller main.go
 
 FROM alpine:3.12
 
+LABEL org.opencontainers.image.source="https://github.com/fluxcd/notification-controller"
+
 RUN apk add --no-cache ca-certificates tini
 
 COPY --from=builder /workspace/notification-controller /usr/local/bin/
