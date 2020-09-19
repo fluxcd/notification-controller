@@ -58,6 +58,11 @@ func NewGitHub(addr string, token string) (*GitHub, error) {
 
 // Post Github commit status
 func (g *GitHub) Post(event recorder.Event) error {
+	// Skip progressing events
+	if event.Reason == "Progressing" {
+		return nil
+	}
+
 	revString, ok := event.Metadata["revision"]
 	if !ok {
 		return errors.New("Missing revision metadata")

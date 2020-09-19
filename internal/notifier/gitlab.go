@@ -54,6 +54,11 @@ func NewGitLab(addr string, token string) (*GitLab, error) {
 
 // Post GitLab commit status
 func (g *GitLab) Post(event recorder.Event) error {
+	// Skip progressing events
+	if event.Reason == "Progressing" {
+		return nil
+	}
+
 	revString, ok := event.Metadata["revision"]
 	if !ok {
 		return errors.New("Missing revision metadata")
