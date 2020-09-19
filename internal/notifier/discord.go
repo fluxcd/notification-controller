@@ -64,6 +64,11 @@ func NewDiscord(hookURL string, username string, channel string) (*Discord, erro
 
 // Post Discord message
 func (s *Discord) Post(event recorder.Event) error {
+	// Skip any update events
+	if isCommitStatus(event.Metadata, "update") {
+		return nil
+	}
+
 	payload := SlackPayload{
 		Channel:  s.Channel,
 		Username: s.Username,

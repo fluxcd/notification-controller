@@ -58,6 +58,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewMSTeams(f.URL)
 	case v1alpha1.GitHubProvider:
 		n, err = NewGitHub(f.URL, f.Token)
+	case v1alpha1.GitLabProvider:
+		n, err = NewGitLab(f.URL, f.Token)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}

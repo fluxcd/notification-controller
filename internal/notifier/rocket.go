@@ -55,6 +55,11 @@ func NewRocket(hookURL string, username string, channel string) (*Rocket, error)
 
 // Post Rocket message
 func (s *Rocket) Post(event recorder.Event) error {
+	// Skip any update events
+	if isCommitStatus(event.Metadata, "update") {
+		return nil
+	}
+
 	payload := SlackPayload{
 		Channel:  s.Channel,
 		Username: s.Username,

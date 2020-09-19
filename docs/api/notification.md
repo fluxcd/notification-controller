@@ -94,7 +94,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Filter events based on severity, defaults to (&lsquo;info&rsquo;).</p>
+<p>Filter events based on severity, defaults to (&lsquo;info&rsquo;).
+If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 </tr>
 <tr>
@@ -459,7 +460,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Filter events based on severity, defaults to (&lsquo;info&rsquo;).</p>
+<p>Filter events based on severity, defaults to (&lsquo;info&rsquo;).
+If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 </tr>
 <tr>

@@ -48,7 +48,9 @@ spec:
               list of objects
             properties:
               eventSeverity:
+                default: info
                 description: Filter events based on severity, defaults to ('info').
+                  If set to 'info' no events will be filtered.
                 enum:
                 - info
                 - error

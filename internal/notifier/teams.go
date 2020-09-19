@@ -63,6 +63,11 @@ func NewMSTeams(hookURL string) (*MSTeams, error) {
 
 // Post MS Teams message
 func (s *MSTeams) Post(event recorder.Event) error {
+	// Skip any update events
+	if isCommitStatus(event.Metadata, "update") {
+		return nil
+	}
+
 	facts := make([]MSTeamsField, 0, len(event.Metadata))
 	for k, v := range event.Metadata {
 		facts = append(facts, MSTeamsField{

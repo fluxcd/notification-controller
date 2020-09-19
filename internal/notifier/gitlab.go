@@ -17,47 +17,43 @@ limitations under the License.
 package notifier
 
 import (
-	"context"
 	"errors"
-	"strings"
-	"time"
 
 	"github.com/fluxcd/pkg/recorder"
-	"github.com/google/go-github/v32/github"
-	"golang.org/x/oauth2"
+	"github.com/xanzy/go-gitlab"
 )
 
-type GitHub struct {
-	Owner  string
-	Repo   string
-	Client *github.Client
+type GitLab struct {
+	Id     string
+	Client *gitlab.Client
 }
 
-func NewGitHub(addr string, token string) (*GitHub, error) {
+func NewGitLab(addr string, token string) (*GitLab, error) {
 	if len(token) == 0 {
-		return nil, errors.New("GitHub token  cannot be empty")
+		return nil, errors.New("GitLab token  cannot be empty")
 	}
 
-	_, id, err := parseGitAddress(addr)
+	host, id, err := parseGitAddress(addr)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
+	opt := gitlab.WithBaseURL(host)
+	client, err := gitlab.NewClient(token, opt)
+	if err != nil {
+		return nil, err
+	}
 
-	comp := strings.Split(id, "/")
-	return &GitHub{
-		Owner:  comp[0],
-		Repo:   comp[1],
+	gitlab := &GitLab{
+		Id:     id,
 		Client: client,
-	}, nil
+	}
+
+	return gitlab, nil
 }
 
-// Post Github commit status
-func (g *GitHub) Post(event recorder.Event) error {
+// Post GitLab commit status
+func (g *GitLab) Post(event recorder.Event) error {
 	// Skip progressing events
 	if event.Reason == "Progressing" {
 		return nil
@@ -71,21 +67,19 @@ func (g *GitHub) Post(event recorder.Event) error {
 	if err != nil {
 		return err
 	}
-	state, err := toGitHubState(event.Severity)
+	state, err := toGitLabState(event.Severity)
 	if err != nil {
 		return err
 	}
 
 	name, desc := formatNameAndDescription(event)
-	status := &github.RepoStatus{
-		State:       &state,
-		Context:     &name,
+	options := &gitlab.SetCommitStatusOptions{
+		Name:        &name,
 		Description: &desc,
+		State:       state,
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-	_, _, err = g.Client.Repositories.CreateStatus(ctx, g.Owner, g.Repo, rev, status)
+	_, _, err = g.Client.Commits.SetCommitStatus(g.Id, rev, options)
 	if err != nil {
 		return err
 	}
@@ -93,13 +87,13 @@ func (g *GitHub) Post(event recorder.Event) error {
 	return nil
 }
 
-func toGitHubState(severity string) (string, error) {
+func toGitLabState(severity string) (gitlab.BuildStateValue, error) {
 	switch severity {
 	case recorder.EventSeverityInfo:
-		return "success", nil
+		return gitlab.Success, nil
 	case recorder.EventSeverityError:
-		return "failure", nil
+		return gitlab.Failed, nil
 	default:
-		return "", errors.New("Can't convert to GitHub state")
+		return "", errors.New("Can't convert to GitLab state")
 	}
 }
