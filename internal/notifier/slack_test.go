@@ -46,3 +46,13 @@ func TestSlack_Post(t *testing.T) {
 	require.NoError(t, err)
 
 }
+
+func TestSlack_PostUpdate(t *testing.T) {
+	slack, err := NewSlack("http://localhost", "", "test")
+	require.NoError(t, err)
+
+	event := testEvent()
+	event.Metadata["commit_status"] = "update"
+	err = slack.Post(event)
+	require.NoError(t, err)
+}
