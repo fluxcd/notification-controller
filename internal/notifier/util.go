@@ -108,3 +108,10 @@ func parseRevision(rev string) (string, error) {
 
 	return comp[1], nil
 }
+
+func isCommitStatus(meta map[string]string, status string) bool {
+	if val, ok := meta["commit_status"]; ok && val == status {
+		return true
+	}
+	return false
+}

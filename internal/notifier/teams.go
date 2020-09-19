@@ -64,7 +64,7 @@ func NewMSTeams(hookURL string) (*MSTeams, error) {
 // Post MS Teams message
 func (s *MSTeams) Post(event recorder.Event) error {
 	// Skip any update events
-	if status, ok := event.Metadata["commit_status"]; ok && status == "update" {
+	if isCommitStatus(event.Metadata, "update") {
 		return nil
 	}
 

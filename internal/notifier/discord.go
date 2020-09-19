@@ -65,7 +65,7 @@ func NewDiscord(hookURL string, username string, channel string) (*Discord, erro
 // Post Discord message
 func (s *Discord) Post(event recorder.Event) error {
 	// Skip any update events
-	if status, ok := event.Metadata["commit_status"]; ok && status == "update" {
+	if isCommitStatus(event.Metadata, "update") {
 		return nil
 	}
 
