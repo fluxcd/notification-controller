@@ -9,7 +9,7 @@ Spec:
 ```go
 type ProviderSpec struct {
 	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab
 	// +required
 	Type string `json:"type"`
 
@@ -37,8 +37,12 @@ Notification providers:
 * Discord
 * Microsoft Teams
 * Rocket
-* GitHub
 * Generic webhook
+
+Git commit status providers:
+
+* GitHub
+* GitLab
 
 Status:
 
@@ -61,6 +65,8 @@ const (
 ```
 
 ## Example
+
+### Notifications
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1alpha1
@@ -91,3 +97,31 @@ The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `github` or `
 
 When type `generic` is specified, the notification controller will post the
 incoming [event](event.md) in JSON format to the webhook address.
+
+### Git commit status
+
+The GitHub/GitLab provider is a special kind of notification provider
+that based on the state of a Kustomization resource,
+will update the commit status for the currently reconciled commit id.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1alpha1
+kind: Provider
+metadata:
+  name: podinfo
+  namespace: gitops-system
+spec:
+  # provider type can be github or gitlab
+  type: github
+  address: https://github.com/stefanprodan/podinfo
+  secretRef:
+    name: git-api-token
+```
+
+The secret referenced in the provider is expected to contain a
+personal access token to authenticate with the GitHub or GitLab API.
+
+```sh
+kubectl -n gitops-system create secret generic git-api-token \
+--from-literal=token=YOUR-TOKEN
+```
