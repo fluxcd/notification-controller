@@ -122,7 +122,7 @@ Kustomization apply event example:
 ```json
 {
   "severity": "info",
-  "timestamp": 1587195448.071468,
+  "ts": "2020-09-17T07:27:11.921Z",
   "reportingController": "kustomize-controller",
   "reason": "ApplySucceed",
   "message": "Kustomization applied in 1.4s, revision: master/a1afe267b54f38b46b487f6e938a6fd508278c07",
