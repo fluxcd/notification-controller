@@ -217,6 +217,18 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1alpha1.CrossNa
 	}
 
 	switch resource.Kind {
+	case sourcev1.BucketKind:
+		var source sourcev1.Bucket
+		if err := s.kubeClient.Get(ctx, resourceName, &source); err != nil {
+			return fmt.Errorf("unable to read Bucket '%s' error: %w", resourceName, err)
+		}
+		if source.Annotations == nil {
+			source.Annotations = make(map[string]string)
+		}
+		source.Annotations[consts.ReconcileAtAnnotation] = metav1.Now().String()
+		if err := s.kubeClient.Update(ctx, &source); err != nil {
+			return fmt.Errorf("unable to annotate Bucket '%s' error: %w", resourceName, err)
+		}
 	case sourcev1.GitRepositoryKind:
 		var source sourcev1.GitRepository
 		if err := s.kubeClient.Get(ctx, resourceName, &source); err != nil {

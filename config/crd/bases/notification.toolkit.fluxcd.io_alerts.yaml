@@ -67,6 +67,7 @@ spec:
                     kind:
                       description: Kind of the referent
                       enum:
+                      - Bucket
                       - GitRepository
                       - Kustomization
                       - HelmRelease

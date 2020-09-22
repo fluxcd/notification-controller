@@ -63,6 +63,8 @@ spec:
   eventSources:
     - kind: GitRepository
       name: webapp
+    - kind: Bucket
+      name: secrets
     - kind: Kustomization
       name: webapp-backend
     - kind: Kustomization
