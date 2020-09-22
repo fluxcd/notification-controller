@@ -5,9 +5,9 @@ go 1.14
 replace github.com/fluxcd/notification-controller/api => ./api
 
 require (
-	github.com/fluxcd/notification-controller/api v0.0.10
+	github.com/fluxcd/notification-controller/api v0.0.11
 	github.com/fluxcd/pkg/recorder v0.0.6
-	github.com/fluxcd/pkg/runtime v0.0.1
+	github.com/fluxcd/pkg/runtime v0.0.3
 	github.com/fluxcd/source-controller/api v0.0.17
 	github.com/go-logr/logr v0.1.0
 	github.com/google/go-github/v32 v32.0.0
