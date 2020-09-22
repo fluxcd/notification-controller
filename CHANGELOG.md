@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.0.11 (2020-09-22)
+
+This prerelease comes with support for publishing events
+to GitLab commit status API.
+The alerts and receivers were extended to support
+S3 Bucket sources.
+Container images for ARMv7 and ARMv8 are published to
+`ghcr.io/fluxcd/notification-controller-arm64`.
+
 ## 0.0.10 (2020-09-12)
 
 This prerelease comes with the option to watch for resources
@@ -14,7 +23,8 @@ a dedicated versioned module.
 
 ## 0.0.8 (2020-09-02)
 
-This prerelease comes with support for publishing events to GitHub commit status API.
+This prerelease comes with support for publishing events
+to GitHub commit status API.
 
 ## 0.0.7 (2020-08-05)
 
