@@ -178,6 +178,8 @@ spec:
       name: webapp
     - kind: HelmRepository
       name: webapp
+    - kind: Bucket
+      name: secrets
 ```
 
 When the receiver type is set to `generic`, the controller will not perform token validation nor event filtering.
