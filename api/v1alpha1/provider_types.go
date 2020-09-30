@@ -19,6 +19,8 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/fluxcd/pkg/apis/meta"
 )
 
 // ProviderSpec defines the desired state of Provider
@@ -58,7 +60,7 @@ const (
 // ProviderStatus defines the observed state of Provider
 type ProviderStatus struct {
 	// +optional
-	Conditions []Condition `json:"conditions,omitempty"`
+	Conditions []meta.Condition `json:"conditions,omitempty"`
 }
 
 // +genclient

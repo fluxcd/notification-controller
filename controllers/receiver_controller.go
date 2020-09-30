@@ -29,6 +29,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/fluxcd/pkg/apis/meta"
+
 	"github.com/fluxcd/notification-controller/api/v1alpha1"
 )
 
@@ -66,11 +68,8 @@ func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	isReady := false
-	for _, condition := range receiver.Status.Conditions {
-		if condition.Type == v1alpha1.ReadyCondition && condition.Status == corev1.ConditionTrue {
-			isReady = true
-			break
-		}
+	if c := meta.GetCondition(receiver.Status.Conditions, meta.ReadyCondition); c != nil {
+		isReady = c.Status == corev1.ConditionTrue
 	}
 
 	receiverURL := fmt.Sprintf("/hook/%s", sha256sum(token+receiver.Name+receiver.Namespace))

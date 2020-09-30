@@ -16,54 +16,10 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-// Condition contains condition information for a notification object.
-type Condition struct {
-	// Type of the condition, currently ('Ready').
-	// +required
-	Type string `json:"type"`
-
-	// Status of the condition, one of ('True', 'False', 'Unknown').
-	// +required
-	Status corev1.ConditionStatus `json:"status"`
-
-	// LastTransitionTime is the timestamp corresponding to the last status
-	// change of this condition.
-	// +required
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-
-	// Reason is a brief machine readable explanation for the condition's last
-	// transition.
-	// +required
-	Reason string `json:"reason,omitempty"`
-
-	// Message is a human readable description of the details of the last
-	// transition, complementing reason.
-	// +optional
-	Message string `json:"message,omitempty"`
-}
-
-const (
-	// ReadyCondition represents the fact that a given object has passed
-	// validation and was acknowledge by the controller.
-	ReadyCondition string = "Ready"
-)
-
 const (
 	// InitializedReason represents the fact that a given resource has been initialized.
 	InitializedReason string = "Initialized"
 
-	// ProgressingReason represents the fact that a resource reconciliation
-	// is underway.
-	ProgressingReason string = "Progressing"
-
 	// TokenNotFound represents the fact that receiver token can't be found.
 	TokenNotFoundReason string = "TokenNotFound"
-
-	// SuspendedReason represents the fact that the resource reconciliation is suspended.
-	SuspendedReason string = "Suspended"
 )
