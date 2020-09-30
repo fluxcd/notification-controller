@@ -25,11 +25,11 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/notification-controller/controllers"
 	"github.com/fluxcd/notification-controller/internal/server"
 	"github.com/fluxcd/pkg/runtime/logger"
-	sourcev1 "github.com/fluxcd/source-controller/api/v1alpha1"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -41,7 +41,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
-	_ = v1alpha1.AddToScheme(scheme)
+	_ = v1beta1.AddToScheme(scheme)
 	_ = sourcev1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }

@@ -31,7 +31,7 @@ import (
 
 	"github.com/fluxcd/pkg/apis/meta"
 
-	"github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
 
 // ReceiverReconciler reconciles a Receiver object
@@ -52,7 +52,7 @@ type ReceiverReconciler struct {
 func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
-	var receiver v1alpha1.Receiver
+	var receiver v1beta1.Receiver
 	if err := r.Get(ctx, req.NamespacedName, &receiver); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -61,7 +61,7 @@ func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	token, err := r.token(ctx, receiver)
 	if err != nil {
-		receiver = v1alpha1.ReceiverNotReady(receiver, v1alpha1.TokenNotFoundReason, err.Error())
+		receiver = v1beta1.ReceiverNotReady(receiver, v1beta1.TokenNotFoundReason, err.Error())
 		if err := r.Status().Update(ctx, &receiver); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
@@ -78,8 +78,8 @@ func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, nil
 	}
 
-	receiver = v1alpha1.ReceiverReady(receiver,
-		v1alpha1.InitializedReason,
+	receiver = v1beta1.ReceiverReady(receiver,
+		v1beta1.InitializedReason,
 		"Receiver initialised with URL: "+receiverURL,
 		receiverURL)
 	if err := r.Status().Update(ctx, &receiver); err != nil {
@@ -93,12 +93,12 @@ func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.Receiver{}).
+		For(&v1beta1.Receiver{}).
 		Complete(r)
 }
 
 // token extract the token value from the secret object
-func (r *ReceiverReconciler) token(ctx context.Context, receiver v1alpha1.Receiver) (string, error) {
+func (r *ReceiverReconciler) token(ctx context.Context, receiver v1beta1.Receiver) (string, error) {
 	token := ""
 	secretName := types.NamespacedName{
 		Namespace: receiver.GetNamespace(),

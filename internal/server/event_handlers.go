@@ -28,7 +28,7 @@ import (
 
 	"github.com/fluxcd/pkg/recorder"
 
-	"github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
@@ -53,7 +53,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 
-		var allAlerts v1alpha1.AlertList
+		var allAlerts v1beta1.AlertList
 		err = s.kubeClient.List(ctx, &allAlerts)
 		if err != nil {
 			s.logger.Error(err, "listing alerts failed")
@@ -62,7 +62,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		}
 
 		// find matching alerts
-		alerts := make([]v1alpha1.Alert, 0)
+		alerts := make([]v1beta1.Alert, 0)
 		for _, alert := range allAlerts.Items {
 			// skip suspended alerts
 			if alert.Spec.Suspend {
@@ -97,7 +97,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 		// find providers
 		for _, alert := range alerts {
-			var provider v1alpha1.Provider
+			var provider v1beta1.Provider
 			providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
 
 			err = s.kubeClient.Get(ctx, providerName, &provider)
