@@ -29,7 +29,7 @@ import (
 
 	"github.com/fluxcd/pkg/apis/meta"
 
-	"github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
 
 // ProviderReconciler reconciles a Provider object
@@ -45,7 +45,7 @@ type ProviderReconciler struct {
 func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
-	var provider v1alpha1.Provider
+	var provider v1beta1.Provider
 	if err := r.Get(ctx, req.NamespacedName, &provider); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -65,8 +65,8 @@ func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				Type:               meta.ReadyCondition,
 				Status:             corev1.ConditionTrue,
 				LastTransitionTime: metav1.Now(),
-				Reason:             v1alpha1.InitializedReason,
-				Message:            v1alpha1.InitializedReason,
+				Reason:             v1beta1.InitializedReason,
+				Message:            v1beta1.InitializedReason,
 			},
 		}
 		if err := r.Status().Update(ctx, &provider); err != nil {
@@ -80,6 +80,6 @@ func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.Provider{}).
+		For(&v1beta1.Provider{}).
 		Complete(r)
 }

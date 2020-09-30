@@ -19,7 +19,7 @@ package notifier
 import (
 	"fmt"
 
-	"github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
 
 type Factory struct {
@@ -46,19 +46,19 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	var n Interface
 	var err error
 	switch provider {
-	case v1alpha1.GenericProvider:
+	case v1beta1.GenericProvider:
 		n, err = NewForwarder(f.URL)
-	case v1alpha1.SlackProvider:
+	case v1beta1.SlackProvider:
 		n, err = NewSlack(f.URL, f.Username, f.Channel)
-	case v1alpha1.DiscordProvider:
+	case v1beta1.DiscordProvider:
 		n, err = NewDiscord(f.URL, f.Username, f.Channel)
-	case v1alpha1.RocketProvider:
+	case v1beta1.RocketProvider:
 		n, err = NewRocket(f.URL, f.Username, f.Channel)
-	case v1alpha1.MSTeamsProvider:
+	case v1beta1.MSTeamsProvider:
 		n, err = NewMSTeams(f.URL)
-	case v1alpha1.GitHubProvider:
+	case v1beta1.GitHubProvider:
 		n, err = NewGitHub(f.URL, f.Token)
-	case v1alpha1.GitLabProvider:
+	case v1beta1.GitLabProvider:
 		n, err = NewGitLab(f.URL, f.Token)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)

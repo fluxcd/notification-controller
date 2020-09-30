@@ -30,9 +30,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
-	sourcev1 "github.com/fluxcd/source-controller/api/v1alpha1"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 )
 
 func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +42,7 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 
 		s.logger.Info("handling request", "digest", digest)
 
-		var allReceivers v1alpha1.ReceiverList
+		var allReceivers v1beta1.ReceiverList
 		err := s.kubeClient.List(ctx, &allReceivers, client.InNamespace(os.Getenv("RUNTIME_NAMESPACE")))
 		if err != nil {
 			s.logger.Error(err, "unable to list receivers")
@@ -50,7 +50,7 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 			return
 		}
 
-		receivers := make([]v1alpha1.Receiver, 0)
+		receivers := make([]v1beta1.Receiver, 0)
 		for _, receiver := range allReceivers.Items {
 			if receiver.Status.URL == fmt.Sprintf("/hook/%s", digest) && !receiver.Spec.Suspend {
 				receivers = append(receivers, receiver)
@@ -92,16 +92,16 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (s *ReceiverServer) validate(ctx context.Context, receiver v1alpha1.Receiver, r *http.Request) error {
+func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver, r *http.Request) error {
 	token, err := s.token(ctx, receiver)
 	if err != nil {
 		return fmt.Errorf("unable to read token, error: %w", err)
 	}
 
 	switch receiver.Spec.Type {
-	case v1alpha1.GenericReceiver:
+	case v1beta1.GenericReceiver:
 		return nil
-	case v1alpha1.GitHubReceiver:
+	case v1beta1.GitHubReceiver:
 		payload, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
 			return fmt.Errorf("the GitHub signature header is invalid, err: %w", err)
@@ -128,7 +128,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1alpha1.Receive
 
 		s.logger.Info("handling GitHub event: "+event, "receiver", receiver.Name)
 		return nil
-	case v1alpha1.GitLabReceiver:
+	case v1beta1.GitLabReceiver:
 		if r.Header.Get("X-Gitlab-Token") != token {
 			return fmt.Errorf("the X-Gitlab-Token header value does not match the reciver token")
 		}
@@ -149,7 +149,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1alpha1.Receive
 
 		s.logger.Info("handling GitLab event: "+event, "receiver", receiver.Name)
 		return nil
-	case v1alpha1.BitbucketReceiver:
+	case v1beta1.BitbucketReceiver:
 		_, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
 			return fmt.Errorf("the Bitbucket server signature header is invalid, err: %w", err)
@@ -172,7 +172,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1alpha1.Receive
 
 		s.logger.Info("handling Bitbucket server event: "+event, "receiver", receiver.Name)
 		return nil
-	case v1alpha1.HarborReceiver:
+	case v1beta1.HarborReceiver:
 		if r.Header.Get("Authorization") != token {
 			return fmt.Errorf("the Harbor Authorization header value does not match the reciver token")
 		}
@@ -184,7 +184,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1alpha1.Receive
 	return fmt.Errorf("recevier type '%s' not supported", receiver.Spec.Type)
 }
 
-func (s *ReceiverServer) token(ctx context.Context, receiver v1alpha1.Receiver) (string, error) {
+func (s *ReceiverServer) token(ctx context.Context, receiver v1beta1.Receiver) (string, error) {
 	token := ""
 	secretName := types.NamespacedName{
 		Namespace: receiver.GetNamespace(),
@@ -206,7 +206,7 @@ func (s *ReceiverServer) token(ctx context.Context, receiver v1alpha1.Receiver) 
 	return token, nil
 }
 
-func (s *ReceiverServer) annotate(ctx context.Context, resource v1alpha1.CrossNamespaceObjectReference, defaultNamespace string) error {
+func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNamespaceObjectReference, defaultNamespace string) error {
 	namespace := defaultNamespace
 	if resource.Namespace != "" {
 		namespace = resource.Namespace

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha1
+package v1beta1
 
 import (
 	corev1 "k8s.io/api/core/v1"
@@ -23,42 +23,31 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 )
 
-// ProviderSpec defines the desired state of Provider
-type ProviderSpec struct {
-	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab
+// AlertSpec defines an alerting rule for events involving a list of objects
+type AlertSpec struct {
+	// Send events using this provider
 	// +required
-	Type string `json:"type"`
+	ProviderRef corev1.LocalObjectReference `json:"providerRef"`
 
-	// Alert channel for this provider
+	// Filter events based on severity, defaults to ('info').
+	// If set to 'info' no events will be filtered.
+	// +kubebuilder:validation:Enum=info;error
+	// +kubebuilder:default:=info
 	// +optional
-	Channel string `json:"channel,omitempty"`
+	EventSeverity string `json:"eventSeverity,omitempty"`
 
-	// Bot username for this provider
-	// +optional
-	Username string `json:"username,omitempty"`
+	// Filter events based on the involved objects
+	// +required
+	EventSources []CrossNamespaceObjectReference `json:"eventSources"`
 
-	// HTTP(S) webhook address of this provider
+	// This flag tells the controller to suspend subsequent events dispatching.
+	// Defaults to false.
 	// +optional
-	Address string `json:"address,omitempty"`
-
-	// Secret reference containing the provider webhook URL
-	// +optional
-	SecretRef *corev1.LocalObjectReference `json:"secretRef,omitempty"`
+	Suspend bool `json:"suspend,omitempty"`
 }
 
-const (
-	GenericProvider string = "generic"
-	SlackProvider   string = "slack"
-	DiscordProvider string = "discord"
-	MSTeamsProvider string = "msteams"
-	RocketProvider  string = "rocket"
-	GitHubProvider  string = "github"
-	GitLabProvider  string = "gitlab"
-)
-
-// ProviderStatus defines the observed state of Provider
-type ProviderStatus struct {
+// AlertStatus defines the observed state of Alert
+type AlertStatus struct {
 	// +optional
 	Conditions []meta.Condition `json:"conditions,omitempty"`
 }
@@ -71,24 +60,24 @@ type ProviderStatus struct {
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message",description=""
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 
-// Provider is the Schema for the providers API
-type Provider struct {
+// Alert is the Schema for the alerts API
+type Alert struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ProviderSpec   `json:"spec,omitempty"`
-	Status ProviderStatus `json:"status,omitempty"`
+	Spec   AlertSpec   `json:"spec,omitempty"`
+	Status AlertStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// ProviderList contains a list of Provider
-type ProviderList struct {
+// AlertList contains a list of Alert
+type AlertList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Provider `json:"items"`
+	Items           []Alert `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Provider{}, &ProviderList{})
+	SchemeBuilder.Register(&Alert{}, &AlertList{})
 }

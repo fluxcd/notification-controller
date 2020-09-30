@@ -34,9 +34,9 @@ events are processed and where to dispatch them.
 
 Notification API:
 
-* [Provider](v1alpha1/provider.md)
-* [Alert](v1alpha1/alert.md)
-* [Event](v1alpha1/event.md)
+* [Provider](v1beta1/provider.md)
+* [Alert](v1beta1/alert.md)
+* [Event](v1beta1/event.md)
 
 The alert delivery method is **at-most once** with a timeout of 15 seconds.
 The controller performs automatic retries for connection errors and 500-range response code.
@@ -52,7 +52,7 @@ to be accessed by GitHub, GitLab, Bitbucket, Harbor, Jenkins, etc.
 
 Receiver API:
 
-* [Receiver](v1alpha1/receiver.md)
+* [Receiver](v1beta1/receiver.md)
 
 When a `Receiver` is created, the controller sets the `Receiver`
 status to Ready and generates a URL in the format `/hook/sha256sum(token+name+namespace)`.
@@ -73,7 +73,7 @@ by source-controller and kustomize-controller.
 Create a notification provider for Slack:
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1alpha1
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Provider
 metadata:
   name: slack
@@ -96,7 +96,7 @@ data:
 Create an alert for a list of GitRepositories and Kustomizations:
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1alpha1
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Alert
 metadata:
   name: on-call-webapp

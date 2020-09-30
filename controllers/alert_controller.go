@@ -29,7 +29,7 @@ import (
 
 	"github.com/fluxcd/pkg/apis/meta"
 
-	"github.com/fluxcd/notification-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
 
 // AlertReconciler reconciles a Alert object
@@ -45,7 +45,7 @@ type AlertReconciler struct {
 func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 
-	var alert v1alpha1.Alert
+	var alert v1beta1.Alert
 	if err := r.Get(ctx, req.NamespacedName, &alert); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -65,8 +65,8 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				Type:               meta.ReadyCondition,
 				Status:             corev1.ConditionTrue,
 				LastTransitionTime: metav1.Now(),
-				Reason:             v1alpha1.InitializedReason,
-				Message:            v1alpha1.InitializedReason,
+				Reason:             v1beta1.InitializedReason,
+				Message:            v1beta1.InitializedReason,
 			},
 		}
 		if err := r.Status().Update(ctx, &alert); err != nil {
@@ -80,6 +80,6 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.Alert{}).
+		For(&v1beta1.Alert{}).
 		Complete(r)
 }
