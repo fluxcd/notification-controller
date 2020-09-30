@@ -19,6 +19,8 @@ package v1alpha1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/fluxcd/pkg/apis/meta"
 )
 
 // ReceiverSpec defines the desired state of Receiver
@@ -52,7 +54,7 @@ type ReceiverSpec struct {
 // ReceiverStatus defines the observed state of Receiver
 type ReceiverStatus struct {
 	// +optional
-	Conditions []Condition `json:"conditions,omitempty"`
+	Conditions []meta.Condition `json:"conditions,omitempty"`
 
 	// Generated webhook URL in the format
 	// of '/hook/sha256sum(token+name+namespace)'.
@@ -69,9 +71,9 @@ const (
 )
 
 func ReceiverReady(receiver Receiver, reason, message, url string) Receiver {
-	receiver.Status.Conditions = []Condition{
+	receiver.Status.Conditions = []meta.Condition{
 		{
-			Type:               ReadyCondition,
+			Type:               meta.ReadyCondition,
 			Status:             corev1.ConditionTrue,
 			LastTransitionTime: metav1.Now(),
 			Reason:             reason,
@@ -84,9 +86,9 @@ func ReceiverReady(receiver Receiver, reason, message, url string) Receiver {
 }
 
 func ReceiverNotReady(receiver Receiver, reason, message string) Receiver {
-	receiver.Status.Conditions = []Condition{
+	receiver.Status.Conditions = []meta.Condition{
 		{
-			Type:               ReadyCondition,
+			Type:               meta.ReadyCondition,
 			Status:             corev1.ConditionFalse,
 			LastTransitionTime: metav1.Now(),
 			Reason:             reason,

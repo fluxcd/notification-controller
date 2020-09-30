@@ -27,6 +27,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/fluxcd/pkg/apis/meta"
+
 	"github.com/fluxcd/notification-controller/api/v1alpha1"
 )
 
@@ -51,17 +53,16 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("controller", strings.ToLower(alert.Kind), "request", req.NamespacedName)
 
 	init := true
-	for _, condition := range alert.Status.Conditions {
-		if condition.Type == v1alpha1.ReadyCondition && condition.Status == corev1.ConditionTrue {
+	if c := meta.GetCondition(alert.Status.Conditions, meta.ReadyCondition); c != nil {
+		if c.Status == corev1.ConditionTrue {
 			init = false
-			break
 		}
 	}
 
 	if init {
-		alert.Status.Conditions = []v1alpha1.Condition{
+		alert.Status.Conditions = []meta.Condition{
 			{
-				Type:               v1alpha1.ReadyCondition,
+				Type:               meta.ReadyCondition,
 				Status:             corev1.ConditionTrue,
 				LastTransitionTime: metav1.Now(),
 				Reason:             v1alpha1.InitializedReason,

@@ -61,6 +61,11 @@ manifests: controller-gen
 api-docs: gen-crd-api-reference-docs
 	$(API_REF_GEN) -api-dir=./api/v1alpha1 -config=./hack/api-docs/config.json -template-dir=./hack/api-docs/template -out-file=./docs/api/notification.md
 
+# Run go mod tidy
+tidy:
+	go mod tidy
+	cd api; go mod tidy
+
 # Run go fmt against code
 fmt:
 	go fmt ./...
@@ -73,7 +78,7 @@ vet:
 
 # Generate code
 generate: controller-gen
-	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	cd api; $(CONTROLLER_GEN) object:headerFile="../hack/boilerplate.go.txt" paths="./..."
 
 # Build the docker image
 docker-build: test
