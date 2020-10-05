@@ -65,7 +65,7 @@ Generate a random string and create a secret with a `token` field:
 TOKEN=$(head -c 12 /dev/urandom | shasum | cut -d ' ' -f1)
 echo $TOKEN
 
-kubectl -n gitops-system create secret generic webhook-token \	
+kubectl create secret generic webhook-token \	
 --from-literal=token=$TOKEN
 ```
 
@@ -76,7 +76,6 @@ apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
   name: github-receiver
-  namespace: gitops-system
 spec:
   type: github
   events:
@@ -101,7 +100,6 @@ apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
   name: gitlab-receiver
-  namespace: gitops-system
 spec:
   type: gitlab
   events:
@@ -126,7 +124,6 @@ apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
   name: bitbucket-receiver
-  namespace: gitops-system
 spec:
   type: bitbucket
   events:
@@ -148,7 +145,6 @@ apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
   name: harbor-receiver
-  namespace: gitops-system
 spec:
   type: harbor
   secretRef:
@@ -168,7 +164,6 @@ apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
   name: generic-receiver
-  namespace: gitops-system
 spec:
   type: generic
   secretRef:
