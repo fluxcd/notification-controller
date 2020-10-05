@@ -55,7 +55,6 @@ apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Alert
 metadata:
   name: webapp
-  namespace: gitops-system
 spec:
   providerRef: 
     name: on-call-slack
@@ -80,14 +79,13 @@ apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Alert
 metadata:
   name: all-kustomizations
-  namespace: gitops-system
 spec:
   providerRef: 
     name: dev-msteams
   eventSeverity: error
   eventSources:
     - kind: Kustomization
-      namespace: gitops-system
+      namespace: default
       name: '*'
   suspend: false
 ```

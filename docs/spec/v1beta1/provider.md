@@ -73,7 +73,6 @@ apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Provider
 metadata:
   name: slack
-  namespace: gitops-system
 spec:
   type: slack
   channel: general
@@ -87,7 +86,7 @@ spec:
 Webhook URL secret:
 
 ```sh
-kubectl -n gitops-system create secret generic webhook-url \
+kubectl create secret generic webhook-url \
 --from-literal=address=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
 ```
 
@@ -109,7 +108,6 @@ apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Provider
 metadata:
   name: podinfo
-  namespace: gitops-system
 spec:
   # provider type can be github or gitlab
   type: github
@@ -122,6 +120,6 @@ The secret referenced in the provider is expected to contain a
 personal access token to authenticate with the GitHub or GitLab API.
 
 ```sh
-kubectl -n gitops-system create secret generic git-api-token \
+kubectl create secret generic git-api-token \
 --from-literal=token=YOUR-TOKEN
 ```

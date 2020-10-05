@@ -77,7 +77,6 @@ apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Provider
 metadata:
   name: slack
-  namespace: gitops-system
 spec:
   type: slack
   channel: prod-alerts
@@ -88,7 +87,6 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: slack-url
-  namespace: gitops-system
 data:
   address: <encoded-url>
 ```
@@ -100,7 +98,6 @@ apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Alert
 metadata:
   name: on-call-webapp
-  namespace: gitops-system
 spec:
   providerRef: 
     name: slack
@@ -129,7 +126,7 @@ Kustomization apply event example:
   "involvedObject": {
     "kind": "Kustomization",
     "name": "webapp-backend",
-    "namespace": "gitops-system"
+    "namespace": "default"
   },
   "metadata": {
     "service/backend": "created",
