@@ -55,6 +55,7 @@ apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Alert
 metadata:
   name: webapp
+  namespace: default
 spec:
   providerRef: 
     name: on-call-slack
@@ -79,6 +80,7 @@ apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Alert
 metadata:
   name: all-kustomizations
+  namespace: default
 spec:
   providerRef: 
     name: dev-msteams
