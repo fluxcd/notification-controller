@@ -53,5 +53,5 @@ const (
 )
 ```
 
-Controller implementations can use the [fluxcd/pkg/recorder](https://github.com/fluxcd/pkg/tree/master/recorder)
+Controller implementations can use the [fluxcd/pkg/runtime/events](https://github.com/fluxcd/pkg/tree/main/runtime/events)
 package to push events to notification-controller API.

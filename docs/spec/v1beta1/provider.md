@@ -73,6 +73,7 @@ apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Provider
 metadata:
   name: slack
+  namespace: default
 spec:
   type: slack
   channel: general
@@ -108,6 +109,7 @@ apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Provider
 metadata:
   name: podinfo
+  namespace: default
 spec:
   # provider type can be github or gitlab
   type: github

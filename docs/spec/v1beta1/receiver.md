@@ -76,6 +76,7 @@ apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
   name: github-receiver
+  namespace: default
 spec:
   type: github
   events:
@@ -100,6 +101,7 @@ apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
   name: gitlab-receiver
+  namespace: default
 spec:
   type: gitlab
   events:
@@ -124,6 +126,7 @@ apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
   name: bitbucket-receiver
+  namespace: default
 spec:
   type: bitbucket
   events:
@@ -145,6 +148,7 @@ apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
   name: harbor-receiver
+  namespace: default
 spec:
   type: harbor
   secretRef:
@@ -164,6 +168,7 @@ apiVersion: notification.toolkit.fluxcd.io/v1alpha1
 kind: Receiver
 metadata:
   name: generic-receiver
+  namespace: default
 spec:
   type: generic
   secretRef:
