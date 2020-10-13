@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/fluxcd/pkg/apis/meta"
+	"github.com/fluxcd/pkg/runtime/metrics"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
@@ -37,8 +38,9 @@ import (
 // ReceiverReconciler reconciles a Receiver object
 type ReceiverReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log             logr.Logger
+	Scheme          *runtime.Scheme
+	MetricsRecorder *metrics.Recorder
 }
 
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=receivers,verbs=get;list;watch;create;update;patch;delete
