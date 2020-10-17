@@ -19,13 +19,37 @@ package notifier
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
+	"runtime"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-func postMessage(address string, payload interface{}) error {
+func postMessage(address string, proxy string, payload interface{}) error {
 	httpClient := retryablehttp.NewClient()
+
+	if proxy != "" {
+		proxyURL, err := url.Parse(proxy)
+		if err != nil {
+			return fmt.Errorf("unable to parse proxy URL '%s', error: %w", proxy, err)
+		}
+		httpClient.HTTPClient.Transport = &http.Transport{
+			Proxy: http.ProxyURL(proxyURL),
+			DialContext: (&net.Dialer{
+				Timeout:   15 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1,
+		}
+	}
+
 	httpClient.HTTPClient.Timeout = 15 * time.Second
 	httpClient.RetryWaitMin = 2 * time.Second
 	httpClient.RetryWaitMax = 30 * time.Second

@@ -41,7 +41,7 @@ func TestForwarder_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	forwarder, err := NewForwarder(ts.URL)
+	forwarder, err := NewForwarder(ts.URL, "")
 	require.NoError(t, err)
 
 	err = forwarder.Post(testEvent())

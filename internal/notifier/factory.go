@@ -24,14 +24,16 @@ import (
 
 type Factory struct {
 	URL      string
+	ProxyURL string
 	Username string
 	Channel  string
 	Token    string
 }
 
-func NewFactory(url string, username string, channel string, token string) *Factory {
+func NewFactory(url string, proxy string, username string, channel string, token string) *Factory {
 	return &Factory{
 		URL:      url,
+		ProxyURL: proxy,
 		Channel:  channel,
 		Username: username,
 		Token:    token,
@@ -47,15 +49,15 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	var err error
 	switch provider {
 	case v1beta1.GenericProvider:
-		n, err = NewForwarder(f.URL)
+		n, err = NewForwarder(f.URL, f.ProxyURL)
 	case v1beta1.SlackProvider:
-		n, err = NewSlack(f.URL, f.Username, f.Channel)
+		n, err = NewSlack(f.URL, f.ProxyURL, f.Username, f.Channel)
 	case v1beta1.DiscordProvider:
-		n, err = NewDiscord(f.URL, f.Username, f.Channel)
+		n, err = NewDiscord(f.URL, f.ProxyURL, f.Username, f.Channel)
 	case v1beta1.RocketProvider:
-		n, err = NewRocket(f.URL, f.Username, f.Channel)
+		n, err = NewRocket(f.URL, f.ProxyURL, f.Username, f.Channel)
 	case v1beta1.MSTeamsProvider:
-		n, err = NewMSTeams(f.URL)
+		n, err = NewMSTeams(f.URL, f.ProxyURL)
 	case v1beta1.GitHubProvider:
 		n, err = NewGitHub(f.URL, f.Token)
 	case v1beta1.GitLabProvider:

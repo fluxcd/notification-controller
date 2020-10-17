@@ -39,7 +39,7 @@ func TestTeams_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	teams, err := NewMSTeams(ts.URL)
+	teams, err := NewMSTeams(ts.URL, "")
 	require.NoError(t, err)
 
 	err = teams.Post(testEvent())
