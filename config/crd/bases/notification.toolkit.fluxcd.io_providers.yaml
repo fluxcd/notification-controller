@@ -47,13 +47,15 @@ spec:
             description: ProviderSpec defines the desired state of Provider
             properties:
               address:
-                description: HTTP(S) webhook address of this provider
+                description: HTTP/S webhook address of this provider
+                pattern: ^(http|https)://
                 type: string
               channel:
                 description: Alert channel for this provider
                 type: string
               proxy:
-                description: HTTP(S) address of the proxy
+                description: HTTP/S address of the proxy
+                pattern: ^(http|https)://
                 type: string
               secretRef:
                 description: Secret reference containing the provider webhook URL

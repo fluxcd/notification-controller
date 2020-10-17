@@ -38,11 +38,15 @@ type ProviderSpec struct {
 	// +optional
 	Username string `json:"username,omitempty"`
 
-	// HTTP(S) webhook address of this provider
+	// HTTP/S webhook address of this provider
+	// +kubebuilder:validation:Pattern="^(http|https)://"
+	// +kubebuilder:validation:Optional
 	// +optional
 	Address string `json:"address,omitempty"`
 
-	// HTTP(S) address of the proxy
+	// HTTP/S address of the proxy
+	// +kubebuilder:validation:Pattern="^(http|https)://"
+	// +kubebuilder:validation:Optional
 	// +optional
 	Proxy string `json:"proxy,omitempty"`
 
