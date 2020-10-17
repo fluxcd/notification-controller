@@ -249,6 +249,18 @@ string
 </tr>
 <tr>
 <td>
+<code>proxy</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HTTP(S) address of the proxy</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>secretRef</code><br>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
@@ -659,6 +671,18 @@ string
 <td>
 <em>(Optional)</em>
 <p>HTTP(S) webhook address of this provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>proxy</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HTTP(S) address of the proxy</p>
 </td>
 </tr>
 <tr>

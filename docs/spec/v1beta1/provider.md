@@ -25,6 +25,10 @@ type ProviderSpec struct {
 	// +optional
 	Address string `json:"address,omitempty"`
 
+	// HTTP(S) address of the proxy
+	// +optional
+	Proxy string `json:"proxy,omitempty"`
+
 	// Secret reference containing the provider webhook URL
 	// +optional
 	SecretRef *corev1.LocalObjectReference `json:"secretRef,omitempty"`
@@ -79,6 +83,8 @@ spec:
   channel: general
   # webhook address (ignored if secretRef is specified)
   address: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+  # HTTP(S) proxy (optional)
+  proxy: https://proxy.corp:8080
   # secret containing the webhook address (optional)
   secretRef:
     name: webhook-url

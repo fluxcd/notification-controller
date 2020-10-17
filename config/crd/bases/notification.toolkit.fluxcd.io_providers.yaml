@@ -52,6 +52,9 @@ spec:
               channel:
                 description: Alert channel for this provider
                 type: string
+              proxy:
+                description: HTTP(S) address of the proxy
+                type: string
               secretRef:
                 description: Secret reference containing the provider webhook URL
                 properties:
