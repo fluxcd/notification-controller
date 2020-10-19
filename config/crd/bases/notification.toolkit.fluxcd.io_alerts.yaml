@@ -76,9 +76,13 @@ spec:
                       type: string
                     name:
                       description: Name of the referent
+                      maxLength: 53
+                      minLength: 1
                       type: string
                     namespace:
                       description: Namespace of the referent
+                      maxLength: 53
+                      minLength: 1
                       type: string
                   required:
                   - name

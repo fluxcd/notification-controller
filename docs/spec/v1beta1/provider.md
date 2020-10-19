@@ -21,9 +21,15 @@ type ProviderSpec struct {
 	// +optional
 	Username string `json:"username,omitempty"`
 
-	// HTTP(S) webhook address of this provider
+	// HTTP/S webhook address of this provider
+	// +kubebuilder:validation:Pattern="^(http|https)://"
 	// +optional
 	Address string `json:"address,omitempty"`
+
+	// HTTP/S address of the proxy
+	// +kubebuilder:validation:Pattern="^(http|https)://"
+	// +optional
+	Proxy string `json:"proxy,omitempty"`
 
 	// Secret reference containing the provider webhook URL
 	// +optional
@@ -79,6 +85,8 @@ spec:
   channel: general
   # webhook address (ignored if secretRef is specified)
   address: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
+  # HTTP(S) proxy (optional)
+  proxy: https://proxy.corp:8080
   # secret containing the webhook address (optional)
   secretRef:
     name: webhook-url

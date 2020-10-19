@@ -8,19 +8,23 @@ import (
 )
 
 type Forwarder struct {
-	URL string
+	URL      string
+	ProxyURL string
 }
 
-func NewForwarder(hookURL string) (*Forwarder, error) {
+func NewForwarder(hookURL string, proxyURL string) (*Forwarder, error) {
 	if _, err := url.ParseRequestURI(hookURL); err != nil {
 		return nil, fmt.Errorf("invalid Discord hook URL %s", hookURL)
 	}
 
-	return &Forwarder{URL: hookURL}, nil
+	return &Forwarder{
+		URL:      hookURL,
+		ProxyURL: proxyURL,
+	}, nil
 }
 
 func (f *Forwarder) Post(event recorder.Event) error {
-	err := postMessage(f.URL, event)
+	err := postMessage(f.URL, f.ProxyURL, event)
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}

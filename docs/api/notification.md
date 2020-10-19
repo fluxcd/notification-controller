@@ -244,7 +244,19 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>HTTP(S) webhook address of this provider</p>
+<p>HTTP/S webhook address of this provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>proxy</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HTTP/S address of the proxy</p>
 </td>
 </tr>
 <tr>
@@ -658,7 +670,19 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>HTTP(S) webhook address of this provider</p>
+<p>HTTP/S webhook address of this provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>proxy</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>HTTP/S address of the proxy</p>
 </td>
 </tr>
 <tr>
