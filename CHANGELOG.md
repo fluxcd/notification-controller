@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.1.2 (2020-10-19)
+
+This prerelease adds support for HTTP/S proxies when sending alerts.
+An optional field called `Proxy` was added to the Provider API.
+
+Features:
+* Add support for http(s) proxy when sending alerts
+    [#62](https://github.com/fluxcd/notification-controller/pull/62)
+
 ## 0.1.1 (2020-10-13)
 
 This prerelease comes with Prometheus instrumentation for the controller's resources.
