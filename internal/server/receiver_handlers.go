@@ -225,7 +225,7 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNam
 		if source.Annotations == nil {
 			source.Annotations = make(map[string]string)
 		}
-		source.Annotations[meta.ReconcileAtAnnotation] = metav1.Now().String()
+		source.Annotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
 		if err := s.kubeClient.Update(ctx, &source); err != nil {
 			return fmt.Errorf("unable to annotate Bucket '%s' error: %w", resourceName, err)
 		}
@@ -237,7 +237,7 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNam
 		if source.Annotations == nil {
 			source.Annotations = make(map[string]string)
 		}
-		source.Annotations[meta.ReconcileAtAnnotation] = metav1.Now().String()
+		source.Annotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
 		if err := s.kubeClient.Update(ctx, &source); err != nil {
 			return fmt.Errorf("unable to annotate GitRepository '%s' error: %w", resourceName, err)
 		}
@@ -249,7 +249,7 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNam
 		if source.Annotations == nil {
 			source.Annotations = make(map[string]string)
 		}
-		source.Annotations[meta.ReconcileAtAnnotation] = metav1.Now().String()
+		source.Annotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
 		if err := s.kubeClient.Update(ctx, &source); err != nil {
 			return fmt.Errorf("unable to annotate HelmRepository '%s' error: %w", resourceName, err)
 		}
