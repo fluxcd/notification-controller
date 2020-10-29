@@ -5,11 +5,11 @@ go 1.15
 replace github.com/fluxcd/notification-controller/api => ./api
 
 require (
-	github.com/fluxcd/notification-controller/api v0.1.2
+	github.com/fluxcd/notification-controller/api v0.2.0
 	github.com/fluxcd/pkg/apis/meta v0.1.0
 	github.com/fluxcd/pkg/recorder v0.0.6
 	github.com/fluxcd/pkg/runtime v0.1.2
-	github.com/fluxcd/source-controller/api v0.1.1
+	github.com/fluxcd/source-controller/api v0.2.0
 	github.com/go-logr/logr v0.1.0
 	github.com/google/go-github/v32 v32.0.0
 	github.com/hashicorp/go-retryablehttp v0.6.7

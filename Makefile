@@ -90,7 +90,7 @@ docker-push:
 
 # Set the docker image in-cluster
 docker-deploy:
-	kubectl -n gotk-system set image deployment/notification-controller manager=${IMG}
+	kubectl -n flux-system set image deployment/notification-controller manager=${IMG}
 
 # Find or download controller-gen
 controller-gen:
