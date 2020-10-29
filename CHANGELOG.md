@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.2.0 (2020-10-29)
+
+This is the second MINOR prerelease, it comes with breaking changes:
+* the histogram metric `gotk_reconcile_duration` was renamed to `gotk_reconcile_duration_seconds`
+* the annotation `fluxcd.io/reconcileAt` was renamed to `reconcile.fluxcd.io/requestedAt`
+
 ## 0.1.2 (2020-10-19)
 
 This prerelease adds support for HTTP/S proxies when sending alerts.
