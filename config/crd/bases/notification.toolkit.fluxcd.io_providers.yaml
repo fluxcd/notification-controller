@@ -75,6 +75,7 @@ spec:
                 - generic
                 - github
                 - gitlab
+                - bitbucket
                 type: string
               username:
                 description: Bot username for this provider
