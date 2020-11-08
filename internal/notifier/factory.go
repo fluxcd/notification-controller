@@ -62,6 +62,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewGitHub(f.URL, f.Token)
 	case v1beta1.GitLabProvider:
 		n, err = NewGitLab(f.URL, f.Token)
+	case v1beta1.BitbucketProvider:
+		n, err = NewBitbucket(f.URL, f.Token)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}

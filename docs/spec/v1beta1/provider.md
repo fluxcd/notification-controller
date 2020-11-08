@@ -49,6 +49,7 @@ Git commit status providers:
 
 * GitHub
 * GitLab
+* Bitbucket
 
 Status:
 
@@ -108,9 +109,9 @@ incoming [event](event.md) in JSON format to the webhook address.
 
 ### Git commit status
 
-The GitHub/GitLab provider is a special kind of notification provider
-that based on the state of a Kustomization resource,
-will update the commit status for the currently reconciled commit id.
+The GitHub, GitLab, and Bitbucket provider is a special kind of notification
+provider that based on the state of a Kustomization resource,
+will update the commit status for the reconciled commit id.
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
@@ -123,13 +124,32 @@ spec:
   type: github
   address: https://github.com/stefanprodan/podinfo
   secretRef:
-    name: git-api-token
+    name: api-token
 ```
 
-The secret referenced in the provider is expected to contain a
-personal access token to authenticate with the GitHub or GitLab API.
+GitHub and GitLab use personal access tokens to authenticate with their API.
+* [GitHub personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token)
+* [GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
+Both provider types require a secret in the same format, with the personal access token as the value for the token key.
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-token
+  namespace: default
+data:
+  token: <personal-access-tokens>
+```
 
-```sh
-kubectl create secret generic git-api-token \
---from-literal=token=YOUR-TOKEN
+Bitbucket authenticates using an [app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/). It requires
+both the username and the password when authenticating. There for the token needs to be passed with the format `<username>:<app-password>`.
+A token that is not in this format will cause the provider to fail.
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-token
+  namespace: default
+data:
+  token: <username>:<app-password>
 ```
