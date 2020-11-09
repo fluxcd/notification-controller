@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/recorder"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
@@ -64,8 +65,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		// find matching alerts
 		alerts := make([]v1beta1.Alert, 0)
 		for _, alert := range allAlerts.Items {
-			// skip suspended alerts
-			if alert.Spec.Suspend {
+			// skip suspended and not ready alerts
+			if alert.Spec.Suspend || !meta.HasReadyCondition(alert.Status.Conditions) {
 				continue
 			}
 
