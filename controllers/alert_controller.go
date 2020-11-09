@@ -26,12 +26,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/reference"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/metrics"
+	"github.com/fluxcd/pkg/runtime/predicates"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
@@ -67,6 +69,23 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		defer r.MetricsRecorder.RecordDuration(*objRef, reconcileStart)
 	}
 
+	// validate alert spec and provider
+	if err := r.validate(ctx, alert); err != nil {
+		alert.Status.Conditions = []meta.Condition{
+			{
+				Type:               meta.ReadyCondition,
+				Status:             corev1.ConditionFalse,
+				LastTransitionTime: metav1.Now(),
+				Reason:             meta.ReconciliationFailedReason,
+				Message:            err.Error(),
+			},
+		}
+		if err := r.Status().Update(ctx, &alert); err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
+		return ctrl.Result{Requeue: true}, err
+	}
+
 	init := true
 	if c := meta.GetCondition(alert.Status.Conditions, meta.ReadyCondition); c != nil {
 		if c.Status == corev1.ConditionTrue {
@@ -98,7 +117,17 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.Alert{}).
+		WithEventFilter(predicates.ChangePredicate{}).
 		Complete(r)
+}
+
+func (r *AlertReconciler) validate(ctx context.Context, alert v1beta1.Alert) error {
+	var provider v1beta1.Provider
+	providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
+	if err := r.Get(ctx, providerName, &provider); err != nil {
+		return fmt.Errorf("failed to get provider %s, error: %w", providerName.String(), err)
+	}
+	return nil
 }
 
 func (r *AlertReconciler) recordReadiness(alert v1beta1.Alert, deleted bool) {
