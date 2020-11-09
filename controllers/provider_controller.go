@@ -26,14 +26,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/reference"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/metrics"
+	"github.com/fluxcd/pkg/runtime/predicates"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
+	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
 // ProviderReconciler reconciles a Provider object
@@ -67,6 +70,23 @@ func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		defer r.MetricsRecorder.RecordDuration(*objRef, reconcileStart)
 	}
 
+	// validate provider spec and credentials
+	if err := r.validate(ctx, provider); err != nil {
+		provider.Status.Conditions = []meta.Condition{
+			{
+				Type:               meta.ReadyCondition,
+				Status:             corev1.ConditionFalse,
+				LastTransitionTime: metav1.Now(),
+				Reason:             meta.ReconciliationFailedReason,
+				Message:            err.Error(),
+			},
+		}
+		if err := r.Status().Update(ctx, &provider); err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
+		return ctrl.Result{Requeue: true}, err
+	}
+
 	init := true
 	if c := meta.GetCondition(provider.Status.Conditions, meta.ReadyCondition); c != nil {
 		if c.Status == corev1.ConditionTrue {
@@ -96,7 +116,40 @@ func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.Provider{}).
+		WithEventFilter(predicates.ChangePredicate{}).
 		Complete(r)
+}
+
+func (r *ProviderReconciler) validate(ctx context.Context, provider v1beta1.Provider) error {
+	address := provider.Spec.Address
+	token := ""
+	if provider.Spec.SecretRef != nil {
+		var secret corev1.Secret
+		secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.SecretRef.Name}
+
+		if err := r.Get(ctx, secretName, &secret); err != nil {
+			return fmt.Errorf("failed to read secret, error: %w", err)
+		}
+
+		if a, ok := secret.Data["address"]; ok {
+			address = string(a)
+		}
+
+		if t, ok := secret.Data["token"]; ok {
+			token = string(t)
+		}
+	}
+
+	if address == "" {
+		return fmt.Errorf("no address found in 'spec.address' nor in `spec.secretRef`")
+	}
+
+	factory := notifier.NewFactory(address, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token)
+	if _, err := factory.Notifier(provider.Spec.Type); err != nil {
+		return fmt.Errorf("failed to initialise provider, error: %w", err)
+	}
+
+	return nil
 }
 
 func (r *ProviderReconciler) recordReadiness(provider v1beta1.Provider, deleted bool) {
