@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.2.1 (2020-11-09)
+
+This prerelease comes with support for Bitbucket commit status updates.
+
+Improvements:
+* Add validation for providers and alerts
+    [#74](https://github.com/fluxcd/notification-controller/pull/74)
+* Add bitbucket notifier
+    [#73](https://github.com/fluxcd/notification-controller/pull/73)
+
 ## 0.2.0 (2020-10-29)
 
 This is the second MINOR prerelease, it comes with breaking changes:
