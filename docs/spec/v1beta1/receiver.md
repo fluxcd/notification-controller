@@ -65,14 +65,14 @@ Generate a random string and create a secret with a `token` field:
 TOKEN=$(head -c 12 /dev/urandom | shasum | cut -d ' ' -f1)
 echo $TOKEN
 
-kubectl create secret generic webhook-token \	
---from-literal=token=$TOKEN
+kubectl create secret generic webhook-token \
+  --from-literal=token=$TOKEN
 ```
 
 GitHub receiver:
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1alpha1
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Receiver
 metadata:
   name: github-receiver
@@ -97,7 +97,7 @@ The controller uses the `X-Hub-Signature` HTTP header to verify that the request
 GitLab receiver:
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1alpha1
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Receiver
 metadata:
   name: gitlab-receiver
@@ -122,7 +122,7 @@ The controller uses the `X-Gitlab-Token` HTTP header to verify that the request 
 Bitbucket server receiver:
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1alpha1
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Receiver
 metadata:
   name: bitbucket-receiver
@@ -144,7 +144,7 @@ The controller uses the `X-Hub-Signature` HTTP header to verify that the request
 Harbor receiver:
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1alpha1
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Receiver
 metadata:
   name: harbor-receiver
@@ -164,7 +164,7 @@ The controller uses the `Authentication` HTTP header to verify that the request 
 Generic receiver:
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1alpha1
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Receiver
 metadata:
   name: generic-receiver
