@@ -130,7 +130,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 		return nil
 	case v1beta1.GitLabReceiver:
 		if r.Header.Get("X-Gitlab-Token") != token {
-			return fmt.Errorf("the X-Gitlab-Token header value does not match the reciver token")
+			return fmt.Errorf("the X-Gitlab-Token header value does not match the receiver token")
 		}
 
 		event := r.Header.Get("X-Gitlab-Event")
@@ -174,7 +174,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 		return nil
 	case v1beta1.HarborReceiver:
 		if r.Header.Get("Authorization") != token {
-			return fmt.Errorf("the Harbor Authorization header value does not match the reciver token")
+			return fmt.Errorf("the Harbor Authorization header value does not match the receiver token")
 		}
 
 		s.logger.Info("handling Harbor event", "receiver", receiver.Name)
