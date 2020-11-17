@@ -36,7 +36,7 @@ type GitHub struct {
 
 func NewGitHub(addr string, token string) (*GitHub, error) {
 	if len(token) == 0 {
-		return nil, errors.New("GitHub token cannot be empty")
+		return nil, errors.New("github token cannot be empty")
 	}
 
 	_, id, err := parseGitAddress(addr)
@@ -46,7 +46,7 @@ func NewGitHub(addr string, token string) (*GitHub, error) {
 
 	comp := strings.Split(id, "/")
 	if len(comp) != 2 {
-		return nil, fmt.Errorf("Invalid repository id %q", id)
+		return nil, fmt.Errorf("invalid repository id %q", id)
 	}
 
 	ctx := context.Background()
@@ -70,7 +70,7 @@ func (g *GitHub) Post(event recorder.Event) error {
 
 	revString, ok := event.Metadata["revision"]
 	if !ok {
-		return errors.New("Missing revision metadata")
+		return errors.New("missing revision metadata")
 	}
 	rev, err := parseRevision(revString)
 	if err != nil {
@@ -105,6 +105,6 @@ func toGitHubState(severity string) (string, error) {
 	case recorder.EventSeverityError:
 		return "failure", nil
 	default:
-		return "", errors.New("Can't convert to GitHub state")
+		return "", errors.New("can't convert to github state")
 	}
 }

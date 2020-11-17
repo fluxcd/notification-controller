@@ -30,7 +30,7 @@ type GitLab struct {
 
 func NewGitLab(addr string, token string) (*GitLab, error) {
 	if len(token) == 0 {
-		return nil, errors.New("GitLab token cannot be empty")
+		return nil, errors.New("gitlab token cannot be empty")
 	}
 
 	host, id, err := parseGitAddress(addr)
@@ -61,7 +61,7 @@ func (g *GitLab) Post(event recorder.Event) error {
 
 	revString, ok := event.Metadata["revision"]
 	if !ok {
-		return errors.New("Missing revision metadata")
+		return errors.New("missing revision metadata")
 	}
 	rev, err := parseRevision(revString)
 	if err != nil {
@@ -94,6 +94,6 @@ func toGitLabState(severity string) (gitlab.BuildStateValue, error) {
 	case recorder.EventSeverityError:
 		return gitlab.Failed, nil
 	default:
-		return "", errors.New("Can't convert to GitLab state")
+		return "", errors.New("can't convert to gitlab state")
 	}
 }
