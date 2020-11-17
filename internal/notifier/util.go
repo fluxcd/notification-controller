@@ -32,14 +32,9 @@ func parseGitAddress(s string) (string, string, error) {
 		return "", "", nil
 	}
 
-	path := strings.TrimLeft(u.Path, "/")
-	comp := strings.Split(path, "/")
-	if len(comp) != 2 {
-		return "", "", fmt.Errorf("Incorrectly formatted git address: %v", s)
-	}
-
+	id := strings.TrimLeft(u.Path, "/")
+	id = strings.TrimSuffix(id, ".git")
 	host := fmt.Sprintf("https://%s", u.Host)
-	id := comp[0] + "/" + strings.TrimSuffix(comp[1], ".git")
 	return host, id, nil
 }
 
