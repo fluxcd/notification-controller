@@ -19,6 +19,7 @@ package notifier
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -35,7 +36,7 @@ type GitHub struct {
 
 func NewGitHub(addr string, token string) (*GitHub, error) {
 	if len(token) == 0 {
-		return nil, errors.New("GitHub token  cannot be empty")
+		return nil, errors.New("GitHub token cannot be empty")
 	}
 
 	_, id, err := parseGitAddress(addr)
@@ -43,12 +44,16 @@ func NewGitHub(addr string, token string) (*GitHub, error) {
 		return nil, err
 	}
 
+	comp := strings.Split(id, "/")
+	if len(comp) != 2 {
+		return nil, fmt.Errorf("Invalid repository id '%s'", id)
+	}
+
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 
-	comp := strings.Split(id, "/")
 	return &GitHub{
 		Owner:  comp[0],
 		Repo:   comp[1],

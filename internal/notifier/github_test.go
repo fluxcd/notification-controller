@@ -22,19 +22,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewBitbucketBasic(t *testing.T) {
-	b, err := NewBitbucket("https://bitbucket.org/foo/bar", "foo:bar")
+func TestNewGitHubBasic(t *testing.T) {
+	g, err := NewGitHub("https://github.com/foo/bar", "foobar")
 	assert.Nil(t, err)
-	assert.Equal(t, b.Owner, "foo")
-	assert.Equal(t, b.Repo, "bar")
+	assert.Equal(t, g.Owner, "foo")
+	assert.Equal(t, g.Repo, "bar")
 }
 
-func TestNewBitbucketInvalidUrl(t *testing.T) {
-	_, err := NewBitbucket("https://bitbucket.org/foo/bar/baz", "foo:bar")
+func TestNewGitHubInvalidUrl(t *testing.T) {
+	_, err := NewGitHub("https://github.com/foo/bar/baz", "foobar")
 	assert.NotNil(t, err)
 }
 
-func TestNewBitbucketInvalidToken(t *testing.T) {
-	_, err := NewBitbucket("https://bitbucket.org/foo/bar", "bar")
+func TestNewGitHubEmptyToken(t *testing.T) {
+	_, err := NewGitHub("https://github.com/foo/bar", "")
 	assert.NotNil(t, err)
 }

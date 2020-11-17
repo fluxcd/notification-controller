@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/fluxcd/pkg/recorder"
@@ -49,7 +50,7 @@ func NewBitbucket(addr string, token string) (*Bitbucket, error) {
 
 	comp = strings.Split(id, "/")
 	if len(comp) != 2 {
-		return nil, errors.New("Invalid bitbucket repository id")
+		return nil, fmt.Errorf("Invalid repository id '%s'", id)
 	}
 	owner := comp[0]
 	repo := comp[1]

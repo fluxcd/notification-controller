@@ -30,7 +30,7 @@ type GitLab struct {
 
 func NewGitLab(addr string, token string) (*GitLab, error) {
 	if len(token) == 0 {
-		return nil, errors.New("GitLab token  cannot be empty")
+		return nil, errors.New("GitLab token cannot be empty")
 	}
 
 	host, id, err := parseGitAddress(addr)
