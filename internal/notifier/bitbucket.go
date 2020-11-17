@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/fluxcd/pkg/recorder"
@@ -32,7 +33,7 @@ type Bitbucket struct {
 
 func NewBitbucket(addr string, token string) (*Bitbucket, error) {
 	if len(token) == 0 {
-		return nil, errors.New("Bitbucket token cannot be empty")
+		return nil, errors.New("bitbucket token cannot be empty")
 	}
 
 	_, id, err := parseGitAddress(addr)
@@ -42,14 +43,14 @@ func NewBitbucket(addr string, token string) (*Bitbucket, error) {
 
 	comp := strings.Split(token, ":")
 	if len(comp) != 2 {
-		return nil, errors.New("Invalid token format, expected to be <user>:<password>")
+		return nil, errors.New("invalid token format, expected to be <user>:<password>")
 	}
 	username := comp[0]
 	password := comp[1]
 
 	comp = strings.Split(id, "/")
 	if len(comp) != 2 {
-		return nil, errors.New("Invalid bitbucket repository id")
+		return nil, fmt.Errorf("invalid repository id %q", id)
 	}
 	owner := comp[0]
 	repo := comp[1]
@@ -70,7 +71,7 @@ func (b Bitbucket) Post(event recorder.Event) error {
 
 	revString, ok := event.Metadata["revision"]
 	if !ok {
-		return errors.New("Missing revision metadata")
+		return errors.New("missing revision metadata")
 	}
 	rev, err := parseRevision(revString)
 	if err != nil {
@@ -110,6 +111,6 @@ func toBitbucketState(severity string) (string, error) {
 	case recorder.EventSeverityError:
 		return "FAILED", nil
 	default:
-		return "", errors.New("Can't convert to GitHub state")
+		return "", errors.New("can't convert to bitbucket state")
 	}
 }

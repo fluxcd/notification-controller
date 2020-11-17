@@ -22,19 +22,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewBitbucketBasic(t *testing.T) {
-	b, err := NewBitbucket("https://bitbucket.org/foo/bar", "foo:bar")
+func TestNewGitLabBasic(t *testing.T) {
+	g, err := NewGitLab("https://gitlab.com/foo/bar", "foobar")
 	assert.Nil(t, err)
-	assert.Equal(t, b.Owner, "foo")
-	assert.Equal(t, b.Repo, "bar")
+	assert.Equal(t, g.Id, "foo/bar")
 }
 
-func TestNewBitbucketInvalidUrl(t *testing.T) {
-	_, err := NewBitbucket("https://bitbucket.org/foo/bar/baz", "foo:bar")
-	assert.NotNil(t, err)
+func TestNewGitLabSubgroups(t *testing.T) {
+	g, err := NewGitLab("https://gitlab.com/foo/bar/baz", "foobar")
+	assert.Nil(t, err)
+	assert.Equal(t, g.Id, "foo/bar/baz")
 }
 
-func TestNewBitbucketInvalidToken(t *testing.T) {
-	_, err := NewBitbucket("https://bitbucket.org/foo/bar", "bar")
+func TestNewGitLabSelfHosted(t *testing.T) {
+	g, err := NewGitLab("https://example.com/foo/bar", "foo:bar")
+	assert.Nil(t, err)
+	assert.Equal(t, g.Id, "foo/bar")
+	assert.Equal(t, g.Client.BaseURL().Host, "example.com")
+}
+
+func TestNewGitLabEmptyToken(t *testing.T) {
+	_, err := NewGitLab("https://gitlab.com/foo/bar", "")
 	assert.NotNil(t, err)
 }
