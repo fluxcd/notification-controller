@@ -95,3 +95,11 @@ func TestUtil_ParseGitSshWithProtocol(t *testing.T) {
 	require.Equal(t, "https://github.com", host)
 	require.Equal(t, "stefanprodan/podinfo", id)
 }
+
+func TestUtil_ParseGitHttpWithSubgroup(t *testing.T) {
+	addr := "https://gitlab.com/foo/bar/foo.git"
+	host, id, err := parseGitAddress(addr)
+	require.NoError(t, err)
+	require.Equal(t, "https://gitlab.com", host)
+	require.Equal(t, "foo/bar/foo", id)
+}
