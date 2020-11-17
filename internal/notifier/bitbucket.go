@@ -50,7 +50,7 @@ func NewBitbucket(addr string, token string) (*Bitbucket, error) {
 
 	comp = strings.Split(id, "/")
 	if len(comp) != 2 {
-		return nil, fmt.Errorf("Invalid repository id '%s'", id)
+		return nil, fmt.Errorf("Invalid repository id %q", id)
 	}
 	owner := comp[0]
 	repo := comp[1]

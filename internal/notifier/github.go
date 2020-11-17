@@ -46,7 +46,7 @@ func NewGitHub(addr string, token string) (*GitHub, error) {
 
 	comp := strings.Split(id, "/")
 	if len(comp) != 2 {
-		return nil, fmt.Errorf("Invalid repository id '%s'", id)
+		return nil, fmt.Errorf("Invalid repository id %q", id)
 	}
 
 	ctx := context.Background()
