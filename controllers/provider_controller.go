@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -72,38 +73,15 @@ func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// validate provider spec and credentials
 	if err := r.validate(ctx, provider); err != nil {
-		provider.Status.Conditions = []meta.Condition{
-			{
-				Type:               meta.ReadyCondition,
-				Status:             corev1.ConditionFalse,
-				LastTransitionTime: metav1.Now(),
-				Reason:             meta.ReconciliationFailedReason,
-				Message:            err.Error(),
-			},
-		}
+		meta.SetResourceCondition(&provider, meta.ReadyCondition, metav1.ConditionFalse, meta.ReconciliationFailedReason, err.Error())
 		if err := r.Status().Update(ctx, &provider); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	init := true
-	if c := meta.GetCondition(provider.Status.Conditions, meta.ReadyCondition); c != nil {
-		if c.Status == corev1.ConditionTrue {
-			init = false
-		}
-	}
-
-	if init {
-		provider.Status.Conditions = []meta.Condition{
-			{
-				Type:               meta.ReadyCondition,
-				Status:             corev1.ConditionTrue,
-				LastTransitionTime: metav1.Now(),
-				Reason:             v1beta1.InitializedReason,
-				Message:            v1beta1.InitializedReason,
-			},
-		}
+	if !apimeta.IsStatusConditionTrue(provider.Status.Conditions, meta.ReadyCondition) {
+		meta.SetResourceCondition(&provider, meta.ReadyCondition, metav1.ConditionTrue, v1beta1.InitializedReason, v1beta1.InitializedReason)
 		if err := r.Status().Update(ctx, &provider); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
@@ -165,12 +143,12 @@ func (r *ProviderReconciler) recordReadiness(provider v1beta1.Provider, deleted 
 		).Error(err, "unable to record readiness metric")
 		return
 	}
-	if rc := meta.GetCondition(provider.Status.Conditions, meta.ReadyCondition); rc != nil {
+	if rc := apimeta.FindStatusCondition(provider.Status.Conditions, meta.ReadyCondition); rc != nil {
 		r.MetricsRecorder.RecordCondition(*objRef, *rc, deleted)
 	} else {
-		r.MetricsRecorder.RecordCondition(*objRef, meta.Condition{
+		r.MetricsRecorder.RecordCondition(*objRef, metav1.Condition{
 			Type:   meta.ReadyCondition,
-			Status: corev1.ConditionUnknown,
+			Status: metav1.ConditionUnknown,
 		}, deleted)
 	}
 }

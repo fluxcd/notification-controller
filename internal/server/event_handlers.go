@@ -24,6 +24,7 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/fluxcd/pkg/apis/meta"
@@ -66,7 +67,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		alerts := make([]v1beta1.Alert, 0)
 		for _, alert := range allAlerts.Items {
 			// skip suspended and not ready alerts
-			if alert.Spec.Suspend || !meta.HasReadyCondition(alert.Status.Conditions) {
+			isReady := apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition)
+			if alert.Spec.Suspend || !isReady {
 				continue
 			}
 

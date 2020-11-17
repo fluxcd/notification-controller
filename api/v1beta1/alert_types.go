@@ -19,8 +19,6 @@ package v1beta1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/fluxcd/pkg/apis/meta"
 )
 
 // AlertSpec defines an alerting rule for events involving a list of objects
@@ -49,7 +47,7 @@ type AlertSpec struct {
 // AlertStatus defines the observed state of Alert
 type AlertStatus struct {
 	// +optional
-	Conditions []meta.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +genclient
@@ -67,6 +65,11 @@ type Alert struct {
 
 	Spec   AlertSpec   `json:"spec,omitempty"`
 	Status AlertStatus `json:"status,omitempty"`
+}
+
+// GetStatusConditions returns a pointer to the Status.Conditions slice
+func (in *Alert) GetStatusConditions() *[]metav1.Condition {
+	return &in.Status.Conditions
 }
 
 // +kubebuilder:object:root=true

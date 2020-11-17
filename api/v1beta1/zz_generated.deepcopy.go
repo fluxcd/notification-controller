@@ -21,8 +21,8 @@ limitations under the License.
 package v1beta1
 
 import (
-	"github.com/fluxcd/pkg/apis/meta"
-	"k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -111,7 +111,7 @@ func (in *AlertStatus) DeepCopyInto(out *AlertStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]meta.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -207,7 +207,7 @@ func (in *ProviderSpec) DeepCopyInto(out *ProviderSpec) {
 	*out = *in
 	if in.SecretRef != nil {
 		in, out := &in.SecretRef, &out.SecretRef
-		*out = new(v1.LocalObjectReference)
+		*out = new(corev1.LocalObjectReference)
 		**out = **in
 	}
 }
@@ -227,7 +227,7 @@ func (in *ProviderStatus) DeepCopyInto(out *ProviderStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]meta.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -334,7 +334,7 @@ func (in *ReceiverStatus) DeepCopyInto(out *ReceiverStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]meta.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

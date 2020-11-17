@@ -19,8 +19,6 @@ package v1beta1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/fluxcd/pkg/apis/meta"
 )
 
 // ProviderSpec defines the desired state of Provider
@@ -69,7 +67,7 @@ const (
 // ProviderStatus defines the observed state of Provider
 type ProviderStatus struct {
 	// +optional
-	Conditions []meta.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +genclient
@@ -87,6 +85,11 @@ type Provider struct {
 
 	Spec   ProviderSpec   `json:"spec,omitempty"`
 	Status ProviderStatus `json:"status,omitempty"`
+}
+
+// GetStatusConditions returns a pointer to the Status.Conditions slice
+func (in *Provider) GetStatusConditions() *[]metav1.Condition {
+	return &in.Status.Conditions
 }
 
 // +kubebuilder:object:root=true
