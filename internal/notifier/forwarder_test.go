@@ -33,6 +33,7 @@ func TestForwarder_Post(t *testing.T) {
 		b, err := ioutil.ReadAll(r.Body)
 		require.NoError(t, err)
 
+		require.Equal(t, "source-controller", r.Header.Get("gotk-component"))
 		var payload = recorder.Event{}
 		err = json.Unmarshal(b, &payload)
 		require.NoError(t, err)

@@ -42,7 +42,6 @@ func Test_postMessage(t *testing.T) {
 		require.Equal(t, "success", payload["status"])
 	}))
 	defer ts.Close()
-
 	err := postMessage(ts.URL, "", map[string]string{"status": "success"})
 	require.NoError(t, err)
 }
