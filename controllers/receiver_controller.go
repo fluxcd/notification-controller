@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -69,13 +70,8 @@ func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	isReady := false
-	if c := meta.GetCondition(receiver.Status.Conditions, meta.ReadyCondition); c != nil {
-		isReady = c.Status == corev1.ConditionTrue
-	}
-
+	isReady := apimeta.IsStatusConditionTrue(receiver.Status.Conditions, meta.ReadyCondition)
 	receiverURL := fmt.Sprintf("/hook/%s", sha256sum(token+receiver.Name+receiver.Namespace))
-
 	if receiver.Status.URL == receiverURL && isReady {
 		return ctrl.Result{}, nil
 	}

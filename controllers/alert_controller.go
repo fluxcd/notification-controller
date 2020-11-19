@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -71,38 +71,15 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// validate alert spec and provider
 	if err := r.validate(ctx, alert); err != nil {
-		alert.Status.Conditions = []meta.Condition{
-			{
-				Type:               meta.ReadyCondition,
-				Status:             corev1.ConditionFalse,
-				LastTransitionTime: metav1.Now(),
-				Reason:             meta.ReconciliationFailedReason,
-				Message:            err.Error(),
-			},
-		}
+		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionFalse, meta.ReconciliationFailedReason, err.Error())
 		if err := r.Status().Update(ctx, &alert); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	init := true
-	if c := meta.GetCondition(alert.Status.Conditions, meta.ReadyCondition); c != nil {
-		if c.Status == corev1.ConditionTrue {
-			init = false
-		}
-	}
-
-	if init {
-		alert.Status.Conditions = []meta.Condition{
-			{
-				Type:               meta.ReadyCondition,
-				Status:             corev1.ConditionTrue,
-				LastTransitionTime: metav1.Now(),
-				Reason:             v1beta1.InitializedReason,
-				Message:            v1beta1.InitializedReason,
-			},
-		}
+	if !apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition) {
+		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionTrue, v1beta1.InitializedReason, v1beta1.InitializedReason)
 		if err := r.Status().Update(ctx, &alert); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
@@ -128,7 +105,7 @@ func (r *AlertReconciler) validate(ctx context.Context, alert v1beta1.Alert) err
 		return fmt.Errorf("failed to get provider %s, error: %w", providerName.String(), err)
 	}
 
-	if !meta.HasReadyCondition(provider.Status.Conditions) {
+	if !apimeta.IsStatusConditionTrue(provider.Status.Conditions, meta.ReadyCondition) {
 		return fmt.Errorf("provider %s is not ready", providerName.String())
 	}
 
@@ -148,12 +125,12 @@ func (r *AlertReconciler) recordReadiness(alert v1beta1.Alert, deleted bool) {
 		).Error(err, "unable to record readiness metric")
 		return
 	}
-	if rc := meta.GetCondition(alert.Status.Conditions, meta.ReadyCondition); rc != nil {
+	if rc := apimeta.FindStatusCondition(alert.Status.Conditions, meta.ReadyCondition); rc != nil {
 		r.MetricsRecorder.RecordCondition(*objRef, *rc, deleted)
 	} else {
-		r.MetricsRecorder.RecordCondition(*objRef, meta.Condition{
+		r.MetricsRecorder.RecordCondition(*objRef, metav1.Condition{
 			Type:   meta.ReadyCondition,
-			Status: corev1.ConditionUnknown,
+			Status: metav1.ConditionUnknown,
 		}, deleted)
 	}
 }

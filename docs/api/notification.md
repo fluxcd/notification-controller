@@ -527,8 +527,8 @@ Defaults to false.</p>
 <td>
 <code>conditions</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#Condition">
-[]github.com/fluxcd/pkg/apis/meta.Condition
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
 </a>
 </em>
 </td>
@@ -724,8 +724,8 @@ Kubernetes core/v1.LocalObjectReference
 <td>
 <code>conditions</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#Condition">
-[]github.com/fluxcd/pkg/apis/meta.Condition
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
 </a>
 </em>
 </td>
@@ -844,8 +844,8 @@ Defaults to false.</p>
 <td>
 <code>conditions</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#Condition">
-[]github.com/fluxcd/pkg/apis/meta.Condition
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
+[]Kubernetes meta/v1.Condition
 </a>
 </em>
 </td>
