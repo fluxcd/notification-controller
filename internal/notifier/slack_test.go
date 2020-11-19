@@ -44,7 +44,6 @@ func TestSlack_Post(t *testing.T) {
 
 	err = slack.Post(testEvent())
 	require.NoError(t, err)
-
 }
 
 func TestSlack_PostUpdate(t *testing.T) {

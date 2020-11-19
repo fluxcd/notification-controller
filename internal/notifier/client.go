@@ -28,7 +28,9 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-func postMessage(address string, proxy string, payload interface{}) error {
+type requestOptFunc func(*retryablehttp.Request)
+
+func postMessage(address, proxy string, payload interface{}, reqOpts ...requestOptFunc) error {
 	httpClient := retryablehttp.NewClient()
 
 	if proxy != "" {
@@ -61,8 +63,16 @@ func postMessage(address string, proxy string, payload interface{}) error {
 		return fmt.Errorf("marshalling notification payload failed: %w", err)
 	}
 
-	if _, err := httpClient.Post(address, "application/json", data); err != nil {
-		return err
+	req, err := retryablehttp.NewRequest(http.MethodPost, address, data)
+	if err != nil {
+		return fmt.Errorf("failed to create a new request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	for _, o := range reqOpts {
+		o(req)
+	}
+	if _, err := httpClient.Do(req); err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
 	}
 
 	return nil

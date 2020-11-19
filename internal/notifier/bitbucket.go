@@ -25,12 +25,14 @@ import (
 	"github.com/ktrysmt/go-bitbucket"
 )
 
+// Bitbucket is a Bitbucket Server notifier.
 type Bitbucket struct {
 	Owner  string
 	Repo   string
 	Client *bitbucket.Client
 }
 
+// NewBitbucket creates and returns a new Bitbucket notifier.
 func NewBitbucket(addr string, token string) (*Bitbucket, error) {
 	if len(token) == 0 {
 		return nil, errors.New("bitbucket token cannot be empty")

@@ -21,8 +21,15 @@ import (
 	"net/url"
 
 	"github.com/fluxcd/pkg/recorder"
+	"github.com/hashicorp/go-retryablehttp"
 )
 
+// NotificationHeader is a header sent to identify requests from the
+// notification controller.
+const NotificationHeader = "gotk-component"
+
+// Forwarder is an implementation of the notification Interface that posts the
+// body as an HTTP request using an optional proxy.
 type Forwarder struct {
 	URL      string
 	ProxyURL string
@@ -30,7 +37,7 @@ type Forwarder struct {
 
 func NewForwarder(hookURL string, proxyURL string) (*Forwarder, error) {
 	if _, err := url.ParseRequestURI(hookURL); err != nil {
-		return nil, fmt.Errorf("invalid Discord hook URL %s", hookURL)
+		return nil, fmt.Errorf("invalid hook URL %s: %w", hookURL, err)
 	}
 
 	return &Forwarder{
@@ -40,7 +47,10 @@ func NewForwarder(hookURL string, proxyURL string) (*Forwarder, error) {
 }
 
 func (f *Forwarder) Post(event recorder.Event) error {
-	err := postMessage(f.URL, f.ProxyURL, event)
+	err := postMessage(f.URL, f.ProxyURL, event, func(req *retryablehttp.Request) {
+		req.Header.Set(NotificationHeader, event.ReportingController)
+	})
+
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
