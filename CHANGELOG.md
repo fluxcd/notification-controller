@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.3.0 (2020-11-20)
+
+This is the third MINOR prerelease. It introduces a breaking change to
+the API package; the status condition type has changed to the type
+introduced in Kubernetes API machinery `v1.19.0`.
+
+Improvements:
+* Add support for sending a `Notification-Controller` HTTP header from
+  the forward notifier
+    [#84](https://github.com/fluxcd/notification-controller/pull/84)
+* Verify repository ID in Git notifiers
+    [#82](https://github.com/fluxcd/notification-controller/pull/82)
+* Use subgroup in GitLab
+    [#80](https://github.com/fluxcd/notification-controller/pull/80)
+
 ## 0.2.1 (2020-11-09)
 
 This prerelease comes with support for Bitbucket commit status updates.
