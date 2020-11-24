@@ -1,4 +1,4 @@
-<h1>Kustomize API reference</h1>
+<h1>Notification API reference</h1>
 <p>Packages:</p>
 <ul class="simple">
 <li>
