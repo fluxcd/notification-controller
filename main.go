@@ -28,6 +28,7 @@ import (
 
 	"github.com/fluxcd/pkg/runtime/logger"
 	"github.com/fluxcd/pkg/runtime/metrics"
+	"github.com/fluxcd/pkg/runtime/probes"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
@@ -53,6 +54,7 @@ func main() {
 	var (
 		eventsAddr           string
 		receiverAddr         string
+		healthAddr           string
 		metricsAddr          string
 		enableLeaderElection bool
 		concurrent           int
@@ -63,6 +65,7 @@ func main() {
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&eventsAddr, "events-addr", ":9090", "The address the event endpoint binds to.")
+	flag.StringVar(&healthAddr, "health-addr", ":9440", "The address the health endpoint binds to.")
 	flag.StringVar(&receiverAddr, "receiverAddr", ":9292", "The address the webhook receiver endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
@@ -86,18 +89,21 @@ func main() {
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		Port:               9443,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "4ae6d3b3.fluxcd.io",
-		Namespace:          watchNamespace,
-		Logger:             ctrl.Log,
+		Scheme:                 scheme,
+		MetricsBindAddress:     metricsAddr,
+		HealthProbeBindAddress: healthAddr,
+		Port:                   9443,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "4ae6d3b3.fluxcd.io",
+		Namespace:              watchNamespace,
+		Logger:                 ctrl.Log,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
+
+	probes.SetupChecks(mgr, setupLog)
 
 	if err = (&controllers.ProviderReconciler{
 		Client:          mgr.GetClient(),
