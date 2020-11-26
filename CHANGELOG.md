@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.4.0 (2020-11-26)
+
+This is the fourth MINOR prerelease. It comes with 
+support for Azure DevOps commit status updates. 
+
+Improvements:
+* Add Azure DevOps provider
+    [#86](https://github.com/fluxcd/notification-controller/pull/86)
+* Add readiness/liveness probes
+    [#89](https://github.com/fluxcd/notification-controller/pull/89)
+
 ## 0.3.0 (2020-11-20)
 
 This is the third MINOR prerelease. It introduces a breaking change to
