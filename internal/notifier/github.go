@@ -80,8 +80,8 @@ func (g *GitHub) Post(event recorder.Event) error {
 	if err != nil {
 		return err
 	}
-
 	name, desc := formatNameAndDescription(event)
+
 	status := &github.RepoStatus{
 		State:       &state,
 		Context:     &name,
@@ -90,9 +90,19 @@ func (g *GitHub) Post(event recorder.Event) error {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
+
+	opts := &github.ListOptions{PerPage: 50}
+	statuses, _, err := g.Client.Repositories.ListStatuses(ctx, g.Owner, g.Repo, rev, opts)
+	if err != nil {
+		return fmt.Errorf("could not list commit statuses: %v", err)
+	}
+	if duplicateStatus(statuses, status) {
+		return nil
+	}
+
 	_, _, err = g.Client.Repositories.CreateStatus(ctx, g.Owner, g.Repo, rev, status)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not create commit status: %v", err)
 	}
 
 	return nil
@@ -107,4 +117,20 @@ func toGitHubState(severity string) (string, error) {
 	default:
 		return "", errors.New("can't convert to github state")
 	}
+}
+
+// duplicateStatus return true if the latest status
+// with a matching context has the same state and description
+func duplicateStatus(statuses []*github.RepoStatus, status *github.RepoStatus) bool {
+	for _, s := range statuses {
+		if *s.Context == *status.Context {
+			if *s.State == *status.State && *s.Description == *status.Description {
+				return true
+			}
+
+			return false
+		}
+	}
+
+	return false
 }
