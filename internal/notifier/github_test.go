@@ -19,6 +19,7 @@ package notifier
 import (
 	"testing"
 
+	"github.com/google/go-github/v32/github"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,4 +38,32 @@ func TestNewGitHubInvalidUrl(t *testing.T) {
 func TestNewGitHubEmptyToken(t *testing.T) {
 	_, err := NewGitHub("https://github.com/foo/bar", "")
 	assert.NotNil(t, err)
+}
+
+func TestDuplicateState(t *testing.T) {
+	assert := assert.New(t)
+
+	var tests = []struct {
+		ss  []*github.RepoStatus
+		s   *github.RepoStatus
+		dup bool
+	}{
+		{[]*github.RepoStatus{ghStatus("success", "foo", "bar")}, ghStatus("success", "foo", "bar"), true},
+		{[]*github.RepoStatus{ghStatus("success", "foo", "bar")}, ghStatus("failure", "foo", "bar"), false},
+		{[]*github.RepoStatus{ghStatus("success", "foo", "bar")}, ghStatus("success", "baz", "bar"), false},
+		{[]*github.RepoStatus{ghStatus("success", "foo", "bar")}, ghStatus("success", "foo", "baz"), false},
+		{[]*github.RepoStatus{ghStatus("success", "baz", "bar"), ghStatus("success", "foo", "bar")}, ghStatus("success", "foo", "bar"), true},
+	}
+
+	for _, test := range tests {
+		assert.Equal(test.dup, duplicateStatus(test.ss, test.s))
+	}
+}
+
+func ghStatus(state string, context string, description string) *github.RepoStatus {
+	return &github.RepoStatus{
+		State:       &state,
+		Context:     &context,
+		Description: &description,
+	}
 }
