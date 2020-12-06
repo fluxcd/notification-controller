@@ -21,6 +21,10 @@ type AlertSpec struct {
 	// +required
 	EventSources []CrossNamespaceObjectReference `json:"eventSources"`
 
+	// Short description of the impact and affected cluster.
+	// +optional
+	Summary string `json:"summary,omitempty"`
+
 	// This flag tells the controller to suspend subsequent events dispatching.
 	// Defaults to false.
 	// +optional
@@ -93,3 +97,21 @@ spec:
 ```
 
 If you don't specify an event source namespace, the alert namespace will be used.
+
+You can add a summary to describe the impact of an event:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Alert
+metadata:
+  name: ingress
+  namespace: nginx
+spec:
+  summary: "Ingress traffic affected in production (us-west-2)"
+  providerRef: 
+    name: on-call-slack
+  eventSeverity: error
+  eventSources:
+    - kind: HelmRelease
+      name: nginx-ingress
+```

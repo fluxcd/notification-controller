@@ -96,6 +96,9 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              summary:
+                description: Short description of the impact and affected cluster.
+                type: string
               suspend:
                 description: This flag tells the controller to suspend subsequent
                   events dispatching. Defaults to false.
