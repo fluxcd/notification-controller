@@ -155,3 +155,43 @@ metadata:
 data:
   token: <username>:<app-password>
 ```
+
+### Generic webhook
+
+The `generic` webhook triggers an HTTP POST request to the provided endpoint.
+
+The `Gotk-Component` header identifies which component this event is coming
+from, e.g. `source-controller`, `kustomize-controller`.
+
+```
+POST / HTTP/1.1
+Host: example.com
+Accept-Encoding: gzip
+Content-Length: 452
+Content-Type: application/json
+Gotk-Component: source-controller
+User-Agent: Go-http-client/1.1
+```
+
+The body of the request looks like this:
+
+```json
+{
+  "involvedObject": {
+    "kind":"GitRepository",
+    "namespace":"flux-system",
+    "name":"flux-system",
+    "uid":"cc4d0095-83f4-4f08-98f2-d2e9f3731fb9",
+    "apiVersion":"source.toolkit.fluxcd.io/v1beta1",
+    "resourceVersion":"56921",
+  },
+  "severity":"info",
+  "timestamp":"2006-01-02T15:04:05Z",
+  "message":"Fetched revision: main/731f7eaddfb6af01cb2173e18f0f75b0ba780ef1",
+  "reason":"info",
+  "reportingController":"source-controller",
+  "reportingInstance":"source-controller-7c7b47f5f-8bhrp",
+}
+```
+
+The `involvedObject` key contains the object that triggered the event.
