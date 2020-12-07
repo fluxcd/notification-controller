@@ -21,18 +21,17 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
-	"github.com/google/go-github/v32/github"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
+	"github.com/google/go-github/v32/github"
+	corev1 "k8s.io/api/core/v1"
+	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
 
 func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +42,7 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 		s.logger.Info("handling request", "digest", digest)
 
 		var allReceivers v1beta1.ReceiverList
-		err := s.kubeClient.List(ctx, &allReceivers, client.InNamespace(os.Getenv("RUNTIME_NAMESPACE")))
+		err := s.kubeClient.List(ctx, &allReceivers)
 		if err != nil {
 			s.logger.Error(err, "unable to list receivers")
 			w.WriteHeader(http.StatusBadRequest)
@@ -52,7 +51,9 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 
 		receivers := make([]v1beta1.Receiver, 0)
 		for _, receiver := range allReceivers.Items {
-			if receiver.Status.URL == fmt.Sprintf("/hook/%s", digest) && !receiver.Spec.Suspend {
+			if !receiver.Spec.Suspend &&
+				apimeta.IsStatusConditionTrue(receiver.Status.Conditions, meta.ReadyCondition) &&
+				receiver.Status.URL == fmt.Sprintf("/hook/%s", digest) {
 				receivers = append(receivers, receiver)
 			}
 		}
