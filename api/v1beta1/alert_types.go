@@ -38,6 +38,10 @@ type AlertSpec struct {
 	// +required
 	EventSources []CrossNamespaceObjectReference `json:"eventSources"`
 
+	// Short description of the impact and affected cluster.
+	// +optional
+	Summary string `json:"summary,omitempty"`
+
 	// This flag tells the controller to suspend subsequent events dispatching.
 	// Defaults to false.
 	// +optional

@@ -113,6 +113,18 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </tr>
 <tr>
 <td>
+<code>summary</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Short description of the impact and affected cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>suspend</code><br>
 <em>
 bool
@@ -487,6 +499,18 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 <td>
 <p>Filter events based on the involved objects</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>summary</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Short description of the impact and affected cluster.</p>
 </td>
 </tr>
 <tr>

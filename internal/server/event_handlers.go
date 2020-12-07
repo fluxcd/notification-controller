@@ -88,8 +88,6 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			}
 		}
 
-		// find providers
-		alertProviders := make([]notifier.Interface, 0)
 		if len(alerts) == 0 {
 			s.logger.Info("Discarding event, no alerts found for the involved object",
 				"object", event.InvolvedObject.Namespace+"/"+event.InvolvedObject.Name,
@@ -98,7 +96,12 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		// find providers
+		s.logger.Info("Dispatching event",
+			"object", event.InvolvedObject.Namespace+"/"+event.InvolvedObject.Name,
+			"kind", event.InvolvedObject.Kind,
+			"message", event.Message)
+
+		// dispatch notifications
 		for _, alert := range alerts {
 			var provider v1beta1.Provider
 			providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
@@ -107,8 +110,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			if err != nil {
 				s.logger.Error(err, "failed to read provider",
 					"provider", providerName)
-				w.WriteHeader(http.StatusBadRequest)
-				return
+				continue
 			}
 
 			webhook := provider.Spec.Address
@@ -122,8 +124,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 					s.logger.Error(err, "failed to read secret",
 						"provider", providerName,
 						"secret", secretName.Name)
-					w.WriteHeader(http.StatusBadRequest)
-					return
+					continue
 				}
 
 				if address, ok := secret.Data["address"]; ok {
@@ -138,8 +139,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			if webhook == "" {
 				s.logger.Error(nil, "provider has no address",
 					"provider", providerName)
-				w.WriteHeader(http.StatusBadRequest)
-				return
+				continue
 			}
 
 			factory := notifier.NewFactory(webhook, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token)
@@ -148,27 +148,27 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				s.logger.Error(err, "failed to initialise provider",
 					"provider", providerName,
 					"type", provider.Spec.Type)
-				w.WriteHeader(http.StatusBadRequest)
-				return
+				continue
 			}
 
-			alertProviders = append(alertProviders, sender)
-		}
+			notification := *event
+			if alert.Spec.Summary != "" {
+				if notification.Metadata == nil {
+					notification.Metadata = map[string]string{
+						"summary": alert.Spec.Summary,
+					}
+				} else {
+					notification.Metadata["summary"] = alert.Spec.Summary
+				}
+			}
 
-		s.logger.Info("Dispatching event",
-			"object", event.InvolvedObject.Namespace+"/"+event.InvolvedObject.Name,
-			"kind", event.InvolvedObject.Kind,
-			"message", event.Message)
-
-		// send notifications in the background
-		for _, provider := range alertProviders {
-			go func(p notifier.Interface, e recorder.Event) {
-				if err := p.Post(e); err != nil {
+			go func(n notifier.Interface, e recorder.Event) {
+				if err := n.Post(e); err != nil {
 					s.logger.Error(err, "failed to send notification",
 						"object", e.InvolvedObject.Namespace+"/"+e.InvolvedObject.Name,
-						"kind", event.InvolvedObject.Kind)
+						"kind", e.InvolvedObject.Kind)
 				}
-			}(provider, *event)
+			}(sender, notification)
 		}
 
 		w.WriteHeader(http.StatusAccepted)
