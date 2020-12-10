@@ -2,7 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
-## 0.4.0 (2020-11-26)
+## 0.5.0
+
+**Release date:** 2020-12-10
+
+This is the fifth MINOR prerelease. It comes with support for
+customising the alert message with `spec.summary`.
+
+Improvements:
+* Add alert summary to notification metadata
+    [#97](https://github.com/fluxcd/notification-controller/pull/97)
+* Add example generic webhook request
+    [#98](https://github.com/fluxcd/notification-controller/pull/98)
+
+Fixes:
+* Lookup ready receivers in all namespaces
+    [#96](https://github.com/fluxcd/notification-controller/pull/96)
+* Add check for duplicate status to avoid spamming the same status
+    [#93](https://github.com/fluxcd/notification-controller/pull/93)
+
+## 0.4.0
+
+**Release date:** 2020-11-26
 
 This is the fourth MINOR prerelease. It comes with 
 support for Azure DevOps commit status updates. 
@@ -13,7 +34,9 @@ Improvements:
 * Add readiness/liveness probes
     [#89](https://github.com/fluxcd/notification-controller/pull/89)
 
-## 0.3.0 (2020-11-20)
+## 0.3.0
+
+**Release date:** 2020-11-20
 
 This is the third MINOR prerelease. It introduces a breaking change to
 the API package; the status condition type has changed to the type
@@ -28,7 +51,9 @@ Improvements:
 * Use subgroup in GitLab
     [#80](https://github.com/fluxcd/notification-controller/pull/80)
 
-## 0.2.1 (2020-11-09)
+## 0.2.1
+
+**Release date:** 2020-11-09
 
 This prerelease comes with support for Bitbucket commit status updates.
 
@@ -38,13 +63,17 @@ Improvements:
 * Add bitbucket notifier
     [#73](https://github.com/fluxcd/notification-controller/pull/73)
 
-## 0.2.0 (2020-10-29)
+## 0.2.0
+
+**Release date:** 2020-10-29
 
 This is the second MINOR prerelease, it comes with breaking changes:
 * the histogram metric `gotk_reconcile_duration` was renamed to `gotk_reconcile_duration_seconds`
 * the annotation `fluxcd.io/reconcileAt` was renamed to `reconcile.fluxcd.io/requestedAt`
 
-## 0.1.2 (2020-10-19)
+## 0.1.2
+
+**Release date:** 2020-10-19
 
 This prerelease adds support for HTTP/S proxies when sending alerts.
 An optional field called `Proxy` was added to the Provider API.
@@ -53,7 +82,9 @@ Features:
 * Add support for http(s) proxy when sending alerts
     [#62](https://github.com/fluxcd/notification-controller/pull/62)
 
-## 0.1.1 (2020-10-13)
+## 0.1.1
+
+**Release date:** 2020-10-13
 
 This prerelease comes with Prometheus instrumentation for the controller's resources.
 
@@ -63,7 +94,9 @@ and a histogram with the reconciliation duration in seconds:
 * `gotk_reconcile_condition{kind, name, namespace, status, type="Ready"}`
 * `gotk_reconcile_duration{kind, name, namespace}`
 
-## 0.1.0 (2020-09-30)
+## 0.1.0
+
+**Release date:** 2020-09-30
 
 This is the first MINOR prerelease, it promotes the
 `notification.toolkit.fluxcd.io` API to `v1beta1`
@@ -74,7 +107,9 @@ mechanism. With this release the API becomes more stable, but while in
 beta phase there are no guarantees about backwards compatibility
 between beta releases.
 
-## 0.0.11 (2020-09-22)
+## 0.0.11
+
+**Release date:** 2020-09-22
 
 This prerelease comes with support for publishing events
 to GitLab commit status API.
@@ -83,66 +118,90 @@ S3 Bucket sources.
 Container images for ARMv7 and ARMv8 are published to
 `ghcr.io/fluxcd/notification-controller-arm64`.
 
-## 0.0.10 (2020-09-12)
+## 0.0.10
+
+**Release date:** 2020-09-12
 
 This prerelease comes with the option to watch for resources
 in the runtime namespace of the controller or at cluster level.
 
-## 0.0.9 (2020-09-11)
+## 0.0.9
+
+**Release date:** 2020-09-11
 
 This prerelease makes the `api` package available as
 a dedicated versioned module.
 
-## 0.0.8 (2020-09-02)
+## 0.0.8
+
+**Release date:** 2020-09-02
 
 This prerelease comes with support for publishing events
 to GitHub commit status API.
 
-## 0.0.7 (2020-08-05)
+## 0.0.7
+
+**Release date:** 2020-08-05
 
 This prerelease comes with a fix to the Prometheus scraping endpoint.
 
-## 0.0.6 (2020-07-31)
+## 0.0.6
+
+**Release date:** 2020-07-31
 
 This prerelease comes with a breaking change, the CRDs group
 has been renamed to `notification.toolkit.fluxcd.io`.
 The dependency on `source-controller` has been updated to `v0.0.7` to
 be able to work with `source.toolkit.fluxcd.io` resources.
 
-## 0.0.5 (2020-07-20)
+## 0.0.5
+
+**Release date:** 2020-07-20
 
 This prerelease drops support for Kubernetes <1.16.
 The CRDs have been updated to `apiextensions.k8s.io/v1`.
 
-## 0.0.4 (2020-07-16)
+## 0.0.4
+
+**Release date:** 2020-07-16
 
 This prerelease comes with improvements to logging and
 fixes a bug preventing alerts to be dispatched for resources
 outside of the controller's namespace.
 
-## 0.0.3 (2020-07-14)
+## 0.0.3
+
+**Release date:** 2020-07-14
 
 This prerelease allows alert rules to be reconciled
 outside of the controller's namespace.
 
-## 0.0.2 (2020-07-13)
+## 0.0.2
+
+**Release date:** 2020-07-13
 
 This prerelease comes with improvements to logging.
 The default logging format is JSON and the timestamp format is ISO8601.
 
-## 0.0.1 (2020-07-07)
+## 0.0.1
+
+**Release date:** 2020-07-07
 
 This prerelease comes with webhook receivers support.
 With the [Receiver API](https://github.com/fluxcd/notification-controller/blob/v0.0.1/docs/spec/v1alpha1/receiver.md)
 you can define a webhook receiver (GitHub, GitLab, Bitbucket, Harbour, generic)
 that triggers reconciliation for a group of resources.
 
-## 0.0.1-beta.1 (2020-07-03)
+## 0.0.1-beta.1
+
+**Release date:** 2020-07-03
 
 This beta release comes with wildcard support for defining alerts
 that target all resources of a particular kind in a namespace.
 
-## 0.0.1-alpha.2 (2020-07-02)
+## 0.0.1-alpha.2
+
+**Release date:** 2020-07-02
 
 This alpha release comes with improvements to alerts delivering.
 The alert delivery method is **at-most once** with a timeout of 15 seconds.
@@ -150,6 +209,8 @@ The controller performs automatic retries for connection errors and 500-range re
 If the webhook receiver returns an error, the controller will retry sending an alert for
 four times with an exponential backoff of maximum 30 seconds.
 
-## 0.0.1-alpha.1 (2020-07-01)
+## 0.0.1-alpha.1
+
+**Release date:** 2020-07-01
 
 This is the first alpha release of notifications controller.
