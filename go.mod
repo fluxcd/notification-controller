@@ -8,15 +8,16 @@ require (
 	github.com/fluxcd/notification-controller/api v0.5.0
 	github.com/fluxcd/pkg/apis/meta v0.5.0
 	github.com/fluxcd/pkg/recorder v0.0.6
-	github.com/fluxcd/pkg/runtime v0.4.0
-	github.com/fluxcd/source-controller/api v0.5.2
-	github.com/go-logr/logr v0.2.1
+	github.com/fluxcd/pkg/runtime v0.6.0
+	github.com/fluxcd/source-controller/api v0.6.0
+	github.com/go-logr/logr v0.3.0
 	github.com/google/go-github/v32 v32.0.0
 	github.com/hashicorp/go-retryablehttp v0.6.7
 	github.com/ktrysmt/go-bitbucket v0.6.5
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
-	github.com/onsi/ginkgo v1.12.1
-	github.com/onsi/gomega v1.10.1
+	github.com/onsi/ginkgo v1.14.1
+	github.com/onsi/gomega v1.10.2
+	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
 	github.com/whilp/git-urls v1.0.0
 	github.com/xanzy/go-gitlab v0.37.0
@@ -24,5 +25,5 @@ require (
 	k8s.io/api v0.19.4
 	k8s.io/apimachinery v0.19.4
 	k8s.io/client-go v0.19.4
-	sigs.k8s.io/controller-runtime v0.6.4
+	sigs.k8s.io/controller-runtime v0.7.0
 )

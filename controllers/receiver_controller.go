@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"strings"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -39,7 +38,6 @@ import (
 // ReceiverReconciler reconciles a Receiver object
 type ReceiverReconciler struct {
 	client.Client
-	Log             logr.Logger
 	Scheme          *runtime.Scheme
 	MetricsRecorder *metrics.Recorder
 }
@@ -52,15 +50,13 @@ type ReceiverReconciler struct {
 // +kubebuilder:rbac:groups=source.fluxcd.io,resources=helmrepositories/status,verbs=get
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
-func (r *ReceiverReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := logr.FromContext(ctx)
 
 	var receiver v1beta1.Receiver
 	if err := r.Get(ctx, req.NamespacedName, &receiver); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	log := r.Log.WithValues("controller", strings.ToLower(receiver.Kind), "request", req.NamespacedName)
 
 	token, err := r.token(ctx, receiver)
 	if err != nil {

@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -30,6 +29,7 @@ import (
 	"k8s.io/client-go/tools/reference"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/metrics"
@@ -41,7 +41,6 @@ import (
 // AlertReconciler reconciles a Alert object
 type AlertReconciler struct {
 	client.Client
-	Log             logr.Logger
 	Scheme          *runtime.Scheme
 	MetricsRecorder *metrics.Recorder
 }
@@ -49,16 +48,14 @@ type AlertReconciler struct {
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=alerts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=alerts/status,verbs=get;update;patch
 
-func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reconcileStart := time.Now()
+	log := logr.FromContext(ctx)
 
 	var alert v1beta1.Alert
 	if err := r.Get(ctx, req.NamespacedName, &alert); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	log := r.Log.WithValues("controller", strings.ToLower(alert.Kind), "request", req.NamespacedName)
 
 	// record reconciliation duration
 	if r.MetricsRecorder != nil {
@@ -86,7 +83,7 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		log.Info("Alert initialised")
 	}
 
-	r.recordReadiness(alert, false)
+	r.recordReadiness(ctx, alert)
 
 	return ctrl.Result{}, nil
 }
@@ -94,7 +91,7 @@ func (r *AlertReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.Alert{}).
-		WithEventFilter(predicates.ChangePredicate{}).
+		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcilateAtChangedPredicate{})).
 		Complete(r)
 }
 
@@ -112,25 +109,23 @@ func (r *AlertReconciler) validate(ctx context.Context, alert v1beta1.Alert) err
 	return nil
 }
 
-func (r *AlertReconciler) recordReadiness(alert v1beta1.Alert, deleted bool) {
+func (r *AlertReconciler) recordReadiness(ctx context.Context, alert v1beta1.Alert) {
+	log := logr.FromContext(ctx)
 	if r.MetricsRecorder == nil {
 		return
 	}
 
 	objRef, err := reference.GetReference(r.Scheme, &alert)
 	if err != nil {
-		r.Log.WithValues(
-			strings.ToLower(alert.Kind),
-			fmt.Sprintf("%s/%s", alert.GetNamespace(), alert.GetName()),
-		).Error(err, "unable to record readiness metric")
+		log.Error(err, "unable to record readiness metric")
 		return
 	}
 	if rc := apimeta.FindStatusCondition(alert.Status.Conditions, meta.ReadyCondition); rc != nil {
-		r.MetricsRecorder.RecordCondition(*objRef, *rc, deleted)
+		r.MetricsRecorder.RecordCondition(*objRef, *rc, !alert.DeletionTimestamp.IsZero())
 	} else {
 		r.MetricsRecorder.RecordCondition(*objRef, metav1.Condition{
 			Type:   meta.ReadyCondition,
 			Status: metav1.ConditionUnknown,
-		}, deleted)
+		}, !alert.DeletionTimestamp.IsZero())
 	}
 }
