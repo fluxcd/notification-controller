@@ -49,6 +49,7 @@ type ProviderSpec struct {
 	Proxy string `json:"proxy,omitempty"`
 
 	// Secret reference containing the provider webhook URL
+	// using "address" as data key
 	// +optional
 	SecretRef *corev1.LocalObjectReference `json:"secretRef,omitempty"`
 }

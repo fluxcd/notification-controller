@@ -59,6 +59,7 @@ spec:
                 type: string
               secretRef:
                 description: Secret reference containing the provider webhook URL
+                  using "address" as data key
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names

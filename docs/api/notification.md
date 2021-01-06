@@ -282,7 +282,8 @@ Kubernetes core/v1.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>Secret reference containing the provider webhook URL</p>
+<p>Secret reference containing the provider webhook URL
+using &ldquo;address&rdquo; as data key</p>
 </td>
 </tr>
 </table>
@@ -720,7 +721,8 @@ Kubernetes core/v1.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>Secret reference containing the provider webhook URL</p>
+<p>Secret reference containing the provider webhook URL
+using &ldquo;address&rdquo; as data key</p>
 </td>
 </tr>
 </tbody>
