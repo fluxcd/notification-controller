@@ -110,9 +110,13 @@ incoming [event](event.md) in JSON format to the webhook address.
 
 ### Git commit status
 
-The GitHub, GitLab, Bitbucket, and Azure DevOps provider is a special kind of notification
-provider that based on the state of a Kustomization resource,
-will update the commit status for the reconciled commit id.
+The GitHub, GitLab, Bitbucket, and Azure DevOps provider will write to the
+commit status in the git repository from which the event originates from.
+
+!!! hint "Limitations"
+    The git notification providers require that a commit hash present in the meta data
+    of the event. There for the the providers will only work with `Kustomization` as an
+    event source, as it is the only resource which includes this data.
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
@@ -128,10 +132,11 @@ spec:
     name: api-token
 ```
 
+#### Authentication
 GitHub. GitLab, and Azure DevOps use personal access tokens to authenticate with their API.
-* [GitHub personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token)
-* [GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
-* [Azure DevOps personal access token](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page)
+  - [GitHub personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token)
+  - [GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
+  - [Azure DevOps personal access token](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page)
 Both provider types require a secret in the same format, with the personal access token as the value for the token key.
 ```yaml
 apiVersion: v1
