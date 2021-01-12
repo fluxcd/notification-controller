@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -31,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/reference"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/metrics"
@@ -43,7 +43,6 @@ import (
 // ProviderReconciler reconciles a Provider object
 type ProviderReconciler struct {
 	client.Client
-	Log             logr.Logger
 	Scheme          *runtime.Scheme
 	MetricsRecorder *metrics.Recorder
 }
@@ -51,16 +50,14 @@ type ProviderReconciler struct {
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=providers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=providers/status,verbs=get;update;patch
 
-func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	reconcileStart := time.Now()
+	log := logr.FromContext(ctx)
 
 	var provider v1beta1.Provider
 	if err := r.Get(ctx, req.NamespacedName, &provider); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	log := r.Log.WithValues("controller", strings.ToLower(provider.Kind), "request", req.NamespacedName)
 
 	// record reconciliation duration
 	if r.MetricsRecorder != nil {
@@ -88,13 +85,15 @@ func (r *ProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		log.Info("Provider initialised")
 	}
 
+	r.recordReadiness(ctx, provider)
+
 	return ctrl.Result{}, nil
 }
 
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.Provider{}).
-		WithEventFilter(predicates.ChangePredicate{}).
+		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcilateAtChangedPredicate{})).
 		Complete(r)
 }
 
@@ -130,25 +129,23 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider v1beta1.Prov
 	return nil
 }
 
-func (r *ProviderReconciler) recordReadiness(provider v1beta1.Provider, deleted bool) {
+func (r *ProviderReconciler) recordReadiness(ctx context.Context, provider v1beta1.Provider) {
+	log := logr.FromContext(ctx)
 	if r.MetricsRecorder == nil {
 		return
 	}
 
 	objRef, err := reference.GetReference(r.Scheme, &provider)
 	if err != nil {
-		r.Log.WithValues(
-			strings.ToLower(provider.Kind),
-			fmt.Sprintf("%s/%s", provider.GetNamespace(), provider.GetName()),
-		).Error(err, "unable to record readiness metric")
+		log.Error(err, "unable to record readiness metric")
 		return
 	}
 	if rc := apimeta.FindStatusCondition(provider.Status.Conditions, meta.ReadyCondition); rc != nil {
-		r.MetricsRecorder.RecordCondition(*objRef, *rc, deleted)
+		r.MetricsRecorder.RecordCondition(*objRef, *rc, !provider.DeletionTimestamp.IsZero())
 	} else {
 		r.MetricsRecorder.RecordCondition(*objRef, metav1.Condition{
 			Type:   meta.ReadyCondition,
 			Status: metav1.ConditionUnknown,
-		}, deleted)
+		}, !provider.DeletionTimestamp.IsZero())
 	}
 }

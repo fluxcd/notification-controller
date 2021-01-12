@@ -17,9 +17,10 @@ limitations under the License.
 package main
 
 import (
-	"flag"
+	goflag "flag"
 	"os"
 
+	flag "github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -58,9 +59,8 @@ func main() {
 		metricsAddr          string
 		enableLeaderElection bool
 		concurrent           int
-		logLevel             string
-		logJSON              bool
 		watchAllNamespaces   bool
+		logOptions           logger.Options
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -71,14 +71,19 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.IntVar(&concurrent, "concurrent", 4, "The number of concurrent notification reconciles.")
-	flag.StringVar(&logLevel, "log-level", "info", "Set logging level. Can be debug, info or error.")
-	flag.BoolVar(&logJSON, "log-json", false, "Set logging to JSON format.")
 	flag.BoolVar(&watchAllNamespaces, "watch-all-namespaces", true,
 		"Watch for custom resources in all namespaces, if set to false it will only watch the runtime namespace.")
+	flag.Bool("log-json", false, "Set logging to JSON format.")
+	flag.CommandLine.MarkDeprecated("log-json", "Please use --log-encoding=json instead.")
+	{
+		var fs goflag.FlagSet
+		logOptions.BindFlags(&fs)
+		flag.CommandLine.AddGoFlagSet(&fs)
+	}
 	flag.Parse()
 
-	zapLogger := logger.NewLogger(logLevel, logJSON)
-	ctrl.SetLogger(zapLogger)
+	log := logger.NewLogger(logOptions)
+	ctrl.SetLogger(log)
 
 	metricsRecorder := metrics.NewRecorder()
 	crtlmetrics.Registry.MustRegister(metricsRecorder.Collectors()...)
@@ -107,7 +112,6 @@ func main() {
 
 	if err = (&controllers.ProviderReconciler{
 		Client:          mgr.GetClient(),
-		Log:             ctrl.Log.WithName("controllers").WithName("Provider"),
 		Scheme:          mgr.GetScheme(),
 		MetricsRecorder: metricsRecorder,
 	}).SetupWithManager(mgr); err != nil {
@@ -116,7 +120,6 @@ func main() {
 	}
 	if err = (&controllers.AlertReconciler{
 		Client:          mgr.GetClient(),
-		Log:             ctrl.Log.WithName("controllers").WithName("Alert"),
 		Scheme:          mgr.GetScheme(),
 		MetricsRecorder: metricsRecorder,
 	}).SetupWithManager(mgr); err != nil {
@@ -125,7 +128,6 @@ func main() {
 	}
 	if err = (&controllers.ReceiverReconciler{
 		Client:          mgr.GetClient(),
-		Log:             ctrl.Log.WithName("controllers").WithName("Receiver"),
 		Scheme:          mgr.GetScheme(),
 		MetricsRecorder: metricsRecorder,
 	}).SetupWithManager(mgr); err != nil {
@@ -134,18 +136,18 @@ func main() {
 	}
 	// +kubebuilder:scaffold:builder
 
-	stopCh := ctrl.SetupSignalHandler()
+	ctx := ctrl.SetupSignalHandler()
 
 	setupLog.Info("starting event server", "addr", eventsAddr)
-	eventServer := server.NewEventServer(eventsAddr, zapLogger, mgr.GetClient())
-	go eventServer.ListenAndServe(stopCh)
+	eventServer := server.NewEventServer(eventsAddr, log, mgr.GetClient())
+	go eventServer.ListenAndServe(ctx.Done())
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)
-	receiverServer := server.NewReceiverServer(receiverAddr, zapLogger, mgr.GetClient())
-	go receiverServer.ListenAndServe(stopCh)
+	receiverServer := server.NewReceiverServer(receiverAddr, log, mgr.GetClient())
+	go receiverServer.ListenAndServe(ctx.Done())
 
 	setupLog.Info("starting manager")
-	if err := mgr.Start(stopCh); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
