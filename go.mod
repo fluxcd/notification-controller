@@ -5,7 +5,7 @@ go 1.15
 replace github.com/fluxcd/notification-controller/api => ./api
 
 require (
-	github.com/fluxcd/notification-controller/api v0.5.0
+	github.com/fluxcd/notification-controller/api v0.6.0
 	github.com/fluxcd/pkg/apis/meta v0.5.0
 	github.com/fluxcd/pkg/recorder v0.0.6
 	github.com/fluxcd/pkg/runtime v0.6.0
