@@ -108,6 +108,7 @@ spec:
                 - gitlab
                 - bitbucket
                 - harbor
+                - dockerhub
                 type: string
             required:
             - resources
