@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.6.1
+
+**Release date:** 2021-01-14
+
+This prerelease comes with support for triggering
+container image updates to Git using webhook receiver and
+fixes a regression bug introduced in `v0.6.0` that caused
+reconciliation request annotations to be ignored in certain scenarios.
+
+Features:
+* Trigger ImageRepository reconciliation with webhook receivers
+  [#110](https://github.com/fluxcd/notification-controller/pull/110)
+* Implement DockerHub webhook receiver
+  [#112](https://github.com/fluxcd/notification-controller/pull/112)
+
+Improvements:
+* Upgrade runtime package to v0.6.2
+  [#111](https://github.com/fluxcd/notification-controller/pull/111)
+
 ## 0.6.0
 
 **Release date:** 2021-01-12
