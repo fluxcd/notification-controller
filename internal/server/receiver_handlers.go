@@ -18,6 +18,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -180,6 +181,24 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 		}
 
 		s.logger.Info("handling Harbor event", "receiver", receiver.Name)
+		return nil
+	case v1beta1.DockerHubReceiver:
+		type payload struct {
+			PushData struct {
+				Tag string `json:"tag"`
+			} `json:"push_data"`
+			Repository struct {
+				URL string `json:"repo_url"`
+			} `json:"repository"`
+		}
+		var p payload
+		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+			return fmt.Errorf("cannot decode DockerHub webhook payload")
+		}
+
+		s.logger.Info(
+			fmt.Sprintf("handling event from %s for tag %s", p.Repository.URL, p.PushData.Tag),
+			"receiver", receiver.Name)
 		return nil
 	}
 

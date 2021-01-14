@@ -9,7 +9,7 @@ reconciliation for a group of resources.
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
-	// +kubebuilder:validation:Enum=generic;github;gitlab;harbor
+	// +kubebuilder:validation:Enum=generic;github;gitlab;harbor;dockerhub
 	// +required
 	Type string `json:"type"`
 
@@ -43,6 +43,7 @@ const (
 	GitLabReceiver    string = "gitlab"
 	BitbucketReceiver string = "bitbucket"
 	HarborReceiver    string = "harbor"
+	DockerHubReceiver string = "dockerhub"
 )
 ```
 
@@ -69,7 +70,7 @@ kubectl create secret generic webhook-token \
   --from-literal=token=$TOKEN
 ```
 
-GitHub receiver:
+### GitHub receiver
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
@@ -94,7 +95,7 @@ spec:
 Note that you have to set the generated token as the GitHub webhook secret value.
 The controller uses the `X-Hub-Signature` HTTP header to verify that the request is legitimate.
 
-GitLab receiver:
+### GitLab receiver
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
@@ -119,7 +120,7 @@ spec:
 Note that you have to configure the GitLab webhook with the generated token.
 The controller uses the `X-Gitlab-Token` HTTP header to verify that the request is legitimate.
 
-Bitbucket server receiver:
+### Bitbucket server receiver
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
@@ -141,7 +142,7 @@ spec:
 Note that you have to set the generated token as the Bitbucket server webhook secret value.
 The controller uses the `X-Hub-Signature` HTTP header to verify that the request is legitimate.
 
-Harbor receiver:
+### Harbor receiver
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
@@ -163,7 +164,24 @@ spec:
 Note that you have to set the generated token as the Harbor webhook authentication header.
 The controller uses the `Authentication` HTTP header to verify that the request is legitimate.
 
-Generic receiver:
+### DockerHub receiver
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Receiver
+metadata:
+  name: dockerhub-receiver
+  namespace: default
+spec:
+  type: dockerhub
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: ImageRepository
+      name: webapp
+```
+
+### Generic receiver
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
