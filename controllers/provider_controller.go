@@ -93,7 +93,7 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.Provider{}).
-		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcilateAtChangedPredicate{})).
+		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{})).
 		Complete(r)
 }
 

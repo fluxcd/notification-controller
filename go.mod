@@ -8,8 +8,8 @@ require (
 	github.com/fluxcd/notification-controller/api v0.6.0
 	github.com/fluxcd/pkg/apis/meta v0.5.0
 	github.com/fluxcd/pkg/recorder v0.0.6
-	github.com/fluxcd/pkg/runtime v0.6.0
-	github.com/fluxcd/source-controller/api v0.6.0
+	github.com/fluxcd/pkg/runtime v0.6.2
+	github.com/fluxcd/source-controller/api v0.6.1
 	github.com/go-logr/logr v0.3.0
 	github.com/google/go-github/v32 v32.0.0
 	github.com/hashicorp/go-retryablehttp v0.6.7
