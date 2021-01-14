@@ -27,6 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
+	imagev1 "github.com/fluxcd/image-reflector-controller/api/v1alpha1"
 	"github.com/fluxcd/pkg/runtime/logger"
 	"github.com/fluxcd/pkg/runtime/metrics"
 	"github.com/fluxcd/pkg/runtime/probes"
@@ -48,6 +49,7 @@ func init() {
 
 	_ = v1beta1.AddToScheme(scheme)
 	_ = sourcev1.AddToScheme(scheme)
+	_ = imagev1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

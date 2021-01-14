@@ -156,6 +156,8 @@ spec:
   resources:
     - kind: HelmRepository
       name: webapp
+    - kind: ImageRepository
+      name: webapp
 ```
 
 Note that you have to set the generated token as the Harbor webhook authentication header.
@@ -174,6 +176,8 @@ spec:
   secretRef:
     name: webhook-token
   resources:
+    - kind: ImageRepository
+      name: webapp
     - kind: GitRepository
       name: webapp
     - kind: HelmRepository

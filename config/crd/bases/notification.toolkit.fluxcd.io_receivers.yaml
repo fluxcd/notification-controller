@@ -70,6 +70,7 @@ spec:
                       - HelmRelease
                       - HelmChart
                       - HelmRepository
+                      - ImageRepository
                       type: string
                     name:
                       description: Name of the referent

@@ -91,6 +91,8 @@ github.com/evanphx/json-patch v4.5.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLi
 github.com/evanphx/json-patch v4.9.0+incompatible h1:kLcOMZeuLAJvL2BPWLMIj5oaZQobrkAqrL+WFZwQses=
 github.com/evanphx/json-patch v4.9.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
+github.com/fluxcd/image-reflector-controller/api v0.2.0 h1:/qAamO2y1Bq4rn/JedB33V9kOkSeXIYxwpnEHBz0HeE=
+github.com/fluxcd/image-reflector-controller/api v0.2.0/go.mod h1:2KC4Zijp+iIbkID/KT+hhH4iSSQP3Hrzh0t971tjWjk=
 github.com/fluxcd/pkg/apis/meta v0.5.0 h1:FaU++mQY0g4sVVl+hG+vk0CXBLbb4EVfRuzs3IjLXvo=
 github.com/fluxcd/pkg/apis/meta v0.5.0/go.mod h1:aEUuZIawboAAFLlYz/juVJ7KNmlWbBtJFYkOWWmGUR4=
 github.com/fluxcd/pkg/recorder v0.0.6 h1:me/n8syeeGXz50OXoPX3jgIj9AtinvhHdKT9Dy+MbHs=
