@@ -15,6 +15,22 @@ rules:
   - list
   - watch
 - apiGroups:
+  - image.fluxcd.io
+  resources:
+  - imagerepositories
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - image.fluxcd.io
+  resources:
+  - imagerepositories/status
+  verbs:
+  - get
+- apiGroups:
   - notification.toolkit.fluxcd.io
   resources:
   - alerts
@@ -74,6 +90,22 @@ rules:
   - get
   - patch
   - update
+- apiGroups:
+  - source.fluxcd.io
+  resources:
+  - buckets
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - source.fluxcd.io
+  resources:
+  - buckets/status
+  verbs:
+  - get
 - apiGroups:
   - source.fluxcd.io
   resources:

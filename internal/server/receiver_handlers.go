@@ -23,6 +23,7 @@ import (
 	"net/url"
 	"strings"
 
+	imagev1 "github.com/fluxcd/image-reflector-controller/api/v1alpha1"
 	"github.com/fluxcd/pkg/apis/meta"
 	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 	"github.com/google/go-github/v32/github"
@@ -221,38 +222,50 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNam
 	case sourcev1.BucketKind:
 		var source sourcev1.Bucket
 		if err := s.kubeClient.Get(ctx, resourceName, &source); err != nil {
-			return fmt.Errorf("unable to read Bucket '%s' error: %w", resourceName, err)
+			return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, resourceName, err)
 		}
 		if source.Annotations == nil {
 			source.Annotations = make(map[string]string)
 		}
 		source.Annotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
 		if err := s.kubeClient.Update(ctx, &source); err != nil {
-			return fmt.Errorf("unable to annotate Bucket '%s' error: %w", resourceName, err)
+			return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, resourceName, err)
 		}
 	case sourcev1.GitRepositoryKind:
 		var source sourcev1.GitRepository
 		if err := s.kubeClient.Get(ctx, resourceName, &source); err != nil {
-			return fmt.Errorf("unable to read GitRepository '%s' error: %w", resourceName, err)
+			return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, resourceName, err)
 		}
 		if source.Annotations == nil {
 			source.Annotations = make(map[string]string)
 		}
 		source.Annotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
 		if err := s.kubeClient.Update(ctx, &source); err != nil {
-			return fmt.Errorf("unable to annotate GitRepository '%s' error: %w", resourceName, err)
+			return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, resourceName, err)
 		}
 	case sourcev1.HelmRepositoryKind:
 		var source sourcev1.HelmRepository
 		if err := s.kubeClient.Get(ctx, resourceName, &source); err != nil {
-			return fmt.Errorf("unable to read HelmRepository '%s' error: %w", resourceName, err)
+			return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, resourceName, err)
 		}
 		if source.Annotations == nil {
 			source.Annotations = make(map[string]string)
 		}
 		source.Annotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
 		if err := s.kubeClient.Update(ctx, &source); err != nil {
-			return fmt.Errorf("unable to annotate HelmRepository '%s' error: %w", resourceName, err)
+			return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, resourceName, err)
+		}
+	case imagev1.ImageRepositoryKind:
+		var source imagev1.ImageRepository
+		if err := s.kubeClient.Get(ctx, resourceName, &source); err != nil {
+			return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, resourceName, err)
+		}
+		if source.Annotations == nil {
+			source.Annotations = make(map[string]string)
+		}
+		source.Annotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
+		if err := s.kubeClient.Update(ctx, &source); err != nil {
+			return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, resourceName, err)
 		}
 	default:
 		return fmt.Errorf("kind '%s not suppored", resource.Kind)

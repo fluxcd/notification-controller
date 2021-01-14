@@ -44,10 +44,14 @@ type ReceiverReconciler struct {
 
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=receivers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=receivers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=source.fluxcd.io,resources=buckets,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=source.fluxcd.io,resources=buckets/status,verbs=get
 // +kubebuilder:rbac:groups=source.fluxcd.io,resources=gitrepositories,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=source.fluxcd.io,resources=gitrepositories/status,verbs=get
 // +kubebuilder:rbac:groups=source.fluxcd.io,resources=helmrepositories,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=source.fluxcd.io,resources=helmrepositories/status,verbs=get
+// +kubebuilder:rbac:groups=image.fluxcd.io,resources=imagerepositories,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=image.fluxcd.io,resources=imagerepositories/status,verbs=get
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
