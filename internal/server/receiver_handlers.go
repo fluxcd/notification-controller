@@ -183,7 +183,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			return fmt.Errorf("cannot decode DockerHub webhook payload")
+			return fmt.Errorf("cannot decode Quay webhook payload")
 		}
 
 		s.logger.Info(

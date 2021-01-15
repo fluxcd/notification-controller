@@ -182,6 +182,23 @@ spec:
       name: webapp
 ```
 
+### Quay receiver
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Receiver
+metadata:
+  name: quay-receiver
+  namespace: default
+spec:
+  type: quay
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: ImageRepository
+      name: webapp
+```
+
 ### Generic receiver
 
 ```yaml
