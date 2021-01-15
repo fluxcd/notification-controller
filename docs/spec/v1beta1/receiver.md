@@ -46,6 +46,7 @@ const (
 	DockerHubReceiver string = "dockerhub"
 	QuayReceiver      string = "quay"
 	GCRReceiver       string = "gcr"
+	NexusReceiver     string = "nexus"
 )
 ```
 
@@ -222,6 +223,23 @@ metadata:
   namespace: default
 spec:
   type: quay
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: ImageRepository
+      name: webapp
+```
+
+### Nexus receiver
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Receiver
+metadata:
+  name: nexus-receiver
+  namespace: default
+spec:
+  type: nexus
   secretRef:
     name: webhook-token
   resources:

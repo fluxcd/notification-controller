@@ -19,8 +19,12 @@ package server
 import (
 	"context"
 	"encoding/base64"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -265,6 +269,34 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			fmt.Sprintf("handling event from %s for tag %s", d.Digest, d.Tag),
 			"receiver", receiver.Name)
 		return nil
+	case v1beta1.NexusReceiver:
+		signature := r.Header.Get("X-Nexus-Webhook-Signature")
+		if len(signature) == 0 {
+			return fmt.Errorf("Signature is missing from header")
+		}
+
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("cannot read payload. error: %s", err)
+		}
+
+		if !verifyHmacSignature([]byte(token), signature, b) {
+			return fmt.Errorf("invalid nexus signature")
+		}
+		type payload struct {
+			Action         string `json:"action"`
+			RepositoryName string `json:"repositoryName"`
+		}
+		var p payload
+
+		if err := json.Unmarshal(b, &p); err != nil {
+			return fmt.Errorf("cannot decode Nexus webhook payload: %s", err)
+		}
+
+		s.logger.Info(
+			fmt.Sprintf("handling event from %s", p.RepositoryName),
+			"receiver", receiver.Name)
+		return nil
 	}
 
 	return fmt.Errorf("recevier type '%s' not supported", receiver.Spec.Type)
@@ -381,4 +413,11 @@ func authenticateGCRRequest(c *http.Client, bearer string, tokenIndex int) (err 
 	}
 
 	return nil
+}
+
+func verifyHmacSignature(key []byte, signature string, payload []byte) bool {
+	mac := hmac.New(sha1.New, key)
+	_, _ = mac.Write(payload)
+	expectedMAC := hex.EncodeToString(mac.Sum(nil))
+	return hmac.Equal([]byte(signature), []byte(expectedMAC))
 }
