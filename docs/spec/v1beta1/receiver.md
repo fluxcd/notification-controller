@@ -9,7 +9,7 @@ reconciliation for a group of resources.
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
-	// +kubebuilder:validation:Enum=generic;github;gitlab;harbor;dockerhub
+	// +kubebuilder:validation:Enum=generic;github;gitlab;harbor;dockerhub;quay
 	// +required
 	Type string `json:"type"`
 
@@ -44,6 +44,7 @@ const (
 	BitbucketReceiver string = "bitbucket"
 	HarborReceiver    string = "harbor"
 	DockerHubReceiver string = "dockerhub"
+	QuayReceiver      string = "quay"
 )
 ```
 

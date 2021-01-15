@@ -27,7 +27,7 @@ import (
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
-	// +kubebuilder:validation:Enum=generic;github;gitlab;bitbucket;harbor;dockerhub
+	// +kubebuilder:validation:Enum=generic;github;gitlab;bitbucket;harbor;dockerhub;quay
 	// +required
 	Type string `json:"type"`
 
@@ -69,6 +69,7 @@ const (
 	BitbucketReceiver string = "bitbucket"
 	HarborReceiver    string = "harbor"
 	DockerHubReceiver string = "dockerhub"
+	QuayReceiver      string = "quay"
 )
 
 func ReceiverReady(receiver Receiver, reason, message, url string) Receiver {
