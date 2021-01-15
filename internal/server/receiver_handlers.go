@@ -175,6 +175,21 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 
 		s.logger.Info("handling Bitbucket server event: "+event, "receiver", receiver.Name)
 		return nil
+	case v1beta1.QuayReceiver:
+		type payload struct {
+			DockerUrl   string   `json:"docker_url"`
+			UpdatedTags []string `json:"updated_tags"`
+		}
+
+		var p payload
+		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+			return fmt.Errorf("cannot decode Quay webhook payload")
+		}
+
+		s.logger.Info(
+			fmt.Sprintf("handling event from %s", p.DockerUrl),
+			"receiver", receiver.Name)
+		return nil
 	case v1beta1.HarborReceiver:
 		if r.Header.Get("Authorization") != token {
 			return fmt.Errorf("the Harbor Authorization header value does not match the receiver token")
