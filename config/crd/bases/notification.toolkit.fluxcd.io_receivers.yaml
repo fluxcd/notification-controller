@@ -110,6 +110,7 @@ spec:
                 - harbor
                 - dockerhub
                 - quay
+                - gcr
                 type: string
             required:
             - resources

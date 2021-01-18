@@ -18,11 +18,13 @@ package server
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	imagev1 "github.com/fluxcd/image-reflector-controller/api/v1alpha1"
 	"github.com/fluxcd/pkg/apis/meta"
@@ -215,6 +217,54 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			fmt.Sprintf("handling event from %s for tag %s", p.Repository.URL, p.PushData.Tag),
 			"receiver", receiver.Name)
 		return nil
+	case v1beta1.GCRReceiver:
+		const (
+			insert     = "insert"
+			tokenIndex = len("Bearer ")
+		)
+
+		type data struct {
+			Action string `json:"action"`
+			Digest string `json:"digest"`
+			Tag    string `json:"tag"`
+		}
+
+		type payload struct {
+			Message struct {
+				Data         string    `json:"data"`
+				MessageID    string    `json:"messageId"`
+				PublishTime  time.Time `json:"publishTime"`
+				Subscription string    `json:"subscription"`
+			} `json:"message"`
+		}
+
+		err := authenticateGCRRequest(&http.Client{}, r.Header.Get("Authorization"), tokenIndex)
+		if err != nil {
+			return fmt.Errorf("cannot authenticate GCR request: %s", err)
+		}
+
+		var p payload
+		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+			return fmt.Errorf("cannot decode GCR webhook payload")
+		}
+
+		raw, _ := base64.StdEncoding.DecodeString(p.Message.Data)
+
+		var d data
+		err = json.Unmarshal(raw, &d)
+		if err != nil {
+			return fmt.Errorf("cannot decode GCR webhook body")
+		}
+
+		if strings.ToLower(d.Action) != insert {
+			s.logger.Info("action is not an insert, moving on")
+			return nil
+		}
+
+		s.logger.Info(
+			fmt.Sprintf("handling event from %s for tag %s", d.Digest, d.Tag),
+			"receiver", receiver.Name)
+		return nil
 	}
 
 	return fmt.Errorf("recevier type '%s' not supported", receiver.Spec.Type)
@@ -303,6 +353,31 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNam
 		}
 	default:
 		return fmt.Errorf("kind '%s not suppored", resource.Kind)
+	}
+
+	return nil
+}
+
+func authenticateGCRRequest(c *http.Client, bearer string, tokenIndex int) (err error) {
+	type auth struct {
+		Aud string `json:"aud"`
+	}
+
+	if len(bearer) < tokenIndex {
+		return fmt.Errorf("Authorization header is missing or malformed: %v", bearer)
+	}
+
+	token := bearer[tokenIndex:]
+	url := fmt.Sprintf("https://oauth2.googleapis.com/tokeninfo?id_token=%s", token)
+
+	resp, err := c.Get(url)
+	if err != nil {
+		return fmt.Errorf("Cannot verify authenticity of payload: %w", err)
+	}
+
+	var p auth
+	if err := json.NewDecoder(resp.Body).Decode(&p); err != nil {
+		return fmt.Errorf("Cannot decode auth payload: %w", err)
 	}
 
 	return nil

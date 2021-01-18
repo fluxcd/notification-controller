@@ -45,6 +45,7 @@ const (
 	HarborReceiver    string = "harbor"
 	DockerHubReceiver string = "dockerhub"
 	QuayReceiver      string = "quay"
+	GCRReceiver       string = "gcr"
 )
 ```
 
@@ -192,6 +193,26 @@ metadata:
   namespace: default
 spec:
   type: quay
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: ImageRepository
+      name: webapp
+```
+
+### GCR receiver
+
+To authenticate `POST` request received when an image is pushed, we verify and decode the JWT in the authorization
+header of the push request. For more information, take a look at this [documentation](https://cloud.google.com/pubsub/docs/push?&_ga=2.123897930.-1945316571.1602156486#authentication_and_authorization)
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Receiver
+metadata:
+  name: gcr-receiver
+  namespace: default
+spec:
+  type: gcr
   secretRef:
     name: webhook-token
   resources:
