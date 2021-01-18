@@ -17,6 +17,7 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
     spec:
+      serviceAccountName: notification-controller
       terminationGracePeriodSeconds: 10
       containers:
       - name: manager
