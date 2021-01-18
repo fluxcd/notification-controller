@@ -45,6 +45,7 @@ const (
 	HarborReceiver    string = "harbor"
 	DockerHubReceiver string = "dockerhub"
 	QuayReceiver      string = "quay"
+	GCRReceiver       string = "gcr"
 )
 ```
 
@@ -192,6 +193,23 @@ metadata:
   namespace: default
 spec:
   type: quay
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: ImageRepository
+      name: webapp
+```
+
+### GCR receiver
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Receiver
+metadata:
+  name: gcr-receiver
+  namespace: default
+spec:
+  type: gcr
   secretRef:
     name: webhook-token
   resources:
