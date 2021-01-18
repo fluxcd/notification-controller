@@ -202,6 +202,9 @@ spec:
 
 ### GCR receiver
 
+To authenticate `POST` request received when an image is pushed, we verify and decode the JWT in the authorization
+header of the push request. For more information, take a look at this [documentation](https://cloud.google.com/pubsub/docs/push?&_ga=2.123897930.-1945316571.1602156486#authentication_and_authorization)
+
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Receiver
