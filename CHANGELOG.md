@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.6.2
+
+**Release date:** 2021-01-19
+
+This prerelease comes with support for triggering
+container image updates to Git using Quay and GCR webhooks.
+
+The Kubernetes packages were updated to v1.20.2 and controller-runtime to v0.8.0.
+
+Features:
+* Add GCR webhook receiver
+  [#121](https://github.com/fluxcd/notification-controller/pull/121)
+* Add Quay webhook receiver
+  [#118](https://github.com/fluxcd/notification-controller/pull/118)
+
+Improvements:
+* Update Kubernetes packages to v1.20.2
+  [#119](https://github.com/fluxcd/notification-controller/pull/119)
+
 ## 0.6.1
 
 **Release date:** 2021-01-14

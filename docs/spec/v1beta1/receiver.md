@@ -72,6 +72,35 @@ kubectl create secret generic webhook-token \
   --from-literal=token=$TOKEN
 ```
 
+### Generic receiver
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Receiver
+metadata:
+  name: generic-receiver
+  namespace: default
+spec:
+  type: generic
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: GitRepository
+      name: webapp
+      namespace: default
+    - kind: HelmRepository
+      name: webapp
+      namespace: default
+    - kind: Bucket
+      name: webapp
+      namespace: default
+    - kind: ImageRepository
+      name: webapp
+      namespace: default
+```
+
+When the receiver type is set to `generic`, the controller will not perform token validation nor event filtering.
+
 ### GitHub receiver
 
 ```yaml
@@ -202,9 +231,6 @@ spec:
 
 ### GCR receiver
 
-To authenticate `POST` request received when an image is pushed, we verify and decode the JWT in the authorization
-header of the push request. For more information, take a look at this [documentation](https://cloud.google.com/pubsub/docs/push?&_ga=2.123897930.-1945316571.1602156486#authentication_and_authorization)
-
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Receiver
@@ -218,29 +244,10 @@ spec:
   resources:
     - kind: ImageRepository
       name: webapp
+      namespace: default
 ```
 
-### Generic receiver
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta1
-kind: Receiver
-metadata:
-  name: generic-receiver
-  namespace: default
-spec:
-  type: generic
-  secretRef:
-    name: webhook-token
-  resources:
-    - kind: ImageRepository
-      name: webapp
-    - kind: GitRepository
-      name: webapp
-    - kind: HelmRepository
-      name: webapp
-    - kind: Bucket
-      name: secrets
-```
-
-When the receiver type is set to `generic`, the controller will not perform token validation nor event filtering.
+Note that the controller decodes the JWT from the authorization
+header of the push request and verifies it against the GCP API.
+For more information, take a look at this
+[documentation](https://cloud.google.com/pubsub/docs/push?&_ga=2.123897930.-1945316571.1602156486#authentication_and_authorization).
