@@ -34,7 +34,7 @@ func TestTeams_Post(t *testing.T) {
 		err = json.Unmarshal(b, &payload)
 		require.NoError(t, err)
 
-		require.Equal(t, "webapp.gitops-system", payload.Sections[0].ActivitySubtitle)
+		require.Equal(t, "GitRepository/webapp.gitops-system", payload.Sections[0].ActivitySubtitle)
 		require.Equal(t, "metadata", payload.Sections[0].Facts[0].Value)
 	}))
 	defer ts.Close()

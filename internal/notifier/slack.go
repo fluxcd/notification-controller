@@ -103,7 +103,7 @@ func (s *Slack) Post(event recorder.Event) error {
 
 	a := SlackAttachment{
 		Color:      color,
-		AuthorName: fmt.Sprintf("%s.%s", event.InvolvedObject.Name, event.InvolvedObject.Namespace),
+		AuthorName: fmt.Sprintf("%s/%s.%s", event.InvolvedObject.Kind, event.InvolvedObject.Name, event.InvolvedObject.Namespace),
 		Text:       event.Message,
 		MrkdwnIn:   []string{"text"},
 		Fields:     sfields,
