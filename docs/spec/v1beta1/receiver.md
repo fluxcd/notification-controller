@@ -48,6 +48,7 @@ const (
 	QuayReceiver        string = "quay"
 	GCRReceiver         string = "gcr"
 	NexusReceiver       string = "nexus"
+	ACRReceiver         string = "acr"
 )
 ```
 
@@ -340,3 +341,23 @@ Note that the controller decodes the JWT from the authorization
 header of the push request and verifies it against the GCP API.
 For more information, take a look at this
 [documentation](https://cloud.google.com/pubsub/docs/push?&_ga=2.123897930.-1945316571.1602156486#authentication_and_authorization).
+
+### ACR receiver
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Receiver
+metadata:
+  name: acr-receiver
+  namespace: default
+spec:
+  type: acr
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: ImageRepository
+      name: webapp
+```
+
+Note that the controller doesn't verify the authenticity of the request as Azure doesn't provide any mechanism for verification. 
+You can take a look at the [Azure Container webhook reference](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-webhook-reference).
