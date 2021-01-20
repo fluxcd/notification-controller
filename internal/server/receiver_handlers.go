@@ -18,9 +18,9 @@ package server
 
 import (
 	"context"
-	"encoding/base64"
 	"crypto/hmac"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
