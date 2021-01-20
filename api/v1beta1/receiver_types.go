@@ -27,8 +27,7 @@ import (
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
-	// +kubebuilder:validation:Enum=generic;github;gitlab;bitbucket;harbor;dockerhub;quay;gcr
-	// +kubebuilder:validation:Enum=generic;github;gitlab;bitbucket;harbor;dockerhub;quay;gcr;nexus
+	// +kubebuilder:validation:Enum=generic;generic-hmac;github;gitlab;bitbucket;harbor;dockerhub;quay;gcr;nexus
 	// +required
 	Type string `json:"type"`
 
@@ -64,15 +63,16 @@ type ReceiverStatus struct {
 }
 
 const (
-	GenericReceiver   string = "generic"
-	GitHubReceiver    string = "github"
-	GitLabReceiver    string = "gitlab"
-	BitbucketReceiver string = "bitbucket"
-	HarborReceiver    string = "harbor"
-	DockerHubReceiver string = "dockerhub"
-	QuayReceiver      string = "quay"
-	GCRReceiver       string = "gcr"
-	NexusReceiver     string = "nexus"
+	GenericReceiver     string = "generic"
+	GenericHMACReceiver string = "generic-hmac"
+	GitHubReceiver      string = "github"
+	GitLabReceiver      string = "gitlab"
+	BitbucketReceiver   string = "bitbucket"
+	HarborReceiver      string = "harbor"
+	DockerHubReceiver   string = "dockerhub"
+	QuayReceiver        string = "quay"
+	GCRReceiver         string = "gcr"
+	NexusReceiver       string = "nexus"
 )
 
 func ReceiverReady(receiver Receiver, reason, message, url string) Receiver {
