@@ -34,7 +34,7 @@ func TestSlack_Post(t *testing.T) {
 		var payload = SlackPayload{}
 		err = json.Unmarshal(b, &payload)
 		require.NoError(t, err)
-		require.Equal(t, "webapp.gitops-system", payload.Attachments[0].AuthorName)
+		require.Equal(t, "gitrepository/webapp.gitops-system", payload.Attachments[0].AuthorName)
 		require.Equal(t, "metadata", payload.Attachments[0].Fields[0].Value)
 	}))
 	defer ts.Close()
