@@ -19,6 +19,7 @@ package notifier
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"github.com/fluxcd/pkg/recorder"
 )
@@ -78,7 +79,7 @@ func (s *MSTeams) Post(event recorder.Event) error {
 		})
 	}
 
-	objName := fmt.Sprintf("%s/%s.%s", event.InvolvedObject.Kind, event.InvolvedObject.Name, event.InvolvedObject.Namespace)
+	objName := fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace)
 	payload := MSTeamsPayload{
 		Type:       "MessageCard",
 		Context:    "http://schema.org/extensions",
