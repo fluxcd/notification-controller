@@ -46,6 +46,7 @@ const (
 	DockerHubReceiver string = "dockerhub"
 	QuayReceiver      string = "quay"
 	GCRReceiver       string = "gcr"
+	NexusReceiver     string = "nexus"
 )
 ```
 
@@ -228,6 +229,27 @@ spec:
     - kind: ImageRepository
       name: webapp
 ```
+
+### Nexus receiver
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Receiver
+metadata:
+  name: nexus-receiver
+  namespace: default
+spec:
+  type: nexus
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: ImageRepository
+      name: webapp
+```
+
+Note that you have to fill in the generated token as the secret key when creating the Nexus Webhook Capability.
+See [Nexus Webhook Capability](https://help.sonatype.com/repomanager3/webhooks/enabling-a-repository-webhook-capability)
+The controller uses the `X-Nexus-Webhook-Signature` HTTP header to verify that the request is legitimate.
 
 ### GCR receiver
 

@@ -28,6 +28,7 @@ type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
 	// +kubebuilder:validation:Enum=generic;github;gitlab;bitbucket;harbor;dockerhub;quay;gcr
+	// +kubebuilder:validation:Enum=generic;github;gitlab;bitbucket;harbor;dockerhub;quay;gcr;nexus
 	// +required
 	Type string `json:"type"`
 
@@ -71,6 +72,7 @@ const (
 	DockerHubReceiver string = "dockerhub"
 	QuayReceiver      string = "quay"
 	GCRReceiver       string = "gcr"
+	NexusReceiver     string = "nexus"
 )
 
 func ReceiverReady(receiver Receiver, reason, message, url string) Receiver {

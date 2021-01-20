@@ -111,6 +111,7 @@ spec:
                 - dockerhub
                 - quay
                 - gcr
+                - nexus
                 type: string
             required:
             - resources
