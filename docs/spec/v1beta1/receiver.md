@@ -248,7 +248,7 @@ spec:
 ```
 
 Note that you have to fill in the generated token as the secret key when creating the Nexus Webhook Capability.
-See [nexus documentation](https://help.sonatype.com/repomanager3/webhooks/enabling-a-repository-webhook-capability)
+See [Nexus Webhook Capability](https://help.sonatype.com/repomanager3/webhooks/enabling-a-repository-webhook-capability)
 The controller uses the `X-Nexus-Webhook-Signature` HTTP header to verify that the request is legitimate.
 
 ### GCR receiver
