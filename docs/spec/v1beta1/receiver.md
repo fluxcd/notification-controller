@@ -46,8 +46,8 @@ const (
 	HarborReceiver      string = "harbor"
 	DockerHubReceiver   string = "dockerhub"
 	QuayReceiver        string = "quay"
-    GCRReceiver         string = "gcr"
-    NexusReceiver       string = "nexus"
+	GCRReceiver         string = "gcr"
+	NexusReceiver       string = "nexus"
 )
 ```
 
