@@ -74,6 +74,8 @@ spec:
                       - HelmChart
                       - HelmRepository
                       - ImageRepository
+                      - ImagePolicy
+                      - ImageUpdateAutomation
                       type: string
                     name:
                       description: Name of the referent
