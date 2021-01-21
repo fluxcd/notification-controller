@@ -17,13 +17,14 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/sha256"
 	"encoding/json"
-	"github.com/fluxcd/pkg/runtime/events"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/stretchr/testify/require"
 )
 
@@ -33,17 +34,41 @@ func TestForwarder_Post(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, "source-controller", r.Header.Get("gotk-component"))
-		var payload = events.Event{}
-		err = json.Unmarshal(b, &payload)
+
+		payload := events.Event{}
+		require.NoError(t, json.Unmarshal(b, &payload))
+
 		require.NoError(t, err)
 		require.Equal(t, "webapp", payload.InvolvedObject.Name)
 		require.Equal(t, "metadata", payload.Metadata["test"])
+		require.Empty(t, r.Header.Get(SignatureHeader))
 	}))
 	defer ts.Close()
 
-	forwarder, err := NewForwarder(ts.URL, "")
+	forwarder, err := NewForwarder(ts.URL, "", "")
 	require.NoError(t, err)
 
 	err = forwarder.Post(testEvent())
+	require.NoError(t, forwarder.Post(testEvent()))
+}
+
+func TestForwarder_with_SigningSecret(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, err := ioutil.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		payload := events.Event{}
+		require.NoError(t, json.Unmarshal(b, &payload))
+
+		s, err := bytesSignature(sha256.New, "testing", b)
+		require.NoError(t, err)
+		require.Equal(t, r.Header.Get(SignatureHeader),
+			"sha256="+s)
+	}))
+	defer ts.Close()
+
+	forwarder, err := NewForwarder(ts.URL, "", "testing")
 	require.NoError(t, err)
+
+	require.NoError(t, forwarder.Post(testEvent()))
 }

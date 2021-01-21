@@ -22,21 +22,38 @@ import (
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
 
+// Factory represents a factory for creating notification clients for sending
+// events to various services.
 type Factory struct {
-	URL      string
-	ProxyURL string
-	Username string
-	Channel  string
-	Token    string
+	URL           string
+	ProxyURL      string
+	Username      string
+	Channel       string
+	Token         string
+	SigningSecret string
 }
 
-func NewFactory(url string, proxy string, username string, channel string, token string) *Factory {
+// NewFactory creates and returns a new Factory.
+//
+// url is a string witht the url to send the notification to, if empty, a
+// NopProvider is returned by the factory.
+// proxy is an optional string, that configures whether or not the client is
+// uses a proxy to send the notification.
+// username and channel are used by the Slack, Discord and Rocket providers.
+// token is used by the GitHub, GitLab, BitBucket and AzureDevOps providers.
+// signingSecret is an optional string that is used to generate a SHA256 hmac of
+// the notification body, which is sent along with the notification.
+//
+// TODO: This should accept something that can provide
+// username/channel/token/signingSecret on demand.
+func NewFactory(url, proxy, username, channel, token, signingSecret string) *Factory {
 	return &Factory{
-		URL:      url,
-		ProxyURL: proxy,
-		Channel:  channel,
-		Username: username,
-		Token:    token,
+		URL:           url,
+		ProxyURL:      proxy,
+		Channel:       channel,
+		Username:      username,
+		Token:         token,
+		SigningSecret: signingSecret,
 	}
 }
 
@@ -49,7 +66,7 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	var err error
 	switch provider {
 	case v1beta1.GenericProvider:
-		n, err = NewForwarder(f.URL, f.ProxyURL)
+		n, err = NewForwarder(f.URL, f.ProxyURL, f.SigningSecret)
 	case v1beta1.SlackProvider:
 		n, err = NewSlack(f.URL, f.ProxyURL, f.Username, f.Channel)
 	case v1beta1.DiscordProvider:
