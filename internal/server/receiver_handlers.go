@@ -122,7 +122,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 		}
 
 		s.logger.Info(
-			"handling event from generic wehbook",
+			"handling event from generic-hmac wehbook",
 			"receiver", receiver.Name)
 		return nil
 	case v1beta1.GitHubReceiver:
