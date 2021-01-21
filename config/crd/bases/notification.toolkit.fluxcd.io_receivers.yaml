@@ -104,6 +104,7 @@ spec:
                   procedure and payload deserialization.
                 enum:
                 - generic
+                - generic-hmac
                 - github
                 - gitlab
                 - bitbucket

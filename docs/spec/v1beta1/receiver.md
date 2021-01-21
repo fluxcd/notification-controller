@@ -38,15 +38,16 @@ Receiver types:
 
 ```go
 const (
-	GenericReceiver   string = "generic"
-	GitHubReceiver    string = "github"
-	GitLabReceiver    string = "gitlab"
-	BitbucketReceiver string = "bitbucket"
-	HarborReceiver    string = "harbor"
-	DockerHubReceiver string = "dockerhub"
-	QuayReceiver      string = "quay"
-	GCRReceiver       string = "gcr"
-	NexusReceiver     string = "nexus"
+	GenericReceiver     string = "generic"
+	GenericHMACReceiver string = "generic-hmac"
+	GitHubReceiver      string = "github"
+	GitLabReceiver      string = "gitlab"
+	BitbucketReceiver   string = "bitbucket"
+	HarborReceiver      string = "harbor"
+	DockerHubReceiver   string = "dockerhub"
+	QuayReceiver        string = "quay"
+	GCRReceiver         string = "gcr"
+	NexusReceiver       string = "nexus"
 )
 ```
 
@@ -101,6 +102,69 @@ spec:
 ```
 
 When the receiver type is set to `generic`, the controller will not perform token validation nor event filtering.
+
+### Generic HMAC receiver
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Receiver
+metadata:
+  name: generic-hmac-receiver
+  namespace: default
+spec:
+  type: generic-hmac
+  secretRef:
+    name: webhook-token
+  resources:
+    - kind: GitRepository
+      name: webapp
+      namespace: default
+```
+
+This generic receiver performs token validation. The controller uses the `X-Signature` header to get
+the hash signature. The signature should be prefixed with the hash function(`sha1`, `sha256`, or `sha512`) like this:
+`<hash-function>=<hash-signation>`.
+
+1. Generate hash using open ssl and sha1
+```sh
+echo -n '<body-of-request>' | openssl dgst -sha1 -hmac "aHR0cHM6Ly9ob29rcy5zbGFjay5jb20vc2VydmljZXMv"
+```
+You can use the flag `sha256` or `sha512` if you want a different hash function
+
+This would output the hash.
+
+2. Send a POST request to the webhook url
+```
+curl <webhook-url> \
+-X POST \
+ -H "X-Signature: sha1=<generated-hash>" \
+-d '<body-of-request>' 
+```
+
+Generate hash signature using Go:
+
+```go
+package main
+
+import (
+    "crypto/hmac"
+    "fmt"
+    "crypto/sha1" 
+)
+
+// input is the body of the request
+// key is your secret token
+func GetSignature(input, key string) string {
+	key_for_sign := []byte(key)
+	h := hmac.New(sha1.New, key_for_sign) 
+	h.Write([]byte(input))
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+// Don't forget to set request Headers
+// req.Header.Set("X-Signature", fmt.Sprintf("sha1=%s", <returned string>))
+```
+
 
 ### GitHub receiver
 

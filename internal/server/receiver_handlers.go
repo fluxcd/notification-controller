@@ -110,6 +110,21 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 	switch receiver.Spec.Type {
 	case v1beta1.GenericReceiver:
 		return nil
+	case v1beta1.GenericHMACReceiver:
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("unable to read request body: %s", err)
+		}
+
+		err = github.ValidateSignature(r.Header.Get("X-Signature"), b, []byte(token))
+		if err != nil {
+			return fmt.Errorf("unable to validate signature: %s", err)
+		}
+
+		s.logger.Info(
+			"handling event from generic-hmac wehbook",
+			"receiver", receiver.Name)
+		return nil
 	case v1beta1.GitHubReceiver:
 		payload, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
