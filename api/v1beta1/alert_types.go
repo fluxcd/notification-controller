@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	corev1 "k8s.io/api/core/v1"
+	"github.com/fluxcd/pkg/apis/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,7 +25,7 @@ import (
 type AlertSpec struct {
 	// Send events using this provider
 	// +required
-	ProviderRef corev1.LocalObjectReference `json:"providerRef"`
+	ProviderRef meta.LocalObjectReference `json:"providerRef"`
 
 	// Filter events based on severity, defaults to ('info').
 	// If set to 'info' no events will be filtered.

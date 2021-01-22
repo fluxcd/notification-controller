@@ -33,7 +33,7 @@ type ProviderSpec struct {
 
 	// Secret reference containing the provider webhook URL
 	// +optional
-	SecretRef *corev1.LocalObjectReference `json:"secretRef,omitempty"`
+	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
 }
 ```
 
@@ -133,11 +133,15 @@ spec:
 ```
 
 #### Authentication
-GitHub. GitLab, and Azure DevOps use personal access tokens to authenticate with their API.
-  - [GitHub personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token)
-  - [GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
-  - [Azure DevOps personal access token](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page)
-Both provider types require a secret in the same format, with the personal access token as the value for the token key.
+
+GitHub. GitLab, and Azure DevOps use personal access tokens to authenticate with their API:
+
+- [GitHub personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token)
+- [GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
+- [Azure DevOps personal access token](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page)
+
+The providers require a secret in the same format, with the personal access token as the value for the token key:
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -148,9 +152,11 @@ data:
   token: <personal-access-tokens>
 ```
 
-Bitbucket authenticates using an [app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/). It requires
-both the username and the password when authenticating. There for the token needs to be passed with the format `<username>:<app-password>`.
+Bitbucket authenticates using an [app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/).
+It requires both the username and the password when authenticating.
+There for the token needs to be passed with the format `<username>:<app-password>`.
 A token that is not in this format will cause the provider to fail.
+
 ```yaml
 apiVersion: v1
 kind: Secret

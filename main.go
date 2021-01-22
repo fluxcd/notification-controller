@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	goflag "flag"
 	"os"
 
 	flag "github.com/spf13/pflag"
@@ -28,6 +27,7 @@ import (
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	imagev1 "github.com/fluxcd/image-reflector-controller/api/v1alpha1"
+	"github.com/fluxcd/pkg/runtime/client"
 	"github.com/fluxcd/pkg/runtime/logger"
 	"github.com/fluxcd/pkg/runtime/metrics"
 	"github.com/fluxcd/pkg/runtime/probes"
@@ -62,6 +62,7 @@ func main() {
 		enableLeaderElection bool
 		concurrent           int
 		watchAllNamespaces   bool
+		clientOptions        client.Options
 		logOptions           logger.Options
 	)
 
@@ -77,11 +78,8 @@ func main() {
 		"Watch for custom resources in all namespaces, if set to false it will only watch the runtime namespace.")
 	flag.Bool("log-json", false, "Set logging to JSON format.")
 	flag.CommandLine.MarkDeprecated("log-json", "Please use --log-encoding=json instead.")
-	{
-		var fs goflag.FlagSet
-		logOptions.BindFlags(&fs)
-		flag.CommandLine.AddGoFlagSet(&fs)
-	}
+	clientOptions.BindFlags(flag.CommandLine)
+	logOptions.BindFlags(flag.CommandLine)
 	flag.Parse()
 
 	log := logger.NewLogger(logOptions)
@@ -95,7 +93,8 @@ func main() {
 		watchNamespace = os.Getenv("RUNTIME_NAMESPACE")
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	restConfig := client.GetConfigOrDie(clientOptions)
+	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
 		HealthProbeBindAddress: healthAddr,
