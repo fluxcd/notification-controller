@@ -2,6 +2,42 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.7.0
+
+**Release date:** 2021-01-22
+
+This is the seventh MINOR prerelease.
+
+The `Receiver` API gains a new webhook type called `generic-hmac`,
+that validates the caller legitimacy using HMAC signatures.
+
+The `Alert` API comes with support for image update notifications
+and is now possible to trigger container image updates to Git
+using Sonatype Nexus webhooks.
+
+Two new argument flags are introduced to support configuring the QPS
+(`--kube-api-qps`) and burst (`--kube-api-burst`) while communicating
+with the Kubernetes API server.
+
+The `LocalObjectReference` from the Kubernetes core has been replaced
+with our own, making `Name` a required field. The impact of this should
+be limited to direct API consumers only, as the field was already
+required by controller logic.
+
+Features:
+* Add generic webhook receiver for HMAC signing
+  [#127](https://github.com/fluxcd/notification-controller/pull/127)
+* Add Nexus webhook receiver
+  [#126](https://github.com/fluxcd/notification-controller/pull/126)
+
+Improvements:
+* Add the object kind to notification messages
+  [#124](https://github.com/fluxcd/notification-controller/pull/124)
+* Allow ImageUpdateAutomations in object refs
+  [#128](https://github.com/fluxcd/notification-controller/pull/128)
+* Update fluxcd/pkg/runtime to v0.8.0
+  [#129](https://github.com/fluxcd/notification-controller/pull/129)
+  
 ## 0.6.2
 
 **Release date:** 2021-01-19
