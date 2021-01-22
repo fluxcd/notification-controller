@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/fluxcd/pkg/apis/meta"
@@ -43,7 +42,7 @@ type ReceiverSpec struct {
 	// Secret reference containing the token used
 	// to validate the payload authenticity
 	// +required
-	SecretRef corev1.LocalObjectReference `json:"secretRef,omitempty"`
+	SecretRef meta.LocalObjectReference `json:"secretRef,omitempty"`
 
 	// This flag tells the controller to suspend subsequent events handling.
 	// Defaults to false.

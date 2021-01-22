@@ -10,7 +10,7 @@ Spec:
 type AlertSpec struct {
 	// Send events using this provider
 	// +required
-	ProviderRef corev1.LocalObjectReference `json:"providerRef"`
+	ProviderRef meta.LocalObjectReference `json:"providerRef"`
 
 	// Filter events based on severity, defaults to ('info').
 	// +kubebuilder:validation:Enum=info;error

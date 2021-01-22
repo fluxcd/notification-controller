@@ -9,7 +9,7 @@ reconciliation for a group of resources.
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
-	// +kubebuilder:validation:Enum=generic;github;gitlab;harbor;dockerhub;quay
+	// +kubebuilder:validation:Enum=generic;generic-hmac;github;gitlab;bitbucket;harbor;dockerhub;quay;gcr;nexus
 	// +required
 	Type string `json:"type"`
 
@@ -25,7 +25,7 @@ type ReceiverSpec struct {
 	// Secret reference containing the token used
 	// to validate the payload authenticity
 	// +required
-	SecretRef corev1.LocalObjectReference `json:"secretRef,omitempty"`
+	SecretRef meta.LocalObjectReference `json:"secretRef,omitempty"`
 
 	// This flag tells the controller to suspend subsequent events handling.
 	// Defaults to false.
@@ -121,50 +121,37 @@ spec:
       namespace: default
 ```
 
-This generic receiver performs token validation. The controller uses the `X-Signature` header to get
-the hash signature. The signature should be prefixed with the hash function(`sha1`, `sha256`, or `sha512`) like this:
+This generic receiver verifies that the request is legitimate using HMAC.
+The controller uses the `X-Signature` header to get the hash signature.
+The signature should be prefixed with the hash function(`sha1`, `sha256`, or `sha512`) like this:
 `<hash-function>=<hash-signation>`.
 
-1. Generate hash using open ssl and sha1
+1. Generate hash signature using OpenSSL:
+
 ```sh
-echo -n '<body-of-request>' | openssl dgst -sha1 -hmac "aHR0cHM6Ly9ob29rcy5zbGFjay5jb20vc2VydmljZXMv"
+echo -n '<request-body>' | openssl dgst -sha1 -hmac "<secret-key>"
 ```
-You can use the flag `sha256` or `sha512` if you want a different hash function
 
-This would output the hash.
+You can use the flag `sha256` or `sha512` if you want a different hash function.
 
-2. Send a POST request to the webhook url
-```
-curl <webhook-url> \
--X POST \
- -H "X-Signature: sha1=<generated-hash>" \
--d '<body-of-request>' 
+2. Send a HTTP POST request to the webhook URL:
+
+```sh
+curl <webhook-url> -X POST -H "X-Signature: sha1=<generated-hash>" -d '<request-body>' 
 ```
 
 Generate hash signature using Go:
 
 ```go
-package main
-
-import (
-    "crypto/hmac"
-    "fmt"
-    "crypto/sha1" 
-)
-
-// input is the body of the request
-// key is your secret token
-func GetSignature(input, key string) string {
-	key_for_sign := []byte(key)
-	h := hmac.New(sha1.New, key_for_sign) 
-	h.Write([]byte(input))
+func sign(payload, key string) string {
+	h := hmac.New(sha1.New, []byte(key)) 
+	h.Write([]byte(payload))
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-// Don't forget to set request Headers
-// req.Header.Set("X-Signature", fmt.Sprintf("sha1=%s", <returned string>))
+// set headers
+req.Header.Set("X-Signature", fmt.Sprintf("sha1=%s", sign(payload, key)))
 ```
-
 
 ### GitHub receiver
 

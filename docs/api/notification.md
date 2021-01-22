@@ -76,9 +76,7 @@ AlertSpec
 <td>
 <code>providerRef</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
-Kubernetes core/v1.LocalObjectReference
-</a>
+github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
@@ -275,9 +273,7 @@ string
 <td>
 <code>secretRef</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
-Kubernetes core/v1.LocalObjectReference
-</a>
+github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
@@ -404,9 +400,7 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>secretRef</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
-Kubernetes core/v1.LocalObjectReference
-</a>
+github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
@@ -467,9 +461,7 @@ ReceiverStatus
 <td>
 <code>providerRef</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
-Kubernetes core/v1.LocalObjectReference
-</a>
+github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
@@ -714,9 +706,7 @@ string
 <td>
 <code>secretRef</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
-Kubernetes core/v1.LocalObjectReference
-</a>
+github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
@@ -822,9 +812,7 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>secretRef</code><br>
 <em>
-<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#localobjectreference-v1-core">
-Kubernetes core/v1.LocalObjectReference
-</a>
+github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
