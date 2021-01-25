@@ -21,6 +21,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	AlertKind string = "Alert"
+)
+
 // AlertSpec defines an alerting rule for events involving a list of objects
 type AlertSpec struct {
 	// Send events using this provider

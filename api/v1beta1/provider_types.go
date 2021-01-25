@@ -21,6 +21,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ProviderKind string = "Provider"
+)
+
 // ProviderSpec defines the desired state of Provider
 type ProviderSpec struct {
 	// Type of provider
