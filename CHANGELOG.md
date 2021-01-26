@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.7.1
+
+**Release date:** 2021-01-26
+
+This prerelease adds `*Kind` string constants for the kind objects
+exposed by the API to further normalise it to GitOps Toolkit standards.
+
+Improvements
+* Add kinds to API types
+  [#131](https://github.com/fluxcd/notification-controller/pull/131)
+
 ## 0.7.0
 
 **Release date:** 2021-01-22
