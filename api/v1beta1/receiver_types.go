@@ -72,6 +72,7 @@ const (
 	QuayReceiver        string = "quay"
 	GCRReceiver         string = "gcr"
 	NexusReceiver       string = "nexus"
+	ReceiverKind        string = "Receiver"
 )
 
 func ReceiverReady(receiver Receiver, reason, message, url string) Receiver {
