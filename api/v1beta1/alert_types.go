@@ -27,7 +27,7 @@ const (
 
 // AlertSpec defines an alerting rule for events involving a list of objects
 type AlertSpec struct {
-	// Send events using this provider
+	// Send events using this provider.
 	// +required
 	ProviderRef meta.LocalObjectReference `json:"providerRef"`
 
@@ -38,9 +38,13 @@ type AlertSpec struct {
 	// +optional
 	EventSeverity string `json:"eventSeverity,omitempty"`
 
-	// Filter events based on the involved objects
+	// Filter events based on the involved objects.
 	// +required
 	EventSources []CrossNamespaceObjectReference `json:"eventSources"`
+
+	// A list of Golang regular expressions to be used for excluding messages.
+	// +optional
+	ExclusionList []string `json:"exclusionList,omitempty"`
 
 	// Short description of the impact and affected cluster.
 	// +optional
