@@ -80,7 +80,7 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
-<p>Send events using this provider</p>
+<p>Send events using this provider.</p>
 </td>
 </tr>
 <tr>
@@ -106,7 +106,19 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </em>
 </td>
 <td>
-<p>Filter events based on the involved objects</p>
+<p>Filter events based on the involved objects.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>exclusionList</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A list of Golang regular expressions to be used for excluding messages.</p>
 </td>
 </tr>
 <tr>
@@ -465,7 +477,7 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
-<p>Send events using this provider</p>
+<p>Send events using this provider.</p>
 </td>
 </tr>
 <tr>
@@ -491,7 +503,19 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </em>
 </td>
 <td>
-<p>Filter events based on the involved objects</p>
+<p>Filter events based on the involved objects.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>exclusionList</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A list of Golang regular expressions to be used for excluding messages.</p>
 </td>
 </tr>
 <tr>

@@ -8,7 +8,7 @@ Spec:
 
 ```go
 type AlertSpec struct {
-	// Send events using this provider
+	// Send events using this provider.
 	// +required
 	ProviderRef meta.LocalObjectReference `json:"providerRef"`
 
@@ -17,9 +17,13 @@ type AlertSpec struct {
 	// +optional
 	EventSeverity string `json:"eventSeverity,omitempty"`
 
-	// Filter events based on the involved objects
+	// Filter events based on the involved objects.
 	// +required
 	EventSources []CrossNamespaceObjectReference `json:"eventSources"`
+
+	// A list of Golang regular expressions to be used for excluding messages.
+	// +optional
+	ExclusionList []string `json:"exclusionList,omitempty"`
 
 	// Short description of the impact and affected cluster.
 	// +optional
@@ -114,4 +118,30 @@ spec:
   eventSources:
     - kind: HelmRelease
       name: nginx-ingress
+```
+
+Skip alerting if the message matches a [Go regex](https://golang.org/pkg/regexp/syntax)
+from the exclusion list:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Alert
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  providerRef: 
+    name: on-call-slack
+  eventSeverity: error
+  eventSources:
+    - kind: GitRepository
+      name: flux-system
+  exclusionList:
+    - "waiting.*socket"
+```
+
+The above definition will not send alerts for transient Git clone errors like:
+
+```
+unable to clone 'ssh://git@ssh.dev.azure.com/v3/...', error: SSH could not read data: Error waiting on socket
 ```

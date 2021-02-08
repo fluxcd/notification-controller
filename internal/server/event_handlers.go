@@ -19,8 +19,10 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -70,6 +72,19 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			isReady := apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition)
 			if alert.Spec.Suspend || !isReady {
 				continue
+			}
+
+			// skip alert if the message matches a regex from the exclusion list
+			if len(alert.Spec.ExclusionList) > 0 {
+				for _, exp := range alert.Spec.ExclusionList {
+					if r, err := regexp.Compile(exp); err == nil {
+						if r.Match([]byte(event.Message)) {
+							continue
+						}
+					} else {
+						s.logger.Error(err, fmt.Sprintf("failed to compile regex: %s", exp))
+					}
+				}
 			}
 
 			// filter alerts by object and severity
