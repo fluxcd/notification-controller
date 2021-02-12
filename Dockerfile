@@ -20,7 +20,7 @@ COPY internal/ internal/
 # build
 RUN CGO_ENABLED=0 go build -a -o notification-controller main.go
 
-FROM alpine:3.12
+FROM alpine:3.13
 
 LABEL org.opencontainers.image.source="https://github.com/fluxcd/notification-controller"
 
