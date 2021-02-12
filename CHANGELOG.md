@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.8.0
+
+**Release date:** 2021-02-12
+
+This is the eight MINOR prerelease.
+
+This prerelease comes with support for excluding messages
+form alerting using regular expressions.
+
+Golang `pprof` endpoints have been enabled on the metrics server,
+making it easier to collect runtime information to debug performance issues.
+
+Features:
+* Implement regex exclusions for alerts
+  [#138](https://github.com/fluxcd/notification-controller/pull/138)
+
+Improvements:
+* Enable pprof endpoints on metrics server
+  [#136](https://github.com/fluxcd/notification-controller/pull/136)
+
 ## 0.7.1
 
 **Release date:** 2021-01-26
