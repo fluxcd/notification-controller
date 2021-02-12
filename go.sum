@@ -99,8 +99,9 @@ github.com/evanphx/json-patch v4.9.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLi
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
 github.com/fluxcd/image-reflector-controller/api v0.4.1 h1:D1gJL6m7NYE8833eBoLT0qAJZ5Q2Yic3UtAEI10fiWg=
 github.com/fluxcd/image-reflector-controller/api v0.4.1/go.mod h1:MS3mGjZLnzZsfSqVLGbp0WNJr/k8XRFpw4G6ApLFTbc=
-github.com/fluxcd/pkg/apis/meta v0.7.0 h1:5e8gm4OLqjuKWdrOIY5DEEsjcwzyJFK8rCDesJ+V8IY=
 github.com/fluxcd/pkg/apis/meta v0.7.0/go.mod h1:yHuY8kyGHYz22I0jQzqMMGCcHViuzC/WPdo9Gisk8Po=
+github.com/fluxcd/pkg/apis/meta v0.8.0 h1:wqWpUsxhKHB1ZztcvOz+vnyhdKW9cWmjFp8Vci/XOdk=
+github.com/fluxcd/pkg/apis/meta v0.8.0/go.mod h1:yHuY8kyGHYz22I0jQzqMMGCcHViuzC/WPdo9Gisk8Po=
 github.com/fluxcd/pkg/recorder v0.0.6 h1:me/n8syeeGXz50OXoPX3jgIj9AtinvhHdKT9Dy+MbHs=
 github.com/fluxcd/pkg/recorder v0.0.6/go.mod h1:IfQxfVRSNsWs3B0Yp5B6ObEWwKHILlAx8N7XkoDdhFg=
 github.com/fluxcd/pkg/runtime v0.8.1 h1:8UxNz7GeI/HC3U5tpNCfrjRx2V7UjUegQOwCsd+EWxk=
