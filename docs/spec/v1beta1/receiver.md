@@ -129,7 +129,7 @@ The signature should be prefixed with the hash function(`sha1`, `sha256`, or `sh
 1. Generate hash signature using OpenSSL:
 
 ```sh
-echo -n '<request-body>' | openssl dgst -sha1 -hmac "<secret-key>"
+printf '<request-body>' | openssl dgst -sha1 -r -hmac "<secret-key>" | awk '{print $1}'
 ```
 
 You can use the flag `sha256` or `sha512` if you want a different hash function.
