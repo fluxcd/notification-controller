@@ -67,29 +67,25 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 		// find matching alerts
 		alerts := make([]v1beta1.Alert, 0)
+	each_alert:
 		for _, alert := range allAlerts.Items {
 			// skip suspended and not ready alerts
 			isReady := apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition)
 			if alert.Spec.Suspend || !isReady {
-				continue
+				continue each_alert
 			}
 
 			// skip alert if the message matches a regex from the exclusion list
-			var skip bool
 			if len(alert.Spec.ExclusionList) > 0 {
 				for _, exp := range alert.Spec.ExclusionList {
 					if r, err := regexp.Compile(exp); err == nil {
 						if r.Match([]byte(event.Message)) {
-							skip = true
-							break
+							continue each_alert
 						}
 					} else {
 						s.logger.Error(err, fmt.Sprintf("failed to compile regex: %s", exp))
 					}
 				}
-			}
-			if skip {
-				continue
 			}
 
 			// filter alerts by object and severity
