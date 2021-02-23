@@ -178,8 +178,8 @@ var _ = Describe("Event handlers", func() {
 	}
 
 	testFiltered := func() {
-		// The event_server forwards to the provider in a goroutine,
-		// _after_ responding to the POST of the event. This makes it
+		// The event_server does forwarding in a goroutine, after
+		// responding to the POST of the event. This makes it
 		// difficult to know whether the provider has filtered the
 		// event, or just not run the goroutine yet. For now, I'll use
 		// a timeout (and Consistently so it can fail early)
@@ -188,7 +188,7 @@ var _ = Describe("Event handlers", func() {
 		}, "1s", "0.1s").Should(BeTrue())
 	}
 
-	Context("match by source", func() {
+	Describe("event forwarding", func() {
 		BeforeEach(func() {
 			alert = notifyv1.Alert{}
 			alert.Spec = notifyv1.AlertSpec{
@@ -218,24 +218,46 @@ var _ = Describe("Event handlers", func() {
 			}
 		})
 
-		It("forwards when source is a match", func() {
-			testSent()
-			testForwarded()
+		Context("matching by source", func() {
+			It("forwards when source is a match", func() {
+				testSent()
+				testForwarded()
+			})
+			It("drops event when source Kind does not match", func() {
+				event.InvolvedObject.Kind = "GitRepository"
+				testSent()
+				testFiltered()
+			})
+			It("drops event when source name does not match", func() {
+				event.InvolvedObject.Name = "slop"
+				testSent()
+				testFiltered()
+			})
+			It("drops event when source namespace does not match", func() {
+				event.InvolvedObject.Namespace = "all-buckets"
+				testSent()
+				testFiltered()
+			})
 		})
-		It("drops event when source Kind does not match", func() {
-			event.InvolvedObject.Kind = "GitRepository"
-			testSent()
-			testFiltered()
-		})
-		It("drops event when source name does not match", func() {
-			event.InvolvedObject.Name = "slop"
-			testSent()
-			testFiltered()
-		})
-		It("drops event when source namespace does not match", func() {
-			event.InvolvedObject.Namespace = "all-buckets"
-			testSent()
-			testFiltered()
+
+		Context("filtering by ExclusionList", func() {
+			BeforeEach(func() {
+				alert.Spec.ExclusionList = []string{
+					"doesnotoccur", // not intended to match
+					"well",
+				}
+			})
+
+			It("forwards event that is not matched", func() {
+				event.Message = "not excluded"
+				testSent()
+				testForwarded()
+			})
+
+			It("drops event that is matched by exclusion", func() {
+				testSent()
+				testFiltered()
+			})
 		})
 	})
 })
