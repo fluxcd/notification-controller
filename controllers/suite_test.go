@@ -140,39 +140,55 @@ var _ = Describe("Event handlers", func() {
 		Expect(k8sClient.Delete(context.Background(), &provider)).To(Succeed())
 	})
 
+	// The following test "templates" will create the alert, then
+	// serialise the event and post it to the event server. They
+	// differ on what's expected to happen to the event.
+
 	var (
 		alert notifyv1.Alert
 		event recorder.Event
 	)
 
-	testSuccess := func() {
-		JustBeforeEach(func() {
-			alert.Name = "test-alert"
-			alert.Namespace = namespace
-			Expect(k8sClient.Create(context.Background(), &alert)).To(Succeed())
-			// the event server won't dispatch to an alert if it has
-			// not been marked "ready"
-			meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionTrue, meta.ReconciliationSucceededReason, "artificially set to ready")
-			Expect(k8sClient.Status().Update(context.Background(), &alert)).To(Succeed())
-		})
+	JustBeforeEach(func() {
+		alert.Name = "test-alert"
+		alert.Namespace = namespace
+		Expect(k8sClient.Create(context.Background(), &alert)).To(Succeed())
+		// the event server won't dispatch to an alert if it has
+		// not been marked "ready"
+		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionTrue, meta.ReconciliationSucceededReason, "artificially set to ready")
+		Expect(k8sClient.Status().Update(context.Background(), &alert)).To(Succeed())
+	})
 
-		AfterEach(func() {
-			Expect(k8sClient.Delete(context.Background(), &alert)).To(Succeed())
-		})
+	AfterEach(func() {
+		Expect(k8sClient.Delete(context.Background(), &alert)).To(Succeed())
+	})
 
-		It("sends the event", func() {
-			buf := &bytes.Buffer{}
-			Expect(json.NewEncoder(buf).Encode(&event)).To(Succeed())
-			res, err := http.Post("http://localhost:56789/", "application/json", buf)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(res.StatusCode).To(Equal(202)) // event_server responds with 202 Accepted
-			Eventually(func() bool {
-				return req == nil
-			}, "2s", "0.1s").Should(BeFalse())
-		})
+	testSent := func() {
+		buf := &bytes.Buffer{}
+		Expect(json.NewEncoder(buf).Encode(&event)).To(Succeed())
+		res, err := http.Post("http://localhost:56789/", "application/json", buf)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(res.StatusCode).To(Equal(202)) // event_server responds with 202 Accepted
 	}
 
-	Context("pass through", func() {
+	testForwarded := func() {
+		Eventually(func() bool {
+			return req == nil
+		}, "2s", "0.1s").Should(BeFalse())
+	}
+
+	testFiltered := func() {
+		// The event_server forwards to the provider in a goroutine,
+		// _after_ responding to the POST of the event. This makes it
+		// difficult to know whether the provider has filtered the
+		// event, or just not run the goroutine yet. For now, I'll use
+		// a timeout (and Consistently so it can fail early)
+		Consistently(func() bool {
+			return req == nil
+		}, "1s", "0.1s").Should(BeTrue())
+	}
+
+	Context("match by source", func() {
 		BeforeEach(func() {
 			alert = notifyv1.Alert{}
 			alert.Spec = notifyv1.AlertSpec{
@@ -201,6 +217,25 @@ var _ = Describe("Event handlers", func() {
 				ReportingController: "source-controller",
 			}
 		})
-		Describe("receive event", testSuccess)
+
+		It("forwards when source is a match", func() {
+			testSent()
+			testForwarded()
+		})
+		It("drops event when source Kind does not match", func() {
+			event.InvolvedObject.Kind = "GitRepository"
+			testSent()
+			testFiltered()
+		})
+		It("drops event when source name does not match", func() {
+			event.InvolvedObject.Name = "slop"
+			testSent()
+			testFiltered()
+		})
+		It("drops event when source namespace does not match", func() {
+			event.InvolvedObject.Namespace = "all-buckets"
+			testSent()
+			testFiltered()
+		})
 	})
 })
