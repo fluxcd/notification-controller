@@ -75,16 +75,21 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			}
 
 			// skip alert if the message matches a regex from the exclusion list
+			var skip bool
 			if len(alert.Spec.ExclusionList) > 0 {
 				for _, exp := range alert.Spec.ExclusionList {
 					if r, err := regexp.Compile(exp); err == nil {
 						if r.Match([]byte(event.Message)) {
-							continue
+							skip = true
+							break
 						}
 					} else {
 						s.logger.Error(err, fmt.Sprintf("failed to compile regex: %s", exp))
 					}
 				}
+			}
+			if skip {
+				continue
 			}
 
 			// filter alerts by object and severity
