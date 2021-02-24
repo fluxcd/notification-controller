@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.9.0
+
+**Release date:** 2021-02-24
+
+This is the ninth MINOR prerelease.
+
+This prerelease comes with a fix to the alerting exclusion list.
+
+The Kubernetes custom resource definitions are packaged as
+a multi-doc YAML asset and published on the GitHub release page.
+
+Improvements:
+* Refactor release workflow
+  [#146](https://github.com/fluxcd/notification-controller/pull/146)
+* Unit tests for event forwarding
+  [#145](https://github.com/fluxcd/notification-controller/pull/145)
+
+Fixes:
+* Fix alerts regex filtering
+  [#144](https://github.com/fluxcd/notification-controller/pull/144)
+  
 ## 0.8.0
 
 **Release date:** 2021-02-12
