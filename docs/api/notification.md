@@ -76,7 +76,9 @@ AlertSpec
 <td>
 <code>providerRef</code><br>
 <em>
+<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
+</a>
 </em>
 </td>
 <td>
@@ -285,7 +287,9 @@ string
 <td>
 <code>secretRef</code><br>
 <em>
+<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
+</a>
 </em>
 </td>
 <td>
@@ -412,7 +416,9 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>secretRef</code><br>
 <em>
+<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
+</a>
 </em>
 </td>
 <td>
@@ -473,7 +479,9 @@ ReceiverStatus
 <td>
 <code>providerRef</code><br>
 <em>
+<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
+</a>
 </em>
 </td>
 <td>
@@ -730,7 +738,9 @@ string
 <td>
 <code>secretRef</code><br>
 <em>
+<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
+</a>
 </em>
 </td>
 <td>
@@ -836,7 +846,9 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>secretRef</code><br>
 <em>
+<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
+</a>
 </em>
 </td>
 <td>
