@@ -79,6 +79,7 @@ spec:
                 - gitlab
                 - bitbucket
                 - azuredevops
+                - googlechat
                 type: string
               username:
                 description: Bot username for this provider

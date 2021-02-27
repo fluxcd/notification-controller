@@ -43,6 +43,7 @@ Notification providers:
 * Discord
 * Microsoft Teams
 * Rocket
+* Google Chat
 * Generic webhook
 
 Git commit status providers:
@@ -103,7 +104,7 @@ kubectl create secret generic webhook-url \
 
 Note that the secret must contain an `address` field.
 
-The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `github` or `generic`.
+The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `googlechat`, `github`, `gitlab`, or `generic`.
 
 When type `generic` is specified, the notification controller will post the
 incoming [event](event.md) in JSON format to the webhook address.
