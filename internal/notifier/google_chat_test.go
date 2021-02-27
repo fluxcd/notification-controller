@@ -28,6 +28,7 @@ import (
 
 func TestGoogleChat_Post(t *testing.T) {
 	event := testEvent()
+
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := ioutil.ReadAll(r.Body)
 		require.NoError(t, err)
