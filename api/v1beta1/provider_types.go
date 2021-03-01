@@ -68,6 +68,7 @@ const (
 	GitLabProvider      string = "gitlab"
 	BitbucketProvider   string = "bitbucket"
 	AzureDevOpsProvider string = "azuredevops"
+	GoogleChatProvider  string = "googlechat"
 )
 
 // ProviderStatus defines the observed state of Provider
