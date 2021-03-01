@@ -66,6 +66,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewBitbucket(f.URL, f.Token)
 	case v1beta1.AzureDevOpsProvider:
 		n, err = NewAzureDevOps(f.URL, f.Token)
+	case v1beta1.GoogleChatProvider:
+		n, err = NewGoogleChat(f.URL, f.ProxyURL)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
