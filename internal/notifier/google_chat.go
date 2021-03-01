@@ -122,26 +122,21 @@ func (s *GoogleChat) Post(event recorder.Event) error {
 	})
 
 	// Meta-Data
-	kvfields := make([]GoogleChatCardWidget, 0, len(event.Metadata)+1)
-	kvfields = append(kvfields, GoogleChatCardWidget{
-		KeyValue: &GoogleChatCardWidgetKeyValue{
-			TopLabel:         "TIMESTAMP",
-			Content:          event.Timestamp.String(),
-			ContentMultiLine: false,
-		},
-	})
-	for k, v := range event.Metadata {
-		kvfields = append(kvfields, GoogleChatCardWidget{
-			KeyValue: &GoogleChatCardWidgetKeyValue{
-				TopLabel:         k,
-				Content:          v,
-				ContentMultiLine: false,
-			},
+	if len(event.Metadata) > 0 {
+		kvfields := make([]GoogleChatCardWidget, 0, len(event.Metadata))
+		for k, v := range event.Metadata {
+			kvfields = append(kvfields, GoogleChatCardWidget{
+				KeyValue: &GoogleChatCardWidgetKeyValue{
+					TopLabel:         k,
+					Content:          v,
+					ContentMultiLine: false,
+				},
+			})
+		}
+		sections = append(sections, GoogleChatCardSection{
+			Widgets: kvfields,
 		})
 	}
-	sections = append(sections, GoogleChatCardSection{
-		Widgets: kvfields,
-	})
 
 	card := GoogleChatCard{
 		Header:   header,

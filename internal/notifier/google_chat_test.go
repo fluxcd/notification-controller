@@ -27,8 +27,6 @@ import (
 )
 
 func TestGoogleChat_Post(t *testing.T) {
-	event := testEvent()
-
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := ioutil.ReadAll(r.Body)
 		require.NoError(t, err)
@@ -39,16 +37,14 @@ func TestGoogleChat_Post(t *testing.T) {
 		require.Equal(t, "gitrepository/webapp.gitops-system", payload.Cards[0].Header.Title)
 		require.Equal(t, "source-controller", payload.Cards[0].Header.SubTitle)
 		require.Equal(t, "message", payload.Cards[0].Sections[0].Widgets[0].TextParagraph.Text)
-		require.Equal(t, "TIMESTAMP", payload.Cards[0].Sections[1].Widgets[0].KeyValue.TopLabel)
-		require.Equal(t, event.Timestamp.String(), payload.Cards[0].Sections[1].Widgets[0].KeyValue.Content)
-		require.Equal(t, "test", payload.Cards[0].Sections[1].Widgets[1].KeyValue.TopLabel)
-		require.Equal(t, "metadata", payload.Cards[0].Sections[1].Widgets[1].KeyValue.Content)
+		require.Equal(t, "test", payload.Cards[0].Sections[1].Widgets[0].KeyValue.TopLabel)
+		require.Equal(t, "metadata", payload.Cards[0].Sections[1].Widgets[0].KeyValue.Content)
 	}))
 	defer ts.Close()
 
 	google_chat, err := NewGoogleChat(ts.URL, "")
 	require.NoError(t, err)
 
-	err = google_chat.Post(event)
+	err = google_chat.Post(testEvent())
 	require.NoError(t, err)
 }
