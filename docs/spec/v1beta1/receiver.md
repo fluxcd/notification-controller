@@ -87,16 +87,20 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - kind: GitRepository
+    - apiVersion: source.toolkit.fluxcd.io/v1beta1
+      kind: GitRepository
       name: webapp
       namespace: default
-    - kind: HelmRepository
+    - apiVersion: source.toolkit.fluxcd.io/v1beta1
+      kind: HelmRepository
       name: webapp
       namespace: default
-    - kind: Bucket
+    - apiVersion: source.toolkit.fluxcd.io/v1beta1
+      kind: Bucket
       name: webapp
       namespace: default
-    - kind: ImageRepository
+    - apiVersion: image.toolkit.fluxcd.io/v1alpha1
+      kind: ImageRepository
       name: webapp
       namespace: default
 ```
@@ -116,7 +120,8 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - kind: GitRepository
+    - apiVersion: source.toolkit.fluxcd.io/v1beta1
+      kind: GitRepository
       name: webapp
       namespace: default
 ```
@@ -169,9 +174,11 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - kind: GitRepository
+    - apiVersion: source.toolkit.fluxcd.io/v1beta1
+      kind: GitRepository
       name: webapp
-    - kind: HelmRepository
+    - apiVersion: source.toolkit.fluxcd.io/v1beta1
+      kind: HelmRepository
       name: webapp
 ```
 
@@ -194,9 +201,11 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - kind: GitRepository
+    - apiVersion: source.toolkit.fluxcd.io/v1beta1
+      kind: GitRepository
       name: webapp-frontend
-    - kind: GitRepository
+    - apiVersion: source.toolkit.fluxcd.io/v1beta1
+      kind: GitRepository
       name: webapp-backend
 ```
 
@@ -218,7 +227,8 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - kind: GitRepository
+    - apiVersion: source.toolkit.fluxcd.io/v1beta1
+      kind: GitRepository
       name: webapp
 ```
 
@@ -238,9 +248,11 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - kind: HelmRepository
+    - apiVersion: source.toolkit.fluxcd.io/v1beta1
+      kind: HelmRepository
       name: webapp
-    - kind: ImageRepository
+    - apiVersion: image.toolkit.fluxcd.io/v1alpha1
+      kind: ImageRepository
       name: webapp
 ```
 
@@ -260,7 +272,8 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - kind: ImageRepository
+    - apiVersion: image.toolkit.fluxcd.io/v1alpha1
+      kind: ImageRepository
       name: webapp
 ```
 
@@ -277,7 +290,8 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - kind: ImageRepository
+    - apiVersion: image.toolkit.fluxcd.io/v1alpha1
+      kind: ImageRepository
       name: webapp
 ```
 
@@ -294,7 +308,8 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - kind: ImageRepository
+    - apiVersion: image.toolkit.fluxcd.io/v1alpha1
+      kind: ImageRepository
       name: webapp
 ```
 
@@ -315,7 +330,8 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - kind: ImageRepository
+    - apiVersion: image.toolkit.fluxcd.io/v1alpha1
+      kind: ImageRepository
       name: webapp
       namespace: default
 ```

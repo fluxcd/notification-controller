@@ -97,8 +97,6 @@ github.com/evanphx/json-patch v4.5.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLi
 github.com/evanphx/json-patch v4.9.0+incompatible h1:kLcOMZeuLAJvL2BPWLMIj5oaZQobrkAqrL+WFZwQses=
 github.com/evanphx/json-patch v4.9.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/fatih/color v1.7.0/go.mod h1:Zm6kSWBoL9eyXnKyktHP6abPY2pDugNf5KwzbycvMj4=
-github.com/fluxcd/image-reflector-controller/api v0.7.0 h1:Mlu9ybrL+MtWcaIex4+FOcYuk+0vA/7bYj8MxVvLR1A=
-github.com/fluxcd/image-reflector-controller/api v0.7.0/go.mod h1:KHWknF2xu/GZ4uLSQcAmfONZYjsbwNqyk3OvMQTmMsA=
 github.com/fluxcd/pkg/apis/meta v0.7.0/go.mod h1:yHuY8kyGHYz22I0jQzqMMGCcHViuzC/WPdo9Gisk8Po=
 github.com/fluxcd/pkg/apis/meta v0.8.0 h1:wqWpUsxhKHB1ZztcvOz+vnyhdKW9cWmjFp8Vci/XOdk=
 github.com/fluxcd/pkg/apis/meta v0.8.0/go.mod h1:yHuY8kyGHYz22I0jQzqMMGCcHViuzC/WPdo9Gisk8Po=
@@ -106,8 +104,6 @@ github.com/fluxcd/pkg/recorder v0.0.6 h1:me/n8syeeGXz50OXoPX3jgIj9AtinvhHdKT9Dy+
 github.com/fluxcd/pkg/recorder v0.0.6/go.mod h1:IfQxfVRSNsWs3B0Yp5B6ObEWwKHILlAx8N7XkoDdhFg=
 github.com/fluxcd/pkg/runtime v0.8.3 h1:Zjk4fyAfBdBQ4GTokjisab7KyHHczCqKSpJi8+oVrNw=
 github.com/fluxcd/pkg/runtime v0.8.3/go.mod h1:AM/hMD0mKtRqhKPU7NGDzm+3UXPpdnX8oBlcxLt11AY=
-github.com/fluxcd/source-controller/api v0.9.0 h1:ohV8AvmvkUK0N7+YKPIOlMSLaNG0SpFcNLtlmW18xuM=
-github.com/fluxcd/source-controller/api v0.9.0/go.mod h1:68+cPuz1G45f0SDRwEfTL419011ffveLIDA9nssLlkU=
 github.com/form3tech-oss/jwt-go v3.2.2+incompatible/go.mod h1:pbq4aXjuKjdthFRnoDwaVPLA+WlJuPGy+QneDUgJi2k=
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.4.9 h1:hsms1Qyu0jgnwNXIxa+/V/PDsU6CfLf6CNO8H7IWoS4=
