@@ -25,14 +25,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"net/url"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"time"
 
-	imagev1 "github.com/fluxcd/image-reflector-controller/api/v1alpha1"
 	"github.com/fluxcd/pkg/apis/meta"
-	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
 	"github.com/google/go-github/v32/github"
 	corev1 "k8s.io/api/core/v1"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -344,62 +345,47 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNam
 	if resource.Namespace != "" {
 		namespace = resource.Namespace
 	}
-	resourceName := types.NamespacedName{
+	objectKey := client.ObjectKey{
 		Namespace: namespace,
 		Name:      resource.Name,
 	}
 
-	switch resource.Kind {
-	case sourcev1.BucketKind:
-		var source sourcev1.Bucket
-		if err := s.kubeClient.Get(ctx, resourceName, &source); err != nil {
-			return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, resourceName, err)
+	apiVersionMap := map[string]string{
+		"Bucket":          "source.toolkit.fluxcd.io/v1beta1",
+		"HelmRepository":  "source.toolkit.fluxcd.io/v1beta1",
+		"GitRepository":   "source.toolkit.fluxcd.io/v1beta1",
+		"ImageRepository": "image.toolkit.fluxcd.io/v1alpha1",
+	}
+
+	apiVersion := resource.APIVersion
+	if apiVersion == "" {
+		if apiVersionMap[resource.Kind] == "" {
+			return fmt.Errorf("apiVersion must be specified for kind '%s'", resource.Kind)
 		}
-		if source.Annotations == nil {
-			source.Annotations = make(map[string]string)
-		}
-		source.Annotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
-		if err := s.kubeClient.Update(ctx, &source); err != nil {
-			return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, resourceName, err)
-		}
-	case sourcev1.GitRepositoryKind:
-		var source sourcev1.GitRepository
-		if err := s.kubeClient.Get(ctx, resourceName, &source); err != nil {
-			return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, resourceName, err)
-		}
-		if source.Annotations == nil {
-			source.Annotations = make(map[string]string)
-		}
-		source.Annotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
-		if err := s.kubeClient.Update(ctx, &source); err != nil {
-			return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, resourceName, err)
-		}
-	case sourcev1.HelmRepositoryKind:
-		var source sourcev1.HelmRepository
-		if err := s.kubeClient.Get(ctx, resourceName, &source); err != nil {
-			return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, resourceName, err)
-		}
-		if source.Annotations == nil {
-			source.Annotations = make(map[string]string)
-		}
-		source.Annotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
-		if err := s.kubeClient.Update(ctx, &source); err != nil {
-			return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, resourceName, err)
-		}
-	case imagev1.ImageRepositoryKind:
-		var source imagev1.ImageRepository
-		if err := s.kubeClient.Get(ctx, resourceName, &source); err != nil {
-			return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, resourceName, err)
-		}
-		if source.Annotations == nil {
-			source.Annotations = make(map[string]string)
-		}
-		source.Annotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
-		if err := s.kubeClient.Update(ctx, &source); err != nil {
-			return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, resourceName, err)
-		}
-	default:
-		return fmt.Errorf("kind '%s not suppored", resource.Kind)
+		apiVersion = apiVersionMap[resource.Kind]
+	}
+
+	group, version := getGroupVersion(apiVersion)
+
+	u := &unstructured.Unstructured{}
+	u.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   group,
+		Kind:    resource.Kind,
+		Version: version,
+	})
+
+	if err := s.kubeClient.Get(ctx, objectKey, u); err != nil {
+		return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, objectKey, err)
+	}
+
+	sourceAnnotations := u.GetAnnotations()
+	if sourceAnnotations == nil {
+		sourceAnnotations = make(map[string]string)
+	}
+	sourceAnnotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
+	u.SetAnnotations(sourceAnnotations)
+	if err := s.kubeClient.Update(ctx, u); err != nil {
+		return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, objectKey, err)
 	}
 
 	return nil
@@ -435,4 +421,13 @@ func verifyHmacSignature(key []byte, signature string, payload []byte) bool {
 	_, _ = mac.Write(payload)
 	expectedMAC := hex.EncodeToString(mac.Sum(nil))
 	return hmac.Equal([]byte(signature), []byte(expectedMAC))
+}
+
+func getGroupVersion(s string) (string, string) {
+	slice := strings.Split(s, "/")
+	if len(slice) == 1 {
+		return "", slice[0]
+	}
+
+	return slice[0], slice[1]
 }

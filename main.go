@@ -26,17 +26,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	imagev1 "github.com/fluxcd/image-reflector-controller/api/v1alpha1"
+	"github.com/fluxcd/notification-controller/api/v1beta1"
+	"github.com/fluxcd/notification-controller/controllers"
+	"github.com/fluxcd/notification-controller/internal/server"
 	"github.com/fluxcd/pkg/runtime/client"
 	"github.com/fluxcd/pkg/runtime/logger"
 	"github.com/fluxcd/pkg/runtime/metrics"
 	"github.com/fluxcd/pkg/runtime/pprof"
 	"github.com/fluxcd/pkg/runtime/probes"
-	sourcev1 "github.com/fluxcd/source-controller/api/v1beta1"
-
-	"github.com/fluxcd/notification-controller/api/v1beta1"
-	"github.com/fluxcd/notification-controller/controllers"
-	"github.com/fluxcd/notification-controller/internal/server"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -49,8 +46,6 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = v1beta1.AddToScheme(scheme)
-	_ = sourcev1.AddToScheme(scheme)
-	_ = imagev1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
