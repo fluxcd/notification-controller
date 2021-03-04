@@ -73,6 +73,7 @@ spec:
                 - slack
                 - discord
                 - msteams
+                - webex
                 - rocket
                 - generic
                 - github
