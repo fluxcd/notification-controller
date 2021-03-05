@@ -32,9 +32,14 @@ func parseGitAddress(s string) (string, string, error) {
 		return "", "", nil
 	}
 
+	scheme := u.Scheme
+	if u.Scheme == "ssh" {
+		scheme = "https"
+	}
+
 	id := strings.TrimLeft(u.Path, "/")
 	id = strings.TrimSuffix(id, ".git")
-	host := fmt.Sprintf("https://%s", u.Host)
+	host := fmt.Sprintf("%s://%s", scheme, u.Host)
 	return host, id, nil
 }
 
