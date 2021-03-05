@@ -40,7 +40,7 @@ func TestNewGitHubEmptyToken(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-func TestDuplicateState(t *testing.T) {
+func TestDuplicateGithubStatus(t *testing.T) {
 	assert := assert.New(t)
 
 	var tests = []struct {
@@ -56,7 +56,7 @@ func TestDuplicateState(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assert.Equal(test.dup, duplicateStatus(test.ss, test.s))
+		assert.Equal(test.dup, duplicateGithubStatus(test.ss, test.s))
 	}
 }
 

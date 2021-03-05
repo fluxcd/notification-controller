@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/fluxcd/pkg/recorder"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
@@ -31,9 +32,9 @@ const genre string = "fluxcd"
 
 // AzureDevOps is a Azure DevOps notifier.
 type AzureDevOps struct {
-	Project    string
-	Repo       string
-	Connection *azuredevops.Connection
+	Project string
+	Repo    string
+	Client  git.Client
 }
 
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
@@ -55,11 +56,16 @@ func NewAzureDevOps(addr string, token string) (*AzureDevOps, error) {
 	proj := comp[1]
 	repo := comp[3]
 
-	c := azuredevops.NewPatConnection(fmt.Sprintf("%v/%v", host, org), token)
+	orgURL := fmt.Sprintf("%v/%v", host, org)
+	connection := azuredevops.NewPatConnection(orgURL, token)
+	client := connection.GetClientByUrl(orgURL)
+	gitClient := &git.ClientImpl{
+		Client: *client,
+	}
 	return &AzureDevOps{
-		Project:    proj,
-		Repo:       repo,
-		Connection: c,
+		Project: proj,
+		Repo:    repo,
+		Client:  gitClient,
 	}, nil
 }
 
@@ -83,15 +89,13 @@ func (a AzureDevOps) Post(event recorder.Event) error {
 		return err
 	}
 
-	ctx := context.Background()
-	client, err := git.NewClient(ctx, a.Connection)
-	if err != nil {
-		return err
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 
+	// Check if the exact status is already set
 	g := genre
 	name, desc := formatNameAndDescription(event)
-	args := git.CreateCommitStatusArgs{
+	createArgs := git.CreateCommitStatusArgs{
 		Project:      &a.Project,
 		RepositoryId: &a.Repo,
 		CommitId:     &rev,
@@ -104,11 +108,24 @@ func (a AzureDevOps) Post(event recorder.Event) error {
 			},
 		},
 	}
-	_, err = client.CreateCommitStatus(ctx, args)
+	getArgs := git.GetStatusesArgs{
+		Project:      &a.Project,
+		RepositoryId: &a.Repo,
+		CommitId:     &rev,
+	}
+	statuses, err := a.Client.GetStatuses(ctx, getArgs)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not list commit statuses: %v", err)
+	}
+	if duplicateAzureDevOpsStatus(statuses, createArgs.GitCommitStatusToCreate) {
+		return nil
 	}
 
+	// Create a new status
+	_, err = a.Client.CreateCommitStatus(context.Background(), createArgs)
+	if err != nil {
+		return fmt.Errorf("could not create commit status: %v", err)
+	}
 	return nil
 }
 
@@ -121,4 +138,20 @@ func toAzureDevOpsState(severity string) (git.GitStatusState, error) {
 	default:
 		return "", errors.New("can't convert to azure devops state")
 	}
+}
+
+// duplicateStatus return true if the latest status
+// with a matching context has the same state and description
+func duplicateAzureDevOpsStatus(statuses *[]git.GitStatus, status *git.GitStatus) bool {
+	for _, s := range *statuses {
+		if *s.Context.Name == *status.Context.Name && *s.Context.Genre == *status.Context.Genre {
+			if *s.State == *status.State && *s.Description == *status.Description {
+				return true
+			}
+
+			return false
+		}
+	}
+
+	return false
 }

@@ -96,7 +96,7 @@ func (g *GitHub) Post(event recorder.Event) error {
 	if err != nil {
 		return fmt.Errorf("could not list commit statuses: %v", err)
 	}
-	if duplicateStatus(statuses, status) {
+	if duplicateGithubStatus(statuses, status) {
 		return nil
 	}
 
@@ -121,7 +121,7 @@ func toGitHubState(severity string) (string, error) {
 
 // duplicateStatus return true if the latest status
 // with a matching context has the same state and description
-func duplicateStatus(statuses []*github.RepoStatus, status *github.RepoStatus) bool {
+func duplicateGithubStatus(statuses []*github.RepoStatus, status *github.RepoStatus) bool {
 	for _, s := range statuses {
 		if *s.Context == *status.Context {
 			if *s.State == *status.State && *s.Description == *status.Description {
