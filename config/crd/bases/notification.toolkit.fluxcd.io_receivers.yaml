@@ -116,6 +116,7 @@ spec:
                 - quay
                 - gcr
                 - nexus
+                - acr
                 type: string
             required:
             - resources

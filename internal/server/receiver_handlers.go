@@ -313,6 +313,26 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			fmt.Sprintf("handling event from %s", p.RepositoryName),
 			"receiver", receiver.Name)
 		return nil
+	case v1beta1.ACRReceiver:
+		type target struct {
+			Repository string `json:"repository"`
+			Tag        string `json:"tag"`
+		}
+
+		type payload struct {
+			Action string `json:"action"`
+			Target target `json:"target"`
+		}
+
+		var p payload
+		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+			return fmt.Errorf("cannot decode ACR webhook payload: %s", err)
+		}
+
+		s.logger.Info(
+			fmt.Sprintf("handling event from %s for tag %s", p.Target.Repository, p.Target.Tag),
+			"receiver", receiver.Name)
+		return nil
 	}
 
 	return fmt.Errorf("recevier type '%s' not supported", receiver.Spec.Type)
