@@ -48,7 +48,7 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 		ctx := context.Background()
 		digest := url.PathEscape(strings.TrimLeft(r.RequestURI, "/hook/"))
 
-		s.logger.Info("handling request", "digest", digest)
+		s.logger.Info(fmt.Sprintf("handling request: %s", digest))
 
 		var allReceivers v1beta1.ReceiverList
 		err := s.kubeClient.List(ctx, &allReceivers)
@@ -74,22 +74,25 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 
 		withErrors := false
 		for _, receiver := range receivers {
+			logger := s.logger.WithValues(
+				"reconciler kind", v1beta1.ReceiverKind,
+				"name", receiver.Name,
+				"namespace", receiver.Namespace)
+
 			if err := s.validate(ctx, receiver, r); err != nil {
-				s.logger.Error(err, "unable to validate payload",
-					"receiver", receiver.Name)
+				logger.Error(err, "unable to validate payload")
 				withErrors = true
 				continue
 			}
 
-			s.logger.Info("found matching receiver", "receiver", receiver.Name)
 			for _, resource := range receiver.Spec.Resources {
 				if err := s.annotate(ctx, resource, receiver.Namespace); err != nil {
-					s.logger.Error(err, "unable to annotate resource",
-						"receiver", receiver.Name)
+					logger.Error(err, fmt.Sprintf("unable to annotate resource '%s/%s.%s'",
+						resource.Kind, resource.Name, resource.Namespace))
 					withErrors = true
 				} else {
-					s.logger.Info("resource annotated", "receiver", receiver.Name,
-						"resource", resource.Name)
+					logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
+						resource.Kind, resource.Name, resource.Namespace))
 				}
 			}
 		}
@@ -108,6 +111,11 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 		return fmt.Errorf("unable to read token, error: %w", err)
 	}
 
+	logger := s.logger.WithValues(
+		"reconciler kind", v1beta1.ReceiverKind,
+		"name", receiver.Name,
+		"namespace", receiver.Namespace)
+
 	switch receiver.Spec.Type {
 	case v1beta1.GenericReceiver:
 		return nil
@@ -119,12 +127,8 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 
 		err = github.ValidateSignature(r.Header.Get("X-Signature"), b, []byte(token))
 		if err != nil {
-			return fmt.Errorf("unable to validate signature: %s", err)
+			return fmt.Errorf("unable to validate HMAC signature: %s", err)
 		}
-
-		s.logger.Info(
-			"handling event from generic-hmac wehbook",
-			"receiver", receiver.Name)
 		return nil
 	case v1beta1.GitHubReceiver:
 		payload, err := github.ValidatePayload(r, []byte(token))
@@ -137,7 +141,6 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 		}
 
 		event := github.WebHookType(r)
-
 		if len(receiver.Spec.Events) > 0 {
 			allowed := false
 			for _, e := range receiver.Spec.Events {
@@ -151,7 +154,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			}
 		}
 
-		s.logger.Info("handling GitHub event: "+event, "receiver", receiver.Name)
+		logger.Info(fmt.Sprintf("handling GitHub event: %s", event))
 		return nil
 	case v1beta1.GitLabReceiver:
 		if r.Header.Get("X-Gitlab-Token") != token {
@@ -172,7 +175,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			}
 		}
 
-		s.logger.Info("handling GitLab event: "+event, "receiver", receiver.Name)
+		logger.Info(fmt.Sprintf("handling GitLab event: %s", event))
 		return nil
 	case v1beta1.BitbucketReceiver:
 		_, err := github.ValidatePayload(r, []byte(token))
@@ -181,7 +184,6 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 		}
 
 		event := r.Header.Get("X-Event-Key")
-
 		if len(receiver.Spec.Events) > 0 {
 			allowed := false
 			for _, e := range receiver.Spec.Events {
@@ -195,7 +197,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			}
 		}
 
-		s.logger.Info("handling Bitbucket server event: "+event, "receiver", receiver.Name)
+		logger.Info(fmt.Sprintf("handling Bitbucket server event: %s", event))
 		return nil
 	case v1beta1.QuayReceiver:
 		type payload struct {
@@ -208,16 +210,14 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			return fmt.Errorf("cannot decode Quay webhook payload")
 		}
 
-		s.logger.Info(
-			fmt.Sprintf("handling event from %s", p.DockerUrl),
-			"receiver", receiver.Name)
+		logger.Info(fmt.Sprintf("handling Quay event from %s", p.DockerUrl))
 		return nil
 	case v1beta1.HarborReceiver:
 		if r.Header.Get("Authorization") != token {
 			return fmt.Errorf("the Harbor Authorization header value does not match the receiver token")
 		}
 
-		s.logger.Info("handling Harbor event", "receiver", receiver.Name)
+		logger.Info("handling Harbor event")
 		return nil
 	case v1beta1.DockerHubReceiver:
 		type payload struct {
@@ -233,9 +233,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			return fmt.Errorf("cannot decode DockerHub webhook payload")
 		}
 
-		s.logger.Info(
-			fmt.Sprintf("handling event from %s for tag %s", p.Repository.URL, p.PushData.Tag),
-			"receiver", receiver.Name)
+		logger.Info(fmt.Sprintf("handling DockerHub event from %s for tag %s", p.Repository.URL, p.PushData.Tag))
 		return nil
 	case v1beta1.GCRReceiver:
 		const (
@@ -276,42 +274,32 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			return fmt.Errorf("cannot decode GCR webhook body")
 		}
 
-		if strings.ToLower(d.Action) != insert {
-			s.logger.Info("action is not an insert, moving on")
-			return nil
-		}
-
-		s.logger.Info(
-			fmt.Sprintf("handling event from %s for tag %s", d.Digest, d.Tag),
-			"receiver", receiver.Name)
+		logger.Info(fmt.Sprintf("handling GCR event from %s for tag %s", d.Digest, d.Tag))
 		return nil
 	case v1beta1.NexusReceiver:
 		signature := r.Header.Get("X-Nexus-Webhook-Signature")
 		if len(signature) == 0 {
-			return fmt.Errorf("Signature is missing from header")
+			return fmt.Errorf("Nexus signature is missing from header")
 		}
 
 		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			return fmt.Errorf("cannot read payload. error: %s", err)
+			return fmt.Errorf("cannot read Nexus payload. error: %s", err)
 		}
 
 		if !verifyHmacSignature([]byte(token), signature, b) {
-			return fmt.Errorf("invalid nexus signature")
+			return fmt.Errorf("invalid Nexus signature")
 		}
 		type payload struct {
 			Action         string `json:"action"`
 			RepositoryName string `json:"repositoryName"`
 		}
 		var p payload
-
 		if err := json.Unmarshal(b, &p); err != nil {
 			return fmt.Errorf("cannot decode Nexus webhook payload: %s", err)
 		}
 
-		s.logger.Info(
-			fmt.Sprintf("handling event from %s", p.RepositoryName),
-			"receiver", receiver.Name)
+		logger.Info(fmt.Sprintf("handling Nexus event from %s", p.RepositoryName))
 		return nil
 	case v1beta1.ACRReceiver:
 		type target struct {
@@ -329,9 +317,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			return fmt.Errorf("cannot decode ACR webhook payload: %s", err)
 		}
 
-		s.logger.Info(
-			fmt.Sprintf("handling event from %s for tag %s", p.Target.Repository, p.Target.Tag),
-			"receiver", receiver.Name)
+		logger.Info(fmt.Sprintf("handling ACR event from %s for tag %s", p.Target.Repository, p.Target.Tag))
 		return nil
 	}
 

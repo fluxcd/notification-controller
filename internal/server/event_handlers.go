@@ -106,16 +106,17 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 		if len(alerts) == 0 {
 			s.logger.Info("Discarding event, no alerts found for the involved object",
-				"object", event.InvolvedObject.Namespace+"/"+event.InvolvedObject.Name,
-				"kind", event.InvolvedObject.Kind)
+				"reconciler kind", event.InvolvedObject.Kind,
+				"name", event.InvolvedObject.Name,
+				"namespace", event.InvolvedObject.Namespace)
 			w.WriteHeader(http.StatusAccepted)
 			return
 		}
 
-		s.logger.Info("Dispatching event",
-			"object", event.InvolvedObject.Namespace+"/"+event.InvolvedObject.Name,
-			"kind", event.InvolvedObject.Kind,
-			"message", event.Message)
+		s.logger.Info(fmt.Sprintf("Dispatching event: %s", event.Message),
+			"reconciler kind", event.InvolvedObject.Kind,
+			"name", event.InvolvedObject.Name,
+			"namespace", event.InvolvedObject.Namespace)
 
 		// dispatch notifications
 		for _, alert := range alerts {
@@ -125,7 +126,9 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			err = s.kubeClient.Get(ctx, providerName, &provider)
 			if err != nil {
 				s.logger.Error(err, "failed to read provider",
-					"provider", providerName)
+					"reconciler kind", v1beta1.ProviderKind,
+					"name", providerName.Name,
+					"namespace", providerName.Namespace)
 				continue
 			}
 
@@ -138,8 +141,9 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				err = s.kubeClient.Get(ctx, secretName, &secret)
 				if err != nil {
 					s.logger.Error(err, "failed to read secret",
-						"provider", providerName,
-						"secret", secretName.Name)
+						"reconciler kind", v1beta1.ProviderKind,
+						"name", providerName.Name,
+						"namespace", providerName.Namespace)
 					continue
 				}
 
@@ -154,7 +158,9 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 			if webhook == "" {
 				s.logger.Error(nil, "provider has no address",
-					"provider", providerName)
+					"reconciler kind", v1beta1.ProviderKind,
+					"name", providerName.Name,
+					"namespace", providerName.Namespace)
 				continue
 			}
 
@@ -162,8 +168,9 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {
 				s.logger.Error(err, "failed to initialise provider",
-					"provider", providerName,
-					"type", provider.Spec.Type)
+					"reconciler kind", v1beta1.ProviderKind,
+					"name", providerName.Name,
+					"namespace", providerName.Namespace)
 				continue
 			}
 
@@ -181,8 +188,9 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			go func(n notifier.Interface, e recorder.Event) {
 				if err := n.Post(e); err != nil {
 					s.logger.Error(err, "failed to send notification",
-						"object", e.InvolvedObject.Namespace+"/"+e.InvolvedObject.Name,
-						"kind", e.InvolvedObject.Kind)
+						"reconciler kind", event.InvolvedObject.Kind,
+						"name", event.InvolvedObject.Name,
+						"namespace", event.InvolvedObject.Namespace)
 				}
 			}(sender, notification)
 		}
