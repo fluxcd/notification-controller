@@ -8,7 +8,7 @@ require (
 	github.com/fluxcd/notification-controller/api v0.9.0
 	github.com/fluxcd/pkg/apis/meta v0.8.0
 	github.com/fluxcd/pkg/recorder v0.0.6
-	github.com/fluxcd/pkg/runtime v0.8.3
+	github.com/fluxcd/pkg/runtime v0.8.4
 	github.com/go-logr/logr v0.3.0
 	github.com/google/go-github/v32 v32.1.0
 	github.com/hashicorp/go-retryablehttp v0.6.8
@@ -24,5 +24,5 @@ require (
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2
 	k8s.io/client-go v0.20.2
-	sigs.k8s.io/controller-runtime v0.8.2
+	sigs.k8s.io/controller-runtime v0.8.3
 )
