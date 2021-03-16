@@ -28,6 +28,15 @@ func TestNewGitHubBasic(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
+	assert.Equal(t, g.Client.BaseURL.Host, "api.github.com")
+}
+
+func TestNewEmterpriseGitHubBasic(t *testing.T) {
+	g, err := NewGitHub("https://foobar.com/foo/bar", "foobar")
+	assert.Nil(t, err)
+	assert.Equal(t, g.Owner, "foo")
+	assert.Equal(t, g.Repo, "bar")
+	assert.Equal(t, g.Client.BaseURL.Host, "foobar.com")
 }
 
 func TestNewGitHubInvalidUrl(t *testing.T) {

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -39,7 +40,12 @@ func NewGitHub(addr string, token string) (*GitHub, error) {
 		return nil, errors.New("github token cannot be empty")
 	}
 
-	_, id, err := parseGitAddress(addr)
+	host, id, err := parseGitAddress(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(host)
 	if err != nil {
 		return nil, err
 	}
@@ -49,10 +55,15 @@ func NewGitHub(addr string, token string) (*GitHub, error) {
 		return nil, fmt.Errorf("invalid repository id %q", id)
 	}
 
-	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-	tc := oauth2.NewClient(ctx, ts)
+	tc := oauth2.NewClient(context.Background(), ts)
 	client := github.NewClient(tc)
+	if baseUrl.Host != "github.com" {
+		client, err = github.NewEnterpriseClient(host, host, tc)
+		if err != nil {
+			return nil, fmt.Errorf("could not create enterprise GitHub client: %v", err)
+		}
+	}
 
 	return &GitHub{
 		Owner:  comp[0],
