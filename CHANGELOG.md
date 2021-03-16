@@ -2,6 +2,35 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.10.0
+
+**Release date:** 2021-03-16
+
+This is the tenth MINOR prerelease.
+
+This prerelease comes with support for sending alerts to Google Chat
+and for triggering container image updates to Git using Azure Container Registry. 
+
+Features:
+* Provide the ability to send events to Google Chat
+  [#149](https://github.com/fluxcd/notification-controller/pull/149)
+* Add ACR webhook receiver
+  [#153](https://github.com/fluxcd/notification-controller/pull/153)
+
+Improvements:
+* Use controller-runtime structured logging
+  [#156](https://github.com/fluxcd/notification-controller/pull/156)
+* Use unstructured client to annotate receiver targets
+  [#151](https://github.com/fluxcd/notification-controller/pull/151)
+* Update runtime dependencies
+  [#157](https://github.com/fluxcd/notification-controller/pull/157)
+
+Fixes:
+* Fix Azure Devops notifier issues
+  [#154](https://github.com/fluxcd/notification-controller/pull/154)
+* Add missing provider types to docs
+  [#155](https://github.com/fluxcd/notification-controller/pull/155)
+
 ## 0.9.0
 
 **Release date:** 2021-02-24
