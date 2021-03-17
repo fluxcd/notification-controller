@@ -57,6 +57,9 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// record suspension metrics
+	r.recordSuspension(ctx, alert)
+
 	// record reconciliation duration
 	if r.MetricsRecorder != nil {
 		objRef, err := reference.GetReference(r.Scheme, &alert)
@@ -107,6 +110,25 @@ func (r *AlertReconciler) validate(ctx context.Context, alert v1beta1.Alert) err
 	}
 
 	return nil
+}
+
+func (r *AlertReconciler) recordSuspension(ctx context.Context, alert v1beta1.Alert) {
+	if r.MetricsRecorder == nil {
+		return
+	}
+	log := logr.FromContext(ctx)
+
+	objRef, err := reference.GetReference(r.Scheme, &alert)
+	if err != nil {
+		log.Error(err, "unable to record suspended metric")
+		return
+	}
+
+	if !alert.DeletionTimestamp.IsZero() {
+		r.MetricsRecorder.RecordSuspend(*objRef, false)
+	} else {
+		r.MetricsRecorder.RecordSuspend(*objRef, alert.Spec.Suspend)
+	}
 }
 
 func (r *AlertReconciler) recordReadiness(ctx context.Context, alert v1beta1.Alert) {
