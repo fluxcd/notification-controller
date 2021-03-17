@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
+	"k8s.io/client-go/tools/reference"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
@@ -61,6 +62,9 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if err := r.Get(ctx, req.NamespacedName, &receiver); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	// record suspension metrics
+	defer r.recordSuspension(ctx, receiver)
 
 	token, err := r.token(ctx, receiver)
 	if err != nil {
@@ -116,6 +120,25 @@ func (r *ReceiverReconciler) token(ctx context.Context, receiver v1beta1.Receive
 	}
 
 	return token, nil
+}
+
+func (r *ReceiverReconciler) recordSuspension(ctx context.Context, rcvr v1beta1.Receiver) {
+	if r.MetricsRecorder == nil {
+		return
+	}
+	log := logr.FromContext(ctx)
+
+	objRef, err := reference.GetReference(r.Scheme, &rcvr)
+	if err != nil {
+		log.Error(err, "unable to record suspended metric")
+		return
+	}
+
+	if !rcvr.DeletionTimestamp.IsZero() {
+		r.MetricsRecorder.RecordSuspend(*objRef, false)
+	} else {
+		r.MetricsRecorder.RecordSuspend(*objRef, rcvr.Spec.Suspend)
+	}
 }
 
 func sha256sum(val string) string {
