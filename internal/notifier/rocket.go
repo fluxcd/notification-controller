@@ -22,7 +22,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fluxcd/pkg/recorder"
+	"github.com/fluxcd/pkg/runtime/events"
 )
 
 // Rocket holds the hook URL
@@ -57,7 +57,7 @@ func NewRocket(hookURL string, proxyURL string, username string, channel string)
 }
 
 // Post Rocket message
-func (s *Rocket) Post(event recorder.Event) error {
+func (s *Rocket) Post(event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil
@@ -69,7 +69,7 @@ func (s *Rocket) Post(event recorder.Event) error {
 	}
 
 	color := "#0076D7"
-	if event.Severity == recorder.EventSeverityError {
+	if event.Severity == events.EventSeverityError {
 		color = "#FF0000"
 	}
 

@@ -18,9 +18,9 @@ package notifier
 
 import (
 	"fmt"
+	"github.com/fluxcd/pkg/runtime/events"
 	"net/url"
 
-	"github.com/fluxcd/pkg/recorder"
 	"github.com/hashicorp/go-retryablehttp"
 )
 
@@ -46,7 +46,7 @@ func NewForwarder(hookURL string, proxyURL string) (*Forwarder, error) {
 	}, nil
 }
 
-func (f *Forwarder) Post(event recorder.Event) error {
+func (f *Forwarder) Post(event events.Event) error {
 	err := postMessage(f.URL, f.ProxyURL, event, func(req *retryablehttp.Request) {
 		req.Header.Set(NotificationHeader, event.ReportingController)
 	})

@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fluxcd/pkg/recorder"
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/ktrysmt/go-bitbucket"
 )
 
@@ -65,7 +65,7 @@ func NewBitbucket(addr string, token string) (*Bitbucket, error) {
 }
 
 // Post Bitbucket commit status
-func (b Bitbucket) Post(event recorder.Event) error {
+func (b Bitbucket) Post(event events.Event) error {
 	// Skip progressing events
 	if event.Reason == "Progressing" {
 		return nil
@@ -108,9 +108,9 @@ func (b Bitbucket) Post(event recorder.Event) error {
 
 func toBitbucketState(severity string) (string, error) {
 	switch severity {
-	case recorder.EventSeverityInfo:
+	case events.EventSeverityInfo:
 		return "SUCCESSFUL", nil
-	case recorder.EventSeverityError:
+	case events.EventSeverityError:
 		return "FAILED", nil
 	default:
 		return "", errors.New("can't convert to bitbucket state")

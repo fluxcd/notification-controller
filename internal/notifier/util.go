@@ -22,7 +22,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/fluxcd/pkg/recorder"
+	"github.com/fluxcd/pkg/runtime/events"
 	giturls "github.com/whilp/git-urls"
 )
 
@@ -43,7 +43,7 @@ func parseGitAddress(s string) (string, string, error) {
 	return host, id, nil
 }
 
-func formatNameAndDescription(event recorder.Event) (string, string) {
+func formatNameAndDescription(event events.Event) (string, string) {
 	name := fmt.Sprintf("%v/%v", event.InvolvedObject.Kind, event.InvolvedObject.Name)
 	name = strings.ToLower(name)
 	desc := strings.Join(splitCamelcase(event.Reason), " ")

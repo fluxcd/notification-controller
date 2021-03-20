@@ -18,12 +18,11 @@ package notifier
 
 import (
 	"encoding/json"
+	"github.com/fluxcd/pkg/runtime/events"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/fluxcd/pkg/recorder"
 
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +33,7 @@ func TestForwarder_Post(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, "source-controller", r.Header.Get("gotk-component"))
-		var payload = recorder.Event{}
+		var payload = events.Event{}
 		err = json.Unmarshal(b, &payload)
 		require.NoError(t, err)
 		require.Equal(t, "webapp", payload.InvolvedObject.Name)

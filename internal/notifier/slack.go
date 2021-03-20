@@ -22,7 +22,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fluxcd/pkg/recorder"
+	"github.com/fluxcd/pkg/runtime/events"
 )
 
 // Slack holds the hook URL
@@ -78,7 +78,7 @@ func NewSlack(hookURL string, proxyURL string, username string, channel string) 
 }
 
 // Post Slack message
-func (s *Slack) Post(event recorder.Event) error {
+func (s *Slack) Post(event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil
@@ -93,7 +93,7 @@ func (s *Slack) Post(event recorder.Event) error {
 	}
 
 	color := "good"
-	if event.Severity == recorder.EventSeverityError {
+	if event.Severity == events.EventSeverityError {
 		color = "danger"
 	}
 

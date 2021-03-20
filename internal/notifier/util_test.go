@@ -19,13 +19,13 @@ package notifier
 import (
 	"testing"
 
-	"github.com/fluxcd/pkg/recorder"
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 )
 
 func TestUtil_NameAndDescription(t *testing.T) {
-	event := recorder.Event{
+	event := events.Event{
 		InvolvedObject: v1.ObjectReference{
 			Kind: "Kustomization",
 			Name: "gitops-system",

@@ -21,7 +21,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fluxcd/pkg/recorder"
+	"github.com/fluxcd/pkg/runtime/events"
 )
 
 // Slack holds the hook URL
@@ -85,7 +85,7 @@ func NewGoogleChat(hookURL string, proxyURL string) (*GoogleChat, error) {
 }
 
 // Post Google Chat message
-func (s *GoogleChat) Post(event recorder.Event) error {
+func (s *GoogleChat) Post(event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil
@@ -108,7 +108,7 @@ func (s *GoogleChat) Post(event recorder.Event) error {
 
 	// Message
 	messageText := event.Message
-	if event.Severity == recorder.EventSeverityError {
+	if event.Severity == events.EventSeverityError {
 		messageText = fmt.Sprintf("<font color=\"#ff0000\">%s</font>", event.Message)
 	}
 	sections = append(sections, GoogleChatCardSection{

@@ -20,11 +20,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/fluxcd/pkg/runtime/events"
 	"net/url"
 	"strings"
 	"time"
 
-	"github.com/fluxcd/pkg/recorder"
 	"github.com/google/go-github/v32/github"
 	"golang.org/x/oauth2"
 )
@@ -73,7 +73,7 @@ func NewGitHub(addr string, token string) (*GitHub, error) {
 }
 
 // Post Github commit status
-func (g *GitHub) Post(event recorder.Event) error {
+func (g *GitHub) Post(event events.Event) error {
 	// Skip progressing events
 	if event.Reason == "Progressing" {
 		return nil
@@ -121,9 +121,9 @@ func (g *GitHub) Post(event recorder.Event) error {
 
 func toGitHubState(severity string) (string, error) {
 	switch severity {
-	case recorder.EventSeverityInfo:
+	case events.EventSeverityInfo:
 		return "success", nil
-	case recorder.EventSeverityError:
+	case events.EventSeverityError:
 		return "failure", nil
 	default:
 		return "", errors.New("can't convert to github state")

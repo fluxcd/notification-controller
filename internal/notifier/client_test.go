@@ -23,7 +23,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/fluxcd/pkg/recorder"
+	"github.com/fluxcd/pkg/runtime/events"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -46,8 +46,8 @@ func Test_postMessage(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func testEvent() recorder.Event {
-	return recorder.Event{
+func testEvent() events.Event {
+	return events.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "GitRepository",
 			Namespace: "gitops-system",

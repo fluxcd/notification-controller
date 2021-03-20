@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/fluxcd/pkg/apis/meta"
-	"github.com/fluxcd/pkg/recorder"
+	"github.com/fluxcd/pkg/runtime/events"
 
 	notifyv1 "github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/notification-controller/internal/server"
@@ -146,7 +146,7 @@ var _ = Describe("Event handlers", func() {
 
 	var (
 		alert notifyv1.Alert
-		event recorder.Event
+		event events.Event
 	)
 
 	JustBeforeEach(func() {
@@ -204,7 +204,7 @@ var _ = Describe("Event handlers", func() {
 					},
 				},
 			}
-			event = recorder.Event{
+			event = events.Event{
 				InvolvedObject: corev1.ObjectReference{
 					Kind:      "Bucket",
 					Name:      "hyacinth",

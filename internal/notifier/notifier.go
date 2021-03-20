@@ -16,8 +16,10 @@ limitations under the License.
 
 package notifier
 
-import "github.com/fluxcd/pkg/recorder"
+import (
+	"github.com/fluxcd/pkg/runtime/events"
+)
 
 type Interface interface {
-	Post(event recorder.Event) error
+	Post(event events.Event) error
 }

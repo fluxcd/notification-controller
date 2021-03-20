@@ -21,7 +21,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fluxcd/pkg/recorder"
+	"github.com/fluxcd/pkg/runtime/events"
 )
 
 // MS Teams holds the incoming webhook URL
@@ -65,7 +65,7 @@ func NewMSTeams(hookURL string, proxyURL string) (*MSTeams, error) {
 }
 
 // Post MS Teams message
-func (s *MSTeams) Post(event recorder.Event) error {
+func (s *MSTeams) Post(event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil
@@ -94,7 +94,7 @@ func (s *MSTeams) Post(event recorder.Event) error {
 		},
 	}
 
-	if event.Severity == recorder.EventSeverityError {
+	if event.Severity == events.EventSeverityError {
 		payload.ThemeColor = "FF0000"
 	}
 
