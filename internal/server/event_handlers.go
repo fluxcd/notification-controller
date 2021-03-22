@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/fluxcd/pkg/apis/meta"
-	"github.com/fluxcd/pkg/recorder"
+	"github.com/fluxcd/pkg/runtime/events"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/notification-controller/internal/notifier"
@@ -46,7 +46,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		}
 		defer r.Body.Close()
 
-		event := &recorder.Event{}
+		event := &events.Event{}
 		err = json.Unmarshal(body, event)
 		if err != nil {
 			s.logger.Error(err, "decoding the request body failed")
@@ -97,7 +97,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 					event.InvolvedObject.Namespace == source.Namespace &&
 					event.InvolvedObject.Kind == source.Kind {
 					if event.Severity == alert.Spec.EventSeverity ||
-						alert.Spec.EventSeverity == recorder.EventSeverityInfo {
+						alert.Spec.EventSeverity == events.EventSeverityInfo {
 						alerts = append(alerts, alert)
 					}
 				}
@@ -174,7 +174,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
-			notification := *event
+			notification := *event.DeepCopy()
 			if alert.Spec.Summary != "" {
 				if notification.Metadata == nil {
 					notification.Metadata = map[string]string{
@@ -185,7 +185,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				}
 			}
 
-			go func(n notifier.Interface, e recorder.Event) {
+			go func(n notifier.Interface, e events.Event) {
 				if err := n.Post(e); err != nil {
 					s.logger.Error(err, "failed to send notification",
 						"reconciler kind", event.InvolvedObject.Kind,

@@ -19,7 +19,7 @@ package notifier
 import (
 	"errors"
 
-	"github.com/fluxcd/pkg/recorder"
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -53,7 +53,7 @@ func NewGitLab(addr string, token string) (*GitLab, error) {
 }
 
 // Post GitLab commit status
-func (g *GitLab) Post(event recorder.Event) error {
+func (g *GitLab) Post(event events.Event) error {
 	// Skip progressing events
 	if event.Reason == "Progressing" {
 		return nil
@@ -89,9 +89,9 @@ func (g *GitLab) Post(event recorder.Event) error {
 
 func toGitLabState(severity string) (gitlab.BuildStateValue, error) {
 	switch severity {
-	case recorder.EventSeverityInfo:
+	case events.EventSeverityInfo:
 		return gitlab.Success, nil
-	case recorder.EventSeverityError:
+	case events.EventSeverityError:
 		return gitlab.Failed, nil
 	default:
 		return "", errors.New("can't convert to gitlab state")

@@ -20,10 +20,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/fluxcd/pkg/runtime/events"
 	"strings"
 	"time"
 
-	"github.com/fluxcd/pkg/recorder"
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
 )
@@ -70,7 +70,7 @@ func NewAzureDevOps(addr string, token string) (*AzureDevOps, error) {
 }
 
 // Post Azure DevOps commit status
-func (a AzureDevOps) Post(event recorder.Event) error {
+func (a AzureDevOps) Post(event events.Event) error {
 	// Skip progressing events
 	if event.Reason == "Progressing" {
 		return nil
@@ -131,9 +131,9 @@ func (a AzureDevOps) Post(event recorder.Event) error {
 
 func toAzureDevOpsState(severity string) (git.GitStatusState, error) {
 	switch severity {
-	case recorder.EventSeverityInfo:
+	case events.EventSeverityInfo:
 		return git.GitStatusStateValues.Succeeded, nil
-	case recorder.EventSeverityError:
+	case events.EventSeverityError:
 		return git.GitStatusStateValues.Error, nil
 	default:
 		return "", errors.New("can't convert to azure devops state")
