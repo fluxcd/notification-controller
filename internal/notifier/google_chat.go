@@ -91,12 +91,6 @@ func (s *GoogleChat) Post(event events.Event) error {
 		return nil
 	}
 
-	// Skip progressing events. For some reason, these are coming through and then Google Chat seems to replace
-	// the more meaningful message with these which is unhelpful!
-	if event.Reason == "Progressing" {
-		return nil
-	}
-
 	// Header
 	objName := fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace)
 	header := GoogleChatCardHeader{
