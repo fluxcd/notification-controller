@@ -194,6 +194,10 @@ spec:
                   - type
                   type: object
                 type: array
+              observedGeneration:
+                description: ObservedGeneration is the last observed generation.
+                format: int64
+                type: integer
               url:
                 description: Generated webhook URL in the format of '/hook/sha256sum(token+name+namespace)'.
                 type: string

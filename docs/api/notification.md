@@ -585,6 +585,18 @@ Defaults to false.</p>
 <em>(Optional)</em>
 </td>
 </tr>
+<tr>
+<td>
+<code>observedGeneration</code><br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ObservedGeneration is the last observed generation.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
@@ -914,6 +926,18 @@ string
 <em>(Optional)</em>
 <p>Generated webhook URL in the format
 of &lsquo;/hook/sha256sum(token+name+namespace)&rsquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>observedGeneration</code><br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ObservedGeneration is the last observed generation.</p>
 </td>
 </tr>
 </tbody>

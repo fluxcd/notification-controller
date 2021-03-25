@@ -59,6 +59,10 @@ type ReceiverStatus struct {
 	// of '/hook/sha256sum(token+name+namespace)'.
 	// +optional
 	URL string `json:"url,omitempty"`
+
+	// ObservedGeneration is the last observed generation.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 const (
