@@ -9,7 +9,7 @@ Spec:
 ```go
 type ProviderSpec struct {
 	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab;bitbucket;azuredevops;googlechat
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab;bitbucket;azuredevops;googlechat;webex
 	// +required
 	Type string `json:"type"`
 
@@ -44,6 +44,7 @@ Notification providers:
 * Microsoft Teams
 * Rocket
 * Google Chat
+* Webex
 * Generic webhook
 
 Git commit status providers:
@@ -104,7 +105,7 @@ kubectl create secret generic webhook-url \
 
 Note that the secret must contain an `address` field.
 
-The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `googlechat`, `github`, `gitlab`, `bitbucket`, `azuredevops` or `generic`.
+The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `googlechat`, `webex`, `github`, `gitlab`, `bitbucket`, `azuredevops` or `generic`.
 
 When type `generic` is specified, the notification controller will post the
 incoming [event](event.md) in JSON format to the webhook address.

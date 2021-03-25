@@ -80,6 +80,7 @@ spec:
                 - bitbucket
                 - azuredevops
                 - googlechat
+                - webex
                 type: string
               username:
                 description: Bot username for this provider
