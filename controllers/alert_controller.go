@@ -88,6 +88,8 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	r.recordReadiness(ctx, alert)
 
+	alert.Status.ObservedGeneration = alert.Generation
+
 	return ctrl.Result{}, nil
 }
 

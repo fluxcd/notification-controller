@@ -90,6 +90,8 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	log.Info("Receiver initialised")
 
+	receiver.Status.ObservedGeneration = receiver.Generation
+
 	return ctrl.Result{}, nil
 }
 
