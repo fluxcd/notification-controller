@@ -2,6 +2,43 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.11.0
+
+**Release date:** 2021-03-26
+
+This is the eleventh MINOR prerelease.
+
+This prerelease comes with support for sending alerts to Webex and
+for posting commit status updates to GitHub enterprise.
+
+This prerelease comes with a breaking change: the leader election ID
+was renamed from `4ae6d3b3.fluxcd.io` to
+`notification-controller-leader-election`.
+This change should however not have a direct impact.
+
+The suspended status of resources is now recorded to a
+`gotk_suspend_status` Prometheus gauge metric.
+
+Features:
+* Add support for Webex as an alert provider
+  [#168](https://github.com/fluxcd/notification-controller/pull/168)
+* Add support for GitHub enterprise commit status
+  [#162](https://github.com/fluxcd/notification-controller/pull/162)
+
+Improvements:
+* Set leader election deadline to 30s
+  [#170](https://github.com/fluxcd/notification-controller/pull/170)
+* Record suspension metrics
+  [#164](https://github.com/fluxcd/notification-controller/pull/164)
+
+Fixes:
+* Fix Google Chart alert filters
+  [#169](https://github.com/fluxcd/notification-controller/pull/169)
+* Fix BitBucket key length
+  [#174](https://github.com/fluxcd/notification-controller/pull/174)
+* Fix alerts mix up summary
+  [#166](https://github.com/fluxcd/notification-controller/pull/166)
+  
 ## 0.10.0
 
 **Release date:** 2021-03-16
