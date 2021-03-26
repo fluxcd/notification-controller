@@ -56,13 +56,13 @@ func TestToSentryEvent(t *testing.T) {
 	s := toSentryEvent(e)
 
 	// Assertions
-	require.Equal(t, time.Date(2020, 01, 01, 0, 0, 0, 0, time.UTC), s.Timestamp)
-	require.Equal(t, sentry.LevelInfo, s.Level)
-	require.Equal(t, "source-controller", s.ServerName)
-	require.Equal(t, "GitRepository: flux-system/test-app", s.Transaction)
-	require.Equal(t, map[string]interface{}{
+	assert.Equal(t, time.Date(2020, 01, 01, 0, 0, 0, 0, time.UTC), s.Timestamp)
+	assert.Equal(t, sentry.LevelInfo, s.Level)
+	assert.Equal(t, "source-controller", s.ServerName)
+	assert.Equal(t, "GitRepository: flux-system/test-app", s.Transaction)
+	assert.Equal(t, map[string]interface{}{
 		"key1": "val1",
 		"key2": "val2",
 	}, s.Extra)
-	require.Equal(t, "message", s.Message)
+	assert.Equal(t, "message", s.Message)
 }
