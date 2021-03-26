@@ -103,3 +103,9 @@ func TestUtil_ParseGitHttpWithSubgroup(t *testing.T) {
 	require.Equal(t, "https://gitlab.com", host)
 	require.Equal(t, "foo/bar/foo", id)
 }
+
+func TestUtil_Sha1String(t *testing.T) {
+	str := "kustomization/namespace-foo-and-service-bar"
+	s := sha1String(str)
+	require.Equal(t, "12ea142172e98435e16336acbbed8919610922c3", s)
+}
