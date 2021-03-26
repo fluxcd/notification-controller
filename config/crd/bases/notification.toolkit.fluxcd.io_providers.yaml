@@ -81,6 +81,7 @@ spec:
                 - azuredevops
                 - googlechat
                 - webex
+                - sentry
                 type: string
               username:
                 description: Bot username for this provider
