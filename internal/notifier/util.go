@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"strings"
 	"unicode"
@@ -114,4 +115,9 @@ func isCommitStatus(meta map[string]string, status string) bool {
 		return true
 	}
 	return false
+}
+
+func sha1String(str string) string {
+	bs := []byte(str)
+	return fmt.Sprintf("%x", sha1.Sum(bs))
 }

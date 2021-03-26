@@ -85,6 +85,8 @@ func (b Bitbucket) Post(event events.Event) error {
 	}
 
 	name, desc := formatNameAndDescription(event)
+	// key has a limitation of 40 characters in bitbucket api
+	key := sha1String(name)
 
 	cmo := &bitbucket.CommitsOptions{
 		Owner:    b.Owner,
@@ -93,7 +95,7 @@ func (b Bitbucket) Post(event events.Event) error {
 	}
 	cso := &bitbucket.CommitStatusOptions{
 		State:       state,
-		Key:         name,
+		Key:         key,
 		Name:        name,
 		Description: desc,
 		Url:         "https://bitbucket.org",
