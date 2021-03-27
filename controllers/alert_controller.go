@@ -78,8 +78,9 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	if !apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition) {
+	if !apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition) || alert.Status.ObservedGeneration != alert.Generation {
 		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionTrue, v1beta1.InitializedReason, v1beta1.InitializedReason)
+		alert.Status.ObservedGeneration = alert.Generation
 		if err := r.Status().Update(ctx, &alert); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
@@ -87,8 +88,6 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	r.recordReadiness(ctx, alert)
-
-	alert.Status.ObservedGeneration = alert.Generation
 
 	return ctrl.Result{}, nil
 }
