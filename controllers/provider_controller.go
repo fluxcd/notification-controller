@@ -71,7 +71,7 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	// validate provider spec and credentials
 	if err := r.validate(ctx, provider); err != nil {
 		meta.SetResourceCondition(&provider, meta.ReadyCondition, metav1.ConditionFalse, meta.ReconciliationFailedReason, err.Error())
-		if err := r.Status().Update(ctx, &provider); err != nil {
+		if err := r.patchStatus(ctx, req, provider.Status); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
 		return ctrl.Result{Requeue: true}, err
@@ -79,7 +79,7 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	if !apimeta.IsStatusConditionTrue(provider.Status.Conditions, meta.ReadyCondition) {
 		meta.SetResourceCondition(&provider, meta.ReadyCondition, metav1.ConditionTrue, v1beta1.InitializedReason, v1beta1.InitializedReason)
-		if err := r.Status().Update(ctx, &provider); err != nil {
+		if err := r.patchStatus(ctx, req, provider.Status); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
 		log.Info("Provider initialised")
@@ -148,4 +148,16 @@ func (r *ProviderReconciler) recordReadiness(ctx context.Context, provider v1bet
 			Status: metav1.ConditionUnknown,
 		}, !provider.DeletionTimestamp.IsZero())
 	}
+}
+
+func (r *ProviderReconciler) patchStatus(ctx context.Context, req ctrl.Request, newStatus v1beta1.ProviderStatus) error {
+	var provider v1beta1.Provider
+	if err := r.Get(ctx, req.NamespacedName, &provider); err != nil {
+		return err
+	}
+
+	patch := client.MergeFrom(provider.DeepCopy())
+	provider.Status = newStatus
+
+	return r.Status().Patch(ctx, &provider, patch)
 }

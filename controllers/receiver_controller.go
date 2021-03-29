@@ -69,7 +69,7 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	token, err := r.token(ctx, receiver)
 	if err != nil {
 		receiver = v1beta1.ReceiverNotReady(receiver, v1beta1.TokenNotFoundReason, err.Error())
-		if err := r.Status().Update(ctx, &receiver); err != nil {
+		if err := r.patchStatus(ctx, req, receiver.Status); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
 		return ctrl.Result{}, err
