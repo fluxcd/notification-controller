@@ -70,6 +70,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewGoogleChat(f.URL, f.ProxyURL)
 	case v1beta1.WebexProvider:
 		n, err = NewWebex(f.URL, f.ProxyURL)
+	case v1beta1.SentryProvider:
+		n, err = NewSentry(f.URL)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
