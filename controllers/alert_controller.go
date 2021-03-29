@@ -72,15 +72,16 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	// validate alert spec and provider
 	if err := r.validate(ctx, alert); err != nil {
 		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionFalse, meta.ReconciliationFailedReason, err.Error())
-		if err := r.Status().Update(ctx, &alert); err != nil {
+		if err := r.patchStatus(ctx, req, alert.Status); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	if !apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition) {
+	if !apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition) || alert.Status.ObservedGeneration != alert.Generation {
 		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionTrue, v1beta1.InitializedReason, v1beta1.InitializedReason)
-		if err := r.Status().Update(ctx, &alert); err != nil {
+		alert.Status.ObservedGeneration = alert.Generation
+		if err := r.patchStatus(ctx, req, alert.Status); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
 		log.Info("Alert initialised")
@@ -150,4 +151,16 @@ func (r *AlertReconciler) recordReadiness(ctx context.Context, alert v1beta1.Ale
 			Status: metav1.ConditionUnknown,
 		}, !alert.DeletionTimestamp.IsZero())
 	}
+}
+
+func (r *AlertReconciler) patchStatus(ctx context.Context, req ctrl.Request, newStatus v1beta1.AlertStatus) error {
+	var alert v1beta1.Alert
+	if err := r.Get(ctx, req.NamespacedName, &alert); err != nil {
+		return err
+	}
+
+	patch := client.MergeFrom(alert.DeepCopy())
+	alert.Status = newStatus
+
+	return r.Status().Patch(ctx, &alert, patch)
 }

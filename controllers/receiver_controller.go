@@ -69,14 +69,15 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	token, err := r.token(ctx, receiver)
 	if err != nil {
 		receiver = v1beta1.ReceiverNotReady(receiver, v1beta1.TokenNotFoundReason, err.Error())
-		if err := r.Status().Update(ctx, &receiver); err != nil {
+		if err := r.patchStatus(ctx, req, receiver.Status); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
+		return ctrl.Result{}, err
 	}
 
 	isReady := apimeta.IsStatusConditionTrue(receiver.Status.Conditions, meta.ReadyCondition)
 	receiverURL := fmt.Sprintf("/hook/%s", sha256sum(token+receiver.Name+receiver.Namespace))
-	if receiver.Status.URL == receiverURL && isReady {
+	if receiver.Status.URL == receiverURL && isReady && receiver.Status.ObservedGeneration == receiver.Generation {
 		return ctrl.Result{}, nil
 	}
 
@@ -84,7 +85,8 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		v1beta1.InitializedReason,
 		"Receiver initialised with URL: "+receiverURL,
 		receiverURL)
-	if err := r.Status().Update(ctx, &receiver); err != nil {
+	receiver.Status.ObservedGeneration = receiver.Generation
+	if err := r.patchStatus(ctx, req, receiver.Status); err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
 
@@ -144,4 +146,16 @@ func (r *ReceiverReconciler) recordSuspension(ctx context.Context, rcvr v1beta1.
 func sha256sum(val string) string {
 	digest := sha256.Sum256([]byte(val))
 	return fmt.Sprintf("%x", digest)
+}
+
+func (r *ReceiverReconciler) patchStatus(ctx context.Context, req ctrl.Request, newStatus v1beta1.ReceiverStatus) error {
+	var receiver v1beta1.Receiver
+	if err := r.Get(ctx, req.NamespacedName, &receiver); err != nil {
+		return err
+	}
+
+	patch := client.MergeFrom(receiver.DeepCopy())
+	receiver.Status = newStatus
+
+	return r.Status().Patch(ctx, &receiver, patch)
 }
