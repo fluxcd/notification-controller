@@ -72,6 +72,7 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		if err := r.Status().Update(ctx, &receiver); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
+		return ctrl.Result{}, err
 	}
 
 	isReady := apimeta.IsStatusConditionTrue(receiver.Status.Conditions, meta.ReadyCondition)
