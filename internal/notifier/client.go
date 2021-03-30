@@ -28,7 +28,7 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-type requestOptFunc func(*retryablehttp.Request)
+type requestOptFunc func(*retryablehttp.Request) error
 
 func postMessage(address, proxy string, payload interface{}, reqOpts ...requestOptFunc) error {
 	httpClient := retryablehttp.NewClient()
@@ -69,7 +69,9 @@ func postMessage(address, proxy string, payload interface{}, reqOpts ...requestO
 	}
 	req.Header.Set("Content-Type", "application/json")
 	for _, o := range reqOpts {
-		o(req)
+		if err := o(req); err != nil {
+			return fmt.Errorf("failed to apply options when posting message: %w", err)
+		}
 	}
 	if _, err := httpClient.Do(req); err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)

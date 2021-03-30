@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	slog "log"
 	"net/http"
 	"regexp"
 	"time"
@@ -57,51 +58,11 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 
-		var allAlerts v1beta1.AlertList
-		err = s.kubeClient.List(ctx, &allAlerts)
+		alerts, err := s.alertsForEvent(ctx, event)
 		if err != nil {
 			s.logger.Error(err, "listing alerts failed")
 			w.WriteHeader(http.StatusBadRequest)
 			return
-		}
-
-		// find matching alerts
-		alerts := make([]v1beta1.Alert, 0)
-	each_alert:
-		for _, alert := range allAlerts.Items {
-			// skip suspended and not ready alerts
-			isReady := apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition)
-			if alert.Spec.Suspend || !isReady {
-				continue each_alert
-			}
-
-			// skip alert if the message matches a regex from the exclusion list
-			if len(alert.Spec.ExclusionList) > 0 {
-				for _, exp := range alert.Spec.ExclusionList {
-					if r, err := regexp.Compile(exp); err == nil {
-						if r.Match([]byte(event.Message)) {
-							continue each_alert
-						}
-					} else {
-						s.logger.Error(err, fmt.Sprintf("failed to compile regex: %s", exp))
-					}
-				}
-			}
-
-			// filter alerts by object and severity
-			for _, source := range alert.Spec.EventSources {
-				if source.Namespace == "" {
-					source.Namespace = alert.Namespace
-				}
-				if (source.Name == "*" || event.InvolvedObject.Name == source.Name) &&
-					event.InvolvedObject.Namespace == source.Namespace &&
-					event.InvolvedObject.Kind == source.Kind {
-					if event.Severity == alert.Spec.EventSeverity ||
-						alert.Spec.EventSeverity == events.EventSeverityInfo {
-						alerts = append(alerts, alert)
-					}
-				}
-			}
 		}
 
 		if len(alerts) == 0 {
@@ -134,12 +95,14 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 			webhook := provider.Spec.Address
 			token := ""
+			signingSecret := ""
 			if provider.Spec.SecretRef != nil {
 				var secret corev1.Secret
 				secretName := types.NamespacedName{Namespace: alert.Namespace, Name: provider.Spec.SecretRef.Name}
 
 				err = s.kubeClient.Get(ctx, secretName, &secret)
 				if err != nil {
+					slog.Println("failing to send alert")
 					s.logger.Error(err, "failed to read secret",
 						"reconciler kind", v1beta1.ProviderKind,
 						"name", providerName.Name,
@@ -154,6 +117,10 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				if t, ok := secret.Data["token"]; ok {
 					token = string(t)
 				}
+
+				if t, ok := secret.Data["signing"]; ok {
+					signingSecret = string(t)
+				}
 			}
 
 			if webhook == "" {
@@ -164,7 +131,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
-			factory := notifier.NewFactory(webhook, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token)
+			factory := notifier.NewFactory(webhook, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, signingSecret)
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {
 				s.logger.Error(err, "failed to initialise provider",
@@ -173,28 +140,77 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 					"namespace", providerName.Namespace)
 				continue
 			}
-
-			notification := *event.DeepCopy()
-			if alert.Spec.Summary != "" {
-				if notification.Metadata == nil {
-					notification.Metadata = map[string]string{
-						"summary": alert.Spec.Summary,
-					}
-				} else {
-					notification.Metadata["summary"] = alert.Spec.Summary
-				}
-			}
-
-			go func(n notifier.Interface, e events.Event) {
-				if err := n.Post(e); err != nil {
-					s.logger.Error(err, "failed to send notification",
-						"reconciler kind", event.InvolvedObject.Kind,
-						"name", event.InvolvedObject.Name,
-						"namespace", event.InvolvedObject.Namespace)
-				}
-			}(sender, notification)
+			s.sendAlertNotification(sender, event, alert)
 		}
-
 		w.WriteHeader(http.StatusAccepted)
 	}
+}
+
+func (s *EventServer) sendAlertNotification(sender notifier.Interface, evt *events.Event, alert v1beta1.Alert) {
+	notification := *evt.DeepCopy()
+	if alert.Spec.Summary != "" {
+		if notification.Metadata == nil {
+			notification.Metadata = map[string]string{
+				"summary": alert.Spec.Summary,
+			}
+		} else {
+			notification.Metadata["summary"] = alert.Spec.Summary
+		}
+	}
+
+	go func(n notifier.Interface, e events.Event) {
+		if err := n.Post(e); err != nil {
+			s.logger.Error(err, "failed to send notification",
+				"reconciler kind", evt.InvolvedObject.Kind,
+				"name", evt.InvolvedObject.Name,
+				"namespace", evt.InvolvedObject.Namespace)
+		}
+	}(sender, notification)
+}
+
+func (s *EventServer) alertsForEvent(ctx context.Context, event *events.Event) ([]v1beta1.Alert, error) {
+	var allAlerts v1beta1.AlertList
+	err := s.kubeClient.List(ctx, &allAlerts)
+	if err != nil {
+		return nil, err
+	}
+
+	alerts := []v1beta1.Alert{}
+each_alert:
+	for _, alert := range allAlerts.Items {
+		// skip suspended and not ready alerts
+		isReady := apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition)
+		if alert.Spec.Suspend || !isReady {
+			continue each_alert
+		}
+
+		// skip alert if the message matches a regex from the exclusion list
+		if len(alert.Spec.ExclusionList) > 0 {
+			for _, exp := range alert.Spec.ExclusionList {
+				if r, err := regexp.Compile(exp); err == nil {
+					if r.Match([]byte(event.Message)) {
+						continue each_alert
+					}
+				} else {
+					s.logger.Error(err, fmt.Sprintf("failed to compile regex: %s", exp))
+				}
+			}
+		}
+
+		// filter alerts by object and severity
+		for _, source := range alert.Spec.EventSources {
+			if source.Namespace == "" {
+				source.Namespace = alert.Namespace
+			}
+			if (source.Name == "*" || event.InvolvedObject.Name == source.Name) &&
+				event.InvolvedObject.Namespace == source.Namespace &&
+				event.InvolvedObject.Kind == source.Kind {
+				if event.Severity == alert.Spec.EventSeverity ||
+					alert.Spec.EventSeverity == events.EventSeverityInfo {
+					alerts = append(alerts, alert)
+				}
+			}
+		}
+	}
+	return alerts, nil
 }
