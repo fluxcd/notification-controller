@@ -19,7 +19,10 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
+	prommetrics "github.com/slok/go-http-metrics/metrics/prometheus"
+	"github.com/slok/go-http-metrics/middleware"
 	flag "github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -37,6 +40,7 @@ import (
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/notification-controller/controllers"
 	"github.com/fluxcd/notification-controller/internal/server"
+	"github.com/sethvargo/go-limiter/memorystore"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -62,6 +66,7 @@ func main() {
 		metricsAddr           string
 		concurrent            int
 		watchAllNamespaces    bool
+		rateLimitInterval     time.Duration
 		clientOptions         client.Options
 		logOptions            logger.Options
 		leaderElectionOptions leaderelection.Options
@@ -74,6 +79,7 @@ func main() {
 	flag.IntVar(&concurrent, "concurrent", 4, "The number of concurrent notification reconciles.")
 	flag.BoolVar(&watchAllNamespaces, "watch-all-namespaces", true,
 		"Watch for custom resources in all namespaces, if set to false it will only watch the runtime namespace.")
+	flag.DurationVar(&rateLimitInterval, "rate-limit-interval", 5*time.Minute, "Interval in which rate limit has effect.")
 	clientOptions.BindFlags(flag.CommandLine)
 	logOptions.BindFlags(flag.CommandLine)
 	leaderElectionOptions.BindFlags(flag.CommandLine)
@@ -140,14 +146,29 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	ctx := ctrl.SetupSignalHandler()
+	store, err := memorystore.New(&memorystore.Config{
+		Interval: rateLimitInterval,
+	})
 
 	setupLog.Info("starting event server", "addr", eventsAddr)
+	eventMdlw := middleware.New(middleware.Config{
+		Recorder: prommetrics.NewRecorder(prommetrics.Config{
+			Prefix:   "gotk_event",
+			Registry: crtlmetrics.Registry,
+		}),
+	})
 	eventServer := server.NewEventServer(eventsAddr, log, mgr.GetClient())
-	go eventServer.ListenAndServe(ctx.Done())
+	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)
 	receiverServer := server.NewReceiverServer(receiverAddr, log, mgr.GetClient())
-	go receiverServer.ListenAndServe(ctx.Done())
+	receiverMdlw := middleware.New(middleware.Config{
+		Recorder: prommetrics.NewRecorder(prommetrics.Config{
+			Prefix:   "gotk_receiver",
+			Registry: crtlmetrics.Registry,
+		}),
+	})
+	go receiverServer.ListenAndServe(ctx.Done(), receiverMdlw, store)
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {

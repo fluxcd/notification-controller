@@ -17,13 +17,25 @@ limitations under the License.
 package server
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/sethvargo/go-limiter"
+	"github.com/sethvargo/go-limiter/httplimit"
+	"github.com/slok/go-http-metrics/middleware"
+	"github.com/slok/go-http-metrics/middleware/std"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/fluxcd/pkg/runtime/events"
 )
 
 // EventServer handles event POST requests
@@ -43,13 +55,18 @@ func NewEventServer(port string, logger logr.Logger, kubeClient client.Client) *
 }
 
 // ListenAndServe starts the HTTP server on the specified port
-func (s *EventServer) ListenAndServe(stopCh <-chan struct{}) {
+func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Middleware, store limiter.Store) {
+	limitMiddleware, err := httplimit.NewMiddleware(store, eventKeyFunc)
+	if err != nil {
+		s.logger.Error(err, "Event server crashed")
+		os.Exit(1)
+	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.handleEvent())
-
+	mux.Handle("/", limitMiddleware.Handle(http.HandlerFunc(s.handleEvent())))
+	h := std.Handler("", mdlw, mux)
 	srv := &http.Server{
 		Addr:    s.port,
-		Handler: mux,
+		Handler: h,
 	}
 
 	go func() {
@@ -69,4 +86,28 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}) {
 	} else {
 		s.logger.Info("Event server stopped")
 	}
+}
+
+func eventKeyFunc(r *http.Request) (string, error) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return "", err
+	}
+
+	event := &events.Event{}
+	err = json.Unmarshal(body, event)
+	if err != nil {
+		return "", err
+	}
+
+	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
+	comps := []string{"event", event.InvolvedObject.Name, event.InvolvedObject.Namespace, event.InvolvedObject.Kind, event.Message}
+	revString, ok := event.Metadata["revision"]
+	if ok {
+		comps = append(comps, revString)
+	}
+	val := strings.Join(comps, "/")
+	digest := sha256.Sum256([]byte(val))
+	return fmt.Sprintf("%x", digest), nil
 }

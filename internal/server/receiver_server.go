@@ -18,11 +18,19 @@ package server
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/sethvargo/go-limiter"
+	"github.com/sethvargo/go-limiter/httplimit"
+	"github.com/slok/go-http-metrics/middleware"
+	"github.com/slok/go-http-metrics/middleware/std"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -43,14 +51,18 @@ func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client
 }
 
 // ListenAndServe starts the HTTP server on the specified port
-func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}) {
+func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Middleware, store limiter.Store) {
+	limitMiddleware, err := httplimit.NewMiddleware(store, receiverKeyFunc)
+	if err != nil {
+		s.logger.Error(err, "Receiver server crashed")
+		os.Exit(1)
+	}
 	mux := http.DefaultServeMux
-
-	mux.HandleFunc("/hook/", s.handlePayload())
-
+	mux.Handle("/hook/", limitMiddleware.Handle(http.HandlerFunc(s.handlePayload())))
+	h := std.Handler("", mdlw, mux)
 	srv := &http.Server{
 		Addr:    s.port,
-		Handler: mux,
+		Handler: h,
 	}
 
 	go func() {
@@ -70,4 +82,11 @@ func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}) {
 	} else {
 		s.logger.Info("Receiver server stopped")
 	}
+}
+
+func receiverKeyFunc(r *http.Request) (string, error) {
+	id := url.PathEscape(strings.TrimLeft(r.RequestURI, "/hook/"))
+	val := strings.Join([]string{"receiver", id}, "/")
+	digest := sha256.Sum256([]byte(val))
+	return fmt.Sprintf("%x", digest), nil
 }
