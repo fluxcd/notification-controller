@@ -27,8 +27,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/sethvargo/go-limiter"
-	"github.com/sethvargo/go-limiter/httplimit"
 	"github.com/slok/go-http-metrics/middleware"
 	"github.com/slok/go-http-metrics/middleware/std"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,14 +49,9 @@ func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client
 }
 
 // ListenAndServe starts the HTTP server on the specified port
-func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Middleware, store limiter.Store) {
-	limitMiddleware, err := httplimit.NewMiddleware(store, receiverKeyFunc)
-	if err != nil {
-		s.logger.Error(err, "Receiver server crashed")
-		os.Exit(1)
-	}
+func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Middleware) {
 	mux := http.DefaultServeMux
-	mux.Handle("/hook/", limitMiddleware.Handle(http.HandlerFunc(s.handlePayload())))
+	mux.Handle("/hook/", http.HandlerFunc(s.handlePayload()))
 	h := std.Handler("", mdlw, mux)
 	srv := &http.Server{
 		Addr:    s.port,

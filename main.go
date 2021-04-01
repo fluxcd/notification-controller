@@ -168,7 +168,7 @@ func main() {
 			Registry: crtlmetrics.Registry,
 		}),
 	})
-	go receiverServer.ListenAndServe(ctx.Done(), receiverMdlw, store)
+	go receiverServer.ListenAndServe(ctx.Done(), receiverMdlw)
 
 	setupLog.Info("starting manager")
 	if err := mgr.Start(ctx); err != nil {
