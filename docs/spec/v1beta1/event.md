@@ -55,3 +55,13 @@ const (
 
 Controller implementations can use the [fluxcd/pkg/runtime/events](https://github.com/fluxcd/pkg/tree/main/runtime/events)
 package to push events to notification-controller API.
+
+## Rate limiting
+
+Events sent to the notification-controller are subject to rate limiting to reduce the amount of duplicate events sent by notification-controller. Events are rate limited based on its `InvolvedObject.Name`, `InvolvedObject.Namespace`, `InvolvedObject.Kind`, and `Message` and if present in the metadata `revision`. The interval of the rate limit is set by default to `5m` but can be configured with the `--rate-limit-interval` option.
+
+The event server exposes http request metrics to track the amount of rate limited events. The following promql will get the rate at which requests are rate limited.
+```
+rate(gotk_event_http_request_duration_seconds_count{code="429"}[30s])
+```
+

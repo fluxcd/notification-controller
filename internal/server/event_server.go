@@ -124,7 +124,7 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 
 			r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
-			s.logger.V(10).Info("Discarding event, rate limiting duplicate events",
+			s.logger.V(1).Info("Discarding event, rate limiting duplicate events",
 				"reconciler kind", event.InvolvedObject.Kind,
 				"name", event.InvolvedObject.Name,
 				"namespace", event.InvolvedObject.Namespace)
