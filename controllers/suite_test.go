@@ -24,9 +24,13 @@ import (
 	"net/http/httptest"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/sethvargo/go-limiter/memorystore"
+	prommetrics "github.com/slok/go-http-metrics/metrics/prometheus"
+	"github.com/slok/go-http-metrics/middleware"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -51,6 +55,7 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
+var eventMdlw middleware.Middleware
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -69,6 +74,12 @@ var _ = BeforeSuite(func(done Done) {
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
 	}
+
+	eventMdlw = middleware.New(middleware.Config{
+		Recorder: prommetrics.NewRecorder(prommetrics.Config{
+			Prefix: "gotk_event",
+		}),
+	})
 
 	var err error
 	cfg, err = testEnv.Start()
@@ -127,10 +138,14 @@ var _ = Describe("Event handlers", func() {
 		Expect(k8sClient.Create(ctx, &provider)).To(Succeed())
 
 		By("Creating and starting event server")
+		store, err := memorystore.New(&memorystore.Config{
+			Interval: 5 * time.Minute,
+		})
+		Expect(err).ShouldNot(HaveOccurred())
 		// TODO let OS assign port number
 		eventServer := server.NewEventServer("127.0.0.1:56789", logf.Log, k8sClient)
 		stopCh = make(chan struct{})
-		go eventServer.ListenAndServe(stopCh)
+		go eventServer.ListenAndServe(stopCh, eventMdlw, store)
 	})
 
 	AfterEach(func() {
