@@ -2,6 +2,31 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.12.0
+
+**Release date:** 2021-03-26
+
+This prerelease comes with support for sending alerts to Sentry.
+
+Starting with this version, events are subject to rate limiting to
+reduce the amount of duplicate alerts sent by notification-controller.
+The interval of the rate limit is set by default to `5m`
+but can be configured with the `--rate-limit-interval` command arg.
+
+The event server exposes HTTP request metrics to track the amount of rate limited events.
+The following promql will get the rate at which requests are rate limited:
+```
+rate(gotk_event_http_request_duration_seconds_count{code="429"}[30s])
+```
+
+Features:
+* Add support for Sentry provider
+  [#176](https://github.com/fluxcd/notification-controller/pull/176)
+
+Improvements:
+* Add rate limiter to event http servers
+  [#167](https://github.com/fluxcd/notification-controller/pull/167)
+
 ## 0.11.0
 
 **Release date:** 2021-03-26
