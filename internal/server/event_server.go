@@ -62,7 +62,7 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 		os.Exit(1)
 	}
 	mux := http.NewServeMux()
-	mux.Handle("/", limitMiddleware.Handle(http.HandlerFunc(s.handleEvent())))
+	mux.Handle("/", s.logRateLimitMiddleware(limitMiddleware.Handle(http.HandlerFunc(s.handleEvent()))))
 	h := std.Handler("", mdlw, mux)
 	srv := &http.Server{
 		Addr:    s.port,
@@ -86,6 +86,50 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 	} else {
 		s.logger.Info("Event server stopped")
 	}
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	Status int
+}
+
+func (r *statusRecorder) WriteHeader(status int) {
+	r.Status = status
+	r.ResponseWriter.WriteHeader(status)
+}
+
+func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		recorder := &statusRecorder{
+			ResponseWriter: w,
+			Status:         200,
+		}
+		h.ServeHTTP(recorder, r)
+
+		if recorder.Status == http.StatusTooManyRequests {
+			body, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				s.logger.Error(err, "reading the request body failed")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			event := &events.Event{}
+			err = json.Unmarshal(body, event)
+			if err != nil {
+				s.logger.Error(err, "decoding the request body failed")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+
+			s.logger.V(10).Info("Discarding event, rate limiting duplicate events",
+				"reconciler kind", event.InvolvedObject.Kind,
+				"name", event.InvolvedObject.Name,
+				"namespace", event.InvolvedObject.Namespace)
+		}
+	})
 }
 
 func eventKeyFunc(r *http.Request) (string, error) {
