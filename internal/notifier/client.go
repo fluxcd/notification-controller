@@ -17,6 +17,8 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -30,7 +32,7 @@ import (
 
 type requestOptFunc func(*retryablehttp.Request)
 
-func postMessage(address, proxy string, payload interface{}, reqOpts ...requestOptFunc) error {
+func postMessage(address, proxy string, certPool *x509.CertPool, payload interface{}, reqOpts ...requestOptFunc) error {
 	httpClient := retryablehttp.NewClient()
 
 	if proxy != "" {
@@ -40,6 +42,9 @@ func postMessage(address, proxy string, payload interface{}, reqOpts ...requestO
 		}
 		httpClient.HTTPClient.Transport = &http.Transport{
 			Proxy: http.ProxyURL(proxyURL),
+			TLSClientConfig: &tls.Config{
+				RootCAs: certPool,
+			},
 			DialContext: (&net.Dialer{
 				Timeout:   15 * time.Second,
 				KeepAlive: 30 * time.Second,

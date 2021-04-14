@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/x509"
 	"fmt"
 	"net/url"
 	"strings"
@@ -28,6 +29,7 @@ import (
 type Webex struct {
 	URL      string
 	ProxyURL string
+	CertPool *x509.CertPool
 }
 
 // WebexPayload holds the message text
@@ -37,7 +39,7 @@ type WebexPayload struct {
 }
 
 // NewWebex validates the Webex URL and returns a Webex object
-func NewWebex(hookURL, proxyURL string) (*Webex, error) {
+func NewWebex(hookURL, proxyURL string, certPool *x509.CertPool) (*Webex, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Webex hook URL %s", hookURL)
@@ -71,7 +73,7 @@ func (s *Webex) Post(event events.Event) error {
 		Markdown: markdown,
 	}
 
-	if err := postMessage(s.URL, s.ProxyURL, payload); err != nil {
+	if err := postMessage(s.URL, s.ProxyURL, s.CertPool, payload); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
 	return nil

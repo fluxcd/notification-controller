@@ -17,9 +17,11 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/x509"
 	"fmt"
-	"github.com/fluxcd/pkg/runtime/events"
 	"net/url"
+
+	"github.com/fluxcd/pkg/runtime/events"
 
 	"github.com/hashicorp/go-retryablehttp"
 )
@@ -33,9 +35,10 @@ const NotificationHeader = "gotk-component"
 type Forwarder struct {
 	URL      string
 	ProxyURL string
+	CertPool *x509.CertPool
 }
 
-func NewForwarder(hookURL string, proxyURL string) (*Forwarder, error) {
+func NewForwarder(hookURL string, proxyURL string, certPool *x509.CertPool) (*Forwarder, error) {
 	if _, err := url.ParseRequestURI(hookURL); err != nil {
 		return nil, fmt.Errorf("invalid hook URL %s: %w", hookURL, err)
 	}
@@ -47,7 +50,7 @@ func NewForwarder(hookURL string, proxyURL string) (*Forwarder, error) {
 }
 
 func (f *Forwarder) Post(event events.Event) error {
-	err := postMessage(f.URL, f.ProxyURL, event, func(req *retryablehttp.Request) {
+	err := postMessage(f.URL, f.ProxyURL, f.CertPool, event, func(req *retryablehttp.Request) {
 		req.Header.Set(NotificationHeader, event.ReportingController)
 	})
 

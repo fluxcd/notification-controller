@@ -298,6 +298,21 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 using &ldquo;address&rdquo; as data key</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>certSecretRef</code><br>
+<em>
+<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+github.com/fluxcd/pkg/apis/meta.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CertSecretRef can be given the name of a secret containing
+a PEM-encoded CA certificate (<code>caFile</code>)</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -759,6 +774,21 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 <em>(Optional)</em>
 <p>Secret reference containing the provider webhook URL
 using &ldquo;address&rdquo; as data key</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>certSecretRef</code><br>
+<em>
+<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+github.com/fluxcd/pkg/apis/meta.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CertSecretRef can be given the name of a secret containing
+a PEM-encoded CA certificate (<code>caFile</code>)</p>
 </td>
 </tr>
 </tbody>

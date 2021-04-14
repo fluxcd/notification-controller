@@ -56,6 +56,11 @@ type ProviderSpec struct {
 	// using "address" as data key
 	// +optional
 	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
+
+	// CertSecretRef can be given the name of a secret containing
+	// a PEM-encoded CA certificate (`caFile`)
+	// +optional
+	CertSecretRef *meta.LocalObjectReference `json:"certSecretRef,omitempty"`
 }
 
 const (

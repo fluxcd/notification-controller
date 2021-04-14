@@ -17,8 +17,11 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/fluxcd/pkg/runtime/events"
@@ -33,7 +36,7 @@ type Bitbucket struct {
 }
 
 // NewBitbucket creates and returns a new Bitbucket notifier.
-func NewBitbucket(addr string, token string) (*Bitbucket, error) {
+func NewBitbucket(addr string, token string, certPool *x509.CertPool) (*Bitbucket, error) {
 	if len(token) == 0 {
 		return nil, errors.New("bitbucket token cannot be empty")
 	}
@@ -57,10 +60,21 @@ func NewBitbucket(addr string, token string) (*Bitbucket, error) {
 	owner := comp[0]
 	repo := comp[1]
 
+	client := bitbucket.NewBasicAuth(username, password)
+	if certPool != nil {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: certPool,
+			},
+		}
+		hc := &http.Client{Transport: tr}
+		client.HttpClient = hc
+	}
+
 	return &Bitbucket{
 		Owner:  owner,
 		Repo:   repo,
-		Client: bitbucket.NewBasicAuth(username, password),
+		Client: client,
 	}, nil
 }
 

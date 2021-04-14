@@ -18,11 +18,12 @@ package notifier
 
 import (
 	"encoding/json"
-	"github.com/fluxcd/pkg/runtime/events"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/fluxcd/pkg/runtime/events"
 
 	"github.com/stretchr/testify/require"
 )
@@ -41,7 +42,7 @@ func TestForwarder_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	forwarder, err := NewForwarder(ts.URL, "")
+	forwarder, err := NewForwarder(ts.URL, "", nil)
 	require.NoError(t, err)
 
 	err = forwarder.Post(testEvent())

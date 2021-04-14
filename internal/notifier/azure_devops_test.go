@@ -24,19 +24,19 @@ import (
 )
 
 func TestNewAzureDevOpsBasic(t *testing.T) {
-	a, err := NewAzureDevOps("https://dev.azure.com/foo/bar/_git/baz", "foo")
+	a, err := NewAzureDevOps("https://dev.azure.com/foo/bar/_git/baz", "foo", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, a.Project, "bar")
 	assert.Equal(t, a.Repo, "baz")
 }
 
 func TestNewAzureDevOpsInvalidUrl(t *testing.T) {
-	_, err := NewAzureDevOps("https://dev.azure.com/foo/bar/baz", "foo")
+	_, err := NewAzureDevOps("https://dev.azure.com/foo/bar/baz", "foo", nil)
 	assert.NotNil(t, err)
 }
 
 func TestNewAzureDevOpsMissingToken(t *testing.T) {
-	_, err := NewAzureDevOps("https://dev.azure.com/foo/bar/baz", "")
+	_, err := NewAzureDevOps("https://dev.azure.com/foo/bar/baz", "", nil)
 	assert.NotNil(t, err)
 }
 

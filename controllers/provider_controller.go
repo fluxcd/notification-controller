@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"time"
 
@@ -121,7 +122,28 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider v1beta1.Prov
 		return fmt.Errorf("no address found in 'spec.address' nor in `spec.secretRef`")
 	}
 
-	factory := notifier.NewFactory(address, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token)
+	var certPool *x509.CertPool
+	if provider.Spec.CertSecretRef != nil {
+		var secret corev1.Secret
+		secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.CertSecretRef.Name}
+
+		if err := r.Get(ctx, secretName, &secret); err != nil {
+			return fmt.Errorf("failed to read secret, error: %w", err)
+		}
+
+		caFile, ok := secret.Data["caFile"]
+		if !ok {
+			return fmt.Errorf("no caFile found in secret %q", provider.Spec.CertSecretRef.Name)
+		}
+
+		certPool = x509.NewCertPool()
+		ok = certPool.AppendCertsFromPEM(caFile)
+		if !ok {
+			return fmt.Errorf("could not append to cert pool")
+		}
+	}
+
+	factory := notifier.NewFactory(address, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, certPool)
 	if _, err := factory.Notifier(provider.Spec.Type); err != nil {
 		return fmt.Errorf("failed to initialise provider, error: %w", err)
 	}

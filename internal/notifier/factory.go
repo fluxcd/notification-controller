@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/x509"
 	"fmt"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
@@ -28,15 +29,17 @@ type Factory struct {
 	Username string
 	Channel  string
 	Token    string
+	CertPool *x509.CertPool
 }
 
-func NewFactory(url string, proxy string, username string, channel string, token string) *Factory {
+func NewFactory(url string, proxy string, username string, channel string, token string, certPool *x509.CertPool) *Factory {
 	return &Factory{
 		URL:      url,
 		ProxyURL: proxy,
 		Channel:  channel,
 		Username: username,
 		Token:    token,
+		CertPool: certPool,
 	}
 }
 
@@ -49,29 +52,29 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	var err error
 	switch provider {
 	case v1beta1.GenericProvider:
-		n, err = NewForwarder(f.URL, f.ProxyURL)
+		n, err = NewForwarder(f.URL, f.ProxyURL, f.CertPool)
 	case v1beta1.SlackProvider:
 		n, err = NewSlack(f.URL, f.ProxyURL, f.Username, f.Channel)
 	case v1beta1.DiscordProvider:
 		n, err = NewDiscord(f.URL, f.ProxyURL, f.Username, f.Channel)
 	case v1beta1.RocketProvider:
-		n, err = NewRocket(f.URL, f.ProxyURL, f.Username, f.Channel)
+		n, err = NewRocket(f.URL, f.ProxyURL, f.CertPool, f.Username, f.Channel)
 	case v1beta1.MSTeamsProvider:
 		n, err = NewMSTeams(f.URL, f.ProxyURL)
 	case v1beta1.GitHubProvider:
-		n, err = NewGitHub(f.URL, f.Token)
+		n, err = NewGitHub(f.URL, f.Token, f.CertPool)
 	case v1beta1.GitLabProvider:
-		n, err = NewGitLab(f.URL, f.Token)
+		n, err = NewGitLab(f.URL, f.Token, f.CertPool)
 	case v1beta1.BitbucketProvider:
-		n, err = NewBitbucket(f.URL, f.Token)
+		n, err = NewBitbucket(f.URL, f.Token, f.CertPool)
 	case v1beta1.AzureDevOpsProvider:
-		n, err = NewAzureDevOps(f.URL, f.Token)
+		n, err = NewAzureDevOps(f.URL, f.Token, f.CertPool)
 	case v1beta1.GoogleChatProvider:
 		n, err = NewGoogleChat(f.URL, f.ProxyURL)
 	case v1beta1.WebexProvider:
-		n, err = NewWebex(f.URL, f.ProxyURL)
+		n, err = NewWebex(f.URL, f.ProxyURL, f.CertPool)
 	case v1beta1.SentryProvider:
-		n, err = NewSentry(f.URL)
+		n, err = NewSentry(f.CertPool, f.URL)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
