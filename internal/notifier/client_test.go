@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/x509"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -43,6 +44,27 @@ func Test_postMessage(t *testing.T) {
 	}))
 	defer ts.Close()
 	err := postMessage(ts.URL, "", nil, map[string]string{"status": "success"})
+	require.NoError(t, err)
+}
+
+func Test_postSelfSignedCert(t *testing.T) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, err := ioutil.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload = make(map[string]string)
+		err = json.Unmarshal(b, &payload)
+		require.NoError(t, err)
+
+		require.Equal(t, "success", payload["status"])
+	}))
+	defer ts.Close()
+
+	cert, err := x509.ParseCertificate(ts.TLS.Certificates[0].Certificate[0])
+	require.NoError(t, err)
+	certpool := x509.NewCertPool()
+	certpool.AddCert(cert)
+	err = postMessage(ts.URL, "", certpool, map[string]string{"status": "success"})
 	require.NoError(t, err)
 }
 
