@@ -133,13 +133,13 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider v1beta1.Prov
 
 		caFile, ok := secret.Data["caFile"]
 		if !ok {
-			return fmt.Errorf("no caFile found in secret %q", provider.Spec.CertSecretRef.Name)
+			return fmt.Errorf("no caFile found in secret %s", provider.Spec.CertSecretRef.Name)
 		}
 
 		certPool = x509.NewCertPool()
 		ok = certPool.AppendCertsFromPEM(caFile)
 		if !ok {
-			return fmt.Errorf("could not append to cert pool")
+			return fmt.Errorf("could not append to cert pool: invalid CA found in %s", provider.Spec.CertSecretRef.Name)
 		}
 	}
 
