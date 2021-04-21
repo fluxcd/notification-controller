@@ -98,7 +98,7 @@ func (s *MSTeams) Post(event events.Event) error {
 		payload.ThemeColor = "FF0000"
 	}
 
-	err := postMessage(s.URL, s.ProxyURL, payload)
+	err := postMessage(s.URL, s.ProxyURL, nil, payload)
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}

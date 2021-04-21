@@ -18,6 +18,7 @@ package server
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -156,6 +157,40 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				}
 			}
 
+			var certPool *x509.CertPool
+			if provider.Spec.CertSecretRef != nil {
+				var secret corev1.Secret
+				secretName := types.NamespacedName{Namespace: alert.Namespace, Name: provider.Spec.CertSecretRef.Name}
+
+				err = s.kubeClient.Get(ctx, secretName, &secret)
+				if err != nil {
+					s.logger.Error(err, "failed to read secret",
+						"reconciler kind", v1beta1.ProviderKind,
+						"name", providerName.Name,
+						"namespace", providerName.Namespace)
+					continue
+				}
+
+				caFile, ok := secret.Data["caFile"]
+				if !ok {
+					s.logger.Error(err, "failed to read secret key caFile",
+						"reconciler kind", v1beta1.ProviderKind,
+						"name", providerName.Name,
+						"namespace", providerName.Namespace)
+					continue
+				}
+
+				certPool = x509.NewCertPool()
+				ok = certPool.AppendCertsFromPEM(caFile)
+				if !ok {
+					s.logger.Error(err, "could not append to cert pool",
+						"reconciler kind", v1beta1.ProviderKind,
+						"name", providerName.Name,
+						"namespace", providerName.Namespace)
+					continue
+				}
+			}
+
 			if webhook == "" {
 				s.logger.Error(nil, "provider has no address",
 					"reconciler kind", v1beta1.ProviderKind,
@@ -164,7 +199,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
-			factory := notifier.NewFactory(webhook, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token)
+			factory := notifier.NewFactory(webhook, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, certPool)
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {
 				s.logger.Error(err, "failed to initialise provider",

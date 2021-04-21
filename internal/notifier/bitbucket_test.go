@@ -23,18 +23,18 @@ import (
 )
 
 func TestNewBitbucketBasic(t *testing.T) {
-	b, err := NewBitbucket("https://bitbucket.org/foo/bar", "foo:bar")
+	b, err := NewBitbucket("https://bitbucket.org/foo/bar", "foo:bar", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, b.Owner, "foo")
 	assert.Equal(t, b.Repo, "bar")
 }
 
 func TestNewBitbucketInvalidUrl(t *testing.T) {
-	_, err := NewBitbucket("https://bitbucket.org/foo/bar/baz", "foo:bar")
+	_, err := NewBitbucket("https://bitbucket.org/foo/bar/baz", "foo:bar", nil)
 	assert.NotNil(t, err)
 }
 
 func TestNewBitbucketInvalidToken(t *testing.T) {
-	_, err := NewBitbucket("https://bitbucket.org/foo/bar", "bar")
+	_, err := NewBitbucket("https://bitbucket.org/foo/bar", "bar", nil)
 	assert.NotNil(t, err)
 }

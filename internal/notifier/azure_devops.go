@@ -18,11 +18,14 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/fluxcd/pkg/runtime/events"
 	"strings"
 	"time"
+
+	"github.com/fluxcd/pkg/runtime/events"
 
 	"github.com/microsoft/azure-devops-go-api/azuredevops"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
@@ -38,7 +41,7 @@ type AzureDevOps struct {
 }
 
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
-func NewAzureDevOps(addr string, token string) (*AzureDevOps, error) {
+func NewAzureDevOps(addr string, token string, certPool *x509.CertPool) (*AzureDevOps, error) {
 	if len(token) == 0 {
 		return nil, errors.New("azure devops token cannot be empty")
 	}
@@ -58,6 +61,11 @@ func NewAzureDevOps(addr string, token string) (*AzureDevOps, error) {
 
 	orgURL := fmt.Sprintf("%v/%v", host, org)
 	connection := azuredevops.NewPatConnection(orgURL, token)
+	if certPool != nil {
+		connection.TlsConfig = &tls.Config{
+			RootCAs: certPool,
+		}
+	}
 	client := connection.GetClientByUrl(orgURL)
 	gitClient := &git.ClientImpl{
 		Client: *client,

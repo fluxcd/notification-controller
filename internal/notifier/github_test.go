@@ -24,7 +24,7 @@ import (
 )
 
 func TestNewGitHubBasic(t *testing.T) {
-	g, err := NewGitHub("https://github.com/foo/bar", "foobar")
+	g, err := NewGitHub("https://github.com/foo/bar", "foobar", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
@@ -32,7 +32,7 @@ func TestNewGitHubBasic(t *testing.T) {
 }
 
 func TestNewEmterpriseGitHubBasic(t *testing.T) {
-	g, err := NewGitHub("https://foobar.com/foo/bar", "foobar")
+	g, err := NewGitHub("https://foobar.com/foo/bar", "foobar", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
@@ -40,12 +40,12 @@ func TestNewEmterpriseGitHubBasic(t *testing.T) {
 }
 
 func TestNewGitHubInvalidUrl(t *testing.T) {
-	_, err := NewGitHub("https://github.com/foo/bar/baz", "foobar")
+	_, err := NewGitHub("https://github.com/foo/bar/baz", "foobar", nil)
 	assert.NotNil(t, err)
 }
 
 func TestNewGitHubEmptyToken(t *testing.T) {
-	_, err := NewGitHub("https://github.com/foo/bar", "")
+	_, err := NewGitHub("https://github.com/foo/bar", "", nil)
 	assert.NotNil(t, err)
 }
 

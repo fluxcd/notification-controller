@@ -18,12 +18,16 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/fluxcd/pkg/runtime/events"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/fluxcd/pkg/runtime/events"
 
 	"github.com/google/go-github/v32/github"
 	"golang.org/x/oauth2"
@@ -35,7 +39,7 @@ type GitHub struct {
 	Client *github.Client
 }
 
-func NewGitHub(addr string, token string) (*GitHub, error) {
+func NewGitHub(addr string, token string, certPool *x509.CertPool) (*GitHub, error) {
 	if len(token) == 0 {
 		return nil, errors.New("github token cannot be empty")
 	}
@@ -59,6 +63,17 @@ func NewGitHub(addr string, token string) (*GitHub, error) {
 	tc := oauth2.NewClient(context.Background(), ts)
 	client := github.NewClient(tc)
 	if baseUrl.Host != "github.com" {
+		if certPool != nil {
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: certPool,
+				},
+			}
+			hc := &http.Client{Transport: tr}
+			ctx := context.WithValue(context.Background(), oauth2.HTTPClient, hc)
+			tc = oauth2.NewClient(ctx, ts)
+		}
+
 		client, err = github.NewEnterpriseClient(host, host, tc)
 		if err != nil {
 			return nil, fmt.Errorf("could not create enterprise GitHub client: %v", err)

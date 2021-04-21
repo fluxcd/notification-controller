@@ -17,7 +17,11 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"net/http"
+
 	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/getsentry/sentry-go"
 )
@@ -28,9 +32,18 @@ type Sentry struct {
 }
 
 // NewSentry creates a Sentry client from the provided Data Source Name (DSN)
-func NewSentry(dsn string) (*Sentry, error) {
+func NewSentry(certPool *x509.CertPool, dsn string) (*Sentry, error) {
+	var tr *http.Transport
+	if certPool != nil {
+		tr = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: certPool,
+			},
+		}
+	}
 	client, err := sentry.NewClient(sentry.ClientOptions{
-		Dsn: dsn,
+		Dsn:           dsn,
+		HTTPTransport: tr,
 	})
 	if err != nil {
 		return nil, err

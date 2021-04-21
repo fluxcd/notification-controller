@@ -23,25 +23,25 @@ import (
 )
 
 func TestNewGitLabBasic(t *testing.T) {
-	g, err := NewGitLab("https://gitlab.com/foo/bar", "foobar")
+	g, err := NewGitLab("https://gitlab.com/foo/bar", "foobar", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, g.Id, "foo/bar")
 }
 
 func TestNewGitLabSubgroups(t *testing.T) {
-	g, err := NewGitLab("https://gitlab.com/foo/bar/baz", "foobar")
+	g, err := NewGitLab("https://gitlab.com/foo/bar/baz", "foobar", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, g.Id, "foo/bar/baz")
 }
 
 func TestNewGitLabSelfHosted(t *testing.T) {
-	g, err := NewGitLab("https://example.com/foo/bar", "foo:bar")
+	g, err := NewGitLab("https://example.com/foo/bar", "foo:bar", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, g.Id, "foo/bar")
 	assert.Equal(t, g.Client.BaseURL().Host, "example.com")
 }
 
 func TestNewGitLabEmptyToken(t *testing.T) {
-	_, err := NewGitLab("https://gitlab.com/foo/bar", "")
+	_, err := NewGitLab("https://gitlab.com/foo/bar", "", nil)
 	assert.NotNil(t, err)
 }

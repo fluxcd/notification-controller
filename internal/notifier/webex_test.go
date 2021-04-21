@@ -39,7 +39,7 @@ func TestWebex_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	webex, err := NewWebex(ts.URL, "")
+	webex, err := NewWebex(ts.URL, "", nil)
 	require.NoError(t, err)
 
 	err = webex.Post(testEvent())
@@ -47,7 +47,7 @@ func TestWebex_Post(t *testing.T) {
 }
 
 func TestWebex_PostUpdate(t *testing.T) {
-	webex, err := NewWebex("http://localhost", "")
+	webex, err := NewWebex("http://localhost", "", nil)
 	require.NoError(t, err)
 
 	event := testEvent()

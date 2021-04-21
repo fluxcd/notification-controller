@@ -209,3 +209,16 @@ The body of the request looks like this:
 ```
 
 The `involvedObject` key contains the object that triggered the event.
+
+### Self signed certificates
+
+The `certSecretRef` field names a secret with TLS certificate data. This is for the purpose
+of enabling a provider to communicate with a server using a self signed cert.
+
+To use the field create a secret, containing a CA file, in the same namespace and reference
+it from the provider.
+```shell
+SECRET_NAME=tls-certs
+kubectl create secret generic $SECRET_NAME \
+  --from-file=caFile=ca.crt
+```

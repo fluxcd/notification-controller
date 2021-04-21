@@ -17,7 +17,10 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
+	"net/http"
 
 	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/xanzy/go-gitlab"
@@ -28,7 +31,7 @@ type GitLab struct {
 	Client *gitlab.Client
 }
 
-func NewGitLab(addr string, token string) (*GitLab, error) {
+func NewGitLab(addr string, token string, certPool *x509.CertPool) (*GitLab, error) {
 	if len(token) == 0 {
 		return nil, errors.New("gitlab token cannot be empty")
 	}
@@ -38,8 +41,17 @@ func NewGitLab(addr string, token string) (*GitLab, error) {
 		return nil, err
 	}
 
-	opt := gitlab.WithBaseURL(host)
-	client, err := gitlab.NewClient(token, opt)
+	opts := []gitlab.ClientOptionFunc{gitlab.WithBaseURL(host)}
+	if certPool != nil {
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{
+				RootCAs: certPool,
+			},
+		}
+		hc := &http.Client{Transport: tr}
+		opts = append(opts, gitlab.WithHTTPClient(hc))
+	}
+	client, err := gitlab.NewClient(token, opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -17,19 +17,20 @@ limitations under the License.
 package notifier
 
 import (
+	"testing"
+	"time"
+
 	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/getsentry/sentry-go"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewSentry(t *testing.T) {
-	s, err := NewSentry("https://test@localhost/1")
+	s, err := NewSentry(nil, "https://test@localhost/1")
 	require.NoError(t, err)
 	assert.Equal(t, s.Client.Options().Dsn, "https://test@localhost/1")
 }

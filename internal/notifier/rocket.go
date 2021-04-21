@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/url"
@@ -31,10 +32,11 @@ type Rocket struct {
 	ProxyURL string
 	Username string
 	Channel  string
+	CertPool *x509.CertPool
 }
 
 // NewRocket validates the Rocket URL and returns a Rocket object
-func NewRocket(hookURL string, proxyURL string, username string, channel string) (*Rocket, error) {
+func NewRocket(hookURL string, proxyURL string, certPool *x509.CertPool, username string, channel string) (*Rocket, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Rocket hook URL %s", hookURL)
@@ -53,6 +55,7 @@ func NewRocket(hookURL string, proxyURL string, username string, channel string)
 		URL:      hookURL,
 		ProxyURL: proxyURL,
 		Username: username,
+		CertPool: certPool,
 	}, nil
 }
 
@@ -88,7 +91,7 @@ func (s *Rocket) Post(event events.Event) error {
 
 	payload.Attachments = []SlackAttachment{a}
 
-	err := postMessage(s.URL, s.ProxyURL, payload)
+	err := postMessage(s.URL, s.ProxyURL, s.CertPool, payload)
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
