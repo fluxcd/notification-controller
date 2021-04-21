@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.13.0
+
+**Release date:** 2021-04-21
+
+This prerelease comes with support for sending alerts to HTTPS servers with self-signed TLS certs.
+
+Features:
+* Add self-signed cert to provider
+  [#184](https://github.com/fluxcd/notification-controller/pull/184)
+
 ## 0.12.0
 
 **Release date:** 2021-03-26
