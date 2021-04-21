@@ -6,8 +6,8 @@ replace github.com/fluxcd/notification-controller/api => ./api
 
 require (
 	github.com/fluxcd/notification-controller/api v0.12.0
-	github.com/fluxcd/pkg/apis/meta v0.8.0
-	github.com/fluxcd/pkg/runtime v0.10.1
+	github.com/fluxcd/pkg/apis/meta v0.9.0
+	github.com/fluxcd/pkg/runtime v0.11.0
 	github.com/getsentry/sentry-go v0.10.0
 	github.com/go-logr/logr v0.3.0
 	github.com/google/go-github/v32 v32.1.0
@@ -23,8 +23,8 @@ require (
 	github.com/whilp/git-urls v1.0.0
 	github.com/xanzy/go-gitlab v0.38.2
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	k8s.io/api v0.20.2
-	k8s.io/apimachinery v0.20.2
-	k8s.io/client-go v0.20.2
+	k8s.io/api v0.20.4
+	k8s.io/apimachinery v0.20.4
+	k8s.io/client-go v0.20.4
 	sigs.k8s.io/controller-runtime v0.8.3
 )
