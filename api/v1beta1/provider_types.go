@@ -28,7 +28,7 @@ const (
 // ProviderSpec defines the desired state of Provider
 type ProviderSpec struct {
 	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab;bitbucket;azuredevops;googlechat;webex;sentry
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab;bitbucket;azuredevops;googlechat;webex;sentry;eventhub;
 	// +required
 	Type string `json:"type"`
 
@@ -76,6 +76,7 @@ const (
 	GoogleChatProvider  string = "googlechat"
 	WebexProvider       string = "webex"
 	SentryProvider      string = "sentry"
+	EventHubProvider    string = "eventhub"
 )
 
 // ProviderStatus defines the observed state of Provider

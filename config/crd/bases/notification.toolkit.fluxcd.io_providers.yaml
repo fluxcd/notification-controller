@@ -92,6 +92,7 @@ spec:
                 - googlechat
                 - webex
                 - sentry
+                - eventhub
                 type: string
               username:
                 description: Bot username for this provider
