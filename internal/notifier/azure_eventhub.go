@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux authors
+Copyright 2021 The Flux authors
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -23,23 +23,25 @@ import (
 	"github.com/fluxcd/pkg/runtime/events"
 )
 
-type EventHub struct {
+// AzureEventHub holds the eventhub client
+type AzureEventHub struct {
 	Hub *eventhub.Hub
 }
 
-func NewEventHub(endpointURL string) (*EventHub, error) {
+// NewAzureEventHub creates a eventhub client
+func NewAzureEventHub(endpointURL string) (*AzureEventHub, error) {
 	hub, err := eventhub.NewHubFromConnectionString(endpointURL)
 	if err != nil {
 		return nil, err
 	}
-	return &EventHub{
+	return &AzureEventHub{
 		Hub: hub,
 	}, nil
 }
 
-// Post EventHub msg
-func (e *EventHub) Post(event events.Event) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+// Post all notification-controller messages to EventHub
+func (e *AzureEventHub) Post(event events.Event) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	eventBytes, err := json.Marshal(event)
@@ -47,13 +49,12 @@ func (e *EventHub) Post(event events.Event) error {
 		return fmt.Errorf("Unable to marshall event: %w", err)
 	}
 
-	//err := e.Hub.Send(ctx, eventhub.NewEventFromString("From, String"))
 	err = e.Hub.Send(ctx, eventhub.NewEvent(eventBytes))
 	if err != nil {
 		return fmt.Errorf("Failed to send msg: %w", err)
 	}
 
-	err = e.Hub.Close(context.Background())
+	err = e.Hub.Close(ctx)
 	if err != nil {
 		return fmt.Errorf("Unable to close connection: %w", err)
 	}
