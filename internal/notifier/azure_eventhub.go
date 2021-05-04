@@ -17,8 +17,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/Azure/azure-amqp-common-go/v3/auth"
 	eventhub "github.com/Azure/azure-event-hubs-go/v3"
 	"github.com/fluxcd/pkg/runtime/events"
 )
@@ -30,10 +32,21 @@ type AzureEventHub struct {
 
 // NewAzureEventHub creates a eventhub client
 func NewAzureEventHub(endpointURL string) (*AzureEventHub, error) {
-	hub, err := eventhub.NewHubFromConnectionString(endpointURL)
-	if err != nil {
-		return nil, err
+	var hub *eventhub.Hub
+	var err error
+
+	if strings.ToLower(endpointURL[:8]) != "endpoint" {
+		hub, err = newJWTHub(endpointURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create a eventhub using JWT %v", err)
+		}
+	} else {
+		hub, err = newSASHub(endpointURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create a eventhub using SAS %v", err)
+		}
 	}
+
 	return &AzureEventHub{
 		Hub: hub,
 	}, nil
@@ -59,4 +72,46 @@ func (e *AzureEventHub) Post(event events.Event) error {
 		return fmt.Errorf("Unable to close connection: %w", err)
 	}
 	return nil
+}
+
+// PureJWT just contains the jwt
+type PureJWT struct {
+	jwt string
+}
+
+// NewJWTProvider create a pureJWT method
+func NewJWTProvider(jwt string) *PureJWT {
+	return &PureJWT{
+		jwt: jwt,
+	}
+}
+
+// GetToken uses a JWT token, we assume that we will get new tokens when needed, thus no Expiry defined
+func (j *PureJWT) GetToken(uri string) (*auth.Token, error) {
+	return &auth.Token{
+		TokenType: auth.CBSTokenTypeJWT,
+		Token:     j.jwt,
+		Expiry:    "",
+	}, nil
+}
+
+// newJWTHub used when address is a JWT token
+func newJWTHub(address string) (*eventhub.Hub, error) {
+	provider := NewJWTProvider(address)
+
+	hub, err := eventhub.NewHub("fluxv2", "fluxv2", provider)
+	if err != nil {
+		return nil, err
+	}
+	return hub, nil
+}
+
+// newSASHub used when address is a SAS ConnectionString
+func newSASHub(address string) (*eventhub.Hub, error) {
+	hub, err := eventhub.NewHubFromConnectionString(address)
+	if err != nil {
+		return nil, err
+	}
+
+	return hub, nil
 }
