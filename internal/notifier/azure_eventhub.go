@@ -30,13 +30,13 @@ type AzureEventHub struct {
 }
 
 // NewAzureEventHub creates a eventhub client
-func NewAzureEventHub(endpointURL, token, eventhubNamespace string) (*AzureEventHub, error) {
+func NewAzureEventHub(endpointURL, token, eventHubNamespace string) (*AzureEventHub, error) {
 	var hub *eventhub.Hub
 	var err error
 
 	// token should only be defined if JWT is used
 	if token != "" {
-		hub, err = newJWTHub(endpointURL, token, eventhubNamespace)
+		hub, err = newJWTHub(endpointURL, token, eventHubNamespace)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create a eventhub using JWT %v", err)
 		}
@@ -54,6 +54,11 @@ func NewAzureEventHub(endpointURL, token, eventhubNamespace string) (*AzureEvent
 
 // Post all notification-controller messages to EventHub
 func (e *AzureEventHub) Post(event events.Event) error {
+	// Skip any update events
+	if isCommitStatus(event.Metadata, "update") {
+		return nil
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -96,10 +101,10 @@ func (j *PureJWT) GetToken(uri string) (*auth.Token, error) {
 }
 
 // newJWTHub used when address is a JWT token
-func newJWTHub(eventhubName, token, eventhubNamespace string) (*eventhub.Hub, error) {
+func newJWTHub(eventhubName, token, eventHubNamespace string) (*eventhub.Hub, error) {
 	provider := NewJWTProvider(token)
 
-	hub, err := eventhub.NewHub(eventhubNamespace, eventhubName, provider)
+	hub, err := eventhub.NewHub(eventHubNamespace, eventhubName, provider)
 	if err != nil {
 		return nil, err
 	}
