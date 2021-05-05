@@ -17,7 +17,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/Azure/azure-amqp-common-go/v3/auth"
@@ -31,12 +30,13 @@ type AzureEventHub struct {
 }
 
 // NewAzureEventHub creates a eventhub client
-func NewAzureEventHub(endpointURL string) (*AzureEventHub, error) {
+func NewAzureEventHub(endpointURL, token, eventhubNamespace string) (*AzureEventHub, error) {
 	var hub *eventhub.Hub
 	var err error
 
-	if strings.ToLower(endpointURL[:8]) != "endpoint" {
-		hub, err = newJWTHub(endpointURL)
+	// token should only be defined if JWT is used
+	if token != "" {
+		hub, err = newJWTHub(endpointURL, token, eventhubNamespace)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create a eventhub using JWT %v", err)
 		}
@@ -96,10 +96,10 @@ func (j *PureJWT) GetToken(uri string) (*auth.Token, error) {
 }
 
 // newJWTHub used when address is a JWT token
-func newJWTHub(address string) (*eventhub.Hub, error) {
-	provider := NewJWTProvider(address)
+func newJWTHub(eventhubName, token, eventhubNamespace string) (*eventhub.Hub, error) {
+	provider := NewJWTProvider(token)
 
-	hub, err := eventhub.NewHub("fluxv2", "fluxv2", provider)
+	hub, err := eventhub.NewHub(eventhubNamespace, eventhubName, provider)
 	if err != nil {
 		return nil, err
 	}
