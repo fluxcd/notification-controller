@@ -5,7 +5,7 @@ go 1.15
 replace github.com/fluxcd/notification-controller/api => ./api
 
 require (
-	github.com/Azure/azure-amqp-common-go/v3 v3.1.0 // indirect
+	github.com/Azure/azure-amqp-common-go/v3 v3.1.0
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.7
 	github.com/Azure/azure-sdk-for-go v53.4.0+incompatible // indirect
 	github.com/Azure/go-amqp v0.13.6 // indirect
