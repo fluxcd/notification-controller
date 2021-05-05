@@ -46,7 +46,7 @@ Notification providers:
 * Google Chat
 * Webex
 * Sentry
-* AzureEventHub
+* Azure Event Hub
 * Generic webhook
 
 Git commit status providers:
@@ -224,18 +224,18 @@ kubectl create secret generic $SECRET_NAME \
   --from-file=caFile=ca.crt
 ```
 
-### Azure EventHub
+### Azure Event Hub
 
-The Azure EventHub supports two authentication methods, [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application) and [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature) based.
+The Azure Event Hub supports two authentication methods, [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application) and [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature) based.
 
 #### JWT based auth
 
 In JWT we use 3 input values.
 
-Channel, token and address. We perform the follow translation to match we the data we need to communicate with Azure EventHub.
+Channel, token and address. We perform the following translation to match we the data we need to communicate with Azure Event Hub.
 
-* channel = Azure EventHub namespace
-* address = Azure EventHub name
+* channel = Azure Event Hub namespace
+* address = Azure Event Hub name
 * token   = JWT
 
 ```yaml
@@ -250,7 +250,19 @@ spec:
     name: webhook-url
 ```
 
-Notification controller don't take any responsibility for the JWT token to be updated.
+```yaml
+apiVersion: v1
+data:
+  address: Zmx1eHYy
+  token: QS12YWxpZC1KV1QtdG9rZW4=
+kind: Secret
+metadata:
+  name: webhook-url
+  namespace: default
+type: Opaque
+```
+
+Notification controller doesn't take any responsibility for the JWT token to be updated.
 You need to use a secondary tool to make sure that the token in the secret is renewed.
 
 If you want to make a easy test assuming that you have setup a Azure Enterprise application and you called it event-hub you can follow most of the bellow commands.
@@ -287,7 +299,18 @@ spec:
     name: webhook-url
 ```
 
-Assuming that you have created Azure eventhub and namespace you should be able to use a similar command to get your connection string.
+```yaml
+apiVersion: v1
+data:
+  address: RW5kcG9pbnQ9c2I6Ly9mbHV4djIuc2VydmljZWJ1cy53aW5kb3dzLm5ldC87U2hhcmVkQWNjZXNzS2V5TmFtZT1Sb290TWFuYWdlU2hhcmVkQWNjZXNzS2V5O1NoYXJlZEFjY2Vzc0tleT15b3Vyc2Fza2V5Z2VuZWF0ZWRieWF6dXJlCg==
+kind: Secret
+metadata:
+  name: webhook-url
+  namespace: default
+type: Opaque
+```
+
+Assuming that you have created Azure event hub and namespace you should be able to use a similar command to get your connection string.
 This will give you the default Root SAS, it's NOT supposed to be used in production.
 
 ```shell
