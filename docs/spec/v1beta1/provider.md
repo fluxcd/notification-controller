@@ -248,9 +248,7 @@ spec:
   channel: fluxv2
   secretRef:
     name: webhook-url
-```
-
-```yaml
+---
 apiVersion: v1
 data:
   address: Zmx1eHYy
@@ -297,9 +295,7 @@ spec:
   type: azureeventhub
   secretRef:
     name: webhook-url
-```
-
-```yaml
+---
 apiVersion: v1
 data:
   address: RW5kcG9pbnQ9c2I6Ly9mbHV4djIuc2VydmljZWJ1cy53aW5kb3dzLm5ldC87U2hhcmVkQWNjZXNzS2V5TmFtZT1Sb290TWFuYWdlU2hhcmVkQWNjZXNzS2V5O1NoYXJlZEFjY2Vzc0tleT15b3Vyc2Fza2V5Z2VuZWF0ZWRieWF6dXJlCg==
