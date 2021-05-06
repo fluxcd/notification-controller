@@ -46,6 +46,7 @@ Notification providers:
 * Google Chat
 * Webex
 * Sentry
+* Azure Event Hub
 * Generic webhook
 
 Git commit status providers:
@@ -106,7 +107,7 @@ kubectl create secret generic webhook-url \
 
 Note that the secret must contain an `address` field.
 
-The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `googlechat`, `webex`, `sentry`, `github`, `gitlab`, `bitbucket`, `azuredevops` or `generic`.
+The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `googlechat`, `webex`, `sentry`, `azureeventhub`, `github`, `gitlab`, `bitbucket`, `azuredevops` or `generic`.
 
 When type `generic` is specified, the notification controller will post the
 incoming [event](event.md) in JSON format to the webhook address.
@@ -221,4 +222,102 @@ it from the provider.
 SECRET_NAME=tls-certs
 kubectl create secret generic $SECRET_NAME \
   --from-file=caFile=ca.crt
+```
+
+### Azure Event Hub
+
+The Azure Event Hub supports two authentication methods, [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application) and [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature) based.
+
+#### JWT based auth
+
+In JWT we use 3 input values.
+
+Channel, token and address. We perform the following translation to match we the data we need to communicate with Azure Event Hub.
+
+* channel = Azure Event Hub namespace
+* address = Azure Event Hub name
+* token   = JWT
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: azureeventhub
+spec:
+  type: azureeventhub
+  channel: fluxv2
+  secretRef:
+    name: webhook-url
+---
+apiVersion: v1
+data:
+  address: Zmx1eHYy
+  token: QS12YWxpZC1KV1QtdG9rZW4=
+kind: Secret
+metadata:
+  name: webhook-url
+  namespace: default
+type: Opaque
+```
+
+Notification controller doesn't take any responsibility for the JWT token to be updated.
+You need to use a secondary tool to make sure that the token in the secret is renewed.
+
+If you want to make a easy test assuming that you have setup a Azure Enterprise application and you called it event-hub you can follow most of the bellow commands.
+You will need to provide the client_secret that you got when generating the Azure Enterprise Application.
+
+```shell
+export AZURE_CLIENT=$(az ad app list --filter "startswith(displayName,'event-hub')" --query '[].appId' |jq -r '.[0]')
+export AZURE_SECRET='secret-client-secret-generated-at-creation'
+export AZURE_TENANT=$(az account show -o tsv --query tenantId)
+
+curl -X GET --data 'grant_type=client_credentials' --data "client_id=$AZURE_CLIENT" --data "client_secret=$AZURE_SECRET" --data 'resource=https://eventhubs.azure.net' -H 'Content-Type: application/x-www-form-urlencoded' https://login.microsoftonline.com/$AZURE_TENANT/oauth2/token |jq .access_token
+```
+
+Use the output you got from the curl and add it to your secret like bellow.
+
+```shell
+kubectl create secret generic webhook-url \
+--from-literal=address="fluxv2" \
+--from-literal=token='A-valid-JWT-token'
+```
+
+#### SAS based auth
+
+In SAS we only use the `address`field in the secret.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: azureeventhub
+spec:
+  type: azureeventhub
+  secretRef:
+    name: webhook-url
+---
+apiVersion: v1
+data:
+  address: RW5kcG9pbnQ9c2I6Ly9mbHV4djIuc2VydmljZWJ1cy53aW5kb3dzLm5ldC87U2hhcmVkQWNjZXNzS2V5TmFtZT1Sb290TWFuYWdlU2hhcmVkQWNjZXNzS2V5O1NoYXJlZEFjY2Vzc0tleT15b3Vyc2Fza2V5Z2VuZWF0ZWRieWF6dXJlCg==
+kind: Secret
+metadata:
+  name: webhook-url
+  namespace: default
+type: Opaque
+```
+
+Assuming that you have created Azure event hub and namespace you should be able to use a similar command to get your connection string.
+This will give you the default Root SAS, it's NOT supposed to be used in production.
+
+```shell
+az eventhubs namespace authorization-rule keys list --resource-group <rg-name> --namespace-name <namespace-name> --name RootManageSharedAccessKey -o tsv --query primaryConnectionString
+# The output should look something like this:
+Endpoint=sb://fluxv2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=yoursaskeygeneatedbyazure
+```
+
+To create the needed secret:
+
+```shell
+kubectl create secret generic webhook-url \
+--from-literal=address="Endpoint=sb://fluxv2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=yoursaskeygeneatedbyazure"
 ```

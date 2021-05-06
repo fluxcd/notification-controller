@@ -75,6 +75,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewWebex(f.URL, f.ProxyURL, f.CertPool)
 	case v1beta1.SentryProvider:
 		n, err = NewSentry(f.CertPool, f.URL)
+	case v1beta1.AzureEventHubProvider:
+		n, err = NewAzureEventHub(f.URL, f.Token, f.Channel)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
