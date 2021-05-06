@@ -63,6 +63,19 @@ type ReceiverStatus struct {
 }
 ```
 
+## Public ingress considerations
+
+Considerations should be made when exposing the notification controller receiver
+to the public internet. Each request to the receiver endpoint will result in request
+to the Kuberentes API as the controller needs to fetch information about the receiver.
+The receiver endpoint may be protected with a token but it does not defend against a
+situation where a legitimate webhook source starts sending large amounts of requests,
+or the token is somehow leaked. This may result in unwanted consequences like the controller
+being rate limited by the Kuberentes API, degrading its functionality.
+
+It is therefor a good idea to set rate limits on the ingress resource which exposes
+the receiver. If you are using ingress-nginx that can be done by [adding annotations](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#rate-limiting).
+
 ## Example
 
 Generate a random string and create a secret with a `token` field:
@@ -143,14 +156,14 @@ You can use the flag `sha256` or `sha512` if you want a different hash function.
 2. Send a HTTP POST request to the webhook URL:
 
 ```sh
-curl <webhook-url> -X POST -H "X-Signature: sha1=<generated-hash>" -d '<request-body>' 
+curl <webhook-url> -X POST -H "X-Signature: sha1=<generated-hash>" -d '<request-body>'
 ```
 
 Generate hash signature using Go:
 
 ```go
 func sign(payload, key string) string {
-	h := hmac.New(sha1.New, []byte(key)) 
+	h := hmac.New(sha1.New, []byte(key))
 	h.Write([]byte(payload))
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
@@ -359,5 +372,5 @@ spec:
       name: webapp
 ```
 
-Note that the controller doesn't verify the authenticity of the request as Azure doesn't provide any mechanism for verification. 
+Note that the controller doesn't verify the authenticity of the request as Azure doesn't provide any mechanism for verification.
 You can take a look at the [Azure Container webhook reference](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-webhook-reference).
