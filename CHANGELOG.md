@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.14.0
+
+**Release date:** 2021-05-11
+
+This prerelease comes with support for sending events to Azure Event Hub.
+
+Features:
+* Add support for Azure EventHub provider
+  [#191](https://github.com/fluxcd/notification-controller/pull/191)
+
+Improvements:
+* Redact token from error log
+  [#196](https://github.com/fluxcd/notification-controller/pull/196)
+* Add note about exposing receiver to the internet
+  [#193](https://github.com/fluxcd/notification-controller/pull/193)
+
 ## 0.13.0
 
 **Release date:** 2021-04-21
