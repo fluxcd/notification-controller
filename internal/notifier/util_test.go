@@ -44,16 +44,23 @@ func TestUtil_ParseRevision(t *testing.T) {
 	require.Equal(t, "a1afe267b54f38b46b487f6e938a6fd508278c07", rev)
 }
 
+func TestUtil_ParseRevisionNestedBranch(t *testing.T) {
+	revString := "environment/dev/a1afe267b54f38b46b487f6e938a6fd508278c07"
+	rev, err := parseRevision(revString)
+	require.NoError(t, err)
+	require.Equal(t, "a1afe267b54f38b46b487f6e938a6fd508278c07", rev)
+}
+
+func TestUtil_ParseRevisionOneComponents(t *testing.T) {
+	revString := "master"
+	_, err := parseRevision(revString)
+	require.EqualError(t, err, "Revision string format incorrect: master")
+}
+
 func TestUtil_ParseRevisionTooFewComponents(t *testing.T) {
 	revString := "master/"
 	_, err := parseRevision(revString)
-	require.Error(t, err)
-}
-
-func TestUtil_ParseRevisionTooManyComponents(t *testing.T) {
-	revString := "master/a1afe267b54f38b46b487f6e938a6fd508278c07/foo/bar"
-	_, err := parseRevision(revString)
-	require.Error(t, err)
+	require.EqualError(t, err, "Commit Sha cannot be empty: master/")
 }
 
 func TestUtil_ParseGitHttps(t *testing.T) {
