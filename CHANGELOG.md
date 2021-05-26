@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.14.1
+
+**Release date:** 2021-05-26
+
+This prerelease comes with a bug fix to the parsing of revisions to
+make it accept branches with slashes.
+
+Fixes:
+* Fix revision parsing when branch contains slash
+  [#201](https://github.com/fluxcd/notification-controller/pull/201)
+
 ## 0.14.0
 
 **Release date:** 2021-05-11
