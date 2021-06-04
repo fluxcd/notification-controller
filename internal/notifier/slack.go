@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/url"
@@ -31,6 +32,7 @@ type Slack struct {
 	ProxyURL string
 	Username string
 	Channel  string
+	CertPool *x509.CertPool
 }
 
 // SlackPayload holds the channel and attachments
@@ -59,7 +61,7 @@ type SlackField struct {
 }
 
 // NewSlack validates the Slack URL and returns a Slack object
-func NewSlack(hookURL string, proxyURL string, username string, channel string) (*Slack, error) {
+func NewSlack(hookURL string, proxyURL string, certPool *x509.CertPool, username string, channel string) (*Slack, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Slack hook URL %s", hookURL)
@@ -74,6 +76,7 @@ func NewSlack(hookURL string, proxyURL string, username string, channel string) 
 		Username: username,
 		URL:      hookURL,
 		ProxyURL: proxyURL,
+		CertPool: certPool,
 	}, nil
 }
 
@@ -112,7 +115,7 @@ func (s *Slack) Post(event events.Event) error {
 
 	payload.Attachments = []SlackAttachment{a}
 
-	err := postMessage(s.URL, s.ProxyURL, nil, payload)
+	err := postMessage(s.URL, s.ProxyURL, s.CertPool, payload)
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
