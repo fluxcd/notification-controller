@@ -98,7 +98,7 @@ func postMessage(address, proxy string, certPool *x509.CertPool, payload interfa
 		if err != nil {
 			return fmt.Errorf("unable to read response body, %s", err)
 		}
-		return fmt.Errorf("request not successful, %s", string(b))
+		return fmt.Errorf("request failed with status code %d, %s", resp.StatusCode, string(b))
 	}
 
 	return nil
