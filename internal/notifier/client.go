@@ -93,7 +93,7 @@ func postMessage(address, proxy string, certPool *x509.CertPool, payload interfa
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusCreated {
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("unable to read response body, %s", err)
