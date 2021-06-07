@@ -18,7 +18,6 @@ package notifier
 
 import (
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -67,10 +66,6 @@ func NewSlack(hookURL string, proxyURL string, certPool *x509.CertPool, username
 		return nil, fmt.Errorf("invalid Slack hook URL %s", hookURL)
 	}
 
-	if channel == "" {
-		return nil, errors.New("empty Slack channel")
-	}
-
 	return &Slack{
 		Channel:  channel,
 		Username: username,
@@ -88,9 +83,13 @@ func (s *Slack) Post(event events.Event) error {
 	}
 
 	payload := SlackPayload{
-		Channel:  s.Channel,
 		Username: s.Username,
 	}
+
+	if s.Channel != "" {
+		payload.Channel = s.Channel
+	}
+
 	if payload.Username == "" {
 		payload.Username = event.ReportingController
 	}
