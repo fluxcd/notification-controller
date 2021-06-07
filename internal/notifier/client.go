@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -87,8 +88,17 @@ func postMessage(address, proxy string, certPool *x509.CertPool, payload interfa
 	for _, o := range reqOpts {
 		o(req)
 	}
-	if _, err := httpClient.Do(req); err != nil {
+	resp, err := httpClient.Do(req)
+	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		b, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("unable to read response body, %s", err)
+		}
+		return fmt.Errorf("request not successful, %s", string(b))
 	}
 
 	return nil

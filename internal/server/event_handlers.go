@@ -224,9 +224,12 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 			go func(n notifier.Interface, e events.Event) {
 				if err := n.Post(e); err != nil {
-					redacted := strings.ReplaceAll(err.Error(), token, "*****")
-					redactedErr := errors.New(redacted)
-					s.logger.Error(redactedErr, "failed to send notification",
+					if token != "" {
+						redacted := strings.ReplaceAll(err.Error(), token, "*****")
+						err = errors.New(redacted)
+					}
+
+					s.logger.Error(err, "failed to send notification",
 						"reconciler kind", event.InvolvedObject.Kind,
 						"name", event.InvolvedObject.Name,
 						"namespace", event.InvolvedObject.Namespace)
