@@ -9,7 +9,7 @@ require (
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.7
 	github.com/Azure/azure-sdk-for-go v53.4.0+incompatible // indirect
 	github.com/Azure/go-amqp v0.13.6 // indirect
-	github.com/fluxcd/notification-controller/api v0.14.1
+	github.com/fluxcd/notification-controller/api v0.15.0
 	github.com/fluxcd/pkg/apis/meta v0.10.0
 	github.com/fluxcd/pkg/runtime v0.12.0
 	github.com/getsentry/sentry-go v0.10.0
