@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.15.0
+
+**Release date:** 2021-06-08
+
+This prerelease comes with an update to the Kubernetes and controller-runtime
+dependencies to align them with the Kubernetes 1.21 release.
+
+Improvements:
+* Update Kubernetes dependencies
+  [#210](https://github.com/fluxcd/notification-controller/pull/210)
+* Add cert pool to Slack provider requests
+  [#207](https://github.com/fluxcd/notification-controller/pull/207)
+* Make Slack channel optional
+  [#208](https://github.com/fluxcd/notification-controller/pull/208)
+
 ## 0.14.1
 
 **Release date:** 2021-05-26
