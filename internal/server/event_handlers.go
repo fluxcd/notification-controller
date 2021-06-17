@@ -34,10 +34,13 @@ import (
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/events"
+	"github.com/go-logr/logr"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/notification-controller/internal/notifier"
 )
+
+const redactReplacement = "*****"
 
 func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -68,45 +71,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		// find matching alerts
-		alerts := make([]v1beta1.Alert, 0)
-	each_alert:
-		for _, alert := range allAlerts.Items {
-			// skip suspended and not ready alerts
-			isReady := apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition)
-			if alert.Spec.Suspend || !isReady {
-				continue each_alert
-			}
-
-			// skip alert if the message matches a regex from the exclusion list
-			if len(alert.Spec.ExclusionList) > 0 {
-				for _, exp := range alert.Spec.ExclusionList {
-					if r, err := regexp.Compile(exp); err == nil {
-						if r.Match([]byte(event.Message)) {
-							continue each_alert
-						}
-					} else {
-						s.logger.Error(err, fmt.Sprintf("failed to compile regex: %s", exp))
-					}
-				}
-			}
-
-			// filter alerts by object and severity
-			for _, source := range alert.Spec.EventSources {
-				if source.Namespace == "" {
-					source.Namespace = alert.Namespace
-				}
-				if (source.Name == "*" || event.InvolvedObject.Name == source.Name) &&
-					event.InvolvedObject.Namespace == source.Namespace &&
-					event.InvolvedObject.Kind == source.Kind {
-					if event.Severity == alert.Spec.EventSeverity ||
-						alert.Spec.EventSeverity == events.EventSeverityInfo {
-						alerts = append(alerts, alert)
-					}
-				}
-			}
-		}
-
+		alerts := findMatchingAlerts(s.logger, allAlerts, event)
 		if len(alerts) == 0 {
 			s.logger.Info("Discarding event, no alerts found for the involved object",
 				"reconciler kind", event.InvolvedObject.Kind,
@@ -163,7 +128,6 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			if provider.Spec.CertSecretRef != nil {
 				var secret corev1.Secret
 				secretName := types.NamespacedName{Namespace: alert.Namespace, Name: provider.Spec.CertSecretRef.Name}
-
 				err = s.kubeClient.Get(ctx, secretName, &secret)
 				if err != nil {
 					s.logger.Error(err, "failed to read secret",
@@ -224,11 +188,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 			go func(n notifier.Interface, e events.Event) {
 				if err := n.Post(e); err != nil {
-					if token != "" {
-						redacted := strings.ReplaceAll(err.Error(), token, "*****")
-						err = errors.New(redacted)
-					}
-
+					err := redact(err, token)
 					s.logger.Error(err, "failed to send notification",
 						"reconciler kind", event.InvolvedObject.Kind,
 						"name", event.InvolvedObject.Name,
@@ -239,4 +199,59 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 		w.WriteHeader(http.StatusAccepted)
 	}
+}
+
+// findMatchingAlerts returns a list of alerts which match the event message, severity, and source..
+func findMatchingAlerts(logger logr.Logger, allAlerts v1beta1.AlertList, event *events.Event) []v1beta1.Alert {
+	alerts := make([]v1beta1.Alert, 0)
+each_alert:
+	for _, alert := range allAlerts.Items {
+		// skip suspended and not ready alerts
+		isReady := apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition)
+		if alert.Spec.Suspend || !isReady {
+			continue each_alert
+		}
+
+		// skip alert if the message matches a regex from the exclusion list
+		if len(alert.Spec.ExclusionList) > 0 {
+			for _, exp := range alert.Spec.ExclusionList {
+				if r, err := regexp.Compile(exp); err == nil {
+					if r.Match([]byte(event.Message)) {
+						continue each_alert
+					}
+				} else {
+					logger.Error(err, fmt.Sprintf("failed to compile regex: %s", exp))
+				}
+			}
+		}
+
+		// filter alerts by object and severity
+		for _, source := range alert.Spec.EventSources {
+			if source.Namespace == "" {
+				source.Namespace = alert.Namespace
+			}
+			if (source.Name == "*" || event.InvolvedObject.Name == source.Name) &&
+				event.InvolvedObject.Namespace == source.Namespace &&
+				event.InvolvedObject.Kind == source.Kind {
+				if event.Severity == alert.Spec.EventSeverity ||
+					alert.Spec.EventSeverity == events.EventSeverityInfo {
+					alerts = append(alerts, alert)
+				}
+			}
+		}
+	}
+	return alerts
+}
+
+// redact removes any occurence of token in the given error.
+func redact(err error, token string) error {
+	if err == nil {
+		return nil
+	}
+
+	if token != "" {
+		redacted := strings.ReplaceAll(err.Error(), token, redactReplacement)
+		return errors.New(redacted)
+	}
+	return err
 }
