@@ -54,6 +54,26 @@ type AlertSpec struct {
 	// Defaults to false.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
+
+	// Overrides for message content.
+	// +optional
+	Template AlertTemplate `json:"templating,omitempty"`
+}
+
+// AlertTemplate defines event content overrides.
+type AlertTemplate struct {
+	// The author of the message.
+	// +optional
+	Author string `json:"author,omitempty"`
+	// Short description of the impact and affected cluster.
+	// +optional
+	Summary string `json:"summary,omitempty"`
+	// Message content to be sent
+	// +optional
+	Message string `json:"message,omitempty"`
+	// Additional parameters to use when templating.
+	// +optional
+	ExtraParameters []meta.NamespacedObjectKindReference `json:"extraParameters,omitempty"`
 }
 
 // AlertStatus defines the observed state of Alert
