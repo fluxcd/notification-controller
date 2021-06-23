@@ -9,6 +9,9 @@ require (
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.7
 	github.com/Azure/azure-sdk-for-go v53.4.0+incompatible // indirect
 	github.com/Azure/go-amqp v0.13.6 // indirect
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
+	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/fluxcd/notification-controller/api v0.15.0
 	github.com/fluxcd/pkg/apis/meta v0.10.0
 	github.com/fluxcd/pkg/runtime v0.12.0
@@ -16,8 +19,10 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/google/go-github/v32 v32.1.0
 	github.com/hashicorp/go-retryablehttp v0.6.8
+	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/ktrysmt/go-bitbucket v0.6.5
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
+	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
