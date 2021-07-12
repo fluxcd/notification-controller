@@ -47,6 +47,7 @@ type AlertSpec struct {
 	ExclusionList []string `json:"exclusionList,omitempty"`
 
 	// Short description of the impact and affected cluster.
+	// For commit status updates, this field is used to prefix the status message.
 	// +optional
 	Summary string `json:"summary,omitempty"`
 
