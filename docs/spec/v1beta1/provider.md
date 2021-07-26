@@ -224,6 +224,23 @@ kubectl create secret generic $SECRET_NAME \
   --from-file=caFile=ca.crt
 ```
 
+### Sentry
+
+The sentry provider uses the `channel` field to specify which environment the messages are sent for:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: sentry
+  namespace: default
+spec:
+  type: sentry
+  channel: my-cluster-name
+  # webhook address (ignored if secretRef is specified)
+  address: https://....@sentry.io/12341234
+```
+
 ### Azure Event Hub
 
 The Azure Event Hub supports two authentication methods, [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application) and [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature) based.
