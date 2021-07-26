@@ -30,9 +30,10 @@ import (
 )
 
 func TestNewSentry(t *testing.T) {
-	s, err := NewSentry(nil, "https://test@localhost/1")
+	s, err := NewSentry(nil, "https://test@localhost/1", "foo")
 	require.NoError(t, err)
 	assert.Equal(t, s.Client.Options().Dsn, "https://test@localhost/1")
+	assert.Equal(t, s.Client.Options().Environment, "foo")
 }
 
 func TestToSentryEvent(t *testing.T) {
