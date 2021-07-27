@@ -68,3 +68,40 @@ func TestToSentryEvent(t *testing.T) {
 	}, s.Extra)
 	assert.Equal(t, "message", s.Message)
 }
+
+func TestToSentrySpan(t *testing.T) {
+	// Construct test event
+	e := events.Event{
+		InvolvedObject: corev1.ObjectReference{
+			Kind:      "GitRepository",
+			Namespace: "flux-system",
+			Name:      "test-app",
+		},
+		Severity:  "info",
+		Timestamp: metav1.Date(2020, 01, 01, 0, 0, 0, 0, time.UTC),
+		Message:   "message",
+		Metadata: map[string]string{
+			"key1": "val1",
+			"key2": "val2",
+		},
+		ReportingController: "source-controller",
+	}
+
+	// Map to Sentry event
+	s := eventToSpan(e)
+
+	// Assertions
+	assert.Equal(t, time.Date(2020, 01, 01, 0, 0, 0, 0, time.UTC), s.Timestamp)
+	assert.Equal(t, "transaction", s.Type)
+	assert.Equal(t, map[string]string{
+		"flux_involved_object_kind":      e.InvolvedObject.Kind,
+		"flux_involved_object_name":      e.InvolvedObject.Name,
+		"flux_involved_object_namespace": e.InvolvedObject.Namespace,
+		"flux_reason":                    e.Reason,
+		"flux_reporting_controller":      e.ReportingController,
+		"flux_reporting_instance":        e.ReportingInstance,
+		"key1":                           "val1",
+		"key2":                           "val2",
+	}, s.Tags)
+	assert.Equal(t, "message", s.Message)
+}

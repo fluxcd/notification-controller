@@ -241,6 +241,8 @@ spec:
   address: https://....@sentry.io/12341234
 ```
 
+The sentry provider also sends traces for events with the severity Info. This can be disabled by setting the `eventSeverity` field on the related `Alert` Rule to `error`.
+
 ### Azure Event Hub
 
 The Azure Event Hub supports two authentication methods, [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application) and [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature) based.
