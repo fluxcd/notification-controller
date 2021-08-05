@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.15.1
+
+**Release date:** 2021-08-05
+
+This prerelease comes with extended support for Sentry such as:
+using channel configuration for Sentry environment to re-use the
+same DSN for multiple clusters,
+and sending info event as Sentry traces.
+
+Improvements:
+* providers/sentry: send traces
+  [#224](https://github.com/fluxcd/notification-controller/pull/224)
+* providers/sentry: add environment support
+  [#223](https://github.com/fluxcd/notification-controller/pull/223)
+* Request reconcile using patch instead of update
+  [#217](https://github.com/fluxcd/notification-controller/pull/217) 
+* Update dependencies
+  [#226](https://github.com/fluxcd/notification-controller/pull/226)
+
+Fixes:
+* providers/sentry: fix default HTTP Transport causing panic
+  [#221](https://github.com/fluxcd/notification-controller/pull/221)
+
 ## 0.15.0
 
 **Release date:** 2021-06-08
