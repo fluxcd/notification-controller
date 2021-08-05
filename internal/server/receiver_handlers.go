@@ -25,13 +25,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"net/url"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"time"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/google/go-github/v32/github"
@@ -384,13 +385,14 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNam
 		return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, objectKey, err)
 	}
 
+	patch := client.MergeFrom(u.DeepCopy())
 	sourceAnnotations := u.GetAnnotations()
 	if sourceAnnotations == nil {
 		sourceAnnotations = make(map[string]string)
 	}
 	sourceAnnotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
 	u.SetAnnotations(sourceAnnotations)
-	if err := s.kubeClient.Update(ctx, u); err != nil {
+	if err := s.kubeClient.Patch(ctx, u, patch); err != nil {
 		return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, objectKey, err)
 	}
 
