@@ -79,7 +79,8 @@ type Alert struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AlertSpec   `json:"spec,omitempty"`
+	Spec AlertSpec `json:"spec,omitempty"`
+	// +kubebuilder:default:={"observedGeneration":-1}
 	Status AlertStatus `json:"status,omitempty"`
 }
 

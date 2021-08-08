@@ -84,6 +84,9 @@ const (
 
 // ProviderStatus defines the observed state of Provider
 type ProviderStatus struct {
+	// ObservedGeneration is the last reconciled generation.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
@@ -101,7 +104,8 @@ type Provider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ProviderSpec   `json:"spec,omitempty"`
+	Spec ProviderSpec `json:"spec,omitempty"`
+	// +kubebuilder:default:={"observedGeneration":-1}
 	Status ProviderStatus `json:"status,omitempty"`
 }
 
