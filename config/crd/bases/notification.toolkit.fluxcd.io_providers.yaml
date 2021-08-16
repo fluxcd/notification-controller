@@ -87,6 +87,7 @@ spec:
                 - webex
                 - sentry
                 - azureeventhub
+                - telegram
                 type: string
               username:
                 description: Bot username for this provider
