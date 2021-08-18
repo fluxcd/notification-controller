@@ -89,6 +89,7 @@ spec:
                 - azureeventhub
                 - telegram
                 - lark
+                - matrix
                 type: string
               username:
                 description: Bot username for this provider

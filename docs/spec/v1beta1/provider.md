@@ -362,3 +362,28 @@ spec:
   secretRef:
     name: lark-token
 ```
+
+## Matrix
+For Matrix, the address is the homeserver URL and the token is the access token returned by a call
+to /login or /register 
+
+To create secret
+```
+kubectl create secret generic matrix-token \
+--from-literal=token=<access-token> \
+--from-literal=address=https://matrix.org # replace with if using a different server
+```
+
+`spec.channel` holds the room id.
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: matrix
+  namespace: flux-system
+spec:
+  type: matrix
+  channel: "!jezptmDwEeLapMLjOc:matrix.org"
+  secretRef:
+    name: matrix-token
+```
