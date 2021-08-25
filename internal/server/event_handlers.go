@@ -137,7 +137,6 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 			webhook := provider.Spec.Address
 			token := ""
-			port := ""
 			if provider.Spec.SecretRef != nil {
 				var secret corev1.Secret
 				secretName := types.NamespacedName{Namespace: alert.Namespace, Name: provider.Spec.SecretRef.Name}
@@ -157,10 +156,6 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 				if t, ok := secret.Data["token"]; ok {
 					token = string(t)
-				}
-
-				if p, ok := secret.Data["port"]; ok {
-					port = string(p)
 				}
 			}
 
@@ -206,7 +201,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
-			factory := notifier.NewFactory(webhook, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, certPool, port)
+			factory := notifier.NewFactory(webhook, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, certPool)
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {
 				s.logger.Error(err, "failed to initialise provider",

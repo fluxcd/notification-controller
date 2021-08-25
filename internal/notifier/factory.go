@@ -24,7 +24,6 @@ import (
 )
 
 type Factory struct {
-	Port     string
 	URL      string
 	ProxyURL string
 	Username string
@@ -33,7 +32,7 @@ type Factory struct {
 	CertPool *x509.CertPool
 }
 
-func NewFactory(url string, proxy string, username string, channel string, token string, certPool *x509.CertPool, port string) *Factory {
+func NewFactory(url string, proxy string, username string, channel string, token string, certPool *x509.CertPool) *Factory {
 	return &Factory{
 		URL:      url,
 		ProxyURL: proxy,
@@ -41,7 +40,6 @@ func NewFactory(url string, proxy string, username string, channel string, token
 		Username: username,
 		Token:    token,
 		CertPool: certPool,
-		Port:     port,
 	}
 }
 
