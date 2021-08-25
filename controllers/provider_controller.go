@@ -101,6 +101,7 @@ func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *ProviderReconciler) validate(ctx context.Context, provider v1beta1.Provider) error {
 	address := provider.Spec.Address
 	token := ""
+	port := ""
 	if provider.Spec.SecretRef != nil {
 		var secret corev1.Secret
 		secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.SecretRef.Name}
@@ -115,6 +116,10 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider v1beta1.Prov
 
 		if t, ok := secret.Data["token"]; ok {
 			token = string(t)
+		}
+
+		if p, ok := secret.Data["port"]; ok {
+			port = string(p)
 		}
 	}
 
@@ -143,7 +148,7 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider v1beta1.Prov
 		}
 	}
 
-	factory := notifier.NewFactory(address, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, certPool)
+	factory := notifier.NewFactory(address, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, certPool, port)
 	if _, err := factory.Notifier(provider.Spec.Type); err != nil {
 		return fmt.Errorf("failed to initialise provider, error: %w", err)
 	}
