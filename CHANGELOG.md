@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.16.0
+
+**Release date:** 2021-08-26
+
+This prerelease comes with support for sending alerts to Telegram, Lark and Matrix.
+
+Features:
+* Add Telegram alerting provider
+  [#232](https://github.com/fluxcd/notification-controller/pull/232)
+* Add Matrix alerting provider
+  [#233](https://github.com/fluxcd/notification-controller/pull/233)
+* Add Lark alerting provider
+  [#236](https://github.com/fluxcd/notification-controller/pull/236)
+
 ## 0.15.1
 
 **Release date:** 2021-08-05
