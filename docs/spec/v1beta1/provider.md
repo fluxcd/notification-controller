@@ -340,3 +340,25 @@ To create the needed secret:
 kubectl create secret generic webhook-url \
 --from-literal=address="Endpoint=sb://fluxv2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=yoursaskeygeneatedbyazure"
 ```
+
+## Lark
+
+For sending notifications to Lark, You will have to [add a bot to the group](https://www.larksuite.com/hc/en-US/articles/360048487736-Bot-Use-bots-in-groups#III.%20How%20to%20configure%20custom%20bots%20in%20a%20group%C2%A0)
+and set up a webhook for the bot. This serves as the address field in the secret
+```shell
+kubectl create secret generic lark-token \
+--from-literal=address=<lark-webhook-url>
+```
+
+Then reference the secret in `spec.secretRef`:
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: lark
+  namespace: flux-system
+spec:
+  type: lark
+  secretRef:
+    name: lark-token
+```
