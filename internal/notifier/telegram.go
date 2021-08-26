@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containrrr/shoutrrr"
 	"github.com/fluxcd/pkg/runtime/events"
+
+	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
 
 type Telegram struct {
@@ -14,23 +15,20 @@ type Telegram struct {
 	Token   string
 }
 
-func NewTelegram(channel, token string) (*Telegram, error) {
+func NewTelegram(channel, token string) (*Shoutrrr, error) {
 	if channel == "" {
 		return nil, errors.New("empty Telegram channel")
 	}
 
-	return &Telegram{
-		Channel: channel,
-		Token:   token,
+	url := fmt.Sprintf("telegram://%s@telegram?channels=%s&parseMode=markDownv2",
+		token, channel)
+	return &Shoutrrr{
+		URL:  url,
+		Type: v1beta1.TelegramProvider,
 	}, nil
 }
 
-func (t *Telegram) Post(event events.Event) error {
-	// Skip any update events
-	if isCommitStatus(event.Metadata, "update") {
-		return nil
-	}
-
+func TelegramMessage(event events.Event) string {
 	emoji := "💫"
 	if event.Severity == events.EventSeverityError {
 		emoji = "🚨"
@@ -43,9 +41,8 @@ func (t *Telegram) Post(event events.Event) error {
 		metadata = metadata + fmt.Sprintf("\\- *%s*: %s\n", k, v)
 	}
 	message := fmt.Sprintf("*%s*\n%s\n%s", escapeString(heading), escapeString(event.Message), metadata)
-	url := fmt.Sprintf("telegram://%s@telegram?channels=%s&parseMode=markDownv2", t.Token, t.Channel)
-	err := shoutrrr.Send(url, message)
-	return err
+
+	return message
 }
 
 // The telegram API requires that some special characters are escaped
