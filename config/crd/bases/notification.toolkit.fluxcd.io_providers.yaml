@@ -88,6 +88,7 @@ spec:
                 - sentry
                 - azureeventhub
                 - telegram
+                - lark
                 type: string
               username:
                 description: Bot username for this provider

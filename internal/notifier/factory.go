@@ -79,6 +79,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewAzureEventHub(f.URL, f.Token, f.Channel)
 	case v1beta1.TelegramProvider:
 		n, err = NewTelegram(f.Channel, f.Token)
+	case v1beta1.LarkProvider:
+		n, err = NewLark(f.URL)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
