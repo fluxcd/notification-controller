@@ -81,6 +81,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewTelegram(f.Channel, f.Token)
 	case v1beta1.LarkProvider:
 		n, err = NewLark(f.URL)
+	case v1beta1.Matrix:
+		n, err = NewMatrix(f.URL, f.Token, f.Channel)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
