@@ -9,7 +9,7 @@ Spec:
 ```go
 type ProviderSpec struct {
 	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab;bitbucket;azuredevops;googlechat;webex
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab;bitbucket;azuredevops;googlechat;webex;sentry;azureeventhub;telegram;lark;matrix;
 	// +required
 	Type string `json:"type"`
 
@@ -34,6 +34,11 @@ type ProviderSpec struct {
 	// Secret reference containing the provider webhook URL
 	// +optional
 	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
+
+	// CertSecretRef can be given the name of a secret containing
+	// a PEM-encoded CA certificate (`caFile`)
+	// +optional
+	CertSecretRef *meta.LocalObjectReference `json:"certSecretRef,omitempty"`
 }
 ```
 
@@ -46,6 +51,9 @@ Notification providers:
 * Google Chat
 * Webex
 * Sentry
+* Telegram
+* Lark
+* Matrix
 * Azure Event Hub
 * Generic webhook
 
@@ -107,69 +115,11 @@ kubectl create secret generic webhook-url \
 
 Note that the secret must contain an `address` field.
 
-The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `googlechat`, `webex`, `sentry`, `azureeventhub`, `github`, `gitlab`, `bitbucket`, `azuredevops` or `generic`.
+The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `googlechat`, `webex`, `sentry`,
+`telegram`, `lark`, `matrix`, `azureeventhub` or `generic`.
 
 When type `generic` is specified, the notification controller will post the
 incoming [event](event.md) in JSON format to the webhook address.
-
-### Git commit status
-
-The GitHub, GitLab, Bitbucket, and Azure DevOps provider will write to the
-commit status in the git repository from which the event originates from.
-
-!!! hint "Limitations"
-    The git notification providers require that a commit hash present in the meta data
-    of the event. There for the the providers will only work with `Kustomization` as an
-    event source, as it is the only resource which includes this data.
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta1
-kind: Provider
-metadata:
-  name: podinfo
-  namespace: default
-spec:
-  # provider type can be github or gitlab
-  type: github
-  address: https://github.com/stefanprodan/podinfo
-  secretRef:
-    name: api-token
-```
-
-#### Authentication
-
-GitHub. GitLab, and Azure DevOps use personal access tokens to authenticate with their API:
-
-- [GitHub personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token)
-- [GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
-- [Azure DevOps personal access token](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page)
-
-The providers require a secret in the same format, with the personal access token as the value for the token key:
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: api-token
-  namespace: default
-data:
-  token: <personal-access-tokens>
-```
-
-Bitbucket authenticates using an [app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/).
-It requires both the username and the password when authenticating.
-There for the token needs to be passed with the format `<username>:<app-password>`.
-A token that is not in this format will cause the provider to fail.
-
-```yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: api-token
-  namespace: default
-data:
-  token: <username>:<app-password>
-```
 
 ### Generic webhook
 
@@ -211,16 +161,16 @@ The body of the request looks like this:
 
 The `involvedObject` key contains the object that triggered the event.
 
-### Self signed certificates
+### Self-signed certificates
 
 The `certSecretRef` field names a secret with TLS certificate data. This is for the purpose
-of enabling a provider to communicate with a server using a self signed cert.
+of enabling a provider to communicate with a server using a self-signed cert.
 
 To use the field create a secret, containing a CA file, in the same namespace and reference
 it from the provider.
-```shell
-SECRET_NAME=tls-certs
-kubectl create secret generic $SECRET_NAME \
+
+```sh
+kubectl create secret generic tls-certs \
   --from-file=caFile=ca.crt
 ```
 
@@ -241,17 +191,133 @@ spec:
   address: https://....@sentry.io/12341234
 ```
 
-The sentry provider also sends traces for events with the severity Info. This can be disabled by setting the `eventSeverity` field on the related `Alert` Rule to `error`.
+The sentry provider also sends traces for events with the severity Info. This can be disabled by setting
+the `eventSeverity` field on the related `Alert` Rule to `error`.
+
+### Matrix
+
+For Matrix, the address is the homeserver URL and the token is the access token
+returned by a call to `/login` or `/register`.
+
+Create a secret:
+```
+kubectl create secret generic matrix-token \
+--from-literal=token=<access-token> \
+--from-literal=address=https://matrix.org # replace with if using a different server
+```
+
+Then reference the secret in `spec.secretRef`:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: matrix
+  namespace: default
+spec:
+  type: matrix
+  channel: "!jezptmDwEeLapMLjOc:matrix.org"
+  secretRef:
+    name: matrix-token
+```
+
+Note that `spec.channel` holds the room id.
+
+### Lark
+
+For sending notifications to Lark, You will have to
+[add a bot to the group](https://www.larksuite.com/hc/en-US/articles/360048487736-Bot-Use-bots-in-groups#III.%20How%20to%20configure%20custom%20bots%20in%20a%20group%C2%A0)
+and set up a webhook for the bot. This serves as the address field in the secret:
+
+```shell
+kubectl create secret generic lark-token \
+--from-literal=address=<lark-webhook-url>
+```
+
+Then reference the secret in `spec.secretRef`:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: lark
+  namespace: default
+spec:
+  type: lark
+  secretRef:
+    name: lark-token
+```
+
+### Git commit status
+
+The GitHub, GitLab, Bitbucket, and Azure DevOps provider will write to the
+commit status in the git repository from which the event originates from.
+
+!!! hint "Limitations"
+The git notification providers require that a commit hash present in the meta data
+of the event. There for the the providers will only work with `Kustomization` as an
+event source, as it is the only resource which includes this data.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: podinfo
+  namespace: default
+spec:
+  # provider type can be github or gitlab
+  type: github
+  address: https://github.com/stefanprodan/podinfo
+  secretRef:
+    name: api-token
+```
+
+The provider type can be: `github`, `gitlab`, `bitbucket` or `azuredevops`.
+
+#### Authentication
+
+GitHub. GitLab, and Azure DevOps use personal access tokens to authenticate with their API:
+
+- [GitHub personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token)
+- [GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
+- [Azure DevOps personal access token](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page)
+
+The providers require a secret in the same format, with the personal access token as the value for the token key:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-token
+  namespace: default
+data:
+  token: <personal-access-tokens>
+```
+
+Bitbucket authenticates using an [app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/).
+It requires both the username and the password when authenticating.
+There for the token needs to be passed with the format `<username>:<app-password>`.
+A token that is not in this format will cause the provider to fail.
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-token
+  namespace: default
+data:
+  token: <username>:<app-password>
+```
 
 ### Azure Event Hub
 
-The Azure Event Hub supports two authentication methods, [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application) and [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature) based.
+The Azure Event Hub supports two authentication methods, [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application)
+and [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature) based.
 
 #### JWT based auth
 
-In JWT we use 3 input values.
-
-Channel, token and address. We perform the following translation to match we the data we need to communicate with Azure Event Hub.
+In JWT we use 3 input values. Channel, token and address.
+We perform the following translation to match we the data we need to communicate with Azure Event Hub.
 
 * channel = Azure Event Hub namespace
 * address = Azure Event Hub name
@@ -282,8 +348,9 @@ type: Opaque
 Notification controller doesn't take any responsibility for the JWT token to be updated.
 You need to use a secondary tool to make sure that the token in the secret is renewed.
 
-If you want to make a easy test assuming that you have setup a Azure Enterprise application and you called it event-hub you can follow most of the bellow commands.
-You will need to provide the client_secret that you got when generating the Azure Enterprise Application.
+If you want to make a easy test assuming that you have setup a Azure Enterprise application and you called it
+event-hub you can follow most of the bellow commands. You will need to provide the client_secret that you got
+when generating the Azure Enterprise Application.
 
 ```shell
 export AZURE_CLIENT=$(az ad app list --filter "startswith(displayName,'event-hub')" --query '[].appId' |jq -r '.[0]')
@@ -325,8 +392,8 @@ metadata:
 type: Opaque
 ```
 
-Assuming that you have created Azure event hub and namespace you should be able to use a similar command to get your connection string.
-This will give you the default Root SAS, it's NOT supposed to be used in production.
+Assuming that you have created Azure event hub and namespace you should be able to use a similar command to get your
+connection string. This will give you the default Root SAS, it's NOT supposed to be used in production.
 
 ```shell
 az eventhubs namespace authorization-rule keys list --resource-group <rg-name> --namespace-name <namespace-name> --name RootManageSharedAccessKey -o tsv --query primaryConnectionString
@@ -339,51 +406,4 @@ To create the needed secret:
 ```shell
 kubectl create secret generic webhook-url \
 --from-literal=address="Endpoint=sb://fluxv2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=yoursaskeygeneatedbyazure"
-```
-
-## Lark
-
-For sending notifications to Lark, You will have to [add a bot to the group](https://www.larksuite.com/hc/en-US/articles/360048487736-Bot-Use-bots-in-groups#III.%20How%20to%20configure%20custom%20bots%20in%20a%20group%C2%A0)
-and set up a webhook for the bot. This serves as the address field in the secret
-```shell
-kubectl create secret generic lark-token \
---from-literal=address=<lark-webhook-url>
-```
-
-Then reference the secret in `spec.secretRef`:
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta1
-kind: Provider
-metadata:
-  name: lark
-  namespace: flux-system
-spec:
-  type: lark
-  secretRef:
-    name: lark-token
-```
-
-## Matrix
-For Matrix, the address is the homeserver URL and the token is the access token returned by a call
-to /login or /register 
-
-To create secret
-```
-kubectl create secret generic matrix-token \
---from-literal=token=<access-token> \
---from-literal=address=https://matrix.org # replace with if using a different server
-```
-
-`spec.channel` holds the room id.
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta1
-kind: Provider
-metadata:
-  name: matrix
-  namespace: flux-system
-spec:
-  type: matrix
-  channel: "!jezptmDwEeLapMLjOc:matrix.org"
-  secretRef:
-    name: matrix-token
 ```
