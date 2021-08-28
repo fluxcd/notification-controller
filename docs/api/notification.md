@@ -814,6 +814,18 @@ a PEM-encoded CA certificate (<code>caFile</code>)</p>
 <tbody>
 <tr>
 <td>
+<code>observedGeneration</code><br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ObservedGeneration is the last reconciled generation.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>conditions</code><br>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">

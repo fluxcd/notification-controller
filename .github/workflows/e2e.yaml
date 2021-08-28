@@ -49,6 +49,19 @@ jobs:
           KUBEBUILDER_ASSETS: ${{ github.workspace }}/kubebuilder/bin
       - name: Load test image
         run: kind load docker-image test/notification-controller:latest
+      - name: Install CRDs
+        run: make install
+      - name: Run default status test
+        run: |
+          kubectl apply -f config/testdata/status-defaults
+          for crd in alert provider receiver ; do
+            RESULT=$(kubectl get ${crd} status-defaults -o go-template={{.status}})
+            EXPECTED='map[observedGeneration:-1]'
+            if [ "${RESULT}" != "${EXPECTED}" ] ; then
+              echo -e "${RESULT}\n\ndoes not equal\n\n${EXPECTED} for CRD ${crd}"
+              exit 1
+            fi
+          done
       - name: Deploy controller
         run: |
           make dev-deploy IMG=test/notification-controller:latest

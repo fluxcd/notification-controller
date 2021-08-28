@@ -109,7 +109,8 @@ type Receiver struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ReceiverSpec   `json:"spec,omitempty"`
+	Spec ReceiverSpec `json:"spec,omitempty"`
+	// +kubebuilder:default:={"observedGeneration":-1}
 	Status ReceiverStatus `json:"status,omitempty"`
 }
 

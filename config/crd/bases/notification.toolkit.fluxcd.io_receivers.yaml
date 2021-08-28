@@ -114,6 +114,8 @@ spec:
             - type
             type: object
           status:
+            default:
+              observedGeneration: -1
             description: ReceiverStatus defines the observed state of Receiver
             properties:
               conditions:
