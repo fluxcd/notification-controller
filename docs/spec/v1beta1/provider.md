@@ -274,6 +274,14 @@ spec:
 
 The provider type can be: `github`, `gitlab`, `bitbucket` or `azuredevops`.
 
+For bitbucket, the token should contain the username and [app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/#Create-an-app-password) 
+in the format `<username>:<password>`. The app password should have `Repositories (Read/Write)` permission.
+
+You can create the secret using this command:
+```shell
+kubectl create secret generic api-token --from-literal=token=<username>:<app-password>
+```
+
 #### Authentication
 
 GitHub. GitLab, and Azure DevOps use personal access tokens to authenticate with their API:
