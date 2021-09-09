@@ -32,6 +32,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/fluxcd/pkg/apis/meta"
@@ -49,10 +50,19 @@ type ProviderReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+type ProviderReconcilerOptions struct {
+	MaxConcurrentReconciles int
+}
+
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return r.SetupWithManagerAndOptions(mgr, ProviderReconcilerOptions{})
+}
+
+func (r *ProviderReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts ProviderReconcilerOptions) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.Provider{}).
 		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{})).
+		WithOptions(controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles}).
 		Complete(r)
 }
 

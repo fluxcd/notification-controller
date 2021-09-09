@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"github.com/fluxcd/pkg/apis/meta"
 
@@ -43,6 +44,10 @@ type ReceiverReconciler struct {
 	client.Client
 	helper.Metrics
 	Scheme *runtime.Scheme
+}
+
+type ReceiverReconcilerOptions struct {
+	MaxConcurrentReconciles int
 }
 
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=receivers,verbs=get;list;watch;create;update;patch;delete
@@ -125,8 +130,13 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 }
 
 func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return r.SetupWithManagerAndOptions(mgr, ReceiverReconcilerOptions{})
+}
+
+func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts ReceiverReconcilerOptions) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.Receiver{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles}).
 		Complete(r)
 }
 

@@ -123,7 +123,9 @@ func main() {
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsH,
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManagerAndOptions(mgr, controllers.ProviderReconcilerOptions{
+		MaxConcurrentReconciles: concurrent,
+	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Provider")
 		os.Exit(1)
 	}
@@ -131,7 +133,9 @@ func main() {
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsH,
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManagerAndOptions(mgr, controllers.AlertReconcilerOptions{
+		MaxConcurrentReconciles: concurrent,
+	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Alert")
 		os.Exit(1)
 	}
@@ -139,7 +143,9 @@ func main() {
 		Client:  mgr.GetClient(),
 		Scheme:  mgr.GetScheme(),
 		Metrics: metricsH,
-	}).SetupWithManager(mgr); err != nil {
+	}).SetupWithManagerAndOptions(mgr, controllers.ReceiverReconcilerOptions{
+		MaxConcurrentReconciles: concurrent,
+	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Receiver")
 		os.Exit(1)
 	}

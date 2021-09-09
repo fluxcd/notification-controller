@@ -33,6 +33,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -50,7 +51,15 @@ type AlertReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+type AlertReconcilerOptions struct {
+	MaxConcurrentReconciles int
+}
+
 func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return r.SetupWithManagerAndOptions(mgr, AlertReconcilerOptions{})
+}
+
+func (r *AlertReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts AlertReconcilerOptions) error {
 	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &v1beta1.Alert{}, v1beta1.ProviderIndexKey,
 		func(o client.Object) []string {
 			alert := o.(*v1beta1.Alert)
@@ -69,6 +78,7 @@ func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			handler.EnqueueRequestsFromMapFunc(r.requestsForProviderChange),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 		).
+		WithOptions(controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles}).
 		Complete(r)
 }
 
