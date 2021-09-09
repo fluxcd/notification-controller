@@ -28,11 +28,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fluxcd/pkg/runtime/conditions"
 	corev1 "k8s.io/api/core/v1"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/events"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
@@ -73,7 +72,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 	each_alert:
 		for _, alert := range allAlerts.Items {
 			// skip suspended and not ready alerts
-			isReady := apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition)
+			isReady := conditions.IsReady(&alert)
 			if alert.Spec.Suspend || !isReady {
 				continue each_alert
 			}
@@ -132,6 +131,10 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 					"reconciler kind", v1beta1.ProviderKind,
 					"name", providerName.Name,
 					"namespace", providerName.Namespace)
+				continue
+			}
+
+			if provider.Spec.Suspend {
 				continue
 			}
 

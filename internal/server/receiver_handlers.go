@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fluxcd/pkg/runtime/conditions"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,7 +38,6 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/google/go-github/v32/github"
 	corev1 "k8s.io/api/core/v1"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -62,7 +62,7 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 		receivers := make([]v1beta1.Receiver, 0)
 		for _, receiver := range allReceivers.Items {
 			if !receiver.Spec.Suspend &&
-				apimeta.IsStatusConditionTrue(receiver.Status.Conditions, meta.ReadyCondition) &&
+				conditions.IsReady(&receiver) &&
 				receiver.Status.URL == fmt.Sprintf("/hook/%s", digest) {
 				receivers = append(receivers, receiver)
 			}

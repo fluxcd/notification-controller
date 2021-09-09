@@ -149,9 +149,10 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *v1beta1.Receive
 		return ctrl.Result{}, nil
 	}
 
-	// Mark the resource as ready
+	// Mark the resource as ready and set the URL
 	conditions.MarkTrue(obj, meta.ReadyCondition, v1beta1.InitializedReason, "Receiver initialised with URL: "+receiverURL,
 		receiverURL)
+	obj.Status.URL = receiverURL
 
 	ctrl.LoggerFrom(ctx).Info("Receiver initialised")
 
