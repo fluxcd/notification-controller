@@ -20,18 +20,20 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"k8s.io/client-go/tools/reference"
+	"time"
 
-	"github.com/go-logr/logr"
+	"github.com/fluxcd/pkg/runtime/conditions"
+	helper "github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/patch"
 	corev1 "k8s.io/api/core/v1"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/fluxcd/pkg/apis/meta"
-	"github.com/fluxcd/pkg/runtime/metrics"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
@@ -39,8 +41,8 @@ import (
 // ReceiverReconciler reconciles a Receiver object
 type ReceiverReconciler struct {
 	client.Client
-	Scheme          *runtime.Scheme
-	MetricsRecorder *metrics.Recorder
+	helper.Metrics
+	Scheme *runtime.Scheme
 }
 
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=receivers,verbs=get;list;watch;create;update;patch;delete
@@ -55,44 +57,71 @@ type ReceiverReconciler struct {
 // +kubebuilder:rbac:groups=image.fluxcd.io,resources=imagerepositories/status,verbs=get
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
-func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := logr.FromContext(ctx)
+func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, retErr error) {
+	start := time.Now()
+	log := ctrl.LoggerFrom(ctx)
 
-	var receiver v1beta1.Receiver
-	if err := r.Get(ctx, req.NamespacedName, &receiver); err != nil {
+	receiver := &v1beta1.Receiver{}
+	if err := r.Get(ctx, req.NamespacedName, receiver); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// record suspension metrics
-	defer r.recordSuspension(ctx, receiver)
-
-	token, err := r.token(ctx, receiver)
-	if err != nil {
-		receiver = v1beta1.ReceiverNotReady(receiver, v1beta1.TokenNotFoundReason, err.Error())
-		if err := r.patchStatus(ctx, req, receiver.Status); err != nil {
-			return ctrl.Result{Requeue: true}, err
-		}
-		return ctrl.Result{}, err
-	}
-
-	isReady := apimeta.IsStatusConditionTrue(receiver.Status.Conditions, meta.ReadyCondition)
-	receiverURL := fmt.Sprintf("/hook/%s", sha256sum(token+receiver.Name+receiver.Namespace))
-	if receiver.Status.URL == receiverURL && isReady && receiver.Status.ObservedGeneration == receiver.Generation {
+	defer r.RecordSuspend(ctx, receiver, receiver.Spec.Suspend)
+	// return early if the object is suspended
+	if receiver.Spec.Suspend {
+		log.Info("Reconciliation is suspended for this object")
 		return ctrl.Result{}, nil
 	}
 
-	receiver = v1beta1.ReceiverReady(receiver,
-		v1beta1.InitializedReason,
-		"Receiver initialised with URL: "+receiverURL,
-		receiverURL)
-	receiver.Status.ObservedGeneration = receiver.Generation
-	if err := r.patchStatus(ctx, req, receiver.Status); err != nil {
-		return ctrl.Result{Requeue: true}, err
+	// Initialize the patch helper
+	patchHelper, err := patch.NewHelper(receiver, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
+	defer func() {
+		// Patch the object, ignoring conflicts on the conditions owned by this controller
+		patchOpts := []patch.Option{
+			patch.WithOwnedConditions{
+				Conditions: []string{
+					meta.ReadyCondition,
+					meta.ReconcilingCondition,
+					meta.StalledCondition,
+				},
+			},
+		}
 
-	log.Info("Receiver initialised")
+		// Determine if the resource is still being reconciled, or if it has stalled, and record this observation
+		if retErr == nil && (result.IsZero() || !result.Requeue) {
+			// We are no longer reconciling
+			conditions.Delete(receiver, meta.ReconcilingCondition)
 
-	return ctrl.Result{}, nil
+			// We have now observed this generation
+			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+
+			readyCondition := conditions.Get(receiver, meta.ReadyCondition)
+			switch readyCondition.Status {
+			case metav1.ConditionFalse:
+				// As we are no longer reconciling and the end-state is not ready, the reconciliation has stalled
+				conditions.MarkStalled(receiver, readyCondition.Reason, readyCondition.Message)
+			case metav1.ConditionTrue:
+				// As we are no longer reconciling and the end-state is ready, the reconciliation is no longer stalled
+				conditions.Delete(receiver, meta.StalledCondition)
+			}
+		}
+
+		// Finally, patch the resource
+		if err := patchHelper.Patch(ctx, receiver, patchOpts...); err != nil {
+			retErr = errors.NewAggregate([]error{retErr, err})
+		}
+
+		// Always record readiness and duration metrics
+		r.Metrics.RecordReadiness(ctx, receiver)
+		r.Metrics.RecordDuration(ctx, receiver, start)
+
+	}()
+
+	return r.reconcile(ctx, receiver)
 }
 
 func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -101,8 +130,36 @@ func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(r)
 }
 
+/// reconcile steps through the actual reconciliation tasks for the object, it returns early on the first step that
+// produces an error.
+func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *v1beta1.Receiver) (ctrl.Result, error) {
+	// Mark the resource as under reconciliation
+	conditions.MarkReconciling(obj, meta.ProgressingReason, "")
+
+	token, err := r.token(ctx, obj)
+	if err != nil {
+		conditions.MarkFalse(obj, meta.ReadyCondition, v1beta1.TokenNotFoundReason, err.Error())
+		return ctrl.Result{}, err
+	}
+
+	receiverURL := fmt.Sprintf("/hook/%s", sha256sum(token+obj.Name+obj.Namespace))
+
+	// Nothing has changed so return early
+	if conditions.IsReady(obj) && obj.Status.URL == receiverURL && obj.Status.ObservedGeneration == obj.Generation {
+		return ctrl.Result{}, nil
+	}
+
+	// Mark the resource as ready
+	conditions.MarkTrue(obj, meta.ReadyCondition, v1beta1.InitializedReason, "Receiver initialised with URL: "+receiverURL,
+		receiverURL)
+
+	ctrl.LoggerFrom(ctx).Info("Receiver initialised")
+
+	return ctrl.Result{}, nil
+}
+
 // token extract the token value from the secret object
-func (r *ReceiverReconciler) token(ctx context.Context, receiver v1beta1.Receiver) (string, error) {
+func (r *ReceiverReconciler) token(ctx context.Context, receiver *v1beta1.Receiver) (string, error) {
 	token := ""
 	secretName := types.NamespacedName{
 		Namespace: receiver.GetNamespace(),
@@ -124,38 +181,7 @@ func (r *ReceiverReconciler) token(ctx context.Context, receiver v1beta1.Receive
 	return token, nil
 }
 
-func (r *ReceiverReconciler) recordSuspension(ctx context.Context, rcvr v1beta1.Receiver) {
-	if r.MetricsRecorder == nil {
-		return
-	}
-	log := logr.FromContext(ctx)
-
-	objRef, err := reference.GetReference(r.Scheme, &rcvr)
-	if err != nil {
-		log.Error(err, "unable to record suspended metric")
-		return
-	}
-
-	if !rcvr.DeletionTimestamp.IsZero() {
-		r.MetricsRecorder.RecordSuspend(*objRef, false)
-	} else {
-		r.MetricsRecorder.RecordSuspend(*objRef, rcvr.Spec.Suspend)
-	}
-}
-
 func sha256sum(val string) string {
 	digest := sha256.Sum256([]byte(val))
 	return fmt.Sprintf("%x", digest)
-}
-
-func (r *ReceiverReconciler) patchStatus(ctx context.Context, req ctrl.Request, newStatus v1beta1.ReceiverStatus) error {
-	var receiver v1beta1.Receiver
-	if err := r.Get(ctx, req.NamespacedName, &receiver); err != nil {
-		return err
-	}
-
-	patch := client.MergeFrom(receiver.DeepCopy())
-	receiver.Status = newStatus
-
-	return r.Status().Patch(ctx, &receiver, patch)
 }

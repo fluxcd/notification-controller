@@ -71,6 +71,9 @@ spec:
                 required:
                 - name
                 type: object
+              suspend:
+                description: This flag tells the controller to suspend subsequent events handling. Defaults to false.
+                type: boolean
               type:
                 description: Type of provider
                 enum:

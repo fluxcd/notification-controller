@@ -21,19 +21,22 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-logr/logr"
-	apimeta "k8s.io/apimachinery/pkg/api/meta"
+	"github.com/fluxcd/pkg/apis/meta"
+	"github.com/fluxcd/pkg/runtime/conditions"
+	helper "github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/patch"
+	"github.com/fluxcd/pkg/runtime/predicates"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/reference"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
-
-	"github.com/fluxcd/pkg/apis/meta"
-	"github.com/fluxcd/pkg/runtime/metrics"
-	"github.com/fluxcd/pkg/runtime/predicates"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
@@ -41,126 +44,147 @@ import (
 // AlertReconciler reconciles a Alert object
 type AlertReconciler struct {
 	client.Client
-	Scheme          *runtime.Scheme
-	MetricsRecorder *metrics.Recorder
+	helper.Metrics
+	helper.Events
+
+	Scheme *runtime.Scheme
+}
+
+func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &v1beta1.Alert{}, v1beta1.ProviderIndexKey,
+		func(o client.Object) []string {
+			alert := o.(*v1beta1.Alert)
+			return []string{
+				fmt.Sprintf("%s/%s", alert.GetNamespace(), alert.Spec.ProviderRef.Name),
+			}
+		}); err != nil {
+
+	}
+
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&v1beta1.Alert{}).
+		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{})).
+		Watches(
+			&source.Kind{Type: &v1beta1.Provider{}},
+			handler.EnqueueRequestsFromMapFunc(r.requestsForProviderChange),
+			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
+		).
+		Complete(r)
 }
 
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=alerts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=alerts/status,verbs=get;update;patch
 
-func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	reconcileStart := time.Now()
-	log := logr.FromContext(ctx)
+func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, retErr error) {
+	start := time.Now()
+	log := ctrl.LoggerFrom(ctx)
 
-	var alert v1beta1.Alert
-	if err := r.Get(ctx, req.NamespacedName, &alert); err != nil {
+	alert := &v1beta1.Alert{}
+	if err := r.Get(ctx, req.NamespacedName, alert); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// record suspension metrics
-	r.recordSuspension(ctx, alert)
+	r.RecordSuspend(ctx, alert, alert.Spec.Suspend)
 
-	// record reconciliation duration
-	if r.MetricsRecorder != nil {
-		objRef, err := reference.GetReference(r.Scheme, &alert)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		defer r.MetricsRecorder.RecordDuration(*objRef, reconcileStart)
+	if alert.Spec.Suspend {
+		log.Info("Reconciliation is suspended for this object")
+		return ctrl.Result{}, nil
 	}
+
+	patchHelper, err := patch.NewHelper(alert, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	defer func() {
+		conditions.SetSummary(alert, meta.ReadyCondition)
+
+		patchOpts := []patch.Option{
+			patch.WithOwnedConditions{
+				Conditions: []string{
+					meta.ReadyCondition,
+					meta.ReconcilingCondition,
+					meta.StalledCondition,
+				},
+			},
+		}
+
+		if retErr == nil && (result.IsZero() || !result.Requeue) {
+			conditions.Delete(alert, meta.ReconcilingCondition)
+
+			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+
+			readyCondition := conditions.Get(alert, meta.ReadyCondition)
+			switch readyCondition.Status {
+			case metav1.ConditionFalse:
+				// As we are no longer reconciling and the end-state is not ready, the reconciliation has stalled
+				conditions.MarkStalled(alert, readyCondition.Reason, readyCondition.Message)
+			case metav1.ConditionTrue:
+				// As we are no longer reconciling and the end-state is ready, the reconciliation is no longer stalled
+				conditions.Delete(alert, meta.StalledCondition)
+			}
+		}
+
+		if err := patchHelper.Patch(ctx, alert, patchOpts...); err != nil {
+			retErr = kerrors.NewAggregate([]error{retErr, err})
+		}
+
+		r.Metrics.RecordReadiness(ctx, alert)
+		r.Metrics.RecordDuration(ctx, alert, start)
+	}()
+
+	return r.reconcile(ctx, alert)
+}
+
+func (r *AlertReconciler) reconcile(ctx context.Context, alert *v1beta1.Alert) (ctrl.Result, error) {
+	// Mark the resource as under reconciliation
+	conditions.MarkReconciling(alert, meta.ProgressingReason, "")
 
 	// validate alert spec and provider
 	if err := r.validate(ctx, alert); err != nil {
-		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionFalse, meta.ReconciliationFailedReason, err.Error())
-		if err := r.patchStatus(ctx, req, alert.Status); err != nil {
-			return ctrl.Result{Requeue: true}, err
-		}
-		return ctrl.Result{Requeue: true}, err
+		conditions.MarkFalse(alert, meta.ReadyCondition, meta.FailedReason, err.Error())
+		return ctrl.Result{}, err
 	}
 
-	if !apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition) || alert.Status.ObservedGeneration != alert.Generation {
-		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionTrue, v1beta1.InitializedReason, v1beta1.InitializedReason)
-		alert.Status.ObservedGeneration = alert.Generation
-		if err := r.patchStatus(ctx, req, alert.Status); err != nil {
-			return ctrl.Result{Requeue: true}, err
-		}
-		log.Info("Alert initialised")
-	}
-
-	r.recordReadiness(ctx, alert)
+	conditions.MarkTrue(alert, meta.ReadyCondition, meta.SucceededReason, v1beta1.InitializedReason)
+	ctrl.LoggerFrom(ctx).Info("Alert initialised")
 
 	return ctrl.Result{}, nil
 }
 
-func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1beta1.Alert{}).
-		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{})).
-		Complete(r)
-}
-
-func (r *AlertReconciler) validate(ctx context.Context, alert v1beta1.Alert) error {
-	var provider v1beta1.Provider
+func (r *AlertReconciler) validate(ctx context.Context, alert *v1beta1.Alert) error {
+	provider := &v1beta1.Provider{}
 	providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
-	if err := r.Get(ctx, providerName, &provider); err != nil {
+	if err := r.Get(ctx, providerName, provider); err != nil {
 		return fmt.Errorf("failed to get provider %s, error: %w", providerName.String(), err)
 	}
 
-	if !apimeta.IsStatusConditionTrue(provider.Status.Conditions, meta.ReadyCondition) {
+	if !conditions.IsReady(provider) {
 		return fmt.Errorf("provider %s is not ready", providerName.String())
 	}
 
 	return nil
 }
 
-func (r *AlertReconciler) recordSuspension(ctx context.Context, alert v1beta1.Alert) {
-	if r.MetricsRecorder == nil {
-		return
-	}
-	log := logr.FromContext(ctx)
-
-	objRef, err := reference.GetReference(r.Scheme, &alert)
-	if err != nil {
-		log.Error(err, "unable to record suspended metric")
-		return
+func (r *AlertReconciler) requestsForProviderChange(o client.Object) []reconcile.Request {
+	provider, ok := o.(*v1beta1.Provider)
+	if !ok {
+		panic(fmt.Errorf("expected a provider, got %T", o))
 	}
 
-	if !alert.DeletionTimestamp.IsZero() {
-		r.MetricsRecorder.RecordSuspend(*objRef, false)
-	} else {
-		r.MetricsRecorder.RecordSuspend(*objRef, alert.Spec.Suspend)
-	}
-}
-
-func (r *AlertReconciler) recordReadiness(ctx context.Context, alert v1beta1.Alert) {
-	log := logr.FromContext(ctx)
-	if r.MetricsRecorder == nil {
-		return
+	ctx := context.Background()
+	var list v1beta1.AlertList
+	if err := r.List(ctx, &list, client.MatchingFields{
+		v1beta1.ProviderIndexKey: client.ObjectKeyFromObject(provider).String(),
+	}); err != nil {
+		return nil
 	}
 
-	objRef, err := reference.GetReference(r.Scheme, &alert)
-	if err != nil {
-		log.Error(err, "unable to record readiness metric")
-		return
-	}
-	if rc := apimeta.FindStatusCondition(alert.Status.Conditions, meta.ReadyCondition); rc != nil {
-		r.MetricsRecorder.RecordCondition(*objRef, *rc, !alert.DeletionTimestamp.IsZero())
-	} else {
-		r.MetricsRecorder.RecordCondition(*objRef, metav1.Condition{
-			Type:   meta.ReadyCondition,
-			Status: metav1.ConditionUnknown,
-		}, !alert.DeletionTimestamp.IsZero())
-	}
-}
-
-func (r *AlertReconciler) patchStatus(ctx context.Context, req ctrl.Request, newStatus v1beta1.AlertStatus) error {
-	var alert v1beta1.Alert
-	if err := r.Get(ctx, req.NamespacedName, &alert); err != nil {
-		return err
+	var reqs []reconcile.Request
+	for _, i := range list.Items {
+		reqs = append(reqs, reconcile.Request{NamespacedName: client.ObjectKeyFromObject(&i)})
 	}
 
-	patch := client.MergeFrom(alert.DeepCopy())
-	alert.Status = newStatus
-
-	return r.Status().Patch(ctx, &alert, patch)
+	return reqs
 }

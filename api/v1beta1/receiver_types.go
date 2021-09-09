@@ -80,20 +80,20 @@ const (
 	ACRReceiver         string = "acr"
 )
 
-func ReceiverReady(receiver Receiver, reason, message, url string) Receiver {
-	meta.SetResourceCondition(&receiver, meta.ReadyCondition, metav1.ConditionTrue, reason, message)
-	receiver.Status.URL = url
-	return receiver
-}
-
-func ReceiverNotReady(receiver Receiver, reason, message string) Receiver {
-	meta.SetResourceCondition(&receiver, meta.ReadyCondition, metav1.ConditionFalse, reason, message)
-	return receiver
-}
-
 // GetStatusConditions returns a pointer to the Status.Conditions slice
+// Deprecated: use GetConditions instead.
 func (in *Receiver) GetStatusConditions() *[]metav1.Condition {
 	return &in.Status.Conditions
+}
+
+// GetConditions returns the status conditions of the object.
+func (in *Receiver) GetConditions() []metav1.Condition {
+	return in.Status.Conditions
+}
+
+// SetConditions sets the status conditions on the object.
+func (in *Receiver) SetConditions(conditions []metav1.Condition) {
+	in.Status.Conditions = conditions
 }
 
 // +genclient
