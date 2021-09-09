@@ -26,6 +26,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fluxcd/pkg/runtime/conditions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sethvargo/go-limiter/memorystore"
@@ -170,7 +171,7 @@ var _ = Describe("Event handlers", func() {
 		Expect(k8sClient.Create(context.Background(), &alert)).To(Succeed())
 		// the event server won't dispatch to an alert if it has
 		// not been marked "ready"
-		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionTrue, meta.ReconciliationSucceededReason, "artificially set to ready")
+		conditions.MarkTrue(&alert, meta.ReadyCondition, meta.SucceededReason, "artificially set to ready")
 		Expect(k8sClient.Status().Update(context.Background(), &alert)).To(Succeed())
 	})
 

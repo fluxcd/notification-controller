@@ -313,6 +313,19 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 a PEM-encoded CA certificate (<code>caFile</code>)</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>suspend</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>This flag tells the controller to suspend subsequent events handling.
+Defaults to false.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -789,6 +802,19 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 <em>(Optional)</em>
 <p>CertSecretRef can be given the name of a secret containing
 a PEM-encoded CA certificate (<code>caFile</code>)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suspend</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>This flag tells the controller to suspend subsequent events handling.
+Defaults to false.</p>
 </td>
 </tr>
 </tbody>
