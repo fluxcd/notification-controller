@@ -23,12 +23,14 @@ import (
 	"strings"
 
 	"github.com/fluxcd/pkg/runtime/events"
+	"github.com/hashicorp/go-retryablehttp"
 )
 
 // Slack holds the hook URL
 type Slack struct {
 	URL      string
 	ProxyURL string
+	Token    string
 	Username string
 	Channel  string
 	CertPool *x509.CertPool
@@ -37,6 +39,7 @@ type Slack struct {
 // SlackPayload holds the channel and attachments
 type SlackPayload struct {
 	Channel     string            `json:"channel"`
+	Token       string            `json:"token,omitempty"`
 	Username    string            `json:"username"`
 	IconUrl     string            `json:"icon_url"`
 	IconEmoji   string            `json:"icon_emoji"`
@@ -60,7 +63,7 @@ type SlackField struct {
 }
 
 // NewSlack validates the Slack URL and returns a Slack object
-func NewSlack(hookURL string, proxyURL string, certPool *x509.CertPool, username string, channel string) (*Slack, error) {
+func NewSlack(hookURL string, proxyURL string, token string, certPool *x509.CertPool, username string, channel string) (*Slack, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Slack hook URL %s", hookURL)
@@ -71,6 +74,7 @@ func NewSlack(hookURL string, proxyURL string, certPool *x509.CertPool, username
 		Username: username,
 		URL:      hookURL,
 		ProxyURL: proxyURL,
+		Token:    token,
 		CertPool: certPool,
 	}, nil
 }
@@ -114,7 +118,11 @@ func (s *Slack) Post(event events.Event) error {
 
 	payload.Attachments = []SlackAttachment{a}
 
-	err := postMessage(s.URL, s.ProxyURL, s.CertPool, payload)
+	err := postMessage(s.URL, s.ProxyURL, s.CertPool, payload, func(request *retryablehttp.Request) {
+		if s.Token != "" {
+			request.Header.Add("Authorization", "Bearer "+s.Token)
+		}
+	})
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
