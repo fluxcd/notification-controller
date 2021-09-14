@@ -42,6 +42,10 @@ import (
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
 
+var (
+	ProviderIndexKey string = ".metadata.provider"
+)
+
 // AlertReconciler reconciles a Alert object
 type AlertReconciler struct {
 	client.Client
@@ -60,7 +64,7 @@ func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *AlertReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts AlertReconcilerOptions) error {
-	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &v1beta1.Alert{}, v1beta1.ProviderIndexKey,
+	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &v1beta1.Alert{}, ProviderIndexKey,
 		func(o client.Object) []string {
 			alert := o.(*v1beta1.Alert)
 			return []string{
@@ -186,7 +190,7 @@ func (r *AlertReconciler) requestsForProviderChange(o client.Object) []reconcile
 	ctx := context.Background()
 	var list v1beta1.AlertList
 	if err := r.List(ctx, &list, client.MatchingFields{
-		v1beta1.ProviderIndexKey: client.ObjectKeyFromObject(provider).String(),
+		ProviderIndexKey: client.ObjectKeyFromObject(provider).String(),
 	}); err != nil {
 		return nil
 	}

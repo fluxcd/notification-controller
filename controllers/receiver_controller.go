@@ -155,7 +155,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *v1beta1.Receive
 	receiverURL := fmt.Sprintf("/hook/%s", sha256sum(token+obj.Name+obj.Namespace))
 
 	// Nothing has changed so return early
-	if conditions.IsReady(obj) && obj.Status.URL == receiverURL && obj.Status.ObservedGeneration == obj.Generation {
+	if obj.Status.URL == receiverURL && obj.Status.ObservedGeneration == obj.Generation {
 		return ctrl.Result{}, nil
 	}
 

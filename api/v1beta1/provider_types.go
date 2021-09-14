@@ -22,8 +22,7 @@ import (
 )
 
 const (
-	ProviderKind     string = "Provider"
-	ProviderIndexKey string = ".metadata.provider"
+	ProviderKind string = "Provider"
 )
 
 // ProviderSpec defines the desired state of Provider
