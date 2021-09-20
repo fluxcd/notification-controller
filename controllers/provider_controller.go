@@ -140,7 +140,7 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *v1beta1.Provide
 	}
 
 	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, v1beta1.InitializedReason)
-	ctrl.LoggerFrom(ctx).Info("Provider initialised")
+	ctrl.LoggerFrom(ctx).Info("Provider initialized")
 
 	return ctrl.Result{}, nil
 }
@@ -192,7 +192,7 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Pro
 
 	factory := notifier.NewFactory(address, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, certPool)
 	if _, err := factory.Notifier(provider.Spec.Type); err != nil {
-		return fmt.Errorf("failed to initialise provider, error: %w", err)
+		return fmt.Errorf("failed to initialize provider, error: %w", err)
 	}
 
 	return nil

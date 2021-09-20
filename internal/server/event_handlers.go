@@ -207,7 +207,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			factory := notifier.NewFactory(webhook, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, certPool)
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {
-				s.logger.Error(err, "failed to initialise provider",
+				s.logger.Error(err, "failed to initialize provider",
 					"reconciler kind", v1beta1.ProviderKind,
 					"name", providerName.Name,
 					"namespace", providerName.Namespace)

@@ -71,7 +71,7 @@ func (r *AlertReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts Aler
 				fmt.Sprintf("%s/%s", alert.GetNamespace(), alert.Spec.ProviderRef.Name),
 			}
 		}); err != nil {
-
+		return err
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -112,8 +112,6 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 	}
 
 	defer func() {
-		conditions.SetSummary(alert, meta.ReadyCondition)
-
 		patchOpts := []patch.Option{
 			patch.WithOwnedConditions{
 				Conditions: []string{
@@ -158,11 +156,11 @@ func (r *AlertReconciler) reconcile(ctx context.Context, alert *v1beta1.Alert) (
 	// validate alert spec and provider
 	if err := r.validate(ctx, alert); err != nil {
 		conditions.MarkFalse(alert, meta.ReadyCondition, meta.FailedReason, err.Error())
-		return ctrl.Result{}, err
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	conditions.MarkTrue(alert, meta.ReadyCondition, meta.SucceededReason, v1beta1.InitializedReason)
-	ctrl.LoggerFrom(ctx).Info("Alert initialised")
+	ctrl.LoggerFrom(ctx).Info("Alert initialized")
 
 	return ctrl.Result{}, nil
 }

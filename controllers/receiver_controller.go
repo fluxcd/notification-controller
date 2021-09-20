@@ -164,7 +164,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *v1beta1.Receive
 		receiverURL)
 	obj.Status.URL = receiverURL
 
-	ctrl.LoggerFrom(ctx).Info("Receiver initialised")
+	ctrl.LoggerFrom(ctx).Info("Receiver initialized")
 
 	return ctrl.Result{}, nil
 }
