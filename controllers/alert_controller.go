@@ -169,6 +169,8 @@ func (r *AlertReconciler) validate(ctx context.Context, alert *v1beta1.Alert) er
 	provider := &v1beta1.Provider{}
 	providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
 	if err := r.Get(ctx, providerName, provider); err != nil {
+		// log not found errors since they get filtered out
+		ctrl.LoggerFrom(ctx).Error(err, "failed to get provider %s, error: %w", providerName.String())
 		return fmt.Errorf("failed to get provider %s, error: %w", providerName.String(), err)
 	}
 
