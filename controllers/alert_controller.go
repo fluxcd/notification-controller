@@ -171,7 +171,7 @@ func (r *AlertReconciler) validate(ctx context.Context, alert *v1beta1.Alert) er
 	if err := r.Get(ctx, providerName, provider); err != nil {
 		// log not found errors since they get filtered out
 		ctrl.LoggerFrom(ctx).Error(err, "failed to get provider %s, error: %w", providerName.String())
-		return fmt.Errorf("failed to get provider %s, error: %w", providerName.String(), err)
+		return fmt.Errorf("failed to get provider '%s', error: %w", providerName.String(), err)
 	}
 
 	if !conditions.IsReady(provider) {
