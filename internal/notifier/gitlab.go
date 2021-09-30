@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/fluxcd/pkg/runtime/events"
@@ -91,6 +92,23 @@ func (g *GitLab) Post(event events.Event) error {
 		State:       state,
 	}
 
+	listOpts := &gitlab.GetCommitStatusesOptions{}
+
+	status := &gitlab.CommitStatus{
+		Name:        name,
+		SHA:         rev,
+		Status:      string(state),
+		Description: desc,
+	}
+
+	statuses, _, err := g.Client.Commits.GetCommitStatuses(g.Id, rev, listOpts)
+	if err != nil {
+		return fmt.Errorf("unable to list commit status: %s", err)
+	}
+	if duplicateGitlabStatus(statuses, status) {
+		return nil
+	}
+
 	_, _, err = g.Client.Commits.SetCommitStatus(g.Id, rev, options)
 	if err != nil {
 		return err
@@ -108,4 +126,16 @@ func toGitLabState(severity string) (gitlab.BuildStateValue, error) {
 	default:
 		return "", errors.New("can't convert to gitlab state")
 	}
+}
+
+func duplicateGitlabStatus(statuses []*gitlab.CommitStatus, status *gitlab.CommitStatus) bool {
+	for _, s := range statuses {
+		if s.SHA == status.SHA {
+			if s.Status == status.Status && s.Description == status.Description && s.Name == status.Name {
+				return true
+			}
+		}
+	}
+
+	return false
 }
