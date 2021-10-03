@@ -249,6 +249,10 @@ spec:
 Note that you have to set the generated token as the Bitbucket server webhook secret value.
 The controller uses the `X-Hub-Signature` HTTP header to verify that the request is legitimate.
 
+Also note, the *Bitbucket cloud* service does not yet provide any support for signing webhook requests.
+([1](https://jira.atlassian.com/browse/BCLOUD-14683), [2](https://jira.atlassian.com/browse/BCLOUD-12195)).
+If your repositories are on Bitbucket cloud, you will need to use the Generic receiver instead.
+
 ### Harbor receiver
 
 ```yaml
