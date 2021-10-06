@@ -90,6 +90,7 @@ spec:
                 - telegram
                 - lark
                 - matrix
+                - opsgenie
                 type: string
               username:
                 description: Bot username for this provider

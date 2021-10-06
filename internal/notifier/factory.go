@@ -83,6 +83,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewLark(f.URL)
 	case v1beta1.Matrix:
 		n, err = NewMatrix(f.URL, f.Token, f.Channel)
+	case v1beta1.OpsgenieProvider:
+		n, err = NewOpsgenie(f.URL, f.ProxyURL, f.CertPool, f.Token)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
