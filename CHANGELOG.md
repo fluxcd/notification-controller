@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.17.0
+
+**Release date:** 2021-10-08
+
+This prerelease comes with support for sending alerts to Opsgenie.
+
+Features:
+* Add opsgenie provider
+  [#252](https://github.com/fluxcd/notification-controller/pull/252)
+
+Fixes:
+* Escape metadata string for Telegram notification
+  [#249](https://github.com/fluxcd/notification-controller/pull/249)
+
 ## 0.16.0
 
 **Release date:** 2021-08-26
