@@ -9,7 +9,7 @@ Spec:
 ```go
 type ProviderSpec struct {
 	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab;bitbucket;azuredevops;googlechat;webex;sentry;azureeventhub;telegram;lark;matrix;
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab;bitbucket;azuredevops;googlechat;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie
 	// +required
 	Type string `json:"type"`
 
@@ -56,6 +56,7 @@ Notification providers:
 * Matrix
 * Azure Event Hub
 * Generic webhook
+* Opsgenie
 
 Git commit status providers:
 
@@ -225,7 +226,7 @@ Note that `spec.channel` holds the room id.
 
 ### Lark
 
-For sending notifications to Lark, You will have to
+For sending notifications to Lark, you will have to
 [add a bot to the group](https://www.larksuite.com/hc/en-US/articles/360048487736-Bot-Use-bots-in-groups#III.%20How%20to%20configure%20custom%20bots%20in%20a%20group%C2%A0)
 and set up a webhook for the bot. This serves as the address field in the secret:
 
@@ -247,6 +248,36 @@ spec:
   secretRef:
     name: lark-token
 ```
+
+
+### Opsgenie
+
+For sending notifications to Opsgenie, you will have to
+[add a REST api integration](https://support.atlassian.com/opsgenie/docs/create-a-default-api-integration/)
+and setup a api integration for notification provider.
+
+A secret needs to be generated with the api key given by Opsgenie for the integration
+
+```shell
+kubectl create secret generic opsgenie-token \
+--from-literal=token=<opsgenie-api-key>
+```
+
+Then reference the secret in `spec.secretRef`:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: opsgenie
+  namespace: default
+spec:
+  type: opsgenie
+  address: https://api.opsgenie.com/v2/alerts
+  secretRef:
+    name: opsgenie-token
+```
+
 
 ### Git commit status
 
@@ -317,6 +348,19 @@ data:
   token: <username>:<app-password>
 ```
 
+
+Opsgenie uses an api key to authenticate [api key](https://support.atlassian.com/opsgenie/docs/api-key-management/).
+The providers require a secret in the same format, with the api key as the value for the token key:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-token
+  namespace: default
+data:
+  token: <api-key>
+```
 ### Azure Event Hub
 
 The Azure Event Hub supports two authentication methods, [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application)
