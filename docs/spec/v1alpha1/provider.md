@@ -125,29 +125,3 @@ personal access token to authenticate with the GitHub or GitLab API.
 kubectl -n gitops-system create secret generic git-api-token \
 --from-literal=token=YOUR-TOKEN
 ```
-
-## Telegram
-
-For telegram, You can get the token from [the botfather](https://core.telegram.org/bots#6-botfather)
-and use `https://api.telegram.org/` as the api url.
-
-```sh
- k create secret generic telegram-token \
- --from-literal=token=<token> \
- --from-literal=address=https://api.telegram.org
-```
-
-Also note that the channel name should start with '@'.
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta1
-kind: Provider
-metadata:
-  name: telegram
-  namespace: flux-system
-spec:
-  type: telegram
-  channel: "@fluxtest"
-  secretRef:
-    name: telegram-token
-```

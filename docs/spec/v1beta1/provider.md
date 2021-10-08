@@ -195,6 +195,32 @@ spec:
 The sentry provider also sends traces for events with the severity Info. This can be disabled by setting
 the `eventSeverity` field on the related `Alert` Rule to `error`.
 
+### Telegram
+
+For telegram, You can get the token from [the botfather](https://core.telegram.org/bots#6-botfather)
+and use `https://api.telegram.org/` as the api url.
+
+```sh
+ k create secret generic telegram-token \
+ --from-literal=token=<token> \
+ --from-literal=address=https://api.telegram.org
+```
+
+Also note that the channel name should start with '@'.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: telegram
+  namespace: flux-system
+spec:
+  type: telegram
+  channel: "@fluxtest"
+  secretRef:
+    name: telegram-token
+```
+
 ### Matrix
 
 For Matrix, the address is the homeserver URL and the token is the access token
