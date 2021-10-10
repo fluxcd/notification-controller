@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"crypto/x509"
 	"fmt"
 	"net/url"
 	"strings"
@@ -28,6 +29,7 @@ import (
 type MSTeams struct {
 	URL      string
 	ProxyURL string
+	CertPool *x509.CertPool
 }
 
 // MSTeamsPayload holds the message card data
@@ -52,7 +54,7 @@ type MSTeamsField struct {
 }
 
 // NewMSTeams validates the MS Teams URL and returns a MSTeams object
-func NewMSTeams(hookURL string, proxyURL string) (*MSTeams, error) {
+func NewMSTeams(hookURL string, proxyURL string, certPool *x509.CertPool) (*MSTeams, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid MS Teams webhook URL %s", hookURL)
@@ -61,6 +63,7 @@ func NewMSTeams(hookURL string, proxyURL string) (*MSTeams, error) {
 	return &MSTeams{
 		URL:      hookURL,
 		ProxyURL: proxyURL,
+		CertPool: certPool,
 	}, nil
 }
 
@@ -98,7 +101,7 @@ func (s *MSTeams) Post(event events.Event) error {
 		payload.ThemeColor = "FF0000"
 	}
 
-	err := postMessage(s.URL, s.ProxyURL, nil, payload)
+	err := postMessage(s.URL, s.ProxyURL, s.CertPool, payload)
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}

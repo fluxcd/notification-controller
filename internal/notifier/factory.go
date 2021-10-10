@@ -60,7 +60,7 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	case v1beta1.RocketProvider:
 		n, err = NewRocket(f.URL, f.ProxyURL, f.CertPool, f.Username, f.Channel)
 	case v1beta1.MSTeamsProvider:
-		n, err = NewMSTeams(f.URL, f.ProxyURL)
+		n, err = NewMSTeams(f.URL, f.ProxyURL, f.CertPool)
 	case v1beta1.GitHubProvider:
 		n, err = NewGitHub(f.URL, f.Token, f.CertPool)
 	case v1beta1.GitLabProvider:
