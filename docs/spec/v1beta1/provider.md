@@ -57,6 +57,7 @@ Notification providers:
 * Azure Event Hub
 * Generic webhook
 * Opsgenie
+* Alertmanager
 
 Git commit status providers:
 
@@ -117,7 +118,7 @@ kubectl create secret generic webhook-url \
 Note that the secret must contain an `address` field.
 
 The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `googlechat`, `webex`, `sentry`,
-`telegram`, `lark`, `matrix`, `azureeventhub` or `generic`.
+`telegram`, `lark`, `matrix`, `azureeventhub`, `opsgenie`, `alertmanager` or `generic`.
 
 When type `generic` is specified, the notification controller will post the
 incoming [event](event.md) in JSON format to the webhook address.
@@ -279,6 +280,39 @@ spec:
 ```
 
 
+### Prometheus Alertmanager
+
+Sends notifications to [alertmanager v2 api](https://github.com/prometheus/alertmanager/blob/main/api/v2/openapi.yaml) if alert manager has basic authentication configured it is recommended to use
+secretRef and include the username:password in the address string.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: alertmanager
+  namespace: default
+spec:
+  type: alertmanager
+  # webhook address (ignored if secretRef is specified)
+  address: https://....@<alertmanager-url>/api/v2/alerts/"
+```
+
+When an event is triggered the provider will send a single alert with at least one annotation for alert which is the "message" found for the event.
+If a summary is provided in the alert resource an additional "summary" annotation will be added.
+
+The provider will send the following labels for the event.
+
+
+| Label       | Description                                                                                        |
+| ----------- | -------------------------------------------------------------------------------------------------- |
+| alertname   | The string Flux followed by the Kind and the reason for the event e.g FluxKustomizationProgressing |
+| severity    | The severity of the event (error|info)                                                             |
+| reason      | The machine readable reason for the objects transition into the current status                     |
+| kind        | The kind of the involved object associated with the event                                          |
+| name        | The name of the involved object associated with the event                                          |
+| namespace   | The namespace of the involved object associated with the event                                     |
+
+
 ### Git commit status
 
 The GitHub, GitLab, Bitbucket, and Azure DevOps provider will write to the
@@ -339,7 +373,6 @@ metadata:
 data:
   token: <username>:<app-password>
 ```
-
 
 Opsgenie uses an api key to authenticate [api key](https://support.atlassian.com/opsgenie/docs/api-key-management/).
 The providers require a secret in the same format, with the api key as the value for the token key:

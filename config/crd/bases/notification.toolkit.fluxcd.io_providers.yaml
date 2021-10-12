@@ -91,6 +91,7 @@ spec:
                 - lark
                 - matrix
                 - opsgenie
+                - alertmanager
                 type: string
               username:
                 description: Bot username for this provider
