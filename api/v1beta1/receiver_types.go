@@ -82,12 +82,14 @@ const (
 
 func ReceiverReady(receiver Receiver, reason, message, url string) Receiver {
 	meta.SetResourceCondition(&receiver, meta.ReadyCondition, metav1.ConditionTrue, reason, message)
+	receiver.Status.ObservedGeneration = receiver.Generation
 	receiver.Status.URL = url
 	return receiver
 }
 
 func ReceiverNotReady(receiver Receiver, reason, message string) Receiver {
 	meta.SetResourceCondition(&receiver, meta.ReadyCondition, metav1.ConditionFalse, reason, message)
+	receiver.Status.ObservedGeneration = receiver.Generation
 	return receiver
 }
 
