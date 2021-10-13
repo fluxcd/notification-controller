@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.17.1
+
+**Release date:** 2021-10-13
+
+This prerelease comes with a fix to the readiness status reporting of the notification custom resources.
+
+Fixes:
+* Set observed generation when recording status
+  [#261](https://github.com/fluxcd/notification-controller/pull/261)
+
 ## 0.17.0
 
 **Release date:** 2021-10-08
