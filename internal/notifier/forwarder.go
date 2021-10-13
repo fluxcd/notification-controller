@@ -46,6 +46,7 @@ func NewForwarder(hookURL string, proxyURL string, certPool *x509.CertPool) (*Fo
 	return &Forwarder{
 		URL:      hookURL,
 		ProxyURL: proxyURL,
+		CertPool: certPool,
 	}, nil
 }
 
