@@ -71,7 +71,7 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// validate provider spec and credentials
 	if err := r.validate(ctx, provider); err != nil {
-		meta.SetResourceCondition(&provider, meta.ReadyCondition, metav1.ConditionFalse, meta.ReconciliationFailedReason, err.Error())
+		provider = v1beta1.SetProviderReadiness(provider, metav1.ConditionFalse, meta.ReconciliationFailedReason, err.Error())
 		if err := r.patchStatus(ctx, req, provider.Status); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
@@ -79,7 +79,7 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	if !apimeta.IsStatusConditionTrue(provider.Status.Conditions, meta.ReadyCondition) {
-		meta.SetResourceCondition(&provider, meta.ReadyCondition, metav1.ConditionTrue, v1beta1.InitializedReason, v1beta1.InitializedReason)
+		provider = v1beta1.SetProviderReadiness(provider, metav1.ConditionTrue, v1beta1.InitializedReason, v1beta1.InitializedReason)
 		if err := r.patchStatus(ctx, req, provider.Status); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}

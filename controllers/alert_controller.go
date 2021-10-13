@@ -71,7 +71,7 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	// validate alert spec and provider
 	if err := r.validate(ctx, alert); err != nil {
-		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionFalse, meta.ReconciliationFailedReason, err.Error())
+		alert = v1beta1.SetAlertReadiness(alert, metav1.ConditionFalse, meta.ReconciliationFailedReason, err.Error())
 		if err := r.patchStatus(ctx, req, alert.Status); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}
@@ -79,8 +79,7 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	if !apimeta.IsStatusConditionTrue(alert.Status.Conditions, meta.ReadyCondition) || alert.Status.ObservedGeneration != alert.Generation {
-		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionTrue, v1beta1.InitializedReason, v1beta1.InitializedReason)
-		alert.Status.ObservedGeneration = alert.Generation
+		alert = v1beta1.SetAlertReadiness(alert, metav1.ConditionTrue, v1beta1.InitializedReason, v1beta1.InitializedReason)
 		if err := r.patchStatus(ctx, req, alert.Status); err != nil {
 			return ctrl.Result{Requeue: true}, err
 		}

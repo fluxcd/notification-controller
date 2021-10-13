@@ -85,7 +85,6 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 		v1beta1.InitializedReason,
 		"Receiver initialised with URL: "+receiverURL,
 		receiverURL)
-	receiver.Status.ObservedGeneration = receiver.Generation
 	if err := r.patchStatus(ctx, req, receiver.Status); err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}

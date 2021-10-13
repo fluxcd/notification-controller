@@ -127,3 +127,9 @@ type ProviderList struct {
 func init() {
 	SchemeBuilder.Register(&Provider{}, &ProviderList{})
 }
+
+func SetProviderReadiness(provider Provider, status metav1.ConditionStatus, reason, message string) Provider {
+	meta.SetResourceCondition(&provider, meta.ReadyCondition, status, reason, message)
+	provider.Status.ObservedGeneration = provider.Generation
+	return provider
+}

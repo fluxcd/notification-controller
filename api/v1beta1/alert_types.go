@@ -101,3 +101,9 @@ type AlertList struct {
 func init() {
 	SchemeBuilder.Register(&Alert{}, &AlertList{})
 }
+
+func SetAlertReadiness(alert Alert, status metav1.ConditionStatus, reason, message string) Alert {
+	meta.SetResourceCondition(&alert, meta.ReadyCondition, status, reason, message)
+	alert.Status.ObservedGeneration = alert.Generation
+	return alert
+}
