@@ -28,7 +28,7 @@ to join the conversation (this will also add an invitation to your
 Google calendar for our [Flux
 meeting](https://docs.google.com/document/d/1l_M0om0qUEN_NNiGgpqJ2tvsF2iioHkaARDeh6b70B0/edit#)).
 
-### How to run the test suite
+## How to run the test suite
 
 Prerequisites:
 * go >= 1.13
