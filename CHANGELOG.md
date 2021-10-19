@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.18.0
+
+**Release date:** 2021-10-19
+
+This prerelease comes with support for sending alerts to Prometheus Alertmanager.
+
+Features:
+* Add alertmanager provider
+  [#258](https://github.com/fluxcd/notification-controller/pull/258)
+
 ## 0.17.1
 
 **Release date:** 2021-10-13
