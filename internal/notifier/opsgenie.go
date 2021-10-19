@@ -39,7 +39,6 @@ type OpsgenieAlert struct {
 	Details     map[string]string `json:"details"`
 }
 
-// NewSlack validates the Slack URL and returns a Slack object
 func NewOpsgenie(hookURL string, proxyURL string, certPool *x509.CertPool, token string) (*Opsgenie, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
