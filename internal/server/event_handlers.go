@@ -25,7 +25,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -225,7 +224,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			go func(n notifier.Interface, e events.Event) {
 				if err := n.Post(e); err != nil {
 					if token != "" {
-						redacted := strings.ReplaceAll(err.Error(), token, "*****")
+						re := regexp.MustCompile(fmt.Sprintf("%s*", token))
+						redacted := re.ReplaceAllString(err.Error(), "*****")
 						err = errors.New(redacted)
 					}
 
