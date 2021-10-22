@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.18.1
+
+**Release date:** 2021-10-22
+
+This prerelease comes with support for self-signed certificates when forwarding events to a TLS endpoint.
+
+Fixes:
+* Fixed missing setter for Forwarder CertPool
+  [#262](https://github.com/fluxcd/notification-controller/pull/262)
+* Fix MSTeams certificates
+  [#257](https://github.com/fluxcd/notification-controller/pull/257)
+* Use regex to find and replace token
+  [#271](https://github.com/fluxcd/notification-controller/pull/271)
+
 ## 0.18.0
 
 **Release date:** 2021-10-19
