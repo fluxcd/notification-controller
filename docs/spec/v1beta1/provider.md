@@ -344,10 +344,11 @@ The provider will send the following labels for the event.
 The GitHub, GitLab, Bitbucket, and Azure DevOps provider will write to the
 commit status in the git repository from which the event originates from.
 
-!!! hint "Limitations"
+{{% alert color="info" title="Limitations" %}}
 The git notification providers require that a commit hash present in the meta data
-of the event. There for the the providers will only work with `Kustomization` as an
+of the event. Therefore the the providers will only work with `Kustomization` as an
 event source, as it is the only resource which includes this data.
+{{% /alert %}}
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
@@ -395,7 +396,7 @@ data:
 
 Bitbucket authenticates using an [app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/).
 It requires both the username and the password when authenticating.
-There for the token needs to be passed with the format `<username>:<app-password>`.
+Therefore the token needs to be passed with the format `<username>:<app-password>`.
 A token that is not in this format will cause the provider to fail.
 
 ```yaml
