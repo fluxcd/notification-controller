@@ -22,7 +22,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -107,7 +107,7 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 		h.ServeHTTP(recorder, r)
 
 		if recorder.Status == http.StatusTooManyRequests {
-			body, err := ioutil.ReadAll(r.Body)
+			body, err := io.ReadAll(r.Body)
 			if err != nil {
 				s.logger.Error(err, "reading the request body failed")
 				w.WriteHeader(http.StatusBadRequest)
@@ -122,7 +122,7 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 				return
 			}
 
-			r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+			r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 			s.logger.V(1).Info("Discarding event, rate limiting duplicate events",
 				"reconciler kind", event.InvolvedObject.Kind,
@@ -133,7 +133,7 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 }
 
 func eventKeyFunc(r *http.Request) (string, error) {
-	body, err := ioutil.ReadAll(r.Body)
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		return "", err
 	}
@@ -144,7 +144,7 @@ func eventKeyFunc(r *http.Request) (string, error) {
 		return "", err
 	}
 
-	r.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 	comps := []string{"event", event.InvolvedObject.Name, event.InvolvedObject.Namespace, event.InvolvedObject.Kind, event.Message}
 	revString, ok := event.Metadata["revision"]
