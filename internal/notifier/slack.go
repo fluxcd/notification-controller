@@ -39,7 +39,6 @@ type Slack struct {
 // SlackPayload holds the channel and attachments
 type SlackPayload struct {
 	Channel     string            `json:"channel"`
-	Token       string            `json:"token,omitempty"`
 	Username    string            `json:"username"`
 	IconUrl     string            `json:"icon_url"`
 	IconEmoji   string            `json:"icon_emoji"`
