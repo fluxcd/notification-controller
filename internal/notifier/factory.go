@@ -54,7 +54,7 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	case v1beta1.GenericProvider:
 		n, err = NewForwarder(f.URL, f.ProxyURL, f.CertPool)
 	case v1beta1.SlackProvider:
-		n, err = NewSlack(f.URL, f.ProxyURL, f.CertPool, f.Username, f.Channel)
+		n, err = NewSlack(f.URL, f.ProxyURL, f.Token, f.CertPool, f.Username, f.Channel)
 	case v1beta1.DiscordProvider:
 		n, err = NewDiscord(f.URL, f.ProxyURL, f.Username, f.Channel)
 	case v1beta1.RocketProvider:

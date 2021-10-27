@@ -39,7 +39,7 @@ func TestSlack_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	slack, err := NewSlack(ts.URL, "", nil, "", "test")
+	slack, err := NewSlack(ts.URL, "", "", nil, "", "test")
 	require.NoError(t, err)
 
 	err = slack.Post(testEvent())
@@ -47,7 +47,7 @@ func TestSlack_Post(t *testing.T) {
 }
 
 func TestSlack_PostUpdate(t *testing.T) {
-	slack, err := NewSlack("http://localhost", "", nil, "", "test")
+	slack, err := NewSlack("http://localhost", "", "", nil, "", "test")
 	require.NoError(t, err)
 
 	event := testEvent()

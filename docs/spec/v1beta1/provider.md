@@ -339,6 +339,42 @@ The provider will send the following labels for the event.
 | namespace   | The namespace of the involved object associated with the event                                     |
 
 
+### Slack App
+
+It is possible to use Slack Apps bot integration to send messages. To obtain bot token, follow the [Slack's guide](https://api.slack.com/bot-users).
+
+Differences from Slack [webhook method](#notifications):
+
+* Possible to use single credentials to post into different channels (integration should be added to each channel)
+* All messages would be posted from app username, losing the `helm-controller`, `source-controller` usernames
+
+In that case, Slack secret should contain URL of [chat.postMessage](https://api.slack.com/methods/chat.postMessage) method and your Slack bot token (starts with `xoxb-`):
+
+```shell
+kubectl create secret generic slack-token \
+--from-literal=address=https://slack.com/api/chat.postMessage \
+--from-literal=token=xoxb-YOUR-TOKEN
+```
+
+Then reference this secret in `spec.secretRef`:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: slack
+  namespace: default
+spec:
+  type: slack
+  channel: general
+  # HTTP(S) proxy (optional)
+  proxy: https://proxy.corp:8080
+  # secret containing Slack API address and token
+  secretRef:
+    name: slack-token
+```
+
+
 ### Git commit status
 
 The GitHub, GitLab, Bitbucket, and Azure DevOps provider will write to the
@@ -366,7 +402,7 @@ spec:
 
 The provider type can be: `github`, `gitlab`, `bitbucket` or `azuredevops`.
 
-For bitbucket, the token should contain the username and [app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/#Create-an-app-password) 
+For bitbucket, the token should contain the username and [app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/#Create-an-app-password)
 in the format `<username>:<password>`. The app password should have `Repositories (Read/Write)` permission.
 
 You can create the secret using this command:
