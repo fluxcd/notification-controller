@@ -343,6 +343,11 @@ The provider will send the following labels for the event.
 
 It is possible to use Slack Apps bot integration to send messages. To obtain bot token, follow the [Slack's guide](https://api.slack.com/bot-users).
 
+Differences from Slack [webhook method](#notifications):
+
+* Possible to use single credentials to post into different channels (integration should be added to each channel)
+* All messages would be posted from app username, losing the `helm-controller`, `source-controller` usernames
+
 In that case, Slack secret should contain URL of [chat.postMessage](https://api.slack.com/methods/chat.postMessage) method and your Slack bot token (starts with `xoxb-`):
 
 ```shell
