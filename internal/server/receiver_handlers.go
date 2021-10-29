@@ -24,7 +24,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -121,7 +121,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 	case v1beta1.GenericReceiver:
 		return nil
 	case v1beta1.GenericHMACReceiver:
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			return fmt.Errorf("unable to read request body: %s", err)
 		}
@@ -283,7 +283,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			return fmt.Errorf("Nexus signature is missing from header")
 		}
 
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			return fmt.Errorf("cannot read Nexus payload. error: %s", err)
 		}
