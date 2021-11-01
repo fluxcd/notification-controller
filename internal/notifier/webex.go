@@ -48,6 +48,7 @@ func NewWebex(hookURL, proxyURL string, certPool *x509.CertPool) (*Webex, error)
 	return &Webex{
 		URL:      hookURL,
 		ProxyURL: proxyURL,
+		CertPool: certPool,
 	}, nil
 }
 
