@@ -120,7 +120,6 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 					meta.StalledCondition,
 				},
 			},
-			patch.WithStatusObservedGeneration{},
 		}
 
 		if retErr == nil && (result.IsZero() || !result.Requeue) {
@@ -156,7 +155,7 @@ func (r *AlertReconciler) reconcile(ctx context.Context, alert *v1beta1.Alert) (
 
 	// validate alert spec and provider
 	if err := r.validate(ctx, alert); err != nil {
-		conditions.MarkFalse(alert, meta.ReadyCondition, meta.FailedReason, err.Error())
+		conditions.MarkFalse(alert, meta.ReadyCondition, v1beta1.ValidationFailedReason, err.Error())
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -171,8 +170,8 @@ func (r *AlertReconciler) validate(ctx context.Context, alert *v1beta1.Alert) er
 	providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
 	if err := r.Get(ctx, providerName, provider); err != nil {
 		// log not found errors since they get filtered out
-		ctrl.LoggerFrom(ctx).Error(err, "failed to get provider %s, error: %w", providerName.String())
-		return fmt.Errorf("failed to get provider '%s', error: %w", providerName.String(), err)
+		ctrl.LoggerFrom(ctx).Error(err, "failed to get provider %s", providerName.String())
+		return fmt.Errorf("failed to get provider '%s': %w", providerName.String(), err)
 	}
 
 	if !conditions.IsReady(provider) {

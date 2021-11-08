@@ -99,7 +99,6 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 					meta.StalledCondition,
 				},
 			},
-			patch.WithStatusObservedGeneration{},
 		}
 
 		if retErr == nil && (result.IsZero() || !result.Requeue) {
@@ -136,7 +135,7 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *v1beta1.Provide
 
 	// validate provider spec and credentials
 	if err := r.validate(ctx, obj); err != nil {
-		conditions.MarkFalse(obj, meta.ReadyCondition, meta.FailedReason, err.Error())
+		conditions.MarkFalse(obj, meta.ReadyCondition, v1beta1.ValidationFailedReason, err.Error())
 		return ctrl.Result{}, err
 	}
 
