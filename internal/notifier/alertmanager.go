@@ -65,7 +65,10 @@ func (s *Alertmanager) Post(event events.Event) error {
 		delete(event.Metadata, "summary")
 	}
 
-	labels := event.Metadata
+	var labels = make(map[string]string)
+	if event.Metadata != nil {
+		labels = event.Metadata
+	}
 	labels["alertname"] = "Flux" + event.InvolvedObject.Kind + strings.Title(event.Reason)
 	labels["severity"] = event.Severity
 	labels["reason"] = event.Reason
