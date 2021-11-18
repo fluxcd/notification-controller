@@ -26,7 +26,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fluxcd/pkg/runtime/conditions"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sethvargo/go-limiter/memorystore"
@@ -43,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/fluxcd/pkg/apis/meta"
+	"github.com/fluxcd/pkg/runtime/conditions"
 	"github.com/fluxcd/pkg/runtime/events"
 
 	notifyv1 "github.com/fluxcd/notification-controller/api/v1beta1"

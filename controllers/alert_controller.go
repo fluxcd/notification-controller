@@ -21,11 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fluxcd/pkg/apis/meta"
-	"github.com/fluxcd/pkg/runtime/conditions"
-	helper "github.com/fluxcd/pkg/runtime/controller"
-	"github.com/fluxcd/pkg/runtime/patch"
-	"github.com/fluxcd/pkg/runtime/predicates"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -39,11 +34,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	"github.com/fluxcd/pkg/apis/meta"
+	"github.com/fluxcd/pkg/runtime/conditions"
+	helper "github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/patch"
+	"github.com/fluxcd/pkg/runtime/predicates"
+
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
 
 var (
-	ProviderIndexKey string = ".metadata.provider"
+	ProviderIndexKey = ".metadata.provider"
 )
 
 // AlertReconciler reconciles a Alert object

@@ -22,9 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fluxcd/pkg/runtime/conditions"
-	helper "github.com/fluxcd/pkg/runtime/controller"
-	"github.com/fluxcd/pkg/runtime/patch"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,6 +32,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"github.com/fluxcd/pkg/apis/meta"
+	"github.com/fluxcd/pkg/runtime/conditions"
+	helper "github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/patch"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
@@ -71,9 +71,9 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// record suspension metrics
+	// Record suspension metrics
 	defer r.RecordSuspend(ctx, receiver, receiver.Spec.Suspend)
-	// return early if the object is suspended
+	// Return early if the object is suspended
 	if receiver.Spec.Suspend {
 		log.Info("Reconciliation is suspended for this object")
 		return ctrl.Result{}, nil
@@ -155,8 +155,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *v1beta1.Receive
 	receiverURL := fmt.Sprintf("/hook/%s", sha256sum(token+obj.Name+obj.Namespace))
 
 	// Mark the resource as ready and set the URL
-	conditions.MarkTrue(obj, meta.ReadyCondition, v1beta1.InitializedReason, "Receiver initialised with URL: "+receiverURL,
-		receiverURL)
+	conditions.MarkTrue(obj, meta.ReadyCondition, v1beta1.InitializedReason, "Receiver initialized with URL: %s", receiverURL)
 	obj.Status.URL = receiverURL
 
 	ctrl.LoggerFrom(ctx).Info("Receiver initialized")

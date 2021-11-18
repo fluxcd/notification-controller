@@ -22,9 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fluxcd/pkg/runtime/conditions"
-	helper "github.com/fluxcd/pkg/runtime/controller"
-	"github.com/fluxcd/pkg/runtime/patch"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,6 +33,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/fluxcd/pkg/apis/meta"
+	"github.com/fluxcd/pkg/runtime/conditions"
+	helper "github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/patch"
 	"github.com/fluxcd/pkg/runtime/predicates"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
