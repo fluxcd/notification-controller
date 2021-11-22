@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/fluxcd/pkg/apis/meta"
+	"github.com/fluxcd/pkg/runtime/conditions"
 	"github.com/fluxcd/pkg/runtime/events"
 
 	notifyv1 "github.com/fluxcd/notification-controller/api/v1beta1"
@@ -170,7 +171,7 @@ var _ = Describe("Event handlers", func() {
 		Expect(k8sClient.Create(context.Background(), &alert)).To(Succeed())
 		// the event server won't dispatch to an alert if it has
 		// not been marked "ready"
-		meta.SetResourceCondition(&alert, meta.ReadyCondition, metav1.ConditionTrue, meta.ReconciliationSucceededReason, "artificially set to ready")
+		conditions.MarkTrue(&alert, meta.ReadyCondition, meta.SucceededReason, "artificially set to ready")
 		Expect(k8sClient.Status().Update(context.Background(), &alert)).To(Succeed())
 	})
 

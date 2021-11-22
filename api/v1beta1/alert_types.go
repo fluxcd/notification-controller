@@ -85,8 +85,19 @@ type Alert struct {
 }
 
 // GetStatusConditions returns a pointer to the Status.Conditions slice
+// Deprecated: use GetConditions instead.
 func (in *Alert) GetStatusConditions() *[]metav1.Condition {
 	return &in.Status.Conditions
+}
+
+// GetConditions returns the status conditions of the object.
+func (in *Alert) GetConditions() []metav1.Condition {
+	return in.Status.Conditions
+}
+
+// SetConditions sets the status conditions on the object.
+func (in *Alert) SetConditions(conditions []metav1.Condition) {
+	in.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true
@@ -100,10 +111,4 @@ type AlertList struct {
 
 func init() {
 	SchemeBuilder.Register(&Alert{}, &AlertList{})
-}
-
-func SetAlertReadiness(alert Alert, status metav1.ConditionStatus, reason, message string) Alert {
-	meta.SetResourceCondition(&alert, meta.ReadyCondition, status, reason, message)
-	alert.Status.ObservedGeneration = alert.Generation
-	return alert
 }

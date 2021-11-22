@@ -11,8 +11,8 @@ require (
 	github.com/Azure/go-amqp v0.13.6 // indirect
 	github.com/containrrr/shoutrrr v0.4.4
 	github.com/fluxcd/notification-controller/api v0.18.1
-	github.com/fluxcd/pkg/apis/meta v0.10.0
-	github.com/fluxcd/pkg/runtime v0.12.0
+	github.com/fluxcd/pkg/apis/meta v0.11.0-rc.1
+	github.com/fluxcd/pkg/runtime v0.13.0-rc.5
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/go-logr/logr v0.4.0
 	github.com/google/go-github/v39 v39.0.0
@@ -32,5 +32,5 @@ require (
 	k8s.io/api v0.21.3
 	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.3
-	sigs.k8s.io/controller-runtime v0.9.5
+	sigs.k8s.io/controller-runtime v0.9.6
 )

@@ -20,6 +20,10 @@ const (
 	// InitializedReason represents the fact that a given resource has been initialized.
 	InitializedReason string = "Initialized"
 
+	// ValidationFailedReason represents the fact that some part of the spec of a given resource
+	// couldn't be validated.
+	ValidationFailedReason string = "ValidationFailed"
+
 	// TokenNotFound represents the fact that receiver token can't be found.
 	TokenNotFoundReason string = "TokenNotFound"
 )
