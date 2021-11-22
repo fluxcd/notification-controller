@@ -21,7 +21,7 @@ require (
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/onsi/ginkgo v1.16.4
-	github.com/onsi/gomega v1.14.0
+	github.com/onsi/gomega v1.15.0
 	github.com/sethvargo/go-limiter v0.7.2
 	github.com/slok/go-http-metrics v0.9.0
 	github.com/spf13/pflag v1.0.5
@@ -29,8 +29,8 @@ require (
 	github.com/whilp/git-urls v1.0.0
 	github.com/xanzy/go-gitlab v0.50.4
 	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
-	k8s.io/api v0.21.3
-	k8s.io/apimachinery v0.21.3
-	k8s.io/client-go v0.21.3
-	sigs.k8s.io/controller-runtime v0.9.6
+	k8s.io/api v0.22.2
+	k8s.io/apimachinery v0.22.2
+	k8s.io/client-go v0.22.2
+	sigs.k8s.io/controller-runtime v0.10.2
 )
