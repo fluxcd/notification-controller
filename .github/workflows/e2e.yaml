@@ -97,7 +97,8 @@ jobs:
       - name: Run smoke tests
         run: |
           kubectl -n notification-system apply -f ./config/samples
-          kubectl -n notification-system wait provider/provider-sample --for=condition=ready --timeout=1m
+          kubectl -n notification-system wait provider/slack-provider-sample --for=condition=ready --timeout=1m
+          kubectl -n notification-system wait provider/generic-provider-sample --for=condition=ready --timeout=1m
           kubectl -n notification-system wait alert/alert-sample --for=condition=ready --timeout=1m
           kubectl -n notification-system wait receiver/receiver-sample --for=condition=ready --timeout=1m
       - name: Logs

@@ -35,10 +35,11 @@ const NotificationHeader = "gotk-component"
 type Forwarder struct {
 	URL      string
 	ProxyURL string
+	Headers  map[string]string
 	CertPool *x509.CertPool
 }
 
-func NewForwarder(hookURL string, proxyURL string, certPool *x509.CertPool) (*Forwarder, error) {
+func NewForwarder(hookURL string, proxyURL string, headers map[string]string, certPool *x509.CertPool) (*Forwarder, error) {
 	if _, err := url.ParseRequestURI(hookURL); err != nil {
 		return nil, fmt.Errorf("invalid hook URL %s: %w", hookURL, err)
 	}
@@ -46,6 +47,7 @@ func NewForwarder(hookURL string, proxyURL string, certPool *x509.CertPool) (*Fo
 	return &Forwarder{
 		URL:      hookURL,
 		ProxyURL: proxyURL,
+		Headers:  headers,
 		CertPool: certPool,
 	}, nil
 }
@@ -53,6 +55,9 @@ func NewForwarder(hookURL string, proxyURL string, certPool *x509.CertPool) (*Fo
 func (f *Forwarder) Post(event events.Event) error {
 	err := postMessage(f.URL, f.ProxyURL, f.CertPool, event, func(req *retryablehttp.Request) {
 		req.Header.Set(NotificationHeader, event.ReportingController)
+		for key, val := range f.Headers {
+			req.Header.Set(key, val)
+		}
 	})
 
 	if err != nil {

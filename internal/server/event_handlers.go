@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gopkg.in/yaml.v3"
 	"io"
 	"net/http"
 	"regexp"
@@ -139,6 +140,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 			webhook := provider.Spec.Address
 			token := ""
+			headers := make(map[string]string)
 			if provider.Spec.SecretRef != nil {
 				var secret corev1.Secret
 				secretName := types.NamespacedName{Namespace: alert.Namespace, Name: provider.Spec.SecretRef.Name}
@@ -158,6 +160,17 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 				if t, ok := secret.Data["token"]; ok {
 					token = string(t)
+				}
+
+				if h, ok := secret.Data["headers"]; ok {
+					err := yaml.Unmarshal(h, headers)
+					if err != nil {
+						s.logger.Error(err, "failed to read headers from secret",
+							"reconciler kind", v1beta1.ProviderKind,
+							"name", providerName.Name,
+							"namespace", providerName.Namespace)
+						continue
+					}
 				}
 			}
 
@@ -203,7 +216,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
-			factory := notifier.NewFactory(webhook, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, certPool)
+			factory := notifier.NewFactory(webhook, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, headers, certPool)
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {
 				s.logger.Error(err, "failed to initialize provider",

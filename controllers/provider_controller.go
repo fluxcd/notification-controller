@@ -32,6 +32,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	"gopkg.in/yaml.v3"
+
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 	helper "github.com/fluxcd/pkg/runtime/controller"
@@ -148,6 +150,7 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *v1beta1.Provide
 func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Provider) error {
 	address := provider.Spec.Address
 	token := ""
+	headers := make(map[string]string)
 	if provider.Spec.SecretRef != nil {
 		var secret corev1.Secret
 		secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.SecretRef.Name}
@@ -162,6 +165,13 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Pro
 
 		if t, ok := secret.Data["token"]; ok {
 			token = string(t)
+		}
+
+		if h, ok := secret.Data["headers"]; ok {
+			err := yaml.Unmarshal(h, headers)
+			if err != nil {
+				return fmt.Errorf("failed to read headers from secret, error: %w", err)
+			}
 		}
 	}
 
@@ -190,7 +200,7 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Pro
 		}
 	}
 
-	factory := notifier.NewFactory(address, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, certPool)
+	factory := notifier.NewFactory(address, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, headers, certPool)
 	if _, err := factory.Notifier(provider.Spec.Type); err != nil {
 		return fmt.Errorf("failed to initialize provider, error: %w", err)
 	}

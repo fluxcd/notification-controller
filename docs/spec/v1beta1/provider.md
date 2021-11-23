@@ -163,6 +163,28 @@ The body of the request looks like this:
 
 The `involvedObject` key contains the object that triggered the event.
 
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: generic
+  namespace: default
+spec:
+  type: generic
+  address: https://api.github.com/repos/owner/repo/dispatches
+  secretRef: 
+    name: generic-secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: generic-secret
+  namespace: default
+data:
+  # 'Authorization: token\nX-Forwarded-Proto: https'
+  headers: QXV0aG9yaXphdGlvbjogdG9rZW4KWC1Gb3J3YXJkZWQtUHJvdG86IGh0dHBz
+```
+
 ### Self-signed certificates
 
 The `certSecretRef` field names a secret with TLS certificate data. This is for the purpose
