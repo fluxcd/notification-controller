@@ -163,6 +163,32 @@ The body of the request looks like this:
 
 The `involvedObject` key contains the object that triggered the event.
 
+You can add additional headers to the POST request by providing a `headers` field to the secret
+referenced by the provider. An example is given below:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: generic
+  namespace: default
+spec:
+  type: generic
+  address: https://api.github.com/repos/owner/repo/dispatches
+  secretRef: 
+    name: generic-secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: generic-secret
+  namespace: default
+stringData:
+  headers: |
+     Authorization: token
+     X-Forwarded-Proto: https
+```
+
 ### Self-signed certificates
 
 The `certSecretRef` field names a secret with TLS certificate data. This is for the purpose

@@ -34,6 +34,7 @@ func TestForwarder_Post(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, "source-controller", r.Header.Get("gotk-component"))
+		require.Equal(t, "token", r.Header.Get("Authorization"))
 		var payload = events.Event{}
 		err = json.Unmarshal(b, &payload)
 		require.NoError(t, err)
@@ -42,7 +43,9 @@ func TestForwarder_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	forwarder, err := NewForwarder(ts.URL, "", nil)
+	headers := make(map[string]string)
+	headers["Authorization"] = "token"
+	forwarder, err := NewForwarder(ts.URL, "", headers, nil)
 	require.NoError(t, err)
 
 	err = forwarder.Post(testEvent())

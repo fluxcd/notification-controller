@@ -36,7 +36,8 @@ func FuzzForwarder(data []byte) int {
 	}))
 	defer ts.Close()
 
-	forwarder, err := NewForwarder(ts.URL, "", nil)
+	header := make(map[string]string)
+	forwarder, err := NewForwarder(ts.URL, "", header, nil)
 	if err != nil {
 		return 0
 	}
