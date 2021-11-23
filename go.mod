@@ -10,7 +10,7 @@ require (
 	github.com/Azure/azure-sdk-for-go v53.4.0+incompatible // indirect
 	github.com/Azure/go-amqp v0.13.6 // indirect
 	github.com/containrrr/shoutrrr v0.4.4
-	github.com/fluxcd/notification-controller/api v0.18.1
+	github.com/fluxcd/notification-controller/api v0.19.0
 	github.com/fluxcd/pkg/apis/meta v0.11.0-rc.1
 	github.com/fluxcd/pkg/runtime v0.13.0-rc.5
 	github.com/getsentry/sentry-go v0.11.0

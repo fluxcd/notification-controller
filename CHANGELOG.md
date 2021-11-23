@@ -2,6 +2,42 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.19.0
+
+**Release date:** 2021-11-23
+
+This prerelease introduces the `Reconciling` and `Stalled` Condition Types
+to indicate if a resource is under reconciliation, or has failed to reach
+a `Ready==True` state. This is most beneficial to consumers making use of
+[`kstatus`](https://github.com/kubernetes-sigs/cli-utils/blob/master/pkg/kstatus/README.md),
+which uses the information to return early instead of timing out.
+
+It introduces support for Slack apps bots. See the
+[Provider spec](https://github.com/fluxcd/notification-controller/blob/v0.19.0/docs/spec/v1beta1/provider.md#slack-app)
+for more information on how to get started.
+
+Lastly, `controller-runtime` has been updated to `v0.10.2`, solving an
+issue with `rest_client_request_latency_seconds_.*` high cardinality
+metrics.
+
+Improvements:
+* Add support for Slack app
+  [#245](https://github.com/fluxcd/notification-controller/pull/245)
+* chore: Drop deprecated io/ioutil
+  [#277](https://github.com/fluxcd/notification-controller/pull/277)
+* Use condition helpers in reconciler (kstatus compat)
+  [#282](https://github.com/fluxcd/notification-controller/pull/282)
+* Update Alpine to v3.14
+  [#285](https://github.com/fluxcd/notification-controller/pull/285)
+* Update controller-runtime v0.10.2
+  [#289](https://github.com/fluxcd/notification-controller/pull/289)
+
+Fixes:
+* Use x509 certificate for Webex
+  [#280](https://github.com/fluxcd/notification-controller/pull/280)
+* Fix nil dereference err in AlertManager
+  [#287](https://github.com/fluxcd/notification-controller/pull/287)
+
 ## 0.18.1
 
 **Release date:** 2021-10-22
