@@ -341,14 +341,16 @@ The provider will send the following labels for the event.
 
 ### Slack App
 
-It is possible to use Slack Apps bot integration to send messages. To obtain bot token, follow the [Slack's guide](https://api.slack.com/bot-users).
+It is possible to use a Slack App bot integration to send messages. To obtain a bot token, follow
+[Slack's guide on bot users](https://api.slack.com/bot-users).
 
-Differences from Slack [webhook method](#notifications):
+Differences from the Slack [webhook method](#notifications):
 
-* Possible to use single credentials to post into different channels (integration should be added to each channel)
-* All messages would be posted from app username, losing the `helm-controller`, `source-controller` usernames
+* Possible to use single credentials to post to different channels (by adding the integration to each channel)
+* All messages are posted with the app username, and not the name of the controller (e.g. `helm-controller, `source-controller`)
 
-In that case, Slack secret should contain URL of [chat.postMessage](https://api.slack.com/methods/chat.postMessage) method and your Slack bot token (starts with `xoxb-`):
+To enable the Slack App, the secret must contain the URL of the [chat.postMessage](https://api.slack.com/methods/chat.postMessage)
+method and your Slack bot token (starts with `xoxb-`):
 
 ```shell
 kubectl create secret generic slack-token \
