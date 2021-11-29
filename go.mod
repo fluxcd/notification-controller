@@ -13,6 +13,7 @@ require (
 	github.com/fluxcd/notification-controller/api v0.19.0
 	github.com/fluxcd/pkg/apis/meta v0.11.0-rc.1
 	github.com/fluxcd/pkg/runtime v0.13.0-rc.5
+	github.com/fluxcd/pkg/ssa v0.3.1
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/go-logr/logr v0.4.0
 	github.com/google/go-github/v39 v39.0.0
@@ -20,7 +21,6 @@ require (
 	github.com/ktrysmt/go-bitbucket v0.9.26
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
-	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.15.0
 	github.com/sethvargo/go-limiter v0.7.2
 	github.com/slok/go-http-metrics v0.9.0
@@ -32,5 +32,6 @@ require (
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
 	k8s.io/client-go v0.22.2
+	sigs.k8s.io/cli-utils v0.26.0 // indirect
 	sigs.k8s.io/controller-runtime v0.10.2
 )
