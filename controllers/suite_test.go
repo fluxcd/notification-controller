@@ -17,263 +17,117 @@ limitations under the License.
 package controllers
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"net/http"
-	"net/http/httptest"
+	"fmt"
+	"math/rand"
+	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/sethvargo/go-limiter/memorystore"
-	prommetrics "github.com/slok/go-http-metrics/metrics/prometheus"
-	"github.com/slok/go-http-metrics/middleware"
+	"github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/testenv"
+	"github.com/fluxcd/pkg/ssa"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
+	"sigs.k8s.io/cli-utils/pkg/kstatus/polling"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	"github.com/fluxcd/pkg/apis/meta"
-	"github.com/fluxcd/pkg/runtime/conditions"
-	"github.com/fluxcd/pkg/runtime/events"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	notifyv1 "github.com/fluxcd/notification-controller/api/v1beta1"
-	"github.com/fluxcd/notification-controller/internal/server"
 	// +kubebuilder:scaffold:imports
 )
 
-// These tests use Ginkgo (BDD-style Go testing framework). Refer to
-// http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
+var (
+	k8sClient client.Client
+	testEnv   *testenv.Environment
+	ctx       = ctrl.SetupSignalHandler()
+	manager   *ssa.ResourceManager
+)
 
-var cfg *rest.Config
-var k8sClient client.Client
-var testEnv *envtest.Environment
-var eventMdlw middleware.Middleware
+func TestMain(m *testing.M) {
+	var err error
+	utilruntime.Must(notifyv1.AddToScheme(scheme.Scheme))
+	//utilruntime.Must(sourcev1.AddToScheme(scheme.Scheme))
 
-func TestAPIs(t *testing.T) {
-	RegisterFailHandler(Fail)
+	testEnv = testenv.New(testenv.WithCRDPath(
+		filepath.Join("..", "config", "crd", "bases"),
+	))
 
-	RunSpecsWithDefaultAndCustomReporters(t,
-		"Controller Suite",
-		[]Reporter{printer.NewlineReporter{}})
+	k8sClient, err = client.New(testEnv.Config, client.Options{Scheme: scheme.Scheme})
+	if err != nil {
+		panic(fmt.Sprintf("failed to create k8s client: %v", err))
+	}
+
+	testMetricsH := controller.MustMakeMetrics(testEnv)
+	//controllerName := "notification-controller"
+	reconciler := AlertReconciler{
+		Client:  testEnv,
+		Metrics: testMetricsH,
+	}
+	if err := (reconciler).SetupWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Failed to start AlerReconciler: %v", err))
+	}
+
+	if err := (&ProviderReconciler{
+		Client: testEnv,
+	}).SetupWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Failed to start PRoviderReconciler: %v", err))
+	}
+
+	if err := (&ReceiverReconciler{
+		Client: testEnv,
+	}).SetupWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Failed to start PRoviderReconciler: %v", err))
+	}
+
+	go func() {
+		fmt.Println("Starting the test environment")
+		if err := testEnv.Start(ctx); err != nil {
+			panic(fmt.Sprintf("Failed to start the test environment manager: %v", err))
+		}
+	}()
+	<-testEnv.Manager.Elected()
+
+	restMapper, err := apiutil.NewDynamicRESTMapper(testEnv.Config)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create restmapper: %v", restMapper))
+	}
+
+	poller := polling.NewStatusPoller(k8sClient, restMapper)
+	owner := ssa.Owner{
+		Field: "notification-controller",
+		Group: "notification-controller",
+	}
+	manager = ssa.NewResourceManager(k8sClient, poller, owner)
+
+	code := m.Run()
+
+	fmt.Println("Stopping the test environment")
+	if err := testEnv.Stop(); err != nil {
+		panic(fmt.Sprintf("Failed to stop the test environment: %v", err))
+	}
+
+	fmt.Println("Stopping the event server")
+
+	os.Exit(code)
 }
 
-var _ = BeforeSuite(func(done Done) {
-	logf.SetLogger(
-		zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)),
-	)
+var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz1234567890")
 
-	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
+func randStringRunes(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letterRunes[rand.Intn(len(letterRunes))]
 	}
+	return string(b)
+}
 
-	eventMdlw = middleware.New(middleware.Config{
-		Recorder: prommetrics.NewRecorder(prommetrics.Config{
-			Prefix: "gotk_event",
-		}),
-	})
-
-	var err error
-	cfg, err = testEnv.Start()
-	Expect(err).ToNot(HaveOccurred())
-	Expect(cfg).ToNot(BeNil())
-
-	err = notifyv1.AddToScheme(scheme.Scheme)
-	Expect(err).NotTo(HaveOccurred())
-	// +kubebuilder:scaffold:scheme
-
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
-	Expect(err).ToNot(HaveOccurred())
-	Expect(k8sClient).ToNot(BeNil())
-
-	close(done)
-}, 60)
-
-var _ = AfterSuite(func() {
-	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).ToNot(HaveOccurred())
-})
-
-var _ = Describe("Event handlers", func() {
-
-	var (
-		namespace    = "default"
-		rcvServer    *httptest.Server
-		providerName = "test-provider"
-		provider     notifyv1.Provider
-		stopCh       chan struct{}
-		req          *http.Request
-	)
-
-	// This sets up the minimal objects so that we can test the
-	// events handling.
-	BeforeEach(func() {
-		ctx := context.Background()
-
-		// We're not testing the provider, but this is a way to know
-		// whether events have been handled.
-		rcvServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			req = r
-			w.WriteHeader(200)
-		}))
-
-		provider = notifyv1.Provider{
-			Spec: notifyv1.ProviderSpec{
-				Type:    "generic",
-				Address: rcvServer.URL,
-			},
-		}
-		provider.Name = providerName
-		provider.Namespace = namespace
-		By("Creating provider")
-		Expect(k8sClient.Create(ctx, &provider)).To(Succeed())
-
-		By("Creating and starting event server")
-		store, err := memorystore.New(&memorystore.Config{
-			Interval: 5 * time.Minute,
-		})
-		Expect(err).ShouldNot(HaveOccurred())
-		// TODO let OS assign port number
-		eventServer := server.NewEventServer("127.0.0.1:56789", logf.Log, k8sClient)
-		stopCh = make(chan struct{})
-		go eventServer.ListenAndServe(stopCh, eventMdlw, store)
-	})
-
-	AfterEach(func() {
-		req = nil
-		rcvServer.Close()
-		close(stopCh)
-		Expect(k8sClient.Delete(context.Background(), &provider)).To(Succeed())
-	})
-
-	// The following test "templates" will create the alert, then
-	// serialise the event and post it to the event server. They
-	// differ on what's expected to happen to the event.
-
-	var (
-		alert notifyv1.Alert
-		event events.Event
-	)
-
-	JustBeforeEach(func() {
-		alert.Name = "test-alert"
-		alert.Namespace = namespace
-		Expect(k8sClient.Create(context.Background(), &alert)).To(Succeed())
-		// the event server won't dispatch to an alert if it has
-		// not been marked "ready"
-		conditions.MarkTrue(&alert, meta.ReadyCondition, meta.SucceededReason, "artificially set to ready")
-		Expect(k8sClient.Status().Update(context.Background(), &alert)).To(Succeed())
-	})
-
-	AfterEach(func() {
-		Expect(k8sClient.Delete(context.Background(), &alert)).To(Succeed())
-	})
-
-	testSent := func() {
-		buf := &bytes.Buffer{}
-		Expect(json.NewEncoder(buf).Encode(&event)).To(Succeed())
-		res, err := http.Post("http://localhost:56789/", "application/json", buf)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(res.StatusCode).To(Equal(202)) // event_server responds with 202 Accepted
+func createNamespace(name string) error {
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
 	}
-
-	testForwarded := func() {
-		Eventually(func() bool {
-			return req == nil
-		}, "2s", "0.1s").Should(BeFalse())
-	}
-
-	testFiltered := func() {
-		// The event_server does forwarding in a goroutine, after
-		// responding to the POST of the event. This makes it
-		// difficult to know whether the provider has filtered the
-		// event, or just not run the goroutine yet. For now, I'll use
-		// a timeout (and Consistently so it can fail early)
-		Consistently(func() bool {
-			return req == nil
-		}, "1s", "0.1s").Should(BeTrue())
-	}
-
-	Describe("event forwarding", func() {
-		BeforeEach(func() {
-			alert = notifyv1.Alert{}
-			alert.Spec = notifyv1.AlertSpec{
-				ProviderRef: meta.LocalObjectReference{
-					Name: providerName,
-				},
-				EventSeverity: "info",
-				EventSources: []notifyv1.CrossNamespaceObjectReference{
-					{
-						Kind:      "Bucket",
-						Name:      "hyacinth",
-						Namespace: "default",
-					},
-				},
-			}
-			event = events.Event{
-				InvolvedObject: corev1.ObjectReference{
-					Kind:      "Bucket",
-					Name:      "hyacinth",
-					Namespace: "default",
-				},
-				Severity:            "info",
-				Timestamp:           metav1.Now(),
-				Message:             "well that happened",
-				Reason:              "event-happened",
-				ReportingController: "source-controller",
-			}
-		})
-
-		Context("matching by source", func() {
-			It("forwards when source is a match", func() {
-				testSent()
-				testForwarded()
-			})
-			It("drops event when source Kind does not match", func() {
-				event.InvolvedObject.Kind = "GitRepository"
-				testSent()
-				testFiltered()
-			})
-			It("drops event when source name does not match", func() {
-				event.InvolvedObject.Name = "slop"
-				testSent()
-				testFiltered()
-			})
-			It("drops event when source namespace does not match", func() {
-				event.InvolvedObject.Namespace = "all-buckets"
-				testSent()
-				testFiltered()
-			})
-		})
-
-		Context("filtering by ExclusionList", func() {
-			BeforeEach(func() {
-				alert.Spec.ExclusionList = []string{
-					"doesnotoccur", // not intended to match
-					"well",
-				}
-			})
-
-			It("forwards event that is not matched", func() {
-				event.Message = "not excluded"
-				testSent()
-				testForwarded()
-			})
-
-			It("drops event that is matched by exclusion", func() {
-				testSent()
-				testFiltered()
-			})
-		})
-	})
-})
+	return k8sClient.Create(context.Background(), namespace)
+}
