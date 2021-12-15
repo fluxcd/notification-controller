@@ -39,6 +39,7 @@ import (
 	helper "github.com/fluxcd/pkg/runtime/controller"
 	"github.com/fluxcd/pkg/runtime/patch"
 	"github.com/fluxcd/pkg/runtime/predicates"
+	kuberecorder "k8s.io/client-go/tools/record"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 )
@@ -51,7 +52,7 @@ var (
 type AlertReconciler struct {
 	client.Client
 	helper.Metrics
-	helper.Events
+	kuberecorder.EventRecorder
 
 	Scheme *runtime.Scheme
 }
