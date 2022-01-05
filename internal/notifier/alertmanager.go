@@ -72,6 +72,7 @@ func (s *Alertmanager) Post(event events.Event) error {
 	labels["alertname"] = "Flux" + event.InvolvedObject.Kind + strings.Title(event.Reason)
 	labels["severity"] = event.Severity
 	labels["reason"] = event.Reason
+	labels["timestamp"] = event.Timestamp.String()
 
 	labels["kind"] = event.InvolvedObject.Kind
 	labels["name"] = event.InvolvedObject.Name
