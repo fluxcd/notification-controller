@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gopkg.in/yaml.v3"
 	"io"
 	"net/http"
 	"regexp"
@@ -31,6 +30,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/conditions"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/yaml"
 
 	"github.com/fluxcd/pkg/runtime/events"
 
