@@ -264,6 +264,7 @@ github.com/fatih/color v1.10.0/go.mod h1:ELkj/draVOlAH/xkhN6mQ50Qd0MPOk5AAr3maGE
 github.com/fatih/structs v1.1.0/go.mod h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga6PJ7M=
 github.com/felixge/httpsnoop v1.0.1/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/fluxcd/pkg/apis/acl v0.0.3/go.mod h1:XPts6lRJ9C9fIF9xVWofmQwftvhY25n1ps7W9xw0XLU=
+github.com/fluxcd/pkg/apis/meta v0.10.2/go.mod h1:KQ2er9xa6koy7uoPMZjIjNudB5p4tXs+w0GO6fRcy7I=
 github.com/fluxcd/pkg/apis/meta v0.11.0-rc.3 h1:YY6RlaHIMXawgEOJhJbSrm4NpD9fJTCWFGKgtNfQ0/g=
 github.com/fluxcd/pkg/apis/meta v0.11.0-rc.3/go.mod h1:ki5wJE4nuFOZt78q0RSYkrKwINgIBPynuswZhnTOSoI=
 github.com/fluxcd/pkg/runtime v0.13.0-rc.6 h1:MsxiKYGsuRzEvyreQG5ocNaIZDwKhqvQ711/w4rTkCo=
