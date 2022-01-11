@@ -11,12 +11,12 @@ require (
 	github.com/fluxcd/notification-controller/api v0.19.0
 	github.com/fluxcd/pkg/apis/meta v0.11.0-rc.3
 	github.com/fluxcd/pkg/runtime v0.13.0-rc.6
-	github.com/fluxcd/pkg/ssa v0.7.0
+	github.com/fluxcd/pkg/ssa v0.9.0
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/go-logr/logr v1.2.2
-	github.com/google/go-github/v39 v39.0.0
+	github.com/google/go-github/v41 v41.0.0
 	github.com/hashicorp/go-retryablehttp v0.6.8
-	github.com/ktrysmt/go-bitbucket v0.9.26
+	github.com/ktrysmt/go-bitbucket v0.9.34
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
@@ -26,7 +26,7 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
 	github.com/whilp/git-urls v1.0.0
-	github.com/xanzy/go-gitlab v0.50.4
+	github.com/xanzy/go-gitlab v0.54.3
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
 	k8s.io/api v0.23.0
 	k8s.io/apimachinery v0.23.0
@@ -76,7 +76,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/k0kubun/pp v2.3.0+incompatible // indirect
 	github.com/klauspost/compress v1.11.7 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
 	github.com/mattn/go-colorable v0.1.8 // indirect
@@ -125,3 +124,7 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.0 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+// Fix for CVE-2020-29652: https://github.com/golang/crypto/commit/8b5274cf687fd9316b4108863654cc57385531e8
+// Fix for CVE-2021-43565: https://github.com/golang/crypto/commit/5770296d904e90f15f38f77dfc2e43fdf5efc083
+replace golang.org/x/crypto => golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3

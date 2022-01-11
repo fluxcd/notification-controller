@@ -30,16 +30,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fluxcd/pkg/runtime/conditions"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/fluxcd/pkg/apis/meta"
-	"github.com/google/go-github/v39/github"
+	"github.com/fluxcd/pkg/runtime/conditions"
+	"github.com/google/go-github/v41/github"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 )

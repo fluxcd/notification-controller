@@ -19,7 +19,7 @@ package notifier
 import (
 	"testing"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v41/github"
 	"github.com/stretchr/testify/assert"
 )
 
