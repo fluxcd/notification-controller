@@ -334,6 +334,7 @@ The provider will send the following labels for the event.
 | ----------- | -------------------------------------------------------------------------------------------------- |
 | alertname   | The string Flux followed by the Kind and the reason for the event e.g FluxKustomizationProgressing |
 | severity    | The severity of the event (error|info)                                                             |
+| timestamp   | The timestamp of the event                                                                         |
 | reason      | The machine readable reason for the objects transition into the current status                     |
 | kind        | The kind of the involved object associated with the event                                          |
 | name        | The name of the involved object associated with the event                                          |
