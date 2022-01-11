@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.20.0
+
+**Release date:** 2022-01-11
+
+This prerelease comes with an update to the Kubernetes and controller-runtime dependencies
+to align them with the Kubernetes 1.23 release.
+
+In addition, the controller is now built with Go 1.17 and Alpine 3.15.
+
+Improvements:
+* Update Go to v1.17 and controller-runtime to v0.11
+  [#279](https://github.com/fluxcd/notification-controller/pull/279)
+* Update dependencies (fix CVE-2021-43565)
+  [#301](https://github.com/fluxcd/notification-controller/pull/301)
+* Update Dockerfile xx base and bump alpine to 3.15
+  [#297](https://github.com/fluxcd/notification-controller/pull/297)
+* Update docs for telegram
+  [#300](https://github.com/fluxcd/notification-controller/pull/300)
+
 ## 0.19.0
 
 **Release date:** 2021-11-23
