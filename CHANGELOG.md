@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.20.1
+
+**Release date:** 2022-01-11
+
+This prerelease comes with a fix for the Prometheus Alertmanager provider and
+downgrades the `fluxcd/pkg/apis/meta` package from `v0.11.0-rc.3` to `v0.10.2` 
+which is required by flux2.
+
+Fixes:
+* Downgrade fluxcd/pkg/apis/meta to v0.10.2
+  [#303](https://github.com/fluxcd/notification-controller/pull/303)
+* Add timestamp as label for Prometheus Alertmanager
+  [#298](https://github.com/fluxcd/notification-controller/pull/298)
+
 ## 0.20.0
 
 **Release date:** 2022-01-11
