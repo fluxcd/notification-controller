@@ -15,6 +15,7 @@
 # vendor/
 
 bin/
+testbin/
 config/release/
 config/crd/bases/gitrepositories.yaml
 

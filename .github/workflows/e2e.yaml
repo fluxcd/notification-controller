@@ -47,12 +47,8 @@ jobs:
           image: kindest/node:v1.21.1@sha256:69860bda5563ac81e3c0057d654b5253219618a22ec3a346306239bba8cfa1a6
       - name: Setup Kustomize
         uses: fluxcd/pkg//actions/kustomize@main
-      - name: Setup Kubebuilder
-        uses: fluxcd/pkg//actions/kubebuilder@main
       - name: Run tests
         run: make test
-        env:
-          KUBEBUILDER_ASSETS: ${{ github.workspace }}/kubebuilder/bin
       - name: Check if working tree is dirty
         run: |
           if [[ $(git diff --stat) != '' ]]; then
