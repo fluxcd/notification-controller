@@ -199,6 +199,12 @@ spec:
 Note that you have to set the generated token as the GitHub webhook secret value.
 The controller uses the `X-Hub-Signature` HTTP header to verify that the request is legitimate.
 
+
+### Gitea receiver
+
+The Gitea webhook works with the [Github receiver](#github-receiver). You can use the same example
+given for the Github receiver.
+
 ### GitLab receiver
 
 ```yaml
