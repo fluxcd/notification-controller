@@ -17,3 +17,5 @@
 bin/
 config/release/
 config/crd/bases/gitrepositories.yaml
+
+build/
