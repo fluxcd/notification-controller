@@ -136,3 +136,24 @@ API_REF_GEN=$(GOBIN)/gen-crd-api-reference-docs
 else
 API_REF_GEN=$(shell which gen-crd-api-reference-docs)
 endif
+
+# Build fuzzers
+fuzz-build:
+	rm -rf $(shell pwd)/build/fuzz/
+	mkdir -p $(shell pwd)/build/fuzz/out/
+
+	docker build . --tag local-fuzzing:latest -f tests/fuzz/Dockerfile.builder
+	docker run --rm -it \
+		-e FUZZING_LANGUAGE=go -e FUZZ_SECONDS=600 -e MODE=batch \
+		-e CIFUZZ_DEBUG='True' -e OSS_FUZZ_PROJECT_NAME=fluxcd \
+		-e SANITIZER=address \
+		-v "$(shell pwd)/build/fuzz/out":/out \
+		local-fuzzing:latest
+
+# Run each fuzzer once to ensure they are working
+fuzz-smoketest: fuzz-build
+	docker run --rm -ti \
+		-v "$(shell pwd)/build/fuzz/out":/out \
+		-v "$(shell pwd)/tests/fuzz/oss_fuzz_run.sh":/runner.sh \
+		gcr.io/oss-fuzz/fluxcd \
+		bash -c "/runner.sh"
