@@ -115,19 +115,18 @@ fuzz-build:
 	mkdir -p $(shell pwd)/build/fuzz/out/
 
 	docker build . --tag local-fuzzing:latest -f tests/fuzz/Dockerfile.builder
-	docker run --rm -it \
-		-e FUZZING_LANGUAGE=go -e FUZZ_SECONDS=600 -e MODE=batch \
+	docker run --rm \
+		-e FUZZING_LANGUAGE=go -e SANITIZER=address \
 		-e CIFUZZ_DEBUG='True' -e OSS_FUZZ_PROJECT_NAME=fluxcd \
-		-e SANITIZER=address \
 		-v "$(shell pwd)/build/fuzz/out":/out \
 		local-fuzzing:latest
 
 # Run each fuzzer once to ensure they are working
 fuzz-smoketest: fuzz-build
-	docker run --rm -ti \
+	docker run --rm \
 		-v "$(shell pwd)/build/fuzz/out":/out \
 		-v "$(shell pwd)/tests/fuzz/oss_fuzz_run.sh":/runner.sh \
-		gcr.io/oss-fuzz/fluxcd \
+		local-fuzzing:latest \
 		bash -c "/runner.sh"
 
 # Find or download controller-gen
