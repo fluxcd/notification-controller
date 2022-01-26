@@ -163,7 +163,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				}
 
 				if h, ok := secret.Data["headers"]; ok {
-					err := yaml.Unmarshal(h, headers)
+					err := yaml.Unmarshal(h, &headers)
 					if err != nil {
 						s.logger.Error(err, "failed to read headers from secret",
 							"reconciler kind", v1beta1.ProviderKind,
