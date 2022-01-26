@@ -4,7 +4,7 @@ metadata:
   name: alert-sample
 spec:
   providerRef:
-    name: provider-sample
+    name: slack-provider-sample
   eventSeverity: info
   eventSources:
     - kind: GitRepository

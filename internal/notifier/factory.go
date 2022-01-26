@@ -29,16 +29,18 @@ type Factory struct {
 	Username string
 	Channel  string
 	Token    string
+	Headers  map[string]string
 	CertPool *x509.CertPool
 }
 
-func NewFactory(url string, proxy string, username string, channel string, token string, certPool *x509.CertPool) *Factory {
+func NewFactory(url string, proxy string, username string, channel string, token string, headers map[string]string, certPool *x509.CertPool) *Factory {
 	return &Factory{
 		URL:      url,
 		ProxyURL: proxy,
 		Channel:  channel,
 		Username: username,
 		Token:    token,
+		Headers:  headers,
 		CertPool: certPool,
 	}
 }
@@ -52,7 +54,7 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	var err error
 	switch provider {
 	case v1beta1.GenericProvider:
-		n, err = NewForwarder(f.URL, f.ProxyURL, f.CertPool)
+		n, err = NewForwarder(f.URL, f.ProxyURL, f.Headers, f.CertPool)
 	case v1beta1.SlackProvider:
 		n, err = NewSlack(f.URL, f.ProxyURL, f.Token, f.CertPool, f.Username, f.Channel)
 	case v1beta1.DiscordProvider:
