@@ -42,7 +42,7 @@ func FuzzMatrix(data []byte) int {
 		return 0
 	}
 
-	matrix, err := NewMatrix(ts.URL, "", token)
+	matrix, err := NewMatrix(ts.URL, "", token, nil)
 	if err != nil {
 		return 0
 	}
