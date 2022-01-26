@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"crypto/sha1"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -13,9 +14,10 @@ import (
 )
 
 type Matrix struct {
-	Token  string
-	URL    string
-	RoomId string
+	Token    string
+	URL      string
+	RoomId   string
+	CertPool *x509.CertPool
 }
 
 type MatrixPayload struct {
@@ -23,16 +25,17 @@ type MatrixPayload struct {
 	MsgType string `json:"msgtype"`
 }
 
-func NewMatrix(serverURL, token, roomId string) (*Matrix, error) {
+func NewMatrix(serverURL, token, roomId string, certPool *x509.CertPool) (*Matrix, error) {
 	_, err := url.ParseRequestURI(serverURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Matrix homeserver URL %s", serverURL)
 	}
 
 	return &Matrix{
-		URL:    serverURL,
-		RoomId: roomId,
-		Token:  token,
+		URL:      serverURL,
+		RoomId:   roomId,
+		Token:    token,
+		CertPool: certPool,
 	}, nil
 }
 
@@ -61,7 +64,7 @@ func (m *Matrix) Post(event events.Event) error {
 		MsgType: "m.text",
 	}
 
-	err = postMessage(fullURL, "", nil, payload, func(request *retryablehttp.Request) {
+	err = postMessage(fullURL, "", m.CertPool, payload, func(request *retryablehttp.Request) {
 		request.Method = http.MethodPut
 		request.Header.Add("Authorization", "Bearer "+m.Token)
 	})
