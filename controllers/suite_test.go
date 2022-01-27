@@ -96,7 +96,7 @@ func TestMain(m *testing.M) {
 		panic(fmt.Sprintf("Failed to create restmapper: %v", restMapper))
 	}
 
-	poller := polling.NewStatusPoller(k8sClient, restMapper)
+	poller := polling.NewStatusPoller(k8sClient, restMapper, nil)
 	owner := ssa.Owner{
 		Field: "notification-controller",
 		Group: "notification-controller",

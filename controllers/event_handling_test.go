@@ -51,7 +51,7 @@ func TestEventHandler(t *testing.T) {
 		t.Fatalf("failed to create memory storage")
 	}
 
-	eventServer := server.NewEventServer("127.0.0.1:56789", logf.Log, k8sClient)
+	eventServer := server.NewEventServer("127.0.0.1:56789", logf.Log, k8sClient, true)
 	stopCh := make(chan struct{})
 	go eventServer.ListenAndServe(stopCh, eventMdlw, store)
 
@@ -98,6 +98,15 @@ func TestEventHandler(t *testing.T) {
 					Kind:      "Bucket",
 					Name:      "hyacinth",
 					Namespace: namespace,
+				},
+				{
+					Kind: "Kustomization",
+					Name: "*",
+				},
+				{
+					Kind:      "Kustomization",
+					Name:      "*",
+					Namespace: "test",
 				},
 			},
 			ExclusionList: []string{
@@ -193,6 +202,28 @@ func TestEventHandler(t *testing.T) {
 				name: "drops event that is matched by exclusion",
 				modifyEventFunc: func(e events.Event) events.Event {
 					e.Message = "this is excluded"
+					return e
+				},
+				forwarded: false,
+			},
+			{
+				name: "forwards events when name wildcard is used",
+				modifyEventFunc: func(e events.Event) events.Event {
+					e.InvolvedObject.Kind = "Kustomization"
+					e.InvolvedObject.Name = "test"
+					e.InvolvedObject.Namespace = namespace
+					e.Message = "test"
+					return e
+				},
+				forwarded: true,
+			},
+			{
+				name: "drops events for cross-namespace sources",
+				modifyEventFunc: func(e events.Event) events.Event {
+					e.InvolvedObject.Kind = "Kustomization"
+					e.InvolvedObject.Name = "test"
+					e.InvolvedObject.Namespace = "test"
+					e.Message = "test"
 					return e
 				},
 				forwarded: false,

@@ -40,17 +40,19 @@ import (
 
 // EventServer handles event POST requests
 type EventServer struct {
-	port       string
-	logger     logr.Logger
-	kubeClient client.Client
+	port                 string
+	logger               logr.Logger
+	kubeClient           client.Client
+	noCrossNamespaceRefs bool
 }
 
 // NewEventServer returns an HTTP server that handles events
-func NewEventServer(port string, logger logr.Logger, kubeClient client.Client) *EventServer {
+func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, noCrossNamespaceRefs bool) *EventServer {
 	return &EventServer{
-		port:       port,
-		logger:     logger.WithName("event-server"),
-		kubeClient: kubeClient,
+		port:                 port,
+		logger:               logger.WithName("event-server"),
+		kubeClient:           kubeClient,
+		noCrossNamespaceRefs: noCrossNamespaceRefs,
 	}
 }
 

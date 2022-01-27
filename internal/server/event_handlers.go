@@ -95,6 +95,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				if source.Namespace == "" {
 					source.Namespace = alert.Namespace
 				}
+
 				if (source.Name == "*" || event.InvolvedObject.Name == source.Name) &&
 					event.InvolvedObject.Namespace == source.Namespace &&
 					event.InvolvedObject.Kind == source.Kind {
@@ -122,6 +123,15 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 		// dispatch notifications
 		for _, alert := range alerts {
+			// verify if event comes from a different namespace
+			if s.noCrossNamespaceRefs && event.InvolvedObject.Namespace != alert.Namespace {
+				accessDenied := fmt.Errorf(
+					"alert '%s/%s' can't process event from '%s/%s/%s', cross-namespace references have been blocked",
+					alert.Namespace, alert.Name, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+				s.logger.Error(accessDenied, "Discarding event, access denied to cross-namespace sources")
+				continue
+			}
+
 			var provider v1beta1.Provider
 			providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
 

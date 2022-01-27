@@ -102,6 +102,11 @@ spec:
 
 If you don't specify an event source namespace, the alert namespace will be used.
 
+> **Note** that on multi-tenant clusters, platform admins can disable cross-namespace references
+> with the `--no-cross-namespace-refs=true` flag. When this flag is set, alerts can only refer to
+> event sources in the same namespace as the alert object,
+> preventing tenants from subscribing to another tenant's events.
+
 You can add a summary to describe the impact of an event:
 
 ```yaml
