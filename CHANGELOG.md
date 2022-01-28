@@ -2,6 +2,54 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.21.0
+
+**Release date:** 2022-01-28
+
+This prerelease comes with security improvements for multi-tenant clusters.
+
+Platform admins can disable cross-namespace references with the
+`--no-cross-namespace-refs=true` flag.
+When this flag is set, alerts can only refer to event sources in the same namespace
+as the alert object, preventing tenants from subscribing to another tenant's events.
+
+Starting with this version, the controller deployment conforms to the
+Kubernetes [restricted pod security standard](https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted):
+- all Linux capabilities were dropped
+- the root filesystem was set to read-only
+- the seccomp profile was set to the runtime default
+- run as non-root was enabled
+- the user and group ID was set to 65534
+
+**Breaking changes**:
+- The use of new seccomp API requires Kubernetes 1.19.
+- The controller container is now executed under 65534:65534 (userid:groupid).
+  This change may break deployments that hard-coded the user ID of 'controller' in their PodSecurityPolicy.
+
+Features:
+* Pass headers to generic provider through secretRef
+  [#317](https://github.com/fluxcd/notification-controller/pull/317)
+
+Improvements:
+* Allow disabling cross-namespace event sources
+  [#319](https://github.com/fluxcd/notification-controller/pull/319)
+* Drop capabilities, enable seccomp and enforce runAsNonRoot
+  [#313](https://github.com/fluxcd/notification-controller/pull/313)
+* Publish SBOM and sign release artifacts
+  [#314](https://github.com/fluxcd/notification-controller/pull/314)
+* Add fuzz testing for notifiers
+  [#306](https://github.com/fluxcd/notification-controller/pull/306)
+* Add documentation for gitea
+  [#308](https://github.com/fluxcd/notification-controller/pull/308)
+* Update development documentation
+  [#309](https://github.com/fluxcd/notification-controller/pull/309)
+
+Fixes:
+* Fix(Provider/Matrix): Load CA from CertSecretRef
+  [#318](https://github.com/fluxcd/notification-controller/pull/318)
+* Fix the missing protocol for the first port in manager config
+  [#315](https://github.com/fluxcd/notification-controller/pull/315)
+
 ## 0.20.1
 
 **Release date:** 2022-01-11
