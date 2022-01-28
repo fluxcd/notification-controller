@@ -21,7 +21,14 @@ import (
 	"os"
 	"time"
 
+	"github.com/fluxcd/pkg/runtime/acl"
+	"github.com/fluxcd/pkg/runtime/client"
 	helper "github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/leaderelection"
+	"github.com/fluxcd/pkg/runtime/logger"
+	"github.com/fluxcd/pkg/runtime/pprof"
+	"github.com/fluxcd/pkg/runtime/probes"
+	"github.com/sethvargo/go-limiter/memorystore"
 	prommetrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
 	flag "github.com/spf13/pflag"
@@ -30,14 +37,6 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
-
-	"github.com/fluxcd/pkg/runtime/client"
-	"github.com/fluxcd/pkg/runtime/leaderelection"
-	"github.com/fluxcd/pkg/runtime/logger"
-	"github.com/fluxcd/pkg/runtime/pprof"
-	"github.com/fluxcd/pkg/runtime/probes"
-
-	"github.com/sethvargo/go-limiter/memorystore"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/notification-controller/controllers"
@@ -71,6 +70,7 @@ func main() {
 		clientOptions         client.Options
 		logOptions            logger.Options
 		leaderElectionOptions leaderelection.Options
+		aclOptions            acl.Options
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -84,6 +84,7 @@ func main() {
 	clientOptions.BindFlags(flag.CommandLine)
 	logOptions.BindFlags(flag.CommandLine)
 	leaderElectionOptions.BindFlags(flag.CommandLine)
+	aclOptions.BindFlags(flag.CommandLine)
 	flag.Parse()
 
 	log := logger.NewLogger(logOptions)
@@ -163,7 +164,7 @@ func main() {
 			Registry: crtlmetrics.Registry,
 		}),
 	})
-	eventServer := server.NewEventServer(eventsAddr, log, mgr.GetClient())
+	eventServer := server.NewEventServer(eventsAddr, log, mgr.GetClient(), aclOptions.NoCrossNamespaceRefs)
 	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)

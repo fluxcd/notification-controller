@@ -10,8 +10,8 @@ require (
 	github.com/containrrr/shoutrrr v0.4.4
 	github.com/fluxcd/notification-controller/api v0.20.1
 	github.com/fluxcd/pkg/apis/meta v0.11.0-rc.3
-	github.com/fluxcd/pkg/runtime v0.13.0-rc.6
-	github.com/fluxcd/pkg/ssa v0.9.0
+	github.com/fluxcd/pkg/runtime v0.13.0-rc.8
+	github.com/fluxcd/pkg/ssa v0.11.1
 	github.com/getsentry/sentry-go v0.11.0
 	github.com/go-logr/logr v1.2.2
 	github.com/google/go-github/v41 v41.0.0
@@ -27,11 +27,11 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/whilp/git-urls v1.0.0
 	github.com/xanzy/go-gitlab v0.54.3
-	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f
-	k8s.io/api v0.23.0
-	k8s.io/apimachinery v0.23.0
-	k8s.io/client-go v0.23.0
-	sigs.k8s.io/cli-utils v0.26.1
+	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
+	k8s.io/api v0.23.1
+	k8s.io/apimachinery v0.23.1
+	k8s.io/client-go v0.23.1
+	sigs.k8s.io/cli-utils v0.27.0
 	sigs.k8s.io/controller-runtime v0.11.0
 )
 
@@ -69,7 +69,7 @@ require (
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/google/uuid v1.2.0 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.1 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
@@ -106,7 +106,6 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -124,6 +123,25 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.13.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.0 // indirect
 	sigs.k8s.io/yaml v1.3.0
+)
+
+require (
+	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
+	github.com/MakeNowJust/heredoc v0.0.0-20170808103936-bb23615498cd // indirect
+	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
+	github.com/fluxcd/pkg/apis/acl v0.0.3 // indirect
+	github.com/google/btree v1.0.1 // indirect
+	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/kr/pretty v0.2.1 // indirect
+	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
+	github.com/mitchellh/go-wordwrap v1.0.0 // indirect
+	github.com/moby/spdystream v0.2.0 // indirect
+	github.com/moby/term v0.0.0-20210610120745-9d4ed1856297 // indirect
+	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
+	github.com/russross/blackfriday v1.5.2 // indirect
+	github.com/spf13/cobra v1.2.1 // indirect
+	k8s.io/kubectl v0.22.2 // indirect
 )
 
 // Fix for CVE-2020-29652: https://github.com/golang/crypto/commit/8b5274cf687fd9316b4108863654cc57385531e8
