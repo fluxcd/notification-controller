@@ -102,6 +102,7 @@ spec:
                 - matrix
                 - opsgenie
                 - alertmanager
+                - grafana
                 type: string
               username:
                 description: Bot username for this provider

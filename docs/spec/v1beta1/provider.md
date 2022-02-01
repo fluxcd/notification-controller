@@ -52,6 +52,7 @@ Notification providers:
 | Discord         | discord       |
 | Generic webhook | generic       |
 | Google Chat     | googlechat    |
+| Grafana         | grafana       |
 | Lark            | lark          |
 | Matrix          | matrix        |
 | Microsoft Teams | msteams       |
@@ -122,7 +123,7 @@ kubectl create secret generic webhook-url \
 Note that the secret must contain an `address` field.
 
 The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `googlechat`, `webex`, `sentry`,
-`telegram`, `lark`, `matrix`, `azureeventhub`, `opsgenie`, `alertmanager` or `generic`.
+`telegram`, `lark`, `matrix`, `azureeventhub`, `opsgenie`, `alertmanager`, `grafana` or `generic`.
 
 When type `generic` is specified, the notification controller will post the
 incoming [event](event.md) in JSON format to the webhook address.
@@ -336,7 +337,6 @@ spec:
     name: opsgenie-token
 ```
 
-
 ### Prometheus Alertmanager
 
 Sends notifications to [alertmanager v2 api](https://github.com/prometheus/alertmanager/blob/main/api/v2/openapi.yaml) if alert manager has basic authentication configured it is recommended to use
@@ -369,7 +369,6 @@ The provider will send the following labels for the event.
 | kind        | The kind of the involved object associated with the event                                          |
 | name        | The name of the involved object associated with the event                                          |
 | namespace   | The namespace of the involved object associated with the event                                     |
-
 
 ### Slack App
 
@@ -408,6 +407,35 @@ spec:
     name: slack-token
 ```
 
+
+### Grafana
+
+To send notifications to [Grafana annotations API](https://grafana.com/docs/grafana/latest/http_api/annotations/),
+you have to enable the annotations on a Dashboard like so:
+
+- Annotations > Query > Enable Match any
+- Annotations > Query > Tags (Add Tag: `flux`)
+
+If Grafana has authentication configured, create a Kubernetes Secret with the API URL and the API token:
+```shell
+kubectl create secret generic grafana-token \
+--from-literal=token=<grafana-api-key> \
+--from-literal=address=https://<grafana-url>/api/annotations
+```
+
+Then reference the secret in `spec.secretRef`:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: grafana
+  namespace: default
+spec:
+  type: grafana
+  secretRef:
+    name: grafana-token
+```
 
 ### Git commit status
 
@@ -491,6 +519,7 @@ metadata:
 data:
   token: <api-key>
 ```
+
 ### Azure Event Hub
 
 The Azure Event Hub supports two authentication methods, [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application)
