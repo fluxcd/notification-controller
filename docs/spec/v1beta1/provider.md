@@ -31,7 +31,7 @@ type ProviderSpec struct {
 	// +optional
 	Proxy string `json:"proxy,omitempty"`
 
-	// Secret reference containing the provider webhook URL
+	// Secret reference containing the provider details, valid key names are: address, token, headers (YAML encoded)
 	// +optional
 	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
 
@@ -42,30 +42,34 @@ type ProviderSpec struct {
 }
 ```
 
+
 Notification providers:
 
-* Slack
-* Discord
-* Microsoft Teams
-* Rocket
-* Google Chat
-* Webex
-* Sentry
-* Telegram
-* Lark
-* Matrix
-* Azure Event Hub
-* Generic webhook
-* Opsgenie
-* Alertmanager
+| Provider        | Type          |
+| --------------- | ------------- |
+| Alertmanager    | alertmanager  |
+| Azure Event Hub | azureeventhub |
+| Discord         | discord       |
+| Generic webhook | generic       |
+| Google Chat     | googlechat    |
+| Lark            | lark          |
+| Matrix          | matrix        |
+| Microsoft Teams | msteams       |
+| Opsgenie        | opsgenie      |
+| Rocket          | rocket        |
+| Sentry          | sentry        |
+| Slack           | slack         |
+| Telegram        | telegram      |
+| WebEx           | webex         |
 
 Git commit status providers:
 
-* GitHub
-* GitLab
-* Bitbucket
-* Azure DevOps
-
+| Provider     | Type        |
+| ------------ | ----------- |
+| Azure DevOps | azuredevops |
+| Bitbucket    | bitbucket   |
+| GitHub       | github      |
+| GitLab       | gitlab      |
 Status:
 
 ```go
