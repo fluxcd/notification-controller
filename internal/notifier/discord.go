@@ -48,14 +48,6 @@ func NewDiscord(hookURL string, proxyURL string, username string, channel string
 		hookURL = webhook.String()
 	}
 
-	if username == "" {
-		return nil, errors.New("empty Discord username")
-	}
-
-	if channel == "" {
-		return nil, errors.New("empty Discord channel")
-	}
-
 	return &Discord{
 		Channel:  channel,
 		URL:      hookURL,
@@ -72,7 +64,6 @@ func (s *Discord) Post(event events.Event) error {
 	}
 
 	payload := SlackPayload{
-		Channel:  s.Channel,
 		Username: s.Username,
 	}
 	if payload.Username == "" {
