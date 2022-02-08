@@ -17,7 +17,6 @@ limitations under the License.
 package notifier
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"path"
