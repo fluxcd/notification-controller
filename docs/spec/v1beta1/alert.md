@@ -100,6 +100,28 @@ spec:
   suspend: false
 ```
 
+You can target resources with a particular set of labels using `spec.EventSource[].matchLabels`.
+It is only possible when the name of the event source is set to a wildcard `*`.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Alert
+metadata:
+  name: dev-kustomizations
+  namespace: default
+spec:
+  providerRef:
+    name: dev-msteams
+  eventSeverity: error
+  eventSources:
+    - kind: Kustomization
+      namespace: default
+      name: '*'
+      matchLabels:
+        app: dev
+  suspend: false
+```
+
 If you don't specify an event source namespace, the alert namespace will be used.
 
 > **Note** that on multi-tenant clusters, platform admins can disable cross-namespace references

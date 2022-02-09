@@ -2,10 +2,10 @@
 apiVersion: source.toolkit.fluxcd.io/v1beta1
 kind: GitRepository
 metadata:
-  name: podinfo
+  name: podinfo-two
   namespace: "%[1]s"
   labels:
-    app: podinfo
+    app: podinfo-two
 spec:
   interval: 1m
   url: https://github.com/stefanprodan/podinfo

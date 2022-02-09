@@ -694,6 +694,20 @@ string
 <p>Namespace of the referent</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>matchLabels</code><br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MatchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+map is equivalent to an element of matchExpressions, whose key field is &ldquo;key&rdquo;, the
+operator is &ldquo;In&rdquo;, and the values array contains only &ldquo;value&rdquo;. The requirements are ANDed.</p>
+</td>
+</tr>
 </tbody>
 </table>
 </div>
