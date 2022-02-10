@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.22.0
+
+**Release date:** 2022-02-16
+
+This prerelease comes with support for sending alerts to Grafana annotations API.
+
+In addition, the Alert API comes with an optional field `spec.eventSources[].matchLabels` that allows selecting event sources based on labels.
+
+Features:
+- Implement label selectors for event sources in alerts [#325](https://github.com/fluxcd/notification-controller/pull/325)
+- Add Grafana alerting provider [#322](https://github.com/fluxcd/notification-controller/pull/322)
+
+Improvements:
+- Update documentation for alert provider type [#321](https://github.com/fluxcd/notification-controller/pull/321)
+- Make username and channel field optional for Discord provider [#324](https://github.com/fluxcd/notification-controller/pull/324)
+
 ## 0.21.0
 
 **Release date:** 2022-01-28
