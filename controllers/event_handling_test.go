@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/fluxcd/pkg/ssa"
 	. "github.com/onsi/gomega"
 	"github.com/sethvargo/go-limiter/memorystore"
 	prommetrics "github.com/slok/go-http-metrics/metrics/prometheus"
@@ -78,6 +79,22 @@ func TestEventHandler(t *testing.T) {
 	}
 	g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())
 
+	repo, err := readManifest("./testdata/repo.yaml", namespace)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	secondRepo, err := readManifest("./testdata/gitrepo2.yaml", namespace)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	_, err = manager.Apply(context.Background(), repo, ssa.ApplyOptions{
+		Force: true,
+	})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	_, err = manager.Apply(context.Background(), secondRepo, ssa.ApplyOptions{
+		Force: true,
+	})
+	g.Expect(err).ToNot(HaveOccurred())
+
 	alertKey := types.NamespacedName{
 		Name:      fmt.Sprintf("alert-%s", randStringRunes(5)),
 		Namespace: namespace,
@@ -102,6 +119,13 @@ func TestEventHandler(t *testing.T) {
 				{
 					Kind: "Kustomization",
 					Name: "*",
+				},
+				{
+					Kind: "GitRepository",
+					Name: "*",
+					MatchLabels: map[string]string{
+						"app": "podinfo",
+					},
 				},
 				{
 					Kind:      "Kustomization",
@@ -163,74 +187,98 @@ func TestEventHandler(t *testing.T) {
 		}, "1s", "0.1s").Should(BeTrue())
 	}
 
-	t.Run("event forwarding", func(t *testing.T) {
-		tests := []struct {
-			name            string
-			modifyEventFunc func(e events.Event) events.Event
-			forwarded       bool
-		}{
-			{
-				name:            "forwards when source is a match",
-				modifyEventFunc: func(e events.Event) events.Event { return e },
-				forwarded:       true,
+	tests := []struct {
+		name            string
+		modifyEventFunc func(e events.Event) events.Event
+		forwarded       bool
+	}{
+		{
+			name:            "forwards when source is a match",
+			modifyEventFunc: func(e events.Event) events.Event { return e },
+			forwarded:       true,
+		},
+		{
+			name: "drops event when source Kind does not match",
+			modifyEventFunc: func(e events.Event) events.Event {
+				e.InvolvedObject.Kind = "GitRepository"
+				return e
 			},
-			{
-				name: "drops event when source Kind does not match",
-				modifyEventFunc: func(e events.Event) events.Event {
-					e.InvolvedObject.Kind = "GitRepository"
-					return e
-				},
-				forwarded: false,
+			forwarded: false,
+		},
+		{
+			name: "drops event when source name does not match",
+			modifyEventFunc: func(e events.Event) events.Event {
+				e.InvolvedObject.Name = "slop"
+				return e
 			},
-			{
-				name: "drops event when source name does not match",
-				modifyEventFunc: func(e events.Event) events.Event {
-					e.InvolvedObject.Name = "slop"
-					return e
-				},
-				forwarded: false,
+			forwarded: false,
+		},
+		{
+			name: "drops event when source namespace does not match",
+			modifyEventFunc: func(e events.Event) events.Event {
+				e.InvolvedObject.Namespace = "all-buckets"
+				return e
 			},
-			{
-				name: "drops event when source namespace does not match",
-				modifyEventFunc: func(e events.Event) events.Event {
-					e.InvolvedObject.Namespace = "all-buckets"
-					return e
-				},
-				forwarded: false,
+			forwarded: false,
+		},
+		{
+			name: "drops event that is matched by exclusion",
+			modifyEventFunc: func(e events.Event) events.Event {
+				e.Message = "this is excluded"
+				return e
 			},
-			{
-				name: "drops event that is matched by exclusion",
-				modifyEventFunc: func(e events.Event) events.Event {
-					e.Message = "this is excluded"
-					return e
-				},
-				forwarded: false,
+			forwarded: false,
+		},
+		{
+			name: "forwards events when name wildcard is used",
+			modifyEventFunc: func(e events.Event) events.Event {
+				e.InvolvedObject.Kind = "Kustomization"
+				e.InvolvedObject.Name = "test"
+				e.InvolvedObject.Namespace = namespace
+				e.Message = "test"
+				return e
 			},
-			{
-				name: "forwards events when name wildcard is used",
-				modifyEventFunc: func(e events.Event) events.Event {
-					e.InvolvedObject.Kind = "Kustomization"
-					e.InvolvedObject.Name = "test"
-					e.InvolvedObject.Namespace = namespace
-					e.Message = "test"
-					return e
-				},
-				forwarded: true,
+			forwarded: true,
+		},
+		{
+			name: "forwards events when the label matches",
+			modifyEventFunc: func(e events.Event) events.Event {
+				e.InvolvedObject.Kind = "GitRepository"
+				e.InvolvedObject.Name = "podinfo"
+				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1beta1"
+				e.InvolvedObject.Namespace = namespace
+				e.Message = "test"
+				return e
 			},
-			{
-				name: "drops events for cross-namespace sources",
-				modifyEventFunc: func(e events.Event) events.Event {
-					e.InvolvedObject.Kind = "Kustomization"
-					e.InvolvedObject.Name = "test"
-					e.InvolvedObject.Namespace = "test"
-					e.Message = "test"
-					return e
-				},
-				forwarded: false,
+			forwarded: true,
+		},
+		{
+			name: "drops events when the labels don't match",
+			modifyEventFunc: func(e events.Event) events.Event {
+				e.InvolvedObject.Kind = "GitRepository"
+				e.InvolvedObject.Name = "podinfo-two"
+				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1beta1"
+				e.InvolvedObject.Namespace = namespace
+				e.Message = "test"
+				return e
 			},
-		}
+			forwarded: false,
+		},
+		{
+			name: "drops events for cross-namespace sources",
+			modifyEventFunc: func(e events.Event) events.Event {
+				e.InvolvedObject.Kind = "Kustomization"
+				e.InvolvedObject.Name = "test"
+				e.InvolvedObject.Namespace = "test"
+				e.Message = "test"
+				return e
+			},
+			forwarded: false,
+		},
+	}
 
-		for _, tt := range tests {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
 			event = tt.modifyEventFunc(event)
 			testSent()
 			if tt.forwarded {
@@ -239,6 +287,6 @@ func TestEventHandler(t *testing.T) {
 				testFiltered()
 			}
 			req = nil
-		}
-	})
+		})
+	}
 }

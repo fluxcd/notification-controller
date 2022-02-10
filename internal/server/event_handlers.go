@@ -29,6 +29,9 @@ import (
 
 	"github.com/fluxcd/pkg/runtime/conditions"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 
@@ -96,13 +99,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 					source.Namespace = alert.Namespace
 				}
 
-				if (source.Name == "*" || event.InvolvedObject.Name == source.Name) &&
-					event.InvolvedObject.Namespace == source.Namespace &&
-					event.InvolvedObject.Kind == source.Kind {
-					if event.Severity == alert.Spec.EventSeverity ||
-						alert.Spec.EventSeverity == events.EventSeverityInfo {
-						alerts = append(alerts, alert)
-					}
+				if s.eventMatchesAlert(ctx, event, source, alert.Spec.EventSeverity) {
+					alerts = append(alerts, alert)
 				}
 			}
 		}
@@ -261,6 +259,47 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 		w.WriteHeader(http.StatusAccepted)
 	}
+}
+
+func (s *EventServer) eventMatchesAlert(ctx context.Context, event *events.Event, source v1beta1.CrossNamespaceObjectReference, severity string) bool {
+	if event.InvolvedObject.Namespace == source.Namespace &&
+		event.InvolvedObject.Kind == source.Kind {
+		if event.Severity == severity ||
+			severity == events.EventSeverityInfo {
+
+			labelMatch := true
+			if source.Name == "*" && source.MatchLabels != nil {
+				var obj unstructured.Unstructured
+				obj.SetKind(event.InvolvedObject.Kind)
+				obj.SetAPIVersion(event.InvolvedObject.APIVersion)
+				obj.SetName(event.InvolvedObject.Name)
+				obj.SetNamespace(event.InvolvedObject.Namespace)
+
+				if err := s.kubeClient.Get(ctx, types.NamespacedName{
+					Namespace: event.InvolvedObject.Namespace,
+					Name:      event.InvolvedObject.Name,
+				}, &obj); err != nil {
+					s.logger.Error(err, "error getting object", "kind", event.InvolvedObject.Kind,
+						"name", event.InvolvedObject.Name, "apiVersion", event.InvolvedObject.APIVersion)
+				}
+
+				sel, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
+					MatchLabels: source.MatchLabels,
+				})
+				if err != nil {
+					s.logger.Error(err, fmt.Sprintf("error using matchLabels from event source '%s'", source.Name))
+				}
+
+				labelMatch = sel.Matches(labels.Set(obj.GetLabels()))
+			}
+
+			if source.Name == "*" && labelMatch || event.InvolvedObject.Name == source.Name {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func redactTokenFromError(err error, token string) error {
