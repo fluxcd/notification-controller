@@ -31,7 +31,7 @@ type ProviderSpec struct {
 	// +optional
 	Proxy string `json:"proxy,omitempty"`
 
-	// Secret reference containing the provider details, valid key names are: address, token, headers (YAML encoded)
+	// Secret reference containing the provider details, valid key names are: address, proxy, token, headers (YAML encoded)
 	// +optional
 	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
 
@@ -124,6 +124,14 @@ Note that the secret must contain an `address` field.
 
 The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `googlechat`, `webex`, `sentry`,
 `telegram`, `lark`, `matrix`, `azureeventhub`, `opsgenie`, `alertmanager`, `grafana` or `generic`.
+
+Some networks need to use an authenticated proxy to access external services. Therefore, the authentication can be stored as a secret to hide parameters like the username and password.
+
+```sh
+kubectl create secret generic webhook-url \
+--from-literal=address=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK \
+--from-literal=proxy=http://username:password@proxy_url:proxy_port 
+```
 
 When type `generic` is specified, the notification controller will post the
 incoming [event](event.md) in JSON format to the webhook address.
@@ -581,7 +589,7 @@ kubectl create secret generic webhook-url \
 
 #### SAS based auth
 
-In SAS we only use the `address`field in the secret.
+In SAS we only use the `address` field in the secret.
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
