@@ -112,13 +112,20 @@ func TestReceiverHandler(t *testing.T) {
 	g.Expect(k8sClient.Update(context.Background(), &rcvrObj)).To(Succeed())
 	g.Consistently(func() bool {
 		var obj notifyv1.Receiver
-		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), &obj))
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), &obj)).To(Succeed())
 		return obj.Status.URL == address
 	}, 30*time.Second, time.Second).Should(BeTrue())
 
 	res, err := http.Post("http://localhost:56788/"+address, "application/json", nil)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(res.StatusCode).To(Equal(http.StatusOK))
+	g.Eventually(func() bool {
+		obj := &unstructured.Unstructured{}
+		obj.SetGroupVersionKind(object.GroupVersionKind())
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(object), obj)).To(Succeed())
+		v, ok := obj.GetAnnotations()[meta.ReconcileRequestAnnotation]
+		return ok && v != ""
+	}, 30*time.Second, time.Second).Should(BeTrue())
 }
 
 func readManifest(manifest, namespace string) (*unstructured.Unstructured, error) {
