@@ -30,7 +30,6 @@ import (
 	"github.com/fluxcd/pkg/runtime/conditions"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
@@ -269,9 +268,8 @@ func (s *EventServer) eventMatchesAlert(ctx context.Context, event *events.Event
 
 			labelMatch := true
 			if source.Name == "*" && source.MatchLabels != nil {
-				var obj unstructured.Unstructured
-				obj.SetKind(event.InvolvedObject.Kind)
-				obj.SetAPIVersion(event.InvolvedObject.APIVersion)
+				var obj metav1.PartialObjectMetadata
+				obj.SetGroupVersionKind(event.InvolvedObject.GroupVersionKind())
 				obj.SetName(event.InvolvedObject.Name)
 				obj.SetNamespace(event.InvolvedObject.Namespace)
 

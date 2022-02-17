@@ -35,7 +35,6 @@ import (
 	"github.com/google/go-github/v41/github"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -373,7 +372,7 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNam
 
 	group, version := getGroupVersion(apiVersion)
 
-	u := &unstructured.Unstructured{}
+	u := &metav1.PartialObjectMetadata{}
 	u.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   group,
 		Kind:    resource.Kind,
