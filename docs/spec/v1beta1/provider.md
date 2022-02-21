@@ -431,6 +431,14 @@ kubectl create secret generic grafana-token \
 --from-literal=address=https://<grafana-url>/api/annotations
 ```
 
+Grafana can also use `basic authorization` to authenticate the requests, if both token and 
+username/password are set in the secret, then `API token` takes precedence over `basic auth`.
+```shell
+kubectl create secret generic grafana-token \
+--from-literal=username=<your-grafana-username> \
+--from-literal=password=<your-grafana-password>
+``` 
+
 Then reference the secret in `spec.secretRef`:
 
 ```yaml

@@ -116,3 +116,10 @@ func TestUtil_Sha1String(t *testing.T) {
 	s := sha1String(str)
 	require.Equal(t, "12ea142172e98435e16336acbbed8919610922c3", s)
 }
+
+func TestUtil_BasicAuth(t *testing.T) {
+	username := "user"
+	password := "password"
+	s := basicAuth(username, password)
+	require.Equal(t, "dXNlcjpwYXNzd29yZA==", s)
+}
