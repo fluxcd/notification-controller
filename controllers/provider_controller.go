@@ -148,6 +148,7 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *v1beta1.Provide
 
 func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Provider) error {
 	address := provider.Spec.Address
+	proxy := provider.Spec.Proxy
 	token := ""
 	headers := make(map[string]string)
 	if provider.Spec.SecretRef != nil {
@@ -160,6 +161,10 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Pro
 
 		if a, ok := secret.Data["address"]; ok {
 			address = string(a)
+		}
+
+		if p, ok := secret.Data["proxy"]; ok {
+			proxy = string(p)
 		}
 
 		if t, ok := secret.Data["token"]; ok {
@@ -199,7 +204,7 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Pro
 		}
 	}
 
-	factory := notifier.NewFactory(address, provider.Spec.Proxy, provider.Spec.Username, provider.Spec.Channel, token, headers, certPool)
+	factory := notifier.NewFactory(address, proxy, provider.Spec.Username, provider.Spec.Channel, token, headers, certPool)
 	if _, err := factory.Notifier(provider.Spec.Type); err != nil {
 		return fmt.Errorf("failed to initialize provider, error: %w", err)
 	}
