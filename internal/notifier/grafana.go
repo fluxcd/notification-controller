@@ -26,24 +26,24 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-// Discord holds the hook URL
 type Grafana struct {
 	URL      string
 	Token    string
 	ProxyURL string
 	CertPool *x509.CertPool
+	Username string
+	Password string
 }
 
 // GraphiteAnnotation represents a Grafana API annotation in Graphite format
 type GraphitePayload struct {
-	//What string   `json:"what"` //optional
 	When int64    `json:"when"` //optional unix timestamp (ms)
 	Text string   `json:"text"`
 	Tags []string `json:"tags,omitempty"`
 }
 
 // NewGrafana validates the Grafana URL and returns a Grafana object
-func NewGrafana(URL string, proxyURL string, token string, certPool *x509.CertPool) (*Grafana, error) {
+func NewGrafana(URL string, proxyURL string, token string, certPool *x509.CertPool, username string, password string) (*Grafana, error) {
 	_, err := url.ParseRequestURI(URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Grafana URL %s", URL)
@@ -54,33 +54,36 @@ func NewGrafana(URL string, proxyURL string, token string, certPool *x509.CertPo
 		ProxyURL: proxyURL,
 		Token:    token,
 		CertPool: certPool,
+		Username: username,
+		Password: password,
 	}, nil
 }
 
 // Post annotation
-func (s *Grafana) Post(event events.Event) error {
+func (g *Grafana) Post(event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil
 	}
 
 	sfields := make([]string, 0, len(event.Metadata))
-	sfields = append(sfields, "flux")
-	sfields = append(sfields, event.ReportingController)
+	// add tag to filter on grafana
+	sfields = append(sfields, "flux", event.ReportingController)
 	for k, v := range event.Metadata {
 		sfields = append(sfields, fmt.Sprintf("%s: %s", k, v))
 	}
-	// add tag to filter on grafana
-
 	payload := GraphitePayload{
 		When: event.Timestamp.Unix(),
 		Text: fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace),
 		Tags: sfields,
 	}
 
-	err := postMessage(s.URL, s.ProxyURL, s.CertPool, payload, func(request *retryablehttp.Request) {
-		if s.Token != "" {
-			request.Header.Add("Authorization", "Bearer "+s.Token)
+	err := postMessage(g.URL, g.ProxyURL, g.CertPool, payload, func(request *retryablehttp.Request) {
+		if (g.Username != "" && g.Password != "") && g.Token == "" {
+			request.Header.Add("Authorization", "Basic "+basicAuth(g.Username, g.Password))
+		}
+		if g.Token != "" {
+			request.Header.Add("Authorization", "Bearer "+g.Token)
 		}
 	})
 	if err != nil {

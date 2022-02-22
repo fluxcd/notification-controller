@@ -31,9 +31,10 @@ type Factory struct {
 	Token    string
 	Headers  map[string]string
 	CertPool *x509.CertPool
+	Password string
 }
 
-func NewFactory(url string, proxy string, username string, channel string, token string, headers map[string]string, certPool *x509.CertPool) *Factory {
+func NewFactory(url string, proxy string, username string, channel string, token string, headers map[string]string, certPool *x509.CertPool, password string) *Factory {
 	return &Factory{
 		URL:      url,
 		ProxyURL: proxy,
@@ -42,6 +43,7 @@ func NewFactory(url string, proxy string, username string, channel string, token
 		Token:    token,
 		Headers:  headers,
 		CertPool: certPool,
+		Password: password,
 	}
 }
 
@@ -90,7 +92,7 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	case v1beta1.AlertManagerProvider:
 		n, err = NewAlertmanager(f.URL, f.ProxyURL, f.CertPool)
 	case v1beta1.GrafanaProvider:
-		n, err = NewGrafana(f.URL, f.ProxyURL, f.Token, f.CertPool)
+		n, err = NewGrafana(f.URL, f.ProxyURL, f.Token, f.CertPool, f.Username, f.Password)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}

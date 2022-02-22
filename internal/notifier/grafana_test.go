@@ -23,27 +23,30 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGrafana_Post(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, err := io.ReadAll(r.Body)
+	t.Run("Successfully post and expect 200 ok", func(t *testing.T) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			b, err := io.ReadAll(r.Body)
+			require.NoError(t, err)
+			var payload = GraphitePayload{}
+			err = json.Unmarshal(b, &payload)
+			require.NoError(t, err)
+
+			require.Equal(t, "gitrepository/webapp.gitops-system", payload.Text)
+			require.Equal(t, "flux", payload.Tags[0])
+			require.Equal(t, "source-controller", payload.Tags[1])
+			require.Equal(t, "test: metadata", payload.Tags[2])
+		}))
+		defer ts.Close()
+
+		grafana, err := NewGrafana(ts.URL, "", "", nil, "", "")
 		require.NoError(t, err)
-		var payload = GraphitePayload{}
-		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
 
-		require.Equal(t, "gitrepository/webapp.gitops-system", payload.Text)
-		require.Equal(t, "flux", payload.Tags[0])
-		require.Equal(t, "source-controller", payload.Tags[1])
-		require.Equal(t, "test: metadata", payload.Tags[2])
-	}))
-	defer ts.Close()
-
-	grafana, err := NewGrafana(ts.URL, "", "", nil)
-	require.NoError(t, err)
-
-	err = grafana.Post(testEvent())
-	require.NoError(t, err)
+		err = grafana.Post(testEvent())
+		assert.NoError(t, err)
+	})
 }

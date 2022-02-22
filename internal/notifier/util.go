@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"crypto/sha1"
+	"encoding/base64"
 	"fmt"
 	"strings"
 	"unicode"
@@ -119,4 +120,9 @@ func isCommitStatus(meta map[string]string, status string) bool {
 func sha1String(str string) string {
 	bs := []byte(str)
 	return fmt.Sprintf("%x", sha1.Sum(bs))
+}
+
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
