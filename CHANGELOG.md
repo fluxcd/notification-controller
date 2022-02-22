@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.22.1
+
+**Release date:** 2022-02-22
+
+This prerelease comes with support for using basic auth when sending alerts to Grafana annotations API.
+
+Improvements:
+- Add basic auth support to Grafana provider
+  [#334](https://github.com/fluxcd/notification-controller/pull/334)
+- Allow the proxy address to specified in the Kubernetes Secret from Alert `spec.secretRef`
+  [#331](https://github.com/fluxcd/notification-controller/pull/331)
+- Switch to controller-runtime metadata client
+  [#330](https://github.com/fluxcd/notification-controller/pull/330)
+- Update dependencies
+  [#333](https://github.com/fluxcd/notification-controller/pull/333)
+
 ## 0.22.0
 
 **Release date:** 2022-02-16
