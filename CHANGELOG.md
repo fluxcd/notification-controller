@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.22.2
+
+**Release date:** 2022-02-23
+
+This prerelease patches the container image tag in the Deployment manifest that was previously missed in 0.22.1.
+
 ## 0.22.1
 
 **Release date:** 2022-02-22
