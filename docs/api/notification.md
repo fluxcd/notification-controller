@@ -237,6 +237,22 @@ string
 </tr>
 <tr>
 <td>
+<code>commitStatusPrefix</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A string to prepend to the identifier of a commit status.
+Example use-case: a single object (kustomization/k8s-gitops)
+is deployed to multiple clusters. Specifying this (e.g., to
+the name of the cluster) ensures that the notification controllers
+on each cluster don&rsquo;t overwrite each others&rsquo; commit statuses.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>channel</code><br>
 <em>
 string
@@ -738,6 +754,22 @@ string
 </td>
 <td>
 <p>Type of provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>commitStatusPrefix</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A string to prepend to the identifier of a commit status.
+Example use-case: a single object (kustomization/k8s-gitops)
+is deployed to multiple clusters. Specifying this (e.g., to
+the name of the cluster) ensures that the notification controllers
+on each cluster don&rsquo;t overwrite each others&rsquo; commit statuses.</p>
 </td>
 </tr>
 <tr>

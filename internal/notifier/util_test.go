@@ -25,15 +25,32 @@ import (
 )
 
 func TestUtil_NameAndDescription(t *testing.T) {
-	event := events.Event{
+	var event events.Event
+	var name, desc string
+
+	event = events.Event{
 		InvolvedObject: v1.ObjectReference{
 			Kind: "Kustomization",
 			Name: "gitops-system",
 		},
 		Reason: "ApplySucceeded",
 	}
-	name, desc := formatNameAndDescription(event)
+	name, desc = formatNameAndDescription(event)
 	require.Equal(t, "kustomization/gitops-system", name)
+	require.Equal(t, "apply succeeded", desc)
+
+	event = events.Event{
+		InvolvedObject: v1.ObjectReference{
+			Kind: "Kustomization",
+			Name: "gitops-system",
+		},
+		Reason: "ApplySucceeded",
+		Metadata: map[string]string{
+			"commitStatusPrefix": "im-a-cluster",
+		},
+	}
+	name, desc = formatNameAndDescription(event)
+	require.Equal(t, "im-a-cluster/kustomization/gitops-system", name)
 	require.Equal(t, "apply succeeded", desc)
 }
 

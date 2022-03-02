@@ -259,6 +259,16 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				}
 			}
 
+			if provider.Spec.CommitStatusPrefix != "" {
+				if notification.Metadata == nil {
+					notification.Metadata = map[string]string{
+						"commitStatusPrefix": provider.Spec.CommitStatusPrefix,
+					}
+				} else {
+					notification.Metadata["commitStatusPrefix"] = provider.Spec.CommitStatusPrefix
+				}
+			}
+
 			go func(n notifier.Interface, e events.Event) {
 				if err := n.Post(e); err != nil {
 					err = redactTokenFromError(err, token)

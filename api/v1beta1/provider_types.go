@@ -32,6 +32,14 @@ type ProviderSpec struct {
 	// +required
 	Type string `json:"type"`
 
+	// A string to prepend to the identifier of a commit status.
+	// Example use-case: a single object (kustomization/k8s-gitops)
+	// is deployed to multiple clusters. Specifying this (e.g., to
+	// the name of the cluster) ensures that the notification controllers
+	// on each cluster don't overwrite each others' commit statuses.
+	// +optional
+	CommitStatusPrefix string `json:"commitStatusPrefix,omitempty"`
+
 	// Alert channel for this provider
 	// +optional
 	Channel string `json:"channel,omitempty"`

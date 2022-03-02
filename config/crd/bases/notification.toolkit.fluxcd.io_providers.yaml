@@ -63,6 +63,13 @@ spec:
               channel:
                 description: Alert channel for this provider
                 type: string
+              commitStatusPrefix:
+                description: 'A string to prepend to the identifier of a commit status.
+                  Example use-case: a single object (kustomization/k8s-gitops) is
+                  deployed to multiple clusters. Specifying this (e.g., to the name
+                  of the cluster) ensures that the notification controllers on each
+                  cluster don''t overwrite each others'' commit statuses.'
+                type: string
               proxy:
                 description: HTTP/S address of the proxy
                 pattern: ^(http|https)://

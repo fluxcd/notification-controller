@@ -46,7 +46,16 @@ func parseGitAddress(s string) (string, string, error) {
 }
 
 func formatNameAndDescription(event events.Event) (string, string) {
-	name := fmt.Sprintf("%v/%v", event.InvolvedObject.Kind, event.InvolvedObject.Name)
+	kind, name := event.InvolvedObject.Kind, event.InvolvedObject.Name
+	commitStatusPrefix, ok := event.Metadata["commitStatusPrefix"]
+	if ok && commitStatusPrefix != "" {
+		// This adds additional information to the identifier of a commit status so that,
+		// for example, notification controllers deployed on multiple clusters hosting
+		// the same resource kind/name don't overwrite each others' commit statuses.
+		name = fmt.Sprintf("%v/%v/%v", commitStatusPrefix, kind, name)
+	} else {
+		name = fmt.Sprintf("%v/%v", kind, name)
+	}
 	name = strings.ToLower(name)
 	desc := strings.Join(splitCamelcase(event.Reason), " ")
 	desc = strings.ToLower(desc)
