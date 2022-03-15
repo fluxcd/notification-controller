@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.22.3
+
+**Release date:** 2022-03-15
+
+This prerelease patches the Deployment manifest to set the
+`.spec.securityContext.fsGroup`, which may be required for some EKS setups as
+reported in https://github.com/fluxcd/flux2/issues/2537.
+
+In addition, it also updates `nhooyr.io/websocket` to `v1.8.7` and
+`github.com/gin-gonic/gin` to `v1.7.7`, to please static security analysers and
+fix any warnings.
+
+Improvements:
+- Update dependencies
+  [#338](https://github.com/fluxcd/notification-controller/pull/338)
+- add fsgroup for securityContext
+  [#342](https://github.com/fluxcd/notification-controller/pull/342)
+
 ## 0.22.2
 
 **Release date:** 2022-02-23
