@@ -162,7 +162,7 @@ The body of the request looks like this:
     "namespace":"flux-system",
     "name":"flux-system",
     "uid":"cc4d0095-83f4-4f08-98f2-d2e9f3731fb9",
-    "apiVersion":"source.toolkit.fluxcd.io/v1beta1",
+    "apiVersion":"source.toolkit.fluxcd.io/v1beta2",
     "resourceVersion":"56921",
   },
   "severity":"info",
