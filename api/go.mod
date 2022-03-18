@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/fluxcd/pkg/apis/meta v0.12.1
 	k8s.io/apimachinery v0.23.4
-	sigs.k8s.io/controller-runtime v0.11.0
+	sigs.k8s.io/controller-runtime v0.11.1
 )
 
 require (
