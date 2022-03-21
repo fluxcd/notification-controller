@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.23.0
+
+**Release date:** 2022-03-21
+
+This prerelease updates various dependencies to their latest versions.
+The code base was refactored to align with `fluxcd/pkg/runtime` v0.13 release.
+
+Improvements:
+- Update `pkg/runtime` and `apis/meta`
+  [#345](https://github.com/fluxcd/notification-controller/pull/345)
+- Update dependencies
+  [#346](https://github.com/fluxcd/notification-controller/pull/346)
+- Cleanup metadata fields before alerting
+  [#347](https://github.com/fluxcd/notification-controller/pull/347)
+
 ## 0.22.3
 
 **Release date:** 2022-03-15
