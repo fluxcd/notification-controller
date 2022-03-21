@@ -25,6 +25,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/fluxcd/pkg/runtime/conditions"
@@ -57,6 +58,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		cleanupMetadata(event)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -324,4 +327,21 @@ func redactTokenFromError(err error, token string) error {
 	redacted := re.ReplaceAllString(err.Error(), "*****")
 
 	return errors.New(redacted)
+}
+
+// TODO: move the metadata filtering function to fluxcd/pkg/runtime/events
+// cleanupMetadata removes metadata entries which are not used for alerting
+func cleanupMetadata(event *events.Event) {
+	excludeList := []string{"checksum"}
+
+	if event.Metadata != nil && len(event.Metadata) > 0 {
+		for key := range event.Metadata {
+			for _, k := range excludeList {
+				if strings.ToLower(k) == strings.ToLower(key) {
+					delete(event.Metadata, key)
+					break
+				}
+			}
+		}
+	}
 }
