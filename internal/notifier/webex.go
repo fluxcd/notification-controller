@@ -91,6 +91,30 @@ func NewWebex(hookURL, proxyURL string, certPool *x509.CertPool, channel string,
 	}, nil
 }
 
+func (s *Webex) CreateMarkdown(event *events.Event) string {
+	var b strings.Builder
+	emoji := "✅"
+	if event.Severity == events.EventSeverityError {
+		emoji = "💣"
+	}
+	fmt.Fprintf(&b, "%s **%s/%s/%s**\n", emoji, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+	fmt.Fprintf(&b, "%s\n",	event.Message)
+
+
+	fmt.Fprintf(&b, ">*reporting_controller*: %s\n", event.ReportingController)
+	fmt.Fprintf(&b, ">*reporting_instance*: %s\n", event.ReportingInstance)
+	fmt.Fprintf(&b, ">*reason*: %s\n", event.Reason)
+
+	if len(event.Metadata) > 0 {
+		// markdown += " | **METADATA** ="
+		for k, v := range event.Metadata {
+			// markdown += fmt.Sprintf(" **%s**: %s", k, v)
+			fmt.Fprintf(&b, "> *%s*: %s\n", k, v)
+		}
+	}
+	return b.String()
+}
+
 // Post Webex message
 func (s *Webex) Post(event events.Event) error {
 	// Skip any update events
@@ -98,19 +122,9 @@ func (s *Webex) Post(event events.Event) error {
 		return nil
 	}
 
-	objName := fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace)
-	markdown := fmt.Sprintf("> **NAME** = %s | **MESSAGE** = %s", objName, event.Message)
-
-	if len(event.Metadata) > 0 {
-		markdown += " | **METADATA** ="
-		for k, v := range event.Metadata {
-			markdown += fmt.Sprintf(" **%s**: %s", k, v)
-		}
-	}
-
 	payload := WebexPayload{
 		RoomId: s.RoomId,
-		Markdown: markdown,
+		Markdown: s.CreateMarkdown(&event),
 	}
 
 	if err := postMessage(s.URL, s.ProxyURL, s.CertPool, payload, func(request *retryablehttp.Request) {
