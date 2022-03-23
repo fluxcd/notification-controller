@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.23.1
+
+**Release date:** 2022-03-23
+
+This prerelease comes with strict filtering of events metadata.
+Starting with this version, the metadata keys considered for
+alerting must be prefixed with the involved object API group.
+
+Improvements:
+- Filter event metadata based on the object group
+  [#350](https://github.com/fluxcd/notification-controller/pull/350)
+
 ## 0.23.0
 
 **Release date:** 2022-03-21
