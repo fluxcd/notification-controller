@@ -76,7 +76,7 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	case v1beta1.GoogleChatProvider:
 		n, err = NewGoogleChat(f.URL, f.ProxyURL)
 	case v1beta1.WebexProvider:
-		n, err = NewWebex(f.URL, f.ProxyURL, f.CertPool)
+		n, err = NewWebex(f.URL, f.ProxyURL, f.CertPool, f.Channel, f.Token)
 	case v1beta1.SentryProvider:
 		n, err = NewSentry(f.CertPool, f.URL, f.Channel)
 	case v1beta1.AzureEventHubProvider:
