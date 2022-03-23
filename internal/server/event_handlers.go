@@ -332,16 +332,35 @@ func redactTokenFromError(err error, token string) error {
 // TODO: move the metadata filtering function to fluxcd/pkg/runtime/events
 // cleanupMetadata removes metadata entries which are not used for alerting
 func cleanupMetadata(event *events.Event) {
-	excludeList := []string{"checksum"}
+	group := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group
+	excludeList := []string{fmt.Sprintf("%s/checksum", group)}
+
+	meta := make(map[string]string)
 
 	if event.Metadata != nil && len(event.Metadata) > 0 {
-		for key := range event.Metadata {
-			for _, k := range excludeList {
-				if strings.ToLower(k) == strings.ToLower(key) {
-					delete(event.Metadata, key)
-					break
-				}
+		// For backwards compatibility, include the revision without a group prefix
+		revisionKey := "revision"
+		if rev, ok := event.Metadata[revisionKey]; ok {
+			meta[revisionKey] = rev
+		}
+
+		// Filter other meta based on group prefix, while filtering out excludes
+		for key, val := range event.Metadata {
+			if strings.HasPrefix(key, group) && !inList(excludeList, key) {
+				newKey := strings.TrimPrefix(key, fmt.Sprintf("%s/", group))
+				meta[newKey] = val
 			}
 		}
 	}
+
+	event.Metadata = meta
+}
+
+func inList(l []string, i string) bool {
+	for _, v := range l {
+		if strings.ToLower(v) == strings.ToLower(i) {
+			return true
+		}
+	}
+	return false
 }
