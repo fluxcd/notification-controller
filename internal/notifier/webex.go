@@ -35,8 +35,20 @@ import (
 //   namespace: flux-system
 // spec:
 //   type: webex
+//   address: https://webexapis.com/v1/messages
 //   channel: <webexSpaceRoomID>
-//   token: <webexBotAccessToken>
+//  secretRef:
+//    name: webex-bot-access-token
+// ---
+// apiVersion: v1
+// kind: Secret
+// metadata:
+//   name: webex-bot-access-token
+//   namespace: flux-system
+// data:
+//   # bot access token - must be base64 encoded
+//   # echo -n <token> | base64
+//   token: <webexBotAccessTokenBase64>
 //
 // General steps on how to hook up Flux notifications to a Webex space:
 // From the Webex App UI:
@@ -73,10 +85,7 @@ type WebexPayload struct {
 
 // NewWebex validates the Webex URL and returns a Webex object
 func NewWebex(hookURL, proxyURL string, certPool *x509.CertPool, channel string, token string) (*Webex, error) {
-	// All webex spaces are accessed through the same universal URL
-	if hookURL == "" {
-		hookURL = "https://webexapis.com/v1/messages"
-	}
+
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Webex hook URL %s", hookURL)
@@ -99,17 +108,9 @@ func (s *Webex) CreateMarkdown(event *events.Event) string {
 	}
 	fmt.Fprintf(&b, "%s **%s/%s/%s**\n", emoji, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
 	fmt.Fprintf(&b, "%s\n",	event.Message)
-
-
-	fmt.Fprintf(&b, ">*reporting_controller*: %s\n", event.ReportingController)
-	fmt.Fprintf(&b, ">*reporting_instance*: %s\n", event.ReportingInstance)
-	fmt.Fprintf(&b, ">*reason*: %s\n", event.Reason)
-
 	if len(event.Metadata) > 0 {
-		// markdown += " | **METADATA** ="
 		for k, v := range event.Metadata {
-			// markdown += fmt.Sprintf(" **%s**: %s", k, v)
-			fmt.Fprintf(&b, "> *%s*: %s\n", k, v)
+			fmt.Fprintf(&b, ">**%s**: %s\n", k, v)
 		}
 	}
 	return b.String()
