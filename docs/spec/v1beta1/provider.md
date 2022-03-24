@@ -130,7 +130,7 @@ Some networks need to use an authenticated proxy to access external services. Th
 ```sh
 kubectl create secret generic webhook-url \
 --from-literal=address=https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK \
---from-literal=proxy=http://username:password@proxy_url:proxy_port 
+--from-literal=proxy=http://username:password@proxy_url:proxy_port
 ```
 
 When type `generic` is specified, the notification controller will post the
@@ -188,7 +188,7 @@ metadata:
 spec:
   type: generic
   address: https://api.github.com/repos/owner/repo/dispatches
-  secretRef: 
+  secretRef:
     name: generic-secret
 ---
 apiVersion: v1
@@ -246,7 +246,7 @@ and use `https://api.telegram.org/` as the api url.
  --from-literal=address=https://api.telegram.org
 ```
 
-Also note that `spec.channel` can be a unique identifier for the target chat 
+Also note that `spec.channel` can be a unique identifier for the target chat
 or username of the target channel (in the format @channelusername)
 
 ```yaml
@@ -415,6 +415,101 @@ spec:
     name: slack-token
 ```
 
+### Webex App
+
+General steps on how to hook up Flux notifications to a Webex space:
+
+From the Webex App UI:
+- create a Webex space where you want notifications to be sent
+- after creating a Webex bot (described in next section), add the bot email address to the Webex space ("People | Add people")
+
+Register to https://developer.webex.com/, after signing in:
+- create a bot for forwarding FluxCD notifications to a Webex Space (User profile icon | MyWebexApps | Create a New App | Create a Bot)
+- make a note of the bot email address, this email needs to be added to the Webex space from the Webex App
+- generate a bot access token, this is the ID to use in the kubernetes Secret "token" field (see example below)
+- find the room ID associated to the webex space using https://developer.webex.com/docs/api/v1/rooms/list-rooms (select GET, click on "Try It" and search the GET results for the matching Webex space entry), this is the ID to use in the webex Provider manifest "channel" field
+
+
+Manifests template to use:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: webex
+  namespace: flux-system
+spec:
+  type: webex
+  address: https://webexapis.com/v1/messages
+  channel: <webexSpaceRoomID>
+  secretRef:
+    name: webex-bot-access-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: webex-bot-access-token
+  namespace: flux-system
+data:
+  # bot access token - must be base64 encoded
+  token: <webexBotAccessTokenBase64>
+```
+
+Notes:
+
+- spec.address should always be set to the same global Webex API gateway https://webexapis.com/v1/messages
+- spec.channel should contain the Webex space room ID as obtained from https://developer.webex.com/ (long alphanumeric string copied as is)
+- token in the Secret manifest is the bot access token generated after creating the bot (as for all secrets, must be base64 encoded using for example
+"echo -n <token> | base64")
+
+If you do not see any notifications in the targeted Webex space:
+- check that you have applied an Alert with the right even sources and providerRef
+- check the notification controller log for any error messages
+- check that you have added the bot email address to the Webex space, if the bot email address is not added to the space, the notification controller will log a 404 room not found error every time a notification is sent out
+
+Full example of manifests with real looking but fictive room ID and access token:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: webex-fluxcd-space
+  namespace: flux-system
+spec:
+  type: webex
+  address: https://webexapis.com/v1/messages
+  channel: Y2jzY29zcGFyazovL3VzL1JPT00vMGU3YzZhODAlOWU4MC0xMWVjLWJlZWMtMzNm4DkwQGYwMjIz
+  secretRef:
+    name: webex-bot-access-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: webex-bot-access-token
+  namespace: flux-system
+data:
+  token: TVdaM05UVTFNV1F0WkRBMU55MDKObVkzTFdJek16SXRNems1WVRZM09UVmhNbUprTTJFMk9HVTDaR0l0T1RVNF9QRjg0XzFlYjY1ZmRmLTk2NDMtNDE3Zi05OTc0LWFkNzJjYWUwZTEwZg==
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Alert
+metadata:
+  name: webex-fluxcd-space-alerts
+  namespace: flux-system
+spec:
+  providerRef:
+    name: webex-fluxcd-space
+  eventSeverity: info
+  eventSources:
+    - kind: GitRepository
+      name: '*'
+    - kind: HelmRelease
+      name: '*'
+    - kind: HelmRepository
+      name: '*'
+    - kind: Kustomization
+      name: '*'
+```
+
 
 ### Grafana
 
@@ -431,13 +526,13 @@ kubectl create secret generic grafana-token \
 --from-literal=address=https://<grafana-url>/api/annotations
 ```
 
-Grafana can also use `basic authorization` to authenticate the requests, if both token and 
+Grafana can also use `basic authorization` to authenticate the requests, if both token and
 username/password are set in the secret, then `API token` takes precedence over `basic auth`.
 ```shell
 kubectl create secret generic grafana-token \
 --from-literal=username=<your-grafana-username> \
 --from-literal=password=<your-grafana-password>
-``` 
+```
 
 Then reference the secret in `spec.secretRef`:
 
@@ -634,3 +729,4 @@ To create the needed secret:
 kubectl create secret generic webhook-url \
 --from-literal=address="Endpoint=sb://fluxv2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=yoursaskeygeneatedbyazure"
 ```
+

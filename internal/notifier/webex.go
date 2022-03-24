@@ -26,29 +26,6 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-// Example of provider manifest for webex:
-//
-// apiVersion: notification.toolkit.fluxcd.io/v1beta1
-// kind: Provider
-// metadata:
-//   name: webex
-//   namespace: flux-system
-// spec:
-//   type: webex
-//   address: https://webexapis.com/v1/messages
-//   channel: <webexSpaceRoomID>
-//  secretRef:
-//    name: webex-bot-access-token
-// ---
-// apiVersion: v1
-// kind: Secret
-// metadata:
-//   name: webex-bot-access-token
-//   namespace: flux-system
-// data:
-//   # bot access token - must be base64 encoded
-//   # echo -n <token> | base64
-//   token: <webexBotAccessTokenBase64>
 //
 // General steps on how to hook up Flux notifications to a Webex space:
 // From the Webex App UI:
@@ -66,11 +43,11 @@ import (
 // Webex holds the hook URL
 type Webex struct {
 	// mandatory: this should be set to the universal webex API server https://webexapis.com/v1/messages
-	URL      string
+	URL string
 	// mandatory: webex room ID, specifies on which webex space notifications must be sent
-	RoomId   string
+	RoomId string
 	// mandatory: webex bot access token, this access token must be generated after creating a webex bot
-	Token    string
+	Token string
 
 	// optional: use a proxy as needed
 	ProxyURL string
@@ -96,8 +73,8 @@ func NewWebex(hookURL, proxyURL string, certPool *x509.CertPool, channel string,
 		URL:      hookURL,
 		ProxyURL: proxyURL,
 		CertPool: certPool,
-		RoomId: channel,
-		Token: token,
+		RoomId:   channel,
+		Token:    token,
 	}, nil
 }
 
@@ -107,8 +84,9 @@ func (s *Webex) CreateMarkdown(event *events.Event) string {
 	if event.Severity == events.EventSeverityError {
 		emoji = "💣"
 	}
-	fmt.Fprintf(&b, "%s **%s/%s/%s**\n", emoji, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
-	fmt.Fprintf(&b, "%s\n",	event.Message)
+	fmt.Fprintf(&b, "%s **%s/%s.%s**\n", emoji, strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace)
+	fmt.Fprintf(&b, "%s\n", event.Message)
+
 	if len(event.Metadata) > 0 {
 		for k, v := range event.Metadata {
 			fmt.Fprintf(&b, ">**%s**: %s\n", k, v)
@@ -125,12 +103,12 @@ func (s *Webex) Post(event events.Event) error {
 	}
 
 	payload := WebexPayload{
-		RoomId: s.RoomId,
+		RoomId:   s.RoomId,
 		Markdown: s.CreateMarkdown(&event),
 	}
 
 	if err := postMessage(s.URL, s.ProxyURL, s.CertPool, payload, func(request *retryablehttp.Request) {
-		request.Header.Add("Authorization", "Bearer "+ s.Token)
+		request.Header.Add("Authorization", "Bearer "+s.Token)
 	}); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
