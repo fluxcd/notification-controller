@@ -22,7 +22,7 @@ PROJECT_PATH="github.com/fluxcd/notification-controller"
 
 cd "${GO_SRC}"
 
-# Move fuzzer to their respective directories. 
+# Move fuzzer to their respective directories.
 # This removes dependency noises from the modules' go.mod and go.sum files.
 cp "${PROJECT_PATH}/tests/fuzz/util_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
 cp "${PROJECT_PATH}/tests/fuzz/alertmanager_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
@@ -45,7 +45,7 @@ cp "${PROJECT_PATH}/tests/fuzz/gitlab_fuzzer.go" "${PROJECT_PATH}/internal/notif
 # compile fuzz tests for the runtime module
 pushd "${PROJECT_PATH}"
 
-go mod tidy
+go get -d github.com/AdaLogics/go-fuzz-headers
 compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzNotifierUtil fuzz_notifier_util
 compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzAlertmanager fuzz_alert_manager
 compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzOpsGenie fuzz_opsgenie
