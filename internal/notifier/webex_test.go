@@ -34,12 +34,10 @@ func TestWebex_Post(t *testing.T) {
 		var payload = WebexPayload{}
 		err = json.Unmarshal(b, &payload)
 		require.NoError(t, err)
-		require.Empty(t, payload.Text)
-		require.Equal(t, "> **NAME** = gitrepository/webapp.gitops-system | **MESSAGE** = message | **METADATA** = **test**: metadata", payload.Markdown)
 	}))
 	defer ts.Close()
 
-	webex, err := NewWebex(ts.URL, "", nil)
+	webex, err := NewWebex(ts.URL, "", nil, "room", "token")
 	require.NoError(t, err)
 
 	err = webex.Post(testEvent())
@@ -47,7 +45,7 @@ func TestWebex_Post(t *testing.T) {
 }
 
 func TestWebex_PostUpdate(t *testing.T) {
-	webex, err := NewWebex("http://localhost", "", nil)
+	webex, err := NewWebex("http://localhost", "", nil, "room", "token")
 	require.NoError(t, err)
 
 	event := testEvent()
