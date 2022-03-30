@@ -10,7 +10,7 @@ require (
 	github.com/containrrr/shoutrrr v0.5.2
 	github.com/fluxcd/notification-controller/api v0.23.1
 	github.com/fluxcd/pkg/apis/meta v0.12.1
-	github.com/fluxcd/pkg/runtime v0.13.2
+	github.com/fluxcd/pkg/runtime v0.13.4
 	github.com/fluxcd/pkg/ssa v0.15.1
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-logr/logr v1.2.3
