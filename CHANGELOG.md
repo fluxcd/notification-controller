@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.23.2
+
+**Release date:** 2022-03-30
+
+This prerelease comes with updates to the Webex notification provider and its
+integration docs.
+
+In addition, various dependencies have been updated to their latest verions.
+
+Improvements:
+- Update the webex notification provider and markdown
+  [#352](https://github.com/fluxcd/notification-controller/pull/352)
+- Align version of dependencies when Fuzzing
+  [#354](https://github.com/fluxcd/notification-controller/pull/354)
+- Update fluxcd/pkg/runtime to v0.13.4
+  [#355](https://github.com/fluxcd/notification-controller/pull/355)
+
 ## 0.23.1
 
 **Release date:** 2022-03-23
