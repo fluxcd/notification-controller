@@ -29,6 +29,7 @@ import (
 	"time"
 
 	"github.com/fluxcd/pkg/runtime/conditions"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -264,7 +265,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 			go func(n notifier.Interface, e events.Event) {
 				if err := n.Post(e); err != nil {
-					err = redactTokenFromError(err, token)
+					err = redactTokenFromError(err, token, s.logger)
 
 					s.logger.Error(err, "failed to send notification",
 						"reconciler kind", event.InvolvedObject.Kind,
@@ -318,12 +319,17 @@ func (s *EventServer) eventMatchesAlert(ctx context.Context, event *events.Event
 	return false
 }
 
-func redactTokenFromError(err error, token string) error {
+func redactTokenFromError(err error, token string, log logr.Logger) error {
 	if token == "" {
 		return err
 	}
 
-	re := regexp.MustCompile(fmt.Sprintf("%s*", token))
+	re, compileErr := regexp.Compile(fmt.Sprintf("%s*", token))
+	if compileErr != nil {
+		log.Error(compileErr, "error redacting token from error message")
+		return err
+	}
+
 	redacted := re.ReplaceAllString(err.Error(), "*****")
 
 	return errors.New(redacted)
