@@ -326,8 +326,8 @@ func redactTokenFromError(err error, token string, log logr.Logger) error {
 
 	re, compileErr := regexp.Compile(fmt.Sprintf("%s*", token))
 	if compileErr != nil {
-		log.Error(compileErr, "error redacting token from error message")
-		return err
+		newErrStr := fmt.Sprintf("error redacting token from error message: %s", compileErr)
+		return errors.New(newErrStr)
 	}
 
 	redacted := re.ReplaceAllString(err.Error(), "*****")

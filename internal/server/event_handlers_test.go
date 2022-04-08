@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/fluxcd/pkg/runtime/logger"
@@ -54,7 +55,7 @@ func TestRedactTokenFromError(t *testing.T) {
 			name:           "return error on invalid UTF-8 string",
 			token:          "\x18\xd0\xfa\xab\xb2\x93\xbb;\xc0l\xf4\xdc",
 			originalErrStr: `Cannot post to github with token \x18\xd0\xfa\xab\xb2\x93\xbb;\xc0l\xf4\xdc\\n`,
-			expectedErrStr: `Cannot post to github with token \x18\xd0\xfa\xab\xb2\x93\xbb;\xc0l\xf4\xdc\\n`,
+			expectedErrStr: `error redacting token from error message`,
 		},
 	}
 
@@ -65,7 +66,7 @@ func TestRedactTokenFromError(t *testing.T) {
 			t.Fatalf("error shouldn't be nil")
 		}
 
-		if err.Error() != tt.expectedErrStr {
+		if !strings.Contains(err.Error(), tt.expectedErrStr) {
 			t.Errorf("expected error string '%s' but got '%s'",
 				tt.expectedErrStr, err)
 		}
