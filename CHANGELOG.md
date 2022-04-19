@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.23.3
+
+**Release date:** 2022-04-19
+
+This prerelease solves an issue with invalid UTF-8 characters while redacting
+tokens. Furthermore, dependencies have been updated to their latest versions.
+
+Improvements:
+- Update dependencies
+  [#364](https://github.com/fluxcd/notification-controller/pull/364)
+
+Fixes:
+- Return err on invalid UTF-8 character in token
+  [#361](https://github.com/fluxcd/notification-controller/pull/361)
+
 ## 0.23.2
 
 **Release date:** 2022-03-30
