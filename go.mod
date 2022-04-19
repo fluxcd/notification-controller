@@ -7,31 +7,31 @@ replace github.com/fluxcd/notification-controller/api => ./api
 require (
 	github.com/Azure/azure-amqp-common-go/v3 v3.2.3
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.17
-	github.com/containrrr/shoutrrr v0.5.2
+	github.com/containrrr/shoutrrr v0.5.3
 	github.com/fluxcd/notification-controller/api v0.23.2
 	github.com/fluxcd/pkg/apis/meta v0.12.2
-	github.com/fluxcd/pkg/runtime v0.13.4
-	github.com/fluxcd/pkg/ssa v0.15.1
+	github.com/fluxcd/pkg/runtime v0.14.1
+	github.com/fluxcd/pkg/ssa v0.15.2
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-github/v41 v41.0.0
-	github.com/hashicorp/go-retryablehttp v0.7.0
-	github.com/ktrysmt/go-bitbucket v0.9.40
+	github.com/hashicorp/go-retryablehttp v0.7.1
+	github.com/ktrysmt/go-bitbucket v0.9.44
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	github.com/onsi/gomega v1.18.1
+	github.com/onsi/gomega v1.19.0
 	github.com/sethvargo/go-limiter v0.7.2
 	github.com/slok/go-http-metrics v0.10.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.1
 	github.com/whilp/git-urls v1.0.0
-	github.com/xanzy/go-gitlab v0.59.0
-	golang.org/x/oauth2 v0.0.0-20220309155454-6242fa91716a
+	github.com/xanzy/go-gitlab v0.63.0
+	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 	k8s.io/api v0.23.5
 	k8s.io/apimachinery v0.23.5
 	k8s.io/client-go v0.23.5
-	sigs.k8s.io/cli-utils v0.29.3
+	sigs.k8s.io/cli-utils v0.29.4
 	sigs.k8s.io/controller-runtime v0.11.2
 )
 
@@ -96,7 +96,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
 	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
@@ -138,7 +138,7 @@ require (
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/russross/blackfriday v1.5.2 // indirect
-	github.com/spf13/cobra v1.3.0 // indirect
+	github.com/spf13/cobra v1.4.0 // indirect
 	k8s.io/kubectl v0.23.2 // indirect
 )
 
