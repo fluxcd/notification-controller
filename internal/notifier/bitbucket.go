@@ -19,6 +19,7 @@ package notifier
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -114,12 +115,41 @@ func (b Bitbucket) Post(event events.Event) error {
 		Description: desc,
 		Url:         "https://bitbucket.org",
 	}
+
+	existingCommitStatus, err := b.Client.Repositories.Commits.GetCommitStatus(cmo, cso.Key)
+	var statusErr *bitbucket.UnexpectedResponseStatusError
+	if err != nil && !(errors.As(err, &statusErr) && strings.Contains(statusErr.Status, http.StatusText(http.StatusNotFound))) {
+		return fmt.Errorf("could not get commit status: %v", err)
+	}
+	dupe, err := duplicateBitbucketStatus(existingCommitStatus, cso)
+	if err != nil {
+		return err
+	}
+	if dupe {
+		return nil
+	}
 	_, err = b.Client.Repositories.Commits.CreateCommitStatus(cmo, cso)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func duplicateBitbucketStatus(statuses interface{}, status *bitbucket.CommitStatusOptions) (bool, error) {
+	commitStatus := bitbucket.CommitStatusOptions{}
+	b, err := json.Marshal(statuses)
+	if err != nil {
+		return false, err
+	}
+	err = json.Unmarshal(b, &commitStatus)
+	if err != nil {
+		return false, err
+	}
+	if commitStatus.State == status.State && commitStatus.Description == status.Description {
+		return true, nil
+	}
+	return false, nil
 }
 
 func toBitbucketState(severity string) (string, error) {
