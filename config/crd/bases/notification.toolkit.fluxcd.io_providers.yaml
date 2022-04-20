@@ -103,6 +103,7 @@ spec:
                 - opsgenie
                 - alertmanager
                 - grafana
+                - githubdispatch
                 type: string
               username:
                 description: Bot username for this provider

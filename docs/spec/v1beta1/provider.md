@@ -9,7 +9,7 @@ Spec:
 ```go
 type ProviderSpec struct {
 	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab;bitbucket;azuredevops;googlechat;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab;bitbucket;azuredevops;googlechat;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;githubdispatch
 	// +required
 	Type string `json:"type"`
 
@@ -45,23 +45,24 @@ type ProviderSpec struct {
 
 Notification providers:
 
-| Provider        | Type          |
-| --------------- | ------------- |
-| Alertmanager    | alertmanager  |
-| Azure Event Hub | azureeventhub |
-| Discord         | discord       |
-| Generic webhook | generic       |
-| Google Chat     | googlechat    |
-| Grafana         | grafana       |
-| Lark            | lark          |
-| Matrix          | matrix        |
-| Microsoft Teams | msteams       |
-| Opsgenie        | opsgenie      |
-| Rocket          | rocket        |
-| Sentry          | sentry        |
-| Slack           | slack         |
-| Telegram        | telegram      |
-| WebEx           | webex         |
+| Provider        | Type           |
+| --------------- | -------------- |
+| Alertmanager    | alertmanager   |
+| Azure Event Hub | azureeventhub  |
+| Discord         | discord        |
+| Generic webhook | generic        |
+| GitHub dispatch | githubdispatch |
+| Google Chat     | googlechat     |
+| Grafana         | grafana        |
+| Lark            | lark           |
+| Matrix          | matrix         |
+| Microsoft Teams | msteams        |
+| Opsgenie        | opsgenie       |
+| Rocket          | rocket         |
+| Sentry          | sentry         |
+| Slack           | slack          |
+| Telegram        | telegram       |
+| WebEx           | webex          |
 
 Git commit status providers:
 
@@ -123,7 +124,8 @@ kubectl create secret generic webhook-url \
 Note that the secret must contain an `address` field.
 
 The provider type can be: `slack`, `msteams`, `rocket`, `discord`, `googlechat`, `webex`, `sentry`,
-`telegram`, `lark`, `matrix`, `azureeventhub`, `opsgenie`, `alertmanager`, `grafana` or `generic`.
+`telegram`, `lark`, `matrix`, `azureeventhub`, `opsgenie`, `alertmanager`, `grafana`,
+`githubdispatch` or `generic`.
 
 Some networks need to use an authenticated proxy to access external services. Therefore, the authentication can be stored as a secret to hide parameters like the username and password.
 
