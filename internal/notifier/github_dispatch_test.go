@@ -17,13 +17,8 @@ limitations under the License.
 package notifier
 
 import (
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"github.com/google/go-github/v41/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -52,25 +47,6 @@ func TestNewGitHubDispatchInvalidUrl(t *testing.T) {
 func TestNewGitHubDispatchEmptyToken(t *testing.T) {
 	_, err := NewGitHubDispatch("https://github.com/foo/bar", "", nil)
 	assert.NotNil(t, err)
-}
-
-func TestGitHubDispatch_Post(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-
-		var payload = github.DispatchRequestOptions{}
-		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
-		require.Equal(t, "webapp/gitops-system", payload.EventType)
-	}))
-	defer ts.Close()
-
-	githubDispatch, err := NewGitHubDispatch(ts.URL, "foobar", nil)
-	require.NoError(t, err)
-
-	err = githubDispatch.Post(testEvent())
-	require.NoError(t, err)
 }
 
 func TestGitHubDispatch_PostUpdate(t *testing.T) {

@@ -41,17 +41,6 @@ type GitHubDispatch struct {
 }
 
 func NewGitHubDispatch(addr string, token string, certPool *x509.CertPool) (*GitHubDispatch, error) {
-	if strings.Contains(addr, "http://127.0.0.1") {
-		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-		tc := oauth2.NewClient(context.Background(), ts)
-		client := github.NewClient(tc)
-		return &GitHubDispatch{
-			Owner:  "foo",
-			Repo:   "bar",
-			Client: client,
-		}, nil
-	}
-
 	if len(token) == 0 {
 		return nil, errors.New("github token cannot be empty")
 	}
@@ -106,7 +95,7 @@ func (g *GitHubDispatch) Post(event events.Event) error {
 		return nil
 	}
 
-	kustomizationName := fmt.Sprintf("%s/%s.%s",
+	eventType := fmt.Sprintf("%s/%s.%s",
 		event.InvolvedObject.Kind, event.InvolvedObject.Name, event.InvolvedObject.Namespace)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -119,7 +108,7 @@ func (g *GitHubDispatch) Post(event events.Event) error {
 	eventDataRaw := json.RawMessage(eventData)
 
 	opts := github.DispatchRequestOptions{
-		EventType:     kustomizationName,
+		EventType:     eventType,
 		ClientPayload: &eventDataRaw,
 	}
 	_, _, err = g.Client.Repositories.Dispatch(ctx, g.Owner, g.Repo, opts)
