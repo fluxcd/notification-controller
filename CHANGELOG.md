@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.23.4
+
+**Release date:** 2022-04-21
+
+This prerelease updates the Go `golang.org/x/crypto` dependency to latest to
+please static security analysers (CVE-2022-27191).
+
+Fixes:
+- Update golang.org/x/crypto
+  [#367](https://github.com/fluxcd/notification-controller/pull/367)
+
 ## 0.23.3
 
 **Release date:** 2022-04-19
