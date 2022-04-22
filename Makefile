@@ -2,7 +2,7 @@
 IMG ?= fluxcd/notification-controller:latest
 # Produce CRDs that work back to Kubernetes 1.16
 CRD_OPTIONS ?= crd:crdVersions=v1
-SOURCE_VER ?= v0.19.0
+SOURCE_VER ?= v0.24.0
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -23,7 +23,7 @@ all: manager
 
 # Run tests
 KUBEBUILDER_ASSETS?="$(shell $(ENVTEST) --arch=$(ENVTEST_ARCH) use -i $(ENVTEST_KUBERNETES_VERSION) --bin-dir=$(ENVTEST_ASSETS_DIR) -p path)"
-test: generate fmt vet manifests api-docs download-crd-deps install-envtest
+test: tidy generate fmt vet manifests api-docs download-crd-deps install-envtest
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) go test ./... -coverprofile cover.out
 	cd api; go test ./... -coverprofile cover.out
 
@@ -76,8 +76,8 @@ api-docs: gen-crd-api-reference-docs
 
 # Run go mod tidy
 tidy:
-	cd api; rm -f go.sum; go mod tidy
-	rm -f go.sum; go mod tidy
+	cd api; rm -f go.sum; go mod tidy -compat=1.17
+	rm -f go.sum; go mod tidy -compat=1.17
 
 # Run go fmt against code
 fmt:

@@ -25,9 +25,11 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/fluxcd/pkg/runtime/conditions"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -57,6 +59,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		cleanupMetadata(event)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -261,7 +265,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 			go func(n notifier.Interface, e events.Event) {
 				if err := n.Post(e); err != nil {
-					err = redactTokenFromError(err, token)
+					err = redactTokenFromError(err, token, s.logger)
 
 					s.logger.Error(err, "failed to send notification",
 						"reconciler kind", event.InvolvedObject.Kind,
@@ -315,13 +319,54 @@ func (s *EventServer) eventMatchesAlert(ctx context.Context, event *events.Event
 	return false
 }
 
-func redactTokenFromError(err error, token string) error {
+func redactTokenFromError(err error, token string, log logr.Logger) error {
 	if token == "" {
 		return err
 	}
 
-	re := regexp.MustCompile(fmt.Sprintf("%s*", token))
+	re, compileErr := regexp.Compile(fmt.Sprintf("%s*", token))
+	if compileErr != nil {
+		newErrStr := fmt.Sprintf("error redacting token from error message: %s", compileErr)
+		return errors.New(newErrStr)
+	}
+
 	redacted := re.ReplaceAllString(err.Error(), "*****")
 
 	return errors.New(redacted)
+}
+
+// TODO: move the metadata filtering function to fluxcd/pkg/runtime/events
+// cleanupMetadata removes metadata entries which are not used for alerting
+func cleanupMetadata(event *events.Event) {
+	group := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group
+	excludeList := []string{fmt.Sprintf("%s/checksum", group)}
+
+	meta := make(map[string]string)
+
+	if event.Metadata != nil && len(event.Metadata) > 0 {
+		// For backwards compatibility, include the revision without a group prefix
+		revisionKey := "revision"
+		if rev, ok := event.Metadata[revisionKey]; ok {
+			meta[revisionKey] = rev
+		}
+
+		// Filter other meta based on group prefix, while filtering out excludes
+		for key, val := range event.Metadata {
+			if strings.HasPrefix(key, group) && !inList(excludeList, key) {
+				newKey := strings.TrimPrefix(key, fmt.Sprintf("%s/", group))
+				meta[newKey] = val
+			}
+		}
+	}
+
+	event.Metadata = meta
+}
+
+func inList(l []string, i string) bool {
+	for _, v := range l {
+		if strings.ToLower(v) == strings.ToLower(i) {
+			return true
+		}
+	}
+	return false
 }

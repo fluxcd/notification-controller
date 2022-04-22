@@ -55,7 +55,7 @@ spec:
                   a PEM-encoded CA certificate (`caFile`)
                 properties:
                   name:
-                    description: Name of the referent
+                    description: Name of the referent.
                     type: string
                 required:
                 - name
@@ -72,7 +72,7 @@ spec:
                   using "address" as data key
                 properties:
                   name:
-                    description: Name of the referent
+                    description: Name of the referent.
                     type: string
                 required:
                 - name

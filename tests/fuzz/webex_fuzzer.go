@@ -36,7 +36,7 @@ func FuzzWebex(data []byte) int {
 	}))
 	defer ts.Close()
 
-	webex, err := NewWebex(ts.URL, "", nil)
+	webex, err := NewWebex(ts.URL, "", nil, "", "")
 	if err != nil {
 		return 0
 	}

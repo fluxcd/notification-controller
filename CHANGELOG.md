@@ -2,6 +2,76 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.23.4
+
+**Release date:** 2022-04-21
+
+This prerelease updates the Go `golang.org/x/crypto` dependency to latest to
+please static security analysers (CVE-2022-27191).
+
+Fixes:
+- Update golang.org/x/crypto
+  [#367](https://github.com/fluxcd/notification-controller/pull/367)
+
+## 0.23.3
+
+**Release date:** 2022-04-19
+
+This prerelease solves an issue with invalid UTF-8 characters while redacting
+tokens. Furthermore, dependencies have been updated to their latest versions.
+
+Improvements:
+- Update dependencies
+  [#364](https://github.com/fluxcd/notification-controller/pull/364)
+
+Fixes:
+- Return err on invalid UTF-8 character in token
+  [#361](https://github.com/fluxcd/notification-controller/pull/361)
+
+## 0.23.2
+
+**Release date:** 2022-03-30
+
+This prerelease comes with updates to the Webex notification provider and its
+integration docs.
+
+In addition, various dependencies have been updated to their latest verions.
+
+Improvements:
+- Update the webex notification provider and markdown
+  [#352](https://github.com/fluxcd/notification-controller/pull/352)
+- Align version of dependencies when Fuzzing
+  [#354](https://github.com/fluxcd/notification-controller/pull/354)
+- Update fluxcd/pkg/runtime to v0.13.4
+  [#355](https://github.com/fluxcd/notification-controller/pull/355)
+
+## 0.23.1
+
+**Release date:** 2022-03-23
+
+This prerelease comes with strict filtering of events metadata.
+Starting with this version, the metadata keys considered for
+alerting must be prefixed with the involved object API group.
+
+Improvements:
+- Filter event metadata based on the object group
+  [#350](https://github.com/fluxcd/notification-controller/pull/350)
+
+## 0.23.0
+
+**Release date:** 2022-03-21
+
+This prerelease updates various dependencies to their latest versions.
+The code base was refactored to align with `fluxcd/pkg/runtime` v0.13 release.
+
+Improvements:
+- Update `pkg/runtime` and `apis/meta`
+  [#345](https://github.com/fluxcd/notification-controller/pull/345)
+- Update dependencies
+  [#346](https://github.com/fluxcd/notification-controller/pull/346)
+- Cleanup metadata fields before alerting
+  [#347](https://github.com/fluxcd/notification-controller/pull/347)
+
 ## 0.22.3
 
 **Release date:** 2022-03-15
