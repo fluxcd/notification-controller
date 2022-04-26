@@ -414,6 +414,29 @@ spec:
   secretRef:
     name: slack-token
 ```
+### MS Teams
+
+On the Microsoft Teams UI,
+- Open the settings of the channel you want the notifications to be sent to.
+- Click on `Connectors`.
+- Click on the `Add` button for Incoming Webhook.
+- Click on Configure and copy the webhook url given.
+See documentation [here](https://docs.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook).
+
+You can now create a provider resource, e.g:
+```
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: msteams
+  namespace: flux-system
+spec:
+  type: msteams
+  address: <webhook-url>
+  # or you can reference it from the secret with an address field
+  # secretRef:
+  #   name: msteam
+```
 
 ### Webex App
 
