@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.23.5
+
+**Release date:** 2022-05-03
+
+This prerelease comes with dependencies updates, and improvements to the BitBucket
+commit status notifications.
+
+Improvements:
+- Check for duplicate commit status in Bitbucket
+  [#366](https://github.com/fluxcd/notification-controller/pull/366)
+- Update dependencies
+  [#371](https://github.com/fluxcd/notification-controller/pull/371)
+
 ## 0.23.4
 
 **Release date:** 2022-04-21
