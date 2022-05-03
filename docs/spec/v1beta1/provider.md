@@ -215,6 +215,70 @@ kubectl create secret generic tls-certs \
   --from-file=caFile=ca.crt
 ```
 
+### Slack App
+
+It is possible to use a Slack App bot integration to send messages. To obtain a bot token, follow
+[Slack's guide on bot users](https://api.slack.com/bot-users).
+
+Differences from the Slack [webhook method](#notifications):
+
+* Possible to use single credentials to post to different channels (by adding the integration to each channel)
+* All messages are posted with the app username, and not the name of the controller (e.g. `helm-controller`, `source-controller`)
+
+To enable the Slack App, the secret must contain the URL of the [chat.postMessage](https://api.slack.com/methods/chat.postMessage)
+method and your Slack bot token (starts with `xoxb-`):
+
+```shell
+kubectl create secret generic slack-token \
+--from-literal=address=https://slack.com/api/chat.postMessage \
+--from-literal=token=xoxb-YOUR-TOKEN
+```
+
+Then reference this secret in `spec.secretRef`:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: slack
+  namespace: default
+spec:
+  type: slack
+  channel: general
+  # HTTP(S) proxy (optional)
+  proxy: https://proxy.corp:8080
+  # secret containing Slack API address and token
+  secretRef:
+    name: slack-token
+```
+
+### MS Teams
+
+Create an incoming webhook on the Microsoft Teams UI:
+
+1. Open the settings of the channel you want the notifications to be sent to.
+2. Click on `Connectors`.
+3. Click on the `Add` button for Incoming Webhook.
+4. Click on Configure and copy the webhook url given.
+
+For more details see the [documentation of MS Teams Incoming Webhooks](https://docs.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook).
+
+You can now create a provider resource using the webhook URL:
+
+```
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Provider
+metadata:
+  name: msteams
+  namespace: flux-system
+spec:
+  type: msteams
+  address: <webhook-url>
+  # or you can reference it from the secret with an address field
+  # secretRef:
+  #   name: msteam
+```
+
 ### Sentry
 
 The sentry provider uses the `channel` field to specify which environment the messages are sent for:
@@ -316,7 +380,6 @@ spec:
     name: lark-token
 ```
 
-
 ### Opsgenie
 
 For sending notifications to Opsgenie, you will have to
@@ -368,52 +431,15 @@ If a summary is provided in the alert resource an additional "summary" annotatio
 The provider will send the following labels for the event.
 
 
-| Label       | Description                                                                                        |
-| ----------- | -------------------------------------------------------------------------------------------------- |
-| alertname   | The string Flux followed by the Kind and the reason for the event e.g FluxKustomizationProgressing |
-| severity    | The severity of the event (error|info)                                                             |
-| timestamp   | The timestamp of the event                                                                         |
-| reason      | The machine readable reason for the objects transition into the current status                     |
-| kind        | The kind of the involved object associated with the event                                          |
-| name        | The name of the involved object associated with the event                                          |
-| namespace   | The namespace of the involved object associated with the event                                     |
-
-### Slack App
-
-It is possible to use a Slack App bot integration to send messages. To obtain a bot token, follow
-[Slack's guide on bot users](https://api.slack.com/bot-users).
-
-Differences from the Slack [webhook method](#notifications):
-
-* Possible to use single credentials to post to different channels (by adding the integration to each channel)
-* All messages are posted with the app username, and not the name of the controller (e.g. `helm-controller, `source-controller`)
-
-To enable the Slack App, the secret must contain the URL of the [chat.postMessage](https://api.slack.com/methods/chat.postMessage)
-method and your Slack bot token (starts with `xoxb-`):
-
-```shell
-kubectl create secret generic slack-token \
---from-literal=address=https://slack.com/api/chat.postMessage \
---from-literal=token=xoxb-YOUR-TOKEN
-```
-
-Then reference this secret in `spec.secretRef`:
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta1
-kind: Provider
-metadata:
-  name: slack
-  namespace: default
-spec:
-  type: slack
-  channel: general
-  # HTTP(S) proxy (optional)
-  proxy: https://proxy.corp:8080
-  # secret containing Slack API address and token
-  secretRef:
-    name: slack-token
-```
+| Label     | Description                                                                                          |
+|-----------|------------------------------------------------------------------------------------------------------|
+| alertname | The string Flux followed by the Kind and the reason for the event e.g `FluxKustomizationProgressing` |
+| severity  | The severity of the event (`error` or `info`)                                                        |
+| timestamp | The timestamp of the event                                                                           |
+| reason    | The machine readable reason for the objects transition into the current status                       |
+| kind      | The kind of the involved object associated with the event                                            |
+| name      | The name of the involved object associated with the event                                            |
+| namespace | The namespace of the involved object associated with the event                                       |
 
 ### Webex App
 
