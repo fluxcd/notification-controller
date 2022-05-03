@@ -6,11 +6,11 @@ replace github.com/fluxcd/notification-controller/api => ./api
 
 require (
 	github.com/Azure/azure-amqp-common-go/v3 v3.2.3
-	github.com/Azure/azure-event-hubs-go/v3 v3.3.17
+	github.com/Azure/azure-event-hubs-go/v3 v3.3.18
 	github.com/containrrr/shoutrrr v0.5.3
 	github.com/fluxcd/notification-controller/api v0.23.4
-	github.com/fluxcd/pkg/apis/meta v0.12.2
-	github.com/fluxcd/pkg/runtime v0.14.1
+	github.com/fluxcd/pkg/apis/meta v0.13.0
+	github.com/fluxcd/pkg/runtime v0.14.2
 	github.com/fluxcd/pkg/ssa v0.15.2
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-logr/logr v1.2.3
@@ -26,11 +26,11 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.1
 	github.com/whilp/git-urls v1.0.0
-	github.com/xanzy/go-gitlab v0.63.0
+	github.com/xanzy/go-gitlab v0.64.0
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
-	k8s.io/api v0.23.5
-	k8s.io/apimachinery v0.23.5
-	k8s.io/client-go v0.23.5
+	k8s.io/api v0.23.6
+	k8s.io/apimachinery v0.23.6
+	k8s.io/client-go v0.23.6
 	sigs.k8s.io/cli-utils v0.29.4
 	sigs.k8s.io/controller-runtime v0.11.2
 )
