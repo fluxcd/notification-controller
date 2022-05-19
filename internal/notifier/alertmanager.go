@@ -40,7 +40,7 @@ type AlertManagerAlert struct {
 func NewAlertmanager(hookURL string, proxyURL string, certPool *x509.CertPool) (*Alertmanager, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Alertmanager URL %s", hookURL)
+		return nil, fmt.Errorf("invalid Alertmanager URL %s: '%w'", hookURL, err)
 	}
 
 	return &Alertmanager{

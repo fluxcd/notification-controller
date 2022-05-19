@@ -65,7 +65,7 @@ type SlackField struct {
 func NewSlack(hookURL string, proxyURL string, token string, certPool *x509.CertPool, username string, channel string) (*Slack, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Slack hook URL %s", hookURL)
+		return nil, fmt.Errorf("invalid Slack hook URL %s: '%w'", hookURL, err)
 	}
 
 	return &Slack{
