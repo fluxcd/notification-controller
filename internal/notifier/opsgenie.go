@@ -42,7 +42,7 @@ type OpsgenieAlert struct {
 func NewOpsgenie(hookURL string, proxyURL string, certPool *x509.CertPool, token string) (*Opsgenie, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Opsgenie hook URL %s", hookURL)
+		return nil, fmt.Errorf("invalid Opsgenie hook URL %s: '%w'", hookURL, err)
 	}
 
 	if token == "" {

@@ -39,7 +39,7 @@ type Rocket struct {
 func NewRocket(hookURL string, proxyURL string, certPool *x509.CertPool, username string, channel string) (*Rocket, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Rocket hook URL %s", hookURL)
+		return nil, fmt.Errorf("invalid Rocket hook URL %s: '%w'", hookURL, err)
 	}
 
 	if username == "" {

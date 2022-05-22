@@ -37,7 +37,7 @@ type Discord struct {
 func NewDiscord(hookURL string, proxyURL string, username string, channel string) (*Discord, error) {
 	webhook, err := url.ParseRequestURI(hookURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Discord hook URL %s", hookURL)
+		return nil, fmt.Errorf("invalid Discord hook URL %s: '%w'", hookURL, err)
 	}
 
 	// use Slack formatting

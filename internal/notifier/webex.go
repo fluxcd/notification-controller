@@ -66,7 +66,7 @@ func NewWebex(hookURL, proxyURL string, certPool *x509.CertPool, channel string,
 
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Webex hook URL %s", hookURL)
+		return nil, fmt.Errorf("invalid Webex hook URL %s: '%w'", hookURL, err)
 	}
 
 	return &Webex{

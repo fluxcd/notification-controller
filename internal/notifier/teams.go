@@ -57,7 +57,7 @@ type MSTeamsField struct {
 func NewMSTeams(hookURL string, proxyURL string, certPool *x509.CertPool) (*MSTeams, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid MS Teams webhook URL %s", hookURL)
+		return nil, fmt.Errorf("invalid MS Teams webhook URL %s: '%w'", hookURL, err)
 	}
 
 	return &MSTeams{
