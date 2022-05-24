@@ -57,6 +57,18 @@ func TestRedactTokenFromError(t *testing.T) {
 			originalErrStr: `Cannot post to github with token \x18\xd0\xfa\xab\xb2\x93\xbb;\xc0l\xf4\xdc\\n`,
 			expectedErrStr: `error redacting token from error message`,
 		},
+		{
+			name:           "unescaped token",
+			token:          "8h0387hdyehbwwa45\\",
+			originalErrStr: `Cannot post to github with token metoo8h0387hdyehbwwa45\\\n`,
+			expectedErrStr: `Cannot post to github with token metoo*****n`,
+		},
+		{
+			name:           "invalid chars",
+			token:          "8h0387hdyehbwwa45(?!\\/)",
+			originalErrStr: `Cannot post to github`,
+			expectedErrStr: `Cannot post to github`,
+		},
 	}
 
 	for _, tt := range tests {

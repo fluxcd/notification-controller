@@ -324,7 +324,7 @@ func redactTokenFromError(err error, token string, log logr.Logger) error {
 		return err
 	}
 
-	re, compileErr := regexp.Compile(fmt.Sprintf("%s*", token))
+	re, compileErr := regexp.Compile(fmt.Sprintf("%s*", regexp.QuoteMeta(token)))
 	if compileErr != nil {
 		newErrStr := fmt.Sprintf("error redacting token from error message: %s", compileErr)
 		return errors.New(newErrStr)
@@ -364,7 +364,7 @@ func cleanupMetadata(event *events.Event) {
 
 func inList(l []string, i string) bool {
 	for _, v := range l {
-		if strings.ToLower(v) == strings.ToLower(i) {
+		if strings.EqualFold(v, i) {
 			return true
 		}
 	}
