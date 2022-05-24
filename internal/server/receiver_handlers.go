@@ -431,6 +431,9 @@ func verifyHmacSignature(key []byte, signature string, payload []byte) bool {
 
 func getGroupVersion(s string) (string, string) {
 	slice := strings.Split(s, "/")
+	if len(slice) == 0 {
+		return "", ""
+	}
 	if len(slice) == 1 {
 		return "", slice[0]
 	}
