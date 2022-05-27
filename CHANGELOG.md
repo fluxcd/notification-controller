@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.24.0
+
+**Release date:** 2022-05-27
+
+This prerelease comes with support for triggering GitHub Actions workflows using
+the repository dispatch provider. For more information on how to configure
+this integration see the
+[alerting provider docs](https://github.com/fluxcd/notification-controller/blob/api/v0.24.0/docs/spec/v1beta1/provider.md#github-repository-dispatch).
+
+Features:
+* Add GitHub dispatch provider
+  [#369](https://github.com/fluxcd/notification-controller/pull/369)
+
+Improvements:
+* Better error messages for alert providers
+  [#375](https://github.com/fluxcd/notification-controller/pull/375)
+* Add docs for Microsoft Teams
+  [#370](https://github.com/fluxcd/notification-controller/pull/370)
+* Update dependencies
+  [#371](https://github.com/fluxcd/notification-controller/pull/371)
+  [#373](https://github.com/fluxcd/notification-controller/pull/373)
+  [#379](https://github.com/fluxcd/notification-controller/pull/379)
+
 ## 0.23.5
 
 **Release date:** 2022-05-03
