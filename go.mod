@@ -9,14 +9,14 @@ require (
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.18
 	github.com/containrrr/shoutrrr v0.5.3
 	github.com/fluxcd/notification-controller/api v0.23.5
-	github.com/fluxcd/pkg/apis/meta v0.14.0
-	github.com/fluxcd/pkg/runtime v0.16.0
-	github.com/fluxcd/pkg/ssa v0.16.0
+	github.com/fluxcd/pkg/apis/meta v0.14.1
+	github.com/fluxcd/pkg/runtime v0.16.1
+	github.com/fluxcd/pkg/ssa v0.16.1
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-github/v41 v41.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.1
-	github.com/ktrysmt/go-bitbucket v0.9.44
+	github.com/ktrysmt/go-bitbucket v0.9.46
 	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
@@ -26,20 +26,23 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.1
 	github.com/whilp/git-urls v1.0.0
-	github.com/xanzy/go-gitlab v0.65.0
-	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
+	github.com/xanzy/go-gitlab v0.68.0
+	golang.org/x/oauth2 v0.0.0-20220524215830-622c5d57e401
 	k8s.io/api v0.24.0
 	k8s.io/apimachinery v0.24.0
 	k8s.io/client-go v0.24.0
-	sigs.k8s.io/cli-utils v0.30.0
+	sigs.k8s.io/cli-utils v0.31.1
 	sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/yaml v1.3.0
 )
 
+// Fix CVE-2022-28948
+replace gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0
+
 // Fix for CVE-2020-29652: https://github.com/golang/crypto/commit/8b5274cf687fd9316b4108863654cc57385531e8
 // Fix for CVE-2021-43565: https://github.com/golang/crypto/commit/5770296d904e90f15f38f77dfc2e43fdf5efc083
 // Fix for CVE-2022-27191: https://github.com/golang/crypto/commit/3147a52a75dda54ac3a611ef8978640d85188a2a
-replace golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4
+replace golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
 
 require (
 	cloud.google.com/go v0.99.0 // indirect
@@ -121,19 +124,19 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
+	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
 	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/time v0.0.0-20220210224613-90d013bbcef8 // indirect
+	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
-	k8s.io/apiextensions-apiserver v0.23.5 // indirect
+	k8s.io/apiextensions-apiserver v0.24.0 // indirect
 	k8s.io/cli-runtime v0.24.0 // indirect
 	k8s.io/component-base v0.24.0 // indirect
 	k8s.io/klog/v2 v2.60.1 // indirect
