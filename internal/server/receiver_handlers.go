@@ -356,10 +356,10 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNam
 	}
 
 	apiVersionMap := map[string]string{
-		"Bucket":          "source.toolkit.fluxcd.io/v1beta1",
-		"HelmRepository":  "source.toolkit.fluxcd.io/v1beta1",
-		"GitRepository":   "source.toolkit.fluxcd.io/v1beta1",
-		"ImageRepository": "image.toolkit.fluxcd.io/v1alpha1",
+		"Bucket":          "source.toolkit.fluxcd.io/v1beta2",
+		"HelmRepository":  "source.toolkit.fluxcd.io/v1beta2",
+		"GitRepository":   "source.toolkit.fluxcd.io/v1beta2",
+		"ImageRepository": "image.toolkit.fluxcd.io/v1beta1",
 	}
 
 	apiVersion := resource.APIVersion
