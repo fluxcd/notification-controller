@@ -19,7 +19,7 @@ package notifier
 import (
 	"testing"
 
-	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 	"github.com/stretchr/testify/assert"
 )
 
