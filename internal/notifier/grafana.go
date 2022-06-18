@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"net/url"
@@ -60,7 +61,7 @@ func NewGrafana(URL string, proxyURL string, token string, certPool *x509.CertPo
 }
 
 // Post annotation
-func (g *Grafana) Post(event events.Event) error {
+func (g *Grafana) Post(ctx context.Context, event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil

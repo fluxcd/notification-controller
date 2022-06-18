@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -40,6 +41,6 @@ func TestOpsgenie_Post(t *testing.T) {
 	opsgenie, err := NewOpsgenie(ts.URL, "", nil, "token")
 	require.NoError(t, err)
 
-	err = opsgenie.Post(testEvent())
+	err = opsgenie.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
 }

@@ -20,6 +20,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -48,7 +49,7 @@ func FuzzGoogleChat(data []byte) int {
 		return 0
 	}
 
-	_ = googlechat.Post(event)
+	_ = googlechat.Post(context.TODO(), event)
 
 	return 1
 }

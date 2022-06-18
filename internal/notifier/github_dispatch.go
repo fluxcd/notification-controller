@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/fluxcd/pkg/runtime/events"
 
@@ -89,7 +88,7 @@ func NewGitHubDispatch(addr string, token string, certPool *x509.CertPool) (*Git
 }
 
 // Post GitHub Repository Dispatch webhook
-func (g *GitHubDispatch) Post(event events.Event) error {
+func (g *GitHubDispatch) Post(ctx context.Context, event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil
@@ -97,9 +96,6 @@ func (g *GitHubDispatch) Post(event events.Event) error {
 
 	eventType := fmt.Sprintf("%s/%s.%s",
 		event.InvolvedObject.Kind, event.InvolvedObject.Name, event.InvolvedObject.Namespace)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
 
 	eventData, err := json.Marshal(event)
 	if err != nil {

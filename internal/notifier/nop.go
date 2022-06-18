@@ -16,10 +16,14 @@ limitations under the License.
 
 package notifier
 
-import "github.com/fluxcd/pkg/runtime/events"
+import (
+	"context"
+
+	"github.com/fluxcd/pkg/runtime/events"
+)
 
 type NopNotifier struct{}
 
-func (n *NopNotifier) Post(event events.Event) error {
+func (n *NopNotifier) Post(ctx context.Context, event events.Event) error {
 	return nil
 }

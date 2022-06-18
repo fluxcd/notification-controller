@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -40,6 +41,6 @@ func TestAlertmanager_Post(t *testing.T) {
 	alertmanager, err := NewAlertmanager(ts.URL, "", nil)
 	require.NoError(t, err)
 
-	err = alertmanager.Post(testEvent())
+	err = alertmanager.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
 }

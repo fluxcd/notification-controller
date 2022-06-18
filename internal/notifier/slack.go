@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"net/url"
@@ -79,7 +80,7 @@ func NewSlack(hookURL string, proxyURL string, token string, certPool *x509.Cert
 }
 
 // Post Slack message
-func (s *Slack) Post(event events.Event) error {
+func (s *Slack) Post(ctx context.Context, event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil

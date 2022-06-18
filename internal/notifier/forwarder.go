@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"net/url"
@@ -52,7 +53,7 @@ func NewForwarder(hookURL string, proxyURL string, headers map[string]string, ce
 	}, nil
 }
 
-func (f *Forwarder) Post(event events.Event) error {
+func (f *Forwarder) Post(ctx context.Context, event events.Event) error {
 	err := postMessage(f.URL, f.ProxyURL, f.CertPool, event, func(req *retryablehttp.Request) {
 		req.Header.Set(NotificationHeader, event.ReportingController)
 		for key, val := range f.Headers {

@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -42,7 +43,7 @@ func TestSlack_Post(t *testing.T) {
 	slack, err := NewSlack(ts.URL, "", "", nil, "", "test")
 	require.NoError(t, err)
 
-	err = slack.Post(testEvent())
+	err = slack.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
 }
 
@@ -52,6 +53,6 @@ func TestSlack_PostUpdate(t *testing.T) {
 
 	event := testEvent()
 	event.Metadata["commit_status"] = "update"
-	err = slack.Post(event)
+	err = slack.Post(context.TODO(), event)
 	require.NoError(t, err)
 }

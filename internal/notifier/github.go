@@ -25,7 +25,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/fluxcd/pkg/runtime/events"
 
@@ -88,7 +87,7 @@ func NewGitHub(addr string, token string, certPool *x509.CertPool) (*GitHub, err
 }
 
 // Post Github commit status
-func (g *GitHub) Post(event events.Event) error {
+func (g *GitHub) Post(ctx context.Context, event events.Event) error {
 	// Skip progressing events
 	if event.Reason == "Progressing" {
 		return nil
@@ -113,9 +112,6 @@ func (g *GitHub) Post(event events.Event) error {
 		Context:     &name,
 		Description: &desc,
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
 
 	opts := &github.ListOptions{PerPage: 50}
 	statuses, _, err := g.Client.Repositories.ListStatuses(ctx, g.Owner, g.Repo, rev, opts)

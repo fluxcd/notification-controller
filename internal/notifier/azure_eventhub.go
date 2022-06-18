@@ -17,7 +17,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/Azure/azure-amqp-common-go/v3/auth"
 	eventhub "github.com/Azure/azure-event-hubs-go/v3"
@@ -53,14 +52,11 @@ func NewAzureEventHub(endpointURL, token, eventHubNamespace string) (*AzureEvent
 }
 
 // Post all notification-controller messages to EventHub
-func (e *AzureEventHub) Post(event events.Event) error {
+func (e *AzureEventHub) Post(ctx context.Context, event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 
 	eventBytes, err := json.Marshal(event)
 	if err != nil {

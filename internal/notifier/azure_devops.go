@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/fluxcd/pkg/runtime/events"
 
@@ -78,7 +77,7 @@ func NewAzureDevOps(addr string, token string, certPool *x509.CertPool) (*AzureD
 }
 
 // Post Azure DevOps commit status
-func (a AzureDevOps) Post(event events.Event) error {
+func (a AzureDevOps) Post(ctx context.Context, event events.Event) error {
 	// Skip progressing events
 	if event.Reason == "Progressing" {
 		return nil
@@ -96,9 +95,6 @@ func (a AzureDevOps) Post(event events.Event) error {
 	if err != nil {
 		return err
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
 
 	// Check if the exact status is already set
 	g := genre
@@ -130,7 +126,7 @@ func (a AzureDevOps) Post(event events.Event) error {
 	}
 
 	// Create a new status
-	_, err = a.Client.CreateCommitStatus(context.Background(), createArgs)
+	_, err = a.Client.CreateCommitStatus(ctx, createArgs)
 	if err != nil {
 		return fmt.Errorf("could not create commit status: %v", err)
 	}

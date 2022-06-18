@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -48,6 +49,6 @@ func TestForwarder_Post(t *testing.T) {
 	forwarder, err := NewForwarder(ts.URL, "", headers, nil)
 	require.NoError(t, err)
 
-	err = forwarder.Post(testEvent())
+	err = forwarder.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
 }

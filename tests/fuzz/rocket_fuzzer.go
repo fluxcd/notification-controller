@@ -20,6 +20,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -57,7 +58,7 @@ func FuzzRocket(data []byte) int {
 		return 0
 	}
 
-	_ = rocket.Post(event)
+	_ = rocket.Post(context.TODO(), event)
 
 	return 1
 }

@@ -20,6 +20,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -52,7 +53,7 @@ func FuzzMatrix(data []byte) int {
 		return 0
 	}
 
-	_ = matrix.Post(event)
+	_ = matrix.Post(context.TODO(), event)
 
 	return 1
 }

@@ -20,6 +20,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -62,7 +63,7 @@ func FuzzSlack(data []byte) int {
 		return 0
 	}
 
-	_ = slack.Post(event)
+	_ = slack.Post(context.TODO(), event)
 
 	return 1
 }
