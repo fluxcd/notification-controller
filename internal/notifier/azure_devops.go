@@ -27,8 +27,8 @@ import (
 
 	"github.com/fluxcd/pkg/runtime/events"
 
-	"github.com/microsoft/azure-devops-go-api/azuredevops"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/git"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 )
 
 const genre string = "fluxcd"

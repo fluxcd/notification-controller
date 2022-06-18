@@ -17,7 +17,7 @@ require (
 	github.com/google/go-github/v41 v41.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/ktrysmt/go-bitbucket v0.9.46
-	github.com/microsoft/azure-devops-go-api/azuredevops v1.0.0-b5
+	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.0
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.19.0
