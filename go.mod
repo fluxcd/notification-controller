@@ -7,37 +7,36 @@ replace github.com/fluxcd/notification-controller/api => ./api
 require (
 	github.com/Azure/azure-amqp-common-go/v3 v3.2.3
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.18
-	github.com/containrrr/shoutrrr v0.5.3
+	github.com/containrrr/shoutrrr v0.6.0
 	github.com/fluxcd/notification-controller/api v0.24.0
-	github.com/fluxcd/pkg/apis/meta v0.14.1
-	github.com/fluxcd/pkg/runtime v0.16.1
+	github.com/fluxcd/pkg/apis/meta v0.14.2
+	github.com/fluxcd/pkg/runtime v0.16.2
 	github.com/fluxcd/pkg/ssa v0.16.1
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-github/v41 v41.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.1
-	github.com/ktrysmt/go-bitbucket v0.9.46
-	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.0
+	github.com/ktrysmt/go-bitbucket v0.9.48
+	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
-	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.19.0
 	github.com/sethvargo/go-limiter v0.7.2
 	github.com/slok/go-http-metrics v0.10.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.1
+	github.com/stretchr/testify v1.8.0
 	github.com/whilp/git-urls v1.0.0
-	github.com/xanzy/go-gitlab v0.68.0
-	golang.org/x/oauth2 v0.0.0-20220524215830-622c5d57e401
-	k8s.io/api v0.24.0
-	k8s.io/apimachinery v0.24.0
-	k8s.io/client-go v0.24.0
-	sigs.k8s.io/cli-utils v0.31.1
+	github.com/xanzy/go-gitlab v0.68.2
+	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0
+	k8s.io/api v0.24.1
+	k8s.io/apimachinery v0.24.1
+	k8s.io/client-go v0.24.1
+	sigs.k8s.io/cli-utils v0.31.2
 	sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/yaml v1.3.0
 )
 
 // Fix CVE-2022-28948
-replace gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.0
+replace gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 
 // Fix for CVE-2020-29652: https://github.com/golang/crypto/commit/8b5274cf687fd9316b4108863654cc57385531e8
 // Fix for CVE-2021-43565: https://github.com/golang/crypto/commit/5770296d904e90f15f38f77dfc2e43fdf5efc083
@@ -107,7 +106,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -124,8 +122,8 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
-	golang.org/x/net v0.0.0-20220520000938-2e3eb7b945c2 // indirect
-	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7 // indirect
+	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
+	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
@@ -133,12 +131,11 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.24.0 // indirect
 	k8s.io/cli-runtime v0.24.0 // indirect
-	k8s.io/component-base v0.24.0 // indirect
+	k8s.io/component-base v0.24.1 // indirect
 	k8s.io/klog/v2 v2.60.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20220328201542-3ee0da9b0b42 // indirect
 	k8s.io/kubectl v0.24.0 // indirect
