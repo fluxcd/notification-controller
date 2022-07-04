@@ -207,6 +207,8 @@ github.com/fluxcd/pkg/apis/acl v0.0.3 h1:Lw0ZHdpnO4G7Zy9KjrzwwBmDZQuy4qEjaU/RvA6
 github.com/fluxcd/pkg/apis/acl v0.0.3/go.mod h1:XPts6lRJ9C9fIF9xVWofmQwftvhY25n1ps7W9xw0XLU=
 github.com/fluxcd/pkg/apis/meta v0.14.2 h1:/Hf7I/Vz01vv3m7Qx7DtQvrzAL1oVt0MJcLb/I1Y1HE=
 github.com/fluxcd/pkg/apis/meta v0.14.2/go.mod h1:ijZ61VG/8T3U17gj0aFL3fdtZL+mulD6V8VrLLUCAgM=
+github.com/fluxcd/pkg/masktoken v0.0.1 h1:egWR/ibTzf4L3PxE8TauKO1srD1Ye/aalgQRQuKKRdU=
+github.com/fluxcd/pkg/masktoken v0.0.1/go.mod h1:sQmMtX4s5RwdGlByJazzNasWFFgBdmtNcgeZcGBI72Y=
 github.com/fluxcd/pkg/runtime v0.16.2 h1:CexfMmJK+r12sHTvKWyAax0pcPomjd6VnaHXcxjUrRY=
 github.com/fluxcd/pkg/runtime v0.16.2/go.mod h1:OHSKsrO+T+Ym8WZRS2oidrnauWRARuE2nfm8ewevm7M=
 github.com/fluxcd/pkg/ssa v0.16.1 h1:hWXMtDhiAPRPHpHiQ5NzVjqIDhOfyzWmc2zA49Wxw7E=

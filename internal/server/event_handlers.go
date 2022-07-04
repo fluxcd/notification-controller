@@ -29,13 +29,13 @@ import (
 	"time"
 
 	"github.com/fluxcd/pkg/runtime/conditions"
-	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 
+	"github.com/fluxcd/pkg/masktoken"
 	"github.com/fluxcd/pkg/runtime/events"
 
 	"github.com/fluxcd/notification-controller/api/v1beta1"
@@ -265,8 +265,13 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 			go func(n notifier.Interface, e events.Event) {
 				if err := n.Post(e); err != nil {
-					err = redactTokenFromError(err, token, s.logger)
-
+					maskedErrStr, maskErr := masktoken.MaskTokenFromString(err.Error(), token)
+					if maskErr != nil {
+						err = maskErr
+					} else {
+						err = errors.New(maskedErrStr)
+					}
+					err := errors.New(maskedErrStr)
 					s.logger.Error(err, "failed to send notification",
 						"reconciler kind", event.InvolvedObject.Kind,
 						"name", event.InvolvedObject.Name,
@@ -317,22 +322,6 @@ func (s *EventServer) eventMatchesAlert(ctx context.Context, event *events.Event
 	}
 
 	return false
-}
-
-func redactTokenFromError(err error, token string, log logr.Logger) error {
-	if token == "" {
-		return err
-	}
-
-	re, compileErr := regexp.Compile(fmt.Sprintf("%s*", regexp.QuoteMeta(token)))
-	if compileErr != nil {
-		newErrStr := fmt.Sprintf("error redacting token from error message: %s", compileErr)
-		return errors.New(newErrStr)
-	}
-
-	redacted := re.ReplaceAllString(err.Error(), "*****")
-
-	return errors.New(redacted)
 }
 
 // TODO: move the metadata filtering function to fluxcd/pkg/runtime/events
