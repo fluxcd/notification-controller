@@ -44,6 +44,7 @@ import (
 
 func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		r.Context()
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			s.logger.Error(err, "reading the request body failed")
@@ -271,7 +272,6 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 					} else {
 						err = errors.New(maskedErrStr)
 					}
-					err := errors.New(maskedErrStr)
 					s.logger.Error(err, "failed to send notification",
 						"reconciler kind", event.InvolvedObject.Kind,
 						"name", event.InvolvedObject.Name,
