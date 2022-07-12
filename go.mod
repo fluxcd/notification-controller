@@ -39,6 +39,12 @@ require (
 // Fix CVE-2022-28948
 replace gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 
+// Fix CVE-2022-1996 (for v2, Go Modules incompatible)
+replace github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.16.0+incompatible
+
+// Fix CVE-2022-1996 (for v3)
+replace github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.8.0
+
 // Fix for CVE-2020-29652: https://github.com/golang/crypto/commit/8b5274cf687fd9316b4108863654cc57385531e8
 // Fix for CVE-2021-43565: https://github.com/golang/crypto/commit/5770296d904e90f15f38f77dfc2e43fdf5efc083
 // Fix for CVE-2022-27191: https://github.com/golang/crypto/commit/3147a52a75dda54ac3a611ef8978640d85188a2a
