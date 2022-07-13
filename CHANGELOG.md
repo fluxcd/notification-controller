@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.24.1
+
+**Release date:** 2022-07-13
+
+This prerelease comes with some minor improvements and updates dependencies
+to patch upstream CVEs.
+
+Improvements:
+* Force github.com/emicklei/go-restful to v2.16.0 [#390](https://github.com/fluxcd/notification-controller/pull/390)
+* Update flux types api versions [#381](https://github.com/fluxcd/notification-controller/pull/381)
+* Update Azure DevOps Go API [#384](https://github.com/fluxcd/notification-controller/pull/384)
+* Update dependencies [#387](https://github.com/fluxcd/notification-controller/pull/387)
+* Use masktoken pkg for redacting token [#388](https://github.com/fluxcd/notification-controller/pull/388)
+* build: Upgrade to Go 1.18 [#389](https://github.com/fluxcd/notification-controller/pull/389)
+
 ## 0.24.0
 
 **Release date:** 2022-05-27
