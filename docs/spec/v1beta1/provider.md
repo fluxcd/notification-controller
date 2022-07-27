@@ -267,7 +267,7 @@ For more details see the [documentation of MS Teams Incoming Webhooks](https://d
 
 You can now create a provider resource using the webhook URL:
 
-```
+```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta1
 kind: Provider
 metadata:
