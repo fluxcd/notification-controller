@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
@@ -85,7 +86,7 @@ func NewGoogleChat(hookURL string, proxyURL string) (*GoogleChat, error) {
 }
 
 // Post Google Chat message
-func (s *GoogleChat) Post(event events.Event) error {
+func (s *GoogleChat) Post(ctx context.Context, event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil

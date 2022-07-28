@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -42,6 +43,6 @@ func TestRocket_Post(t *testing.T) {
 	rocket, err := NewRocket(ts.URL, "", nil, "test", "test")
 	require.NoError(t, err)
 
-	err = rocket.Post(testEvent())
+	err = rocket.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
 }

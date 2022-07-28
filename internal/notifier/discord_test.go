@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -45,6 +46,6 @@ func TestDiscord_Post(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, strings.HasSuffix(discord.URL, "/slack"))
 
-	err = discord.Post(testEvent())
+	err = discord.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
 }

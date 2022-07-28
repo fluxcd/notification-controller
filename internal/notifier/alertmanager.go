@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"net/url"
@@ -50,7 +51,7 @@ func NewAlertmanager(hookURL string, proxyURL string, certPool *x509.CertPool) (
 	}, nil
 }
 
-func (s *Alertmanager) Post(event events.Event) error {
+func (s *Alertmanager) Post(ctx context.Context, event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil

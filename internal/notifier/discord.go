@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"path"
@@ -56,7 +57,7 @@ func NewDiscord(hookURL string, proxyURL string, username string, channel string
 }
 
 // Post Discord message
-func (s *Discord) Post(event events.Event) error {
+func (s *Discord) Post(ctx context.Context, event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil

@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -60,7 +61,7 @@ func NewRocket(hookURL string, proxyURL string, certPool *x509.CertPool, usernam
 }
 
 // Post Rocket message
-func (s *Rocket) Post(event events.Event) error {
+func (s *Rocket) Post(ctx context.Context, event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil

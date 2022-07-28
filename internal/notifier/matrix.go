@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"context"
 	"crypto/sha1"
 	"crypto/x509"
 	"encoding/json"
@@ -39,7 +40,7 @@ func NewMatrix(serverURL, token, roomId string, certPool *x509.CertPool) (*Matri
 	}, nil
 }
 
-func (m *Matrix) Post(event events.Event) error {
+func (m *Matrix) Post(ctx context.Context, event events.Event) error {
 	txId, err := sha1sum(event)
 	if err != nil {
 		return fmt.Errorf("unable to generate unique tx id: %s", err)

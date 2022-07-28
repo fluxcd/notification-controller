@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -40,7 +41,7 @@ func TestWebex_Post(t *testing.T) {
 	webex, err := NewWebex(ts.URL, "", nil, "room", "token")
 	require.NoError(t, err)
 
-	err = webex.Post(testEvent())
+	err = webex.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
 }
 
@@ -50,6 +51,6 @@ func TestWebex_PostUpdate(t *testing.T) {
 
 	event := testEvent()
 	event.Metadata["commit_status"] = "update"
-	err = webex.Post(event)
+	err = webex.Post(context.TODO(), event)
 	require.NoError(t, err)
 }

@@ -20,6 +20,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -49,7 +50,7 @@ func FuzzForwarder(data []byte) int {
 		return 0
 	}
 
-	_ = forwarder.Post(event)
+	_ = forwarder.Post(context.TODO(), event)
 
 	return 1
 }

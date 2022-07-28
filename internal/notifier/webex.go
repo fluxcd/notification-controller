@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"net/url"
@@ -96,7 +97,7 @@ func (s *Webex) CreateMarkdown(event *events.Event) string {
 }
 
 // Post Webex message
-func (s *Webex) Post(event events.Event) error {
+func (s *Webex) Post(ctx context.Context, event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil

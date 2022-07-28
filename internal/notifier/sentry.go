@@ -58,7 +58,7 @@ func NewSentry(certPool *x509.CertPool, dsn string, environment string) (*Sentry
 }
 
 // Post event to Sentry
-func (s *Sentry) Post(event events.Event) error {
+func (s *Sentry) Post(ctx context.Context, event events.Event) error {
 	var sev *sentry.Event
 	// Send event to Sentry
 	switch event.Severity {

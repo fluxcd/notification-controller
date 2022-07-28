@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -66,7 +67,7 @@ func NewGitLab(addr string, token string, certPool *x509.CertPool) (*GitLab, err
 }
 
 // Post GitLab commit status
-func (g *GitLab) Post(event events.Event) error {
+func (g *GitLab) Post(ctx context.Context, event events.Event) error {
 	// Skip progressing events
 	if event.Reason == "Progressing" {
 		return nil
@@ -86,14 +87,6 @@ func (g *GitLab) Post(event events.Event) error {
 	}
 
 	name, desc := formatNameAndDescription(event)
-	options := &gitlab.SetCommitStatusOptions{
-		Name:        &name,
-		Description: &desc,
-		State:       state,
-	}
-
-	listOpts := &gitlab.GetCommitStatusesOptions{}
-
 	status := &gitlab.CommitStatus{
 		Name:        name,
 		SHA:         rev,
@@ -101,7 +94,8 @@ func (g *GitLab) Post(event events.Event) error {
 		Description: desc,
 	}
 
-	statuses, _, err := g.Client.Commits.GetCommitStatuses(g.Id, rev, listOpts)
+	getOpt := &gitlab.GetCommitStatusesOptions{}
+	statuses, _, err := g.Client.Commits.GetCommitStatuses(g.Id, rev, getOpt, gitlab.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("unable to list commit status: %s", err)
 	}
@@ -109,7 +103,12 @@ func (g *GitLab) Post(event events.Event) error {
 		return nil
 	}
 
-	_, _, err = g.Client.Commits.SetCommitStatus(g.Id, rev, options)
+	setOpt := &gitlab.SetCommitStatusOptions{
+		Name:        &name,
+		Description: &desc,
+		State:       state,
+	}
+	_, _, err = g.Client.Commits.SetCommitStatus(g.Id, rev, setOpt, gitlab.WithContext(ctx))
 	if err != nil {
 		return err
 	}

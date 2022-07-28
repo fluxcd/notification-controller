@@ -20,6 +20,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -52,7 +53,7 @@ func FuzzBitbucket(data []byte) int {
 		return 0
 	}
 
-	_ = bitbucket.Post(event)
+	_ = bitbucket.Post(context.TODO(), event)
 
 	return 1
 }

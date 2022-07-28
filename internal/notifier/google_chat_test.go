@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -45,6 +46,6 @@ func TestGoogleChat_Post(t *testing.T) {
 	google_chat, err := NewGoogleChat(ts.URL, "")
 	require.NoError(t, err)
 
-	err = google_chat.Post(testEvent())
+	err = google_chat.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
 }

@@ -17,9 +17,11 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
+
 	"github.com/fluxcd/pkg/runtime/events"
 )
 
 type Interface interface {
-	Post(event events.Event) error
+	Post(ctx context.Context, event events.Event) error
 }

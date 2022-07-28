@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -25,7 +26,7 @@ func NewTelegram(channel, token string) (*Telegram, error) {
 	}, nil
 }
 
-func (t *Telegram) Post(event events.Event) error {
+func (t *Telegram) Post(ctx context.Context, event events.Event) error {
 	// Skip any update events
 	if isCommitStatus(event.Metadata, "update") {
 		return nil

@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -80,7 +81,7 @@ func NewBitbucket(addr string, token string, certPool *x509.CertPool) (*Bitbucke
 }
 
 // Post Bitbucket commit status
-func (b Bitbucket) Post(event events.Event) error {
+func (b Bitbucket) Post(ctx context.Context, event events.Event) error {
 	// Skip progressing events
 	if event.Reason == "Progressing" {
 		return nil

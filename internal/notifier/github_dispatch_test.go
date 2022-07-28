@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,6 +56,6 @@ func TestGitHubDispatch_PostUpdate(t *testing.T) {
 
 	event := testEvent()
 	event.Metadata["commit_status"] = "update"
-	err = githubDispatch.Post(event)
+	err = githubDispatch.Post(context.TODO(), event)
 	require.NoError(t, err)
 }

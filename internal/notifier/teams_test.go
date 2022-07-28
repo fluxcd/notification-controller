@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -42,6 +43,6 @@ func TestTeams_Post(t *testing.T) {
 	teams, err := NewMSTeams(ts.URL, "", nil)
 	require.NoError(t, err)
 
-	err = teams.Post(testEvent())
+	err = teams.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
 }

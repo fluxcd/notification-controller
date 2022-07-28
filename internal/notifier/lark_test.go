@@ -1,6 +1,7 @@
 package notifier
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -26,6 +27,6 @@ func TestLark_Post(t *testing.T) {
 	lark, err := NewLark(ts.URL)
 	require.NoError(t, err)
 
-	err = lark.Post(testEvent())
+	err = lark.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
 }

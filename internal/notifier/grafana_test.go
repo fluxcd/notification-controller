@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -46,7 +47,7 @@ func TestGrafana_Post(t *testing.T) {
 		grafana, err := NewGrafana(ts.URL, "", "", nil, "", "")
 		require.NoError(t, err)
 
-		err = grafana.Post(testEvent())
+		err = grafana.Post(context.TODO(), testEvent())
 		assert.NoError(t, err)
 	})
 }
