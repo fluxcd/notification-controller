@@ -73,6 +73,7 @@ spec:
                       - ImageRepository
                       - ImagePolicy
                       - ImageUpdateAutomation
+                      - OCIRepository
                       type: string
                     matchLabels:
                       additionalProperties:
