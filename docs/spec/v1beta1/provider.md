@@ -536,6 +536,8 @@ spec:
       name: '*'
     - kind: Kustomization
       name: '*'
+    - kind: OCIRepository
+      name: '*'
 ```
 
 
