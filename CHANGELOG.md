@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.25.0
+
+**Release date:** 2022-08-08
+
+This prerelease comes with support for sending alerts based on `OCIRepository` events.
+
+In addition, various dependencies have been updated to their latest versions.
+
+Improvements:
+* Add OCIRepository event source
+  [#396](https://github.com/fluxcd/notification-controller/pull/396)
+* Update dependencies
+  [#397](https://github.com/fluxcd/notification-controller/pull/397)
+* Add missing language to fenced code block
+  [#394](https://github.com/fluxcd/notification-controller/pull/394)
+
 ## 0.24.1
 
 **Release date:** 2022-07-13
@@ -86,7 +102,7 @@ Fixes:
 This prerelease comes with updates to the Webex notification provider and its
 integration docs.
 
-In addition, various dependencies have been updated to their latest verions.
+In addition, various dependencies have been updated to their latest versions.
 
 Improvements:
 - Update the webex notification provider and markdown
