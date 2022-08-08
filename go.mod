@@ -7,12 +7,12 @@ replace github.com/fluxcd/notification-controller/api => ./api
 require (
 	github.com/Azure/azure-amqp-common-go/v3 v3.2.3
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.18
-	github.com/containrrr/shoutrrr v0.6.0
+	github.com/containrrr/shoutrrr v0.6.1
 	github.com/fluxcd/notification-controller/api v0.24.1
 	github.com/fluxcd/pkg/apis/meta v0.14.2
 	github.com/fluxcd/pkg/masktoken v0.0.1
 	github.com/fluxcd/pkg/runtime v0.16.2
-	github.com/fluxcd/pkg/ssa v0.16.1
+	github.com/fluxcd/pkg/ssa v0.17.0
 	github.com/getsentry/sentry-go v0.13.0
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-github/v41 v41.0.0
@@ -20,18 +20,18 @@ require (
 	github.com/ktrysmt/go-bitbucket v0.9.48
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
-	github.com/onsi/gomega v1.19.0
+	github.com/onsi/gomega v1.20.0
 	github.com/sethvargo/go-limiter v0.7.2
 	github.com/slok/go-http-metrics v0.10.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.0
 	github.com/whilp/git-urls v1.0.0
-	github.com/xanzy/go-gitlab v0.68.2
-	golang.org/x/oauth2 v0.0.0-20220630143837-2104d58473e0
-	k8s.io/api v0.24.1
-	k8s.io/apimachinery v0.24.1
-	k8s.io/client-go v0.24.1
-	sigs.k8s.io/cli-utils v0.31.2
+	github.com/xanzy/go-gitlab v0.71.0
+	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c
+	k8s.io/api v0.24.3
+	k8s.io/apimachinery v0.24.3
+	k8s.io/client-go v0.24.3
+	sigs.k8s.io/cli-utils v0.32.0
 	sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -129,14 +129,14 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220214200702-86341886e292 // indirect
-	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
-	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
+	golang.org/x/net v0.0.0-20220805013720-a33c5aa5df48 // indirect
+	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	golang.org/x/time v0.0.0-20220411224347-583f2d630306 // indirect
+	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
+	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
