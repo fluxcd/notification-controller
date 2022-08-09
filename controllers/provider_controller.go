@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/ratelimiter"
 	"sigs.k8s.io/yaml"
 
 	"github.com/fluxcd/pkg/apis/meta"
@@ -53,6 +54,7 @@ type ProviderReconciler struct {
 
 type ProviderReconcilerOptions struct {
 	MaxConcurrentReconciles int
+	RateLimiter             ratelimiter.RateLimiter
 }
 
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -63,7 +65,10 @@ func (r *ProviderReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts P
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.Provider{}).
 		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{})).
-		WithOptions(controller.Options{MaxConcurrentReconciles: opts.MaxConcurrentReconciles}).
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: opts.MaxConcurrentReconciles,
+			RateLimiter:             opts.RateLimiter,
+		}).
 		Complete(r)
 }
 
