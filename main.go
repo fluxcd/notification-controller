@@ -71,6 +71,7 @@ func main() {
 		logOptions            logger.Options
 		leaderElectionOptions leaderelection.Options
 		aclOptions            acl.Options
+		rateLimiterOptions    helper.RateLimiterOptions
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -85,6 +86,7 @@ func main() {
 	logOptions.BindFlags(flag.CommandLine)
 	leaderElectionOptions.BindFlags(flag.CommandLine)
 	aclOptions.BindFlags(flag.CommandLine)
+	rateLimiterOptions.BindFlags(flag.CommandLine)
 	flag.Parse()
 
 	log := logger.NewLogger(logOptions)
@@ -126,6 +128,7 @@ func main() {
 		Metrics: metricsH,
 	}).SetupWithManagerAndOptions(mgr, controllers.ProviderReconcilerOptions{
 		MaxConcurrentReconciles: concurrent,
+		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Provider")
 		os.Exit(1)
@@ -136,6 +139,7 @@ func main() {
 		Metrics: metricsH,
 	}).SetupWithManagerAndOptions(mgr, controllers.AlertReconcilerOptions{
 		MaxConcurrentReconciles: concurrent,
+		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Alert")
 		os.Exit(1)
@@ -146,6 +150,7 @@ func main() {
 		Metrics: metricsH,
 	}).SetupWithManagerAndOptions(mgr, controllers.ReceiverReconcilerOptions{
 		MaxConcurrentReconciles: concurrent,
+		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Receiver")
 		os.Exit(1)
