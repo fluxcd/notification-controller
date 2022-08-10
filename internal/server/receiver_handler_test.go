@@ -18,12 +18,12 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"github.com/google/go-github/v41/github"
-	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -37,7 +37,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/logger"
 )
 
-func Test_HandlePayload(t *testing.T) {
+func Test_validate(t *testing.T) {
 	type hashOpts struct {
 		calculate bool
 		header    string
@@ -60,9 +60,9 @@ func Test_HandlePayload(t *testing.T) {
 		headers      map[string]string
 		payload      map[string]interface{}
 		receiver     *v1beta1.Receiver
-		expected     int
 		receiverType string
 		secret       *corev1.Secret
+		expectedErr  bool
 	}{
 		{
 			name: "Generic receiver",
@@ -71,12 +71,10 @@ func Test_HandlePayload(t *testing.T) {
 					Name: "test-receiver",
 				},
 				Spec: v1beta1.ReceiverSpec{
-					Type:      v1beta1.GenericReceiver,
-					Resources: nil,
+					Type: v1beta1.GenericReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
-					Suspend: false,
 				},
 			},
 			secret: &corev1.Secret{
@@ -87,7 +85,7 @@ func Test_HandlePayload(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expected: http.StatusOK,
+			expectedErr: false,
 		},
 		{
 			name: "gitlab receiver",
@@ -96,12 +94,10 @@ func Test_HandlePayload(t *testing.T) {
 					Name: "gitlab-receiver",
 				},
 				Spec: v1beta1.ReceiverSpec{
-					Type:      v1beta1.GitLabReceiver,
-					Resources: nil,
+					Type: v1beta1.GitLabReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
-					Suspend: false,
 				},
 			},
 			headers: map[string]string{
@@ -115,7 +111,7 @@ func Test_HandlePayload(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expected: http.StatusOK,
+			expectedErr: false,
 		},
 		{
 			name: "github receiver",
@@ -124,12 +120,10 @@ func Test_HandlePayload(t *testing.T) {
 					Name: "test-receiver",
 				},
 				Spec: v1beta1.ReceiverSpec{
-					Type:      v1beta1.GitHubReceiver,
-					Resources: nil,
+					Type: v1beta1.GitHubReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
-					Suspend: false,
 				},
 			},
 			hashOpts: hashOpts{
@@ -150,7 +144,7 @@ func Test_HandlePayload(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expected: http.StatusOK,
+			expectedErr: false,
 		},
 		{
 			name: "generic hmac receiver",
@@ -159,12 +153,10 @@ func Test_HandlePayload(t *testing.T) {
 					Name: "generic-hmac-receiver",
 				},
 				Spec: v1beta1.ReceiverSpec{
-					Type:      v1beta1.GenericHMACReceiver,
-					Resources: nil,
+					Type: v1beta1.GenericHMACReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
-					Suspend: false,
 				},
 			},
 			hashOpts: hashOpts{
@@ -182,7 +174,7 @@ func Test_HandlePayload(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expected: http.StatusOK,
+			expectedErr: false,
 		},
 		{
 			name: "bitbucket receiver",
@@ -214,7 +206,7 @@ func Test_HandlePayload(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expected: http.StatusOK,
+			expectedErr: false,
 		},
 		{
 			name: "quay receiver",
@@ -223,8 +215,7 @@ func Test_HandlePayload(t *testing.T) {
 					Name: "quay-receiver",
 				},
 				Spec: v1beta1.ReceiverSpec{
-					Type:      v1beta1.QuayReceiver,
-					Resources: nil,
+					Type: v1beta1.QuayReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
@@ -244,7 +235,7 @@ func Test_HandlePayload(t *testing.T) {
 					"v0.0.1",
 				},
 			},
-			expected: http.StatusOK,
+			expectedErr: false,
 		},
 		{
 			name: "harbor receiver",
@@ -270,7 +261,7 @@ func Test_HandlePayload(t *testing.T) {
 			headers: map[string]string{
 				"Authorization": "token",
 			},
-			expected: http.StatusOK,
+			expectedErr: false,
 		},
 		{
 			name: "missing secret",
@@ -279,14 +270,13 @@ func Test_HandlePayload(t *testing.T) {
 					Name: "missing-secret",
 				},
 				Spec: v1beta1.ReceiverSpec{
-					Type:      v1beta1.GenericReceiver,
-					Resources: nil,
+					Type: v1beta1.GenericReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "non-existing",
 					},
 				},
 			},
-			expected: http.StatusBadRequest,
+			expectedErr: true,
 		},
 	}
 
@@ -311,7 +301,6 @@ func Test_HandlePayload(t *testing.T) {
 				logger:     logger.NewLogger(logger.Options{}),
 				kubeClient: client,
 			}
-			handler := http.HandlerFunc(s.handlePayload())
 
 			data, err := json.Marshal(tt.payload)
 			if err != nil {
@@ -329,10 +318,14 @@ func Test_HandlePayload(t *testing.T) {
 				}
 				req.Header.Set(tt.hashOpts.header, "sha256="+hex.EncodeToString(mac.Sum(nil)))
 			}
-			res := httptest.NewRecorder()
-			handler.ServeHTTP(res, req)
-			if res.Code != tt.expected {
-				t.Errorf("expected status code '%d' but got '%d'", tt.expected, res.Code)
+
+			err = s.validate(context.Background(), *tt.receiver, req)
+			if tt.expectedErr && err == nil {
+				t.Errorf("expected error but got %s", err)
+			}
+
+			if !tt.expectedErr && err != nil {
+				t.Errorf("unexpected error: '%s'", err)
 			}
 		})
 	}
