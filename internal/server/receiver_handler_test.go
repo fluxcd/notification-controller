@@ -43,17 +43,6 @@ func Test_validate(t *testing.T) {
 		header    string
 	}
 
-	status := v1beta1.ReceiverStatus{
-		Conditions: []metav1.Condition{
-			{
-				Type:   meta.ReadyCondition,
-				Status: metav1.ConditionTrue,
-			},
-		},
-		URL:                "/hook/digest",
-		ObservedGeneration: 1,
-	}
-
 	tests := []struct {
 		name         string
 		hashOpts     hashOpts
@@ -286,7 +275,6 @@ func Test_validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.receiver.Status = status
 
 			builder := fake.NewClientBuilder()
 			builder.WithScheme(scheme)
@@ -306,7 +294,7 @@ func Test_validate(t *testing.T) {
 			if err != nil {
 				t.Errorf("error marshalling test payload: '%s'", err)
 			}
-			req := httptest.NewRequest("POST", tt.receiver.Status.URL, bytes.NewBuffer(data))
+			req := httptest.NewRequest("POST", "/", bytes.NewBuffer(data))
 			for key, val := range tt.headers {
 				req.Header.Set(key, val)
 			}
