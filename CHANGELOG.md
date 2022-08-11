@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.25.1
+
+**Release date:** 2022-08-11
+
+This prerelease comes with a fix to GitHub Container Registry webhook receivers.
+
+Starting with this version, Flux `Receivers` can be used to trigger `OCIRepositories`
+reconciliation when pushing OCI artifacts to GHCR from GH Action.
+
+Fixes:
+* Remove code for parsing github payload
+  [#401](https://github.com/fluxcd/notification-controller/pull/401)
+
+Improvements:
+* Add flags to configure exponential back-off retry
+  [#399](https://github.com/fluxcd/notification-controller/pull/399)
+
 ## 0.25.0
 
 **Release date:** 2022-08-08
