@@ -130,13 +130,9 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 		}
 		return nil
 	case v1beta1.GitHubReceiver:
-		payload, err := github.ValidatePayload(r, []byte(token))
+		_, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
 			return fmt.Errorf("the GitHub signature header is invalid, err: %w", err)
-		}
-
-		if _, err := github.ParseWebHook(github.WebHookType(r), payload); err != nil {
-			return fmt.Errorf("unable to parse GitHub payload, err: %w", err)
 		}
 
 		event := github.WebHookType(r)
