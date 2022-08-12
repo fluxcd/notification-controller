@@ -89,6 +89,7 @@ func (r *AlertReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts Aler
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.MaxConcurrentReconciles,
 			RateLimiter:             opts.RateLimiter,
+			RecoverPanic:            true,
 		}).
 		Complete(r)
 }

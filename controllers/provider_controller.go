@@ -68,6 +68,7 @@ func (r *ProviderReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts P
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.MaxConcurrentReconciles,
 			RateLimiter:             opts.RateLimiter,
+			RecoverPanic:            true,
 		}).
 		Complete(r)
 }
