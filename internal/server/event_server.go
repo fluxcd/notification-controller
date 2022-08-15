@@ -44,15 +44,17 @@ type EventServer struct {
 	logger               logr.Logger
 	kubeClient           client.Client
 	noCrossNamespaceRefs bool
+	supportHttpScheme    bool
 }
 
 // NewEventServer returns an HTTP server that handles events
-func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, noCrossNamespaceRefs bool) *EventServer {
+func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, noCrossNamespaceRefs bool, supportHttpScheme bool) *EventServer {
 	return &EventServer{
 		port:                 port,
 		logger:               logger.WithName("event-server"),
 		kubeClient:           kubeClient,
 		noCrossNamespaceRefs: noCrossNamespaceRefs,
+		supportHttpScheme:    supportHttpScheme,
 	}
 }
 

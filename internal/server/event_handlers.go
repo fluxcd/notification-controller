@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -243,6 +244,22 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
+			webhookUrl, err := url.Parse(webhook)
+			if err != nil {
+				s.logger.Error(nil, "Error parsing webhook url",
+					"reconciler kind", v1beta1.ProviderKind,
+					"name", providerName.Name,
+					"namespace", providerName.Namespace)
+				continue
+			}
+
+			if !s.supportHttpScheme && webhookUrl.Scheme == "http" {
+				s.logger.Error(nil, "http scheme is blocked",
+					"reconciler kind", v1beta1.ProviderKind,
+					"name", providerName.Name,
+					"namespace", providerName.Namespace)
+				continue
+			}
 			factory := notifier.NewFactory(webhook, proxy, username, provider.Spec.Channel, token, headers, certPool, password)
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -52,7 +53,69 @@ func TestEventHandler(t *testing.T) {
 		t.Fatalf("failed to create memory storage")
 	}
 
-	eventServer := server.NewEventServer("127.0.0.1:56789", logf.Log, k8sClient, true)
+	httpScheme := "http"
+
+	eventServerTests := []struct {
+		name          string
+		isHttpEnabled bool
+		url           string
+	}{
+		{
+			name:          "http scheme is enabled",
+			isHttpEnabled: true,
+		}, {
+			name:          "http scheme is disabled",
+			isHttpEnabled: false,
+		},
+	}
+	for _, eventServerTest := range eventServerTests {
+		t.Run(eventServerTest.name, func(t *testing.T) {
+
+			eventServer := server.NewEventServer("127.0.0.1:56789", logf.Log, k8sClient, true, eventServerTest.isHttpEnabled)
+
+			stopCh := make(chan struct{})
+			go eventServer.ListenAndServe(stopCh, eventMdlw, store)
+			requestsReceived := 0
+			rcvServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requestsReceived = requestsReceived + 1
+				req = r
+				w.WriteHeader(200)
+			}))
+			defer rcvServer.Close()
+			defer close(stopCh)
+
+			providerKey := types.NamespacedName{
+				Name:      fmt.Sprintf("provider-%s", randStringRunes(5)),
+				Namespace: namespace,
+			}
+			provider = &notifyv1.Provider{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      providerKey.Name,
+					Namespace: providerKey.Namespace,
+				},
+				Spec: notifyv1.ProviderSpec{
+					Type:    "generic",
+					Address: rcvServer.URL,
+				},
+			}
+
+			webhook_url, err := url.Parse(provider.Spec.Address)
+
+			g.Expect(err).ToNot(HaveOccurred())
+
+			if eventServerTest.isHttpEnabled {
+				g.Expect(webhook_url.Scheme).To(Equal(httpScheme))
+				g.Expect(requestsReceived).To(Equal(1))
+			} else {
+				g.Expect(webhook_url.Scheme).ToNot(Equal(httpScheme))
+				g.Expect(requestsReceived).To(Equal(0))
+			}
+
+		})
+	}
+
+	eventServer := server.NewEventServer("127.0.0.1:56789", logf.Log, k8sClient, true, true)
+
 	stopCh := make(chan struct{})
 	go eventServer.ListenAndServe(stopCh, eventMdlw, store)
 
@@ -77,6 +140,9 @@ func TestEventHandler(t *testing.T) {
 			Address: rcvServer.URL,
 		},
 	}
+
+	g.Expect(err).ToNot(HaveOccurred())
+
 	g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())
 	g.Eventually(func() bool {
 		var obj notifyv1.Provider
@@ -173,6 +239,7 @@ func TestEventHandler(t *testing.T) {
 		res, err := http.Post("http://localhost:56789/", "application/json", buf)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.StatusCode).To(Equal(202)) // event_server responds with 202 Accepted
+
 	}
 
 	testForwarded := func() {
@@ -294,4 +361,5 @@ func TestEventHandler(t *testing.T) {
 			req = nil
 		})
 	}
+
 }
