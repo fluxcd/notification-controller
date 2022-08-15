@@ -132,7 +132,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Short description of the impact and affected cluster.</p>
+<p>Short description of the impact and affected cluster.
+For commit status updates, this field is used to prefix the status message.</p>
 </td>
 </tr>
 <tr>
@@ -563,7 +564,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Short description of the impact and affected cluster.</p>
+<p>Short description of the impact and affected cluster.
+For commit status updates, this field is used to prefix the status message.</p>
 </td>
 </tr>
 <tr>

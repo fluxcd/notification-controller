@@ -47,6 +47,9 @@ func parseGitAddress(s string) (string, string, error) {
 
 func formatNameAndDescription(event events.Event) (string, string) {
 	name := fmt.Sprintf("%v/%v", event.InvolvedObject.Kind, event.InvolvedObject.Name)
+	if summary, ok := event.Metadata["summary"]; ok {
+		name = fmt.Sprintf("%v/%v/%v", summary, event.InvolvedObject.Kind, event.InvolvedObject.Name)
+	}
 	name = strings.ToLower(name)
 	desc := strings.Join(splitCamelcase(event.Reason), " ")
 	desc = strings.ToLower(desc)
