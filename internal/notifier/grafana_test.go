@@ -41,6 +41,8 @@ func TestGrafana_Post(t *testing.T) {
 			require.Equal(t, "flux", payload.Tags[0])
 			require.Equal(t, "source-controller", payload.Tags[1])
 			require.Equal(t, "test: metadata", payload.Tags[2])
+			require.Equal(t, "name: webapp", payload.Tags[3])
+			require.Equal(t, "namespace: gitops-system", payload.Tags[4])
 		}))
 		defer ts.Close()
 

@@ -73,6 +73,8 @@ func (g *Grafana) Post(ctx context.Context, event events.Event) error {
 	for k, v := range event.Metadata {
 		sfields = append(sfields, fmt.Sprintf("%s: %s", k, v))
 	}
+	sfields = append(sfields, fmt.Sprintf("name: %s", event.InvolvedObject.Name))
+	sfields = append(sfields, fmt.Sprintf("namespace: %s", event.InvolvedObject.Namespace))
 	payload := GraphitePayload{
 		When: event.Timestamp.Unix(),
 		Text: fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace),
