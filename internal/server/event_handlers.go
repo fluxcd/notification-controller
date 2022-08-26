@@ -265,6 +265,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			}
 
 			go func(n notifier.Interface, e events.Event) {
+				ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+				defer cancel()
 				if err := n.Post(ctx, e); err != nil {
 					maskedErrStr, maskErr := masktoken.MaskTokenFromString(err.Error(), token)
 					if maskErr != nil {
