@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/json"
 	"io"
@@ -43,7 +44,7 @@ func Test_postMessage(t *testing.T) {
 		require.Equal(t, "success", payload["status"])
 	}))
 	defer ts.Close()
-	err := postMessage(ts.URL, "", nil, map[string]string{"status": "success"})
+	err := postMessage(context.Background(), ts.URL, "", nil, map[string]string{"status": "success"})
 	require.NoError(t, err)
 }
 
@@ -64,7 +65,7 @@ func Test_postSelfSignedCert(t *testing.T) {
 	require.NoError(t, err)
 	certpool := x509.NewCertPool()
 	certpool.AddCert(cert)
-	err = postMessage(ts.URL, "", certpool, map[string]string{"status": "success"})
+	err = postMessage(context.Background(), ts.URL, "", certpool, map[string]string{"status": "success"})
 	require.NoError(t, err)
 }
 

@@ -90,7 +90,7 @@ func (s *Discord) Post(ctx context.Context, event events.Event) error {
 
 	payload.Attachments = []SlackAttachment{a}
 
-	err := postMessage(s.URL, s.ProxyURL, nil, payload)
+	err := postMessage(ctx, s.URL, s.ProxyURL, nil, payload)
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}

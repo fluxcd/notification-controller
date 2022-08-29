@@ -26,6 +26,10 @@ type ProviderSpec struct {
 	// +optional
 	Address string `json:"address,omitempty"`
 
+	// Timeout for sending alerts to the provider.
+	// +optional
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
+
 	// HTTP/S address of the proxy
 	// +kubebuilder:validation:Pattern="^(http|https)://"
 	// +optional
@@ -109,6 +113,8 @@ spec:
   address: https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK
   # HTTP(S) proxy (optional)
   proxy: https://proxy.corp:8080
+  # timeout (optional)
+  timeout: 30s
   # secret containing the webhook address (optional)
   secretRef:
     name: webhook-url

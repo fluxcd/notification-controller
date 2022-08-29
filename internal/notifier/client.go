@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -33,7 +34,7 @@ import (
 
 type requestOptFunc func(*retryablehttp.Request)
 
-func postMessage(address, proxy string, certPool *x509.CertPool, payload interface{}, reqOpts ...requestOptFunc) error {
+func postMessage(ctx context.Context, address, proxy string, certPool *x509.CertPool, payload interface{}, reqOpts ...requestOptFunc) error {
 	httpClient := retryablehttp.NewClient()
 	if certPool != nil {
 		httpClient.HTTPClient.Transport = &http.Transport{
@@ -83,6 +84,9 @@ func postMessage(address, proxy string, certPool *x509.CertPool, payload interfa
 	req, err := retryablehttp.NewRequest(http.MethodPost, address, data)
 	if err != nil {
 		return fmt.Errorf("failed to create a new request: %w", err)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	for _, o := range reqOpts {
