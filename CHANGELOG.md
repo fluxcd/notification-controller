@@ -2,6 +2,25 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.25.2
+
+**Release date:** 2022-08-29
+
+This prerelease comes with panic recovery, to protect the controller
+from crashing when reconciliations lead to a crash.
+
+In addition, the controller dependencies have been updated to Kubernetes v1.25.0.
+
+Fixes:
+* Fix context cancel defer for commit status updates
+  [#408](https://github.com/fluxcd/notification-controller/pull/408)
+
+Improvements:
+* Enables RecoverPanic option on reconcilers
+  [#403](https://github.com/fluxcd/notification-controller/pull/403)
+* Update Kubernetes packages to v1.25.0
+  [#407](https://github.com/fluxcd/notification-controller/pull/407)
+
 ## 0.25.1
 
 **Release date:** 2022-08-11
