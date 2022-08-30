@@ -6,7 +6,7 @@
 [![license](https://img.shields.io/github/license/fluxcd/notification-controller.svg)](https://github.com/fluxcd/notification-controller/blob/main/LICENSE)
 [![release](https://img.shields.io/github/release/fluxcd/notification-controller/all.svg)](https://github.com/fluxcd/notification-controller/releases)
 
-Event forwarder and notification dispatcher for the [GitOps Toolkit](https://fluxcd.io/docs/components/) controllers.
+Event forwarder and notification dispatcher for the [GitOps Toolkit](https://fluxcd.io/flux/components/) controllers.
 The notification-controller is an implementation of the [notification.toolkit.fluxcd.io](docs/spec/v1beta1/README.md)
 API based on the specifications described in the [RFC](docs/spec/README.md).
 
