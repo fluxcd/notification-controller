@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"time"
+
 	"github.com/fluxcd/pkg/apis/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -45,6 +47,10 @@ type ProviderSpec struct {
 	// +kubebuilder:validation:Optional
 	// +optional
 	Address string `json:"address,omitempty"`
+
+	// Timeout for sending alerts to the provider.
+	// +optional
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
 	// HTTP/S address of the proxy
 	// +kubebuilder:validation:Pattern="^(http|https)://"
@@ -145,4 +151,13 @@ type ProviderList struct {
 
 func init() {
 	SchemeBuilder.Register(&Provider{}, &ProviderList{})
+}
+
+func (in *Provider) GetTimeout() time.Duration {
+	duration := 15 * time.Second
+	if in.Spec.Timeout != nil {
+		duration = in.Spec.Timeout.Duration
+	}
+
+	return duration
 }

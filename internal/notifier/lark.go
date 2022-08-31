@@ -109,5 +109,5 @@ func (l *Lark) Post(ctx context.Context, event events.Event) error {
 		Card:    card,
 	}
 
-	return postMessage(l.URL, "", nil, payload)
+	return postMessage(ctx, l.URL, "", nil, payload)
 }

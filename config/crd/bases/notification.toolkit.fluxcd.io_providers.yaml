@@ -81,6 +81,9 @@ spec:
                 description: This flag tells the controller to suspend subsequent
                   events handling. Defaults to false.
                 type: boolean
+              timeout:
+                description: Timeout for sending alerts to the provider.
+                type: string
               type:
                 description: Type of provider
                 enum:

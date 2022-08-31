@@ -79,7 +79,7 @@ func (g *Grafana) Post(ctx context.Context, event events.Event) error {
 		Tags: sfields,
 	}
 
-	err := postMessage(g.URL, g.ProxyURL, g.CertPool, payload, func(request *retryablehttp.Request) {
+	err := postMessage(ctx, g.URL, g.ProxyURL, g.CertPool, payload, func(request *retryablehttp.Request) {
 		if (g.Username != "" && g.Password != "") && g.Token == "" {
 			request.Header.Add("Authorization", "Basic "+basicAuth(g.Username, g.Password))
 		}

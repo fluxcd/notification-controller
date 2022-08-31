@@ -78,6 +78,11 @@ func TestEventHandler(t *testing.T) {
 		},
 	}
 	g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())
+	g.Eventually(func() bool {
+		var obj notifyv1.Provider
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), &obj))
+		return conditions.IsReady(&obj)
+	}, 30*time.Second, time.Second).Should(BeTrue())
 
 	repo, err := readManifest("./testdata/repo.yaml", namespace)
 	g.Expect(err).ToNot(HaveOccurred())

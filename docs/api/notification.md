@@ -273,6 +273,20 @@ string
 </tr>
 <tr>
 <td>
+<code>timeout</code><br>
+<em>
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Timeout for sending alerts to the provider.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>proxy</code><br>
 <em>
 string
@@ -774,6 +788,20 @@ string
 <td>
 <em>(Optional)</em>
 <p>HTTP/S webhook address of this provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>timeout</code><br>
+<em>
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Timeout for sending alerts to the provider.</p>
 </td>
 </tr>
 <tr>

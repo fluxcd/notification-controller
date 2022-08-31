@@ -71,7 +71,7 @@ func (s *Opsgenie) Post(ctx context.Context, event events.Event) error {
 		Details:     event.Metadata,
 	}
 
-	err := postMessage(s.URL, s.ProxyURL, s.CertPool, payload, func(req *retryablehttp.Request) {
+	err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload, func(req *retryablehttp.Request) {
 		req.Header.Set("Authorization", "GenieKey "+s.ApiKey)
 	})
 

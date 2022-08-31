@@ -118,7 +118,7 @@ func (s *Slack) Post(ctx context.Context, event events.Event) error {
 
 	payload.Attachments = []SlackAttachment{a}
 
-	err := postMessage(s.URL, s.ProxyURL, s.CertPool, payload, func(request *retryablehttp.Request) {
+	err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload, func(request *retryablehttp.Request) {
 		if s.Token != "" {
 			request.Header.Add("Authorization", "Bearer "+s.Token)
 		}
