@@ -114,7 +114,7 @@ fuzz-build:
 	rm -rf $(shell pwd)/build/fuzz/
 	mkdir -p $(shell pwd)/build/fuzz/out/
 
-	docker build . --tag local-fuzzing:latest -f tests/fuzz/Dockerfile.builder
+	docker build . --pull --tag local-fuzzing:latest -f tests/fuzz/Dockerfile.builder
 	docker run --rm \
 		-e FUZZING_LANGUAGE=go -e SANITIZER=address \
 		-e CIFUZZ_DEBUG='True' -e OSS_FUZZ_PROJECT_NAME=fluxcd \
