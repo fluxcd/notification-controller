@@ -18,12 +18,16 @@ package notifier
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	fuzz "github.com/AdaLogics/go-fuzz-headers"
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,5 +53,40 @@ func TestGrafana_Post(t *testing.T) {
 
 		err = grafana.Post(context.TODO(), testEvent())
 		assert.NoError(t, err)
+	})
+}
+
+func Fuzz_Grafana(f *testing.F) {
+	f.Add("token", "user", "pass", "", "", []byte{}, []byte{})
+	f.Add("", "user", "pass", "", "", []byte{}, []byte{})
+	f.Add("token", "user", "pass", "", "update", []byte{}, []byte{})
+
+	f.Fuzz(func(t *testing.T,
+		token, username, password, urlSuffix, commitStatus string, seed, response []byte) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(response)
+			io.Copy(io.Discard, r.Body)
+			r.Body.Close()
+		}))
+		defer ts.Close()
+
+		var cert x509.CertPool
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+
+		grafana, err := NewGrafana(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", token, &cert, username, password)
+		if err != nil {
+			return
+		}
+
+		event := events.Event{}
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
+
+		if event.Metadata == nil {
+			event.Metadata = map[string]string{}
+		}
+
+		event.Metadata["commit_status"] = commitStatus
+
+		_ = grafana.Post(context.TODO(), event)
 	})
 }

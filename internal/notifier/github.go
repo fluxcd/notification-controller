@@ -144,7 +144,15 @@ func toGitHubState(severity string) (string, error) {
 // duplicateStatus return true if the latest status
 // with a matching context has the same state and description
 func duplicateGithubStatus(statuses []*github.RepoStatus, status *github.RepoStatus) bool {
+	if status == nil || statuses == nil {
+		return false
+	}
+
 	for _, s := range statuses {
+		if s.Context == nil || s.State == nil || s.Description == nil {
+			continue
+		}
+
 		if *s.Context == *status.Context {
 			if *s.State == *status.State && *s.Description == *status.Description {
 				return true

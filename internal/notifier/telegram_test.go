@@ -1,8 +1,5 @@
-//go:build gofuzz
-// +build gofuzz
-
 /*
-Copyright 2021 The Flux authors
+Copyright 2022 The Flux authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,22 +17,13 @@ limitations under the License.
 package notifier
 
 import (
-	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	"github.com/fluxcd/pkg/runtime/events"
+	"testing"
 )
 
-// FuzzNotifierUtil implements a fuzzer that targets
-// notifier.formatNameAndDescription() and notifier.parseGitAddress().
-func FuzzNotifierUtil(data []byte) int {
-	f := fuzz.NewConsumer(data)
-	event := events.Event{}
+func Fuzz_Telegram_escapeString(f *testing.F) {
+	f.Add("a-")
 
-	if err := f.GenerateStruct(&event); err != nil {
-		return 0
-	}
-
-	_, _ = formatNameAndDescription(event)
-	_, _, _ = parseGitAddress(string(data))
-
-	return 1
+	f.Fuzz(func(t *testing.T, str string) {
+		_ = escapeString(str)
+	})
 }

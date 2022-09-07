@@ -18,13 +18,18 @@ package notifier
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/stretchr/testify/require"
+
+	fuzz "github.com/AdaLogics/go-fuzz-headers"
 )
 
 func TestAlertmanager_Post(t *testing.T) {
@@ -43,4 +48,43 @@ func TestAlertmanager_Post(t *testing.T) {
 
 	err = alertmanager.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
+}
+
+func Fuzz_AlertManager(f *testing.F) {
+	f.Add("update", "", "", []byte{}, []byte("{}"))
+	f.Add("something", "", "else", []byte{}, []byte(""))
+
+	f.Fuzz(func(t *testing.T,
+		commitStatus, urlSuffix, summary string, seed, response []byte) {
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(response)
+			io.Copy(io.Discard, r.Body)
+			r.Body.Close()
+		}))
+		defer ts.Close()
+
+		var cert x509.CertPool
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+
+		alertmanager, err := NewAlertmanager(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &cert)
+		if err != nil {
+			return
+		}
+
+		event := events.Event{}
+
+		// Try to fuzz the event object, but if it fails (not enough seed),
+		// ignore it, as other inputs are also being used in this test.
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
+
+		if event.Metadata == nil && (commitStatus != "" || summary != "") {
+			event.Metadata = map[string]string{
+				"commit_status": commitStatus,
+				"summary":       summary,
+			}
+		}
+
+		_ = alertmanager.Post(context.TODO(), event)
+	})
 }

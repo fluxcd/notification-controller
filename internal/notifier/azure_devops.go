@@ -147,7 +147,16 @@ func toAzureDevOpsState(severity string) (git.GitStatusState, error) {
 // duplicateStatus return true if the latest status
 // with a matching context has the same state and description
 func duplicateAzureDevOpsStatus(statuses *[]git.GitStatus, status *git.GitStatus) bool {
+	if status == nil || status.Context == nil || statuses == nil {
+		return false
+	}
+
 	for _, s := range *statuses {
+		if s.Context == nil || s.Context.Name == nil || s.Context.Genre == nil ||
+			s.State == nil || s.Description == nil {
+			continue
+		}
+
 		if *s.Context.Name == *status.Context.Name && *s.Context.Genre == *status.Context.Genre {
 			if *s.State == *status.State && *s.Description == *status.Description {
 				return true

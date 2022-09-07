@@ -18,12 +18,16 @@ package notifier
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	fuzz "github.com/AdaLogics/go-fuzz-headers"
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,4 +47,39 @@ func TestOpsgenie_Post(t *testing.T) {
 
 	err = opsgenie.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
+}
+
+func Fuzz_OpsGenie(f *testing.F) {
+	f.Add("token", "", "", "error", "", []byte{}, []byte{})
+	f.Add("token", "", "update", "info", "", []byte{}, []byte{})
+
+	f.Fuzz(func(t *testing.T,
+		token, urlSuffix, commitStatus, severity, message string, seed, response []byte) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(response)
+			io.Copy(io.Discard, r.Body)
+			r.Body.Close()
+		}))
+		defer ts.Close()
+
+		var cert x509.CertPool
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+
+		opsgenie, err := NewOpsgenie(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &cert, token)
+		if err != nil {
+			return
+		}
+
+		event := events.Event{}
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
+
+		if event.Metadata == nil {
+			event.Metadata = map[string]string{}
+		}
+
+		event.Metadata["commit_status"] = commitStatus
+		event.Message = message
+
+		_ = opsgenie.Post(context.TODO(), event)
+	})
 }

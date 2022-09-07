@@ -17,8 +17,17 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
+	"crypto/x509"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"testing"
 
+	fuzz "github.com/AdaLogics/go-fuzz-headers"
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,4 +46,50 @@ func TestNewBitbucketInvalidUrl(t *testing.T) {
 func TestNewBitbucketInvalidToken(t *testing.T) {
 	_, err := NewBitbucket("https://bitbucket.org/foo/bar", "bar", nil)
 	assert.NotNil(t, err)
+}
+
+func Fuzz_Bitbucket(f *testing.F) {
+	f.Add("user:pass", "org/repo", "revision/dsa123a", "info", []byte{}, []byte(`{"state":"SUCCESSFUL","description":"","key":"","name":"","url":""}`))
+	f.Add("user:pass", "org/repo", "revision/dsa123a", "error", []byte{}, []byte(`{}`))
+
+	f.Fuzz(func(t *testing.T,
+		token, urlSuffix, revision, severity string, seed, response []byte) {
+
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			io.Copy(io.Discard, r.Body)
+			w.Write(response)
+			r.Body.Close()
+		}))
+		defer ts.Close()
+
+		var cert x509.CertPool
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+
+		bitbucket, err := NewBitbucket(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert)
+		if err != nil {
+			return
+		}
+
+		apiUrl, err := url.Parse(ts.URL)
+		if err != nil {
+			t.Fatalf("cannot parse api base URL: %v", err)
+		}
+		// Ensure the call does not go to bitbucket and fuzzes the response.
+		bitbucket.Client.SetApiBaseURL(*apiUrl)
+
+		event := events.Event{}
+
+		// Try to fuzz the event object, but if it fails (not enough seed),
+		// ignore it, as other inputs are also being used in this test.
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
+
+		if event.Metadata == nil && (revision != "") {
+			event.Metadata = map[string]string{
+				"revision": revision,
+			}
+		}
+		event.Severity = severity
+
+		_ = bitbucket.Post(context.TODO(), event)
+	})
 }
