@@ -19,6 +19,10 @@ BUILD_PLATFORMS ?= linux/amd64
 # Architecture to use envtest with
 ENVTEST_ARCH ?= amd64
 
+# FUZZ_TIME defines the max amount of time, in Go Duration,
+# each fuzzer should run for.
+FUZZ_TIME ?= 1m
+
 all: manager
 
 # Run tests
@@ -109,7 +113,7 @@ docker-push:
 docker-deploy:
 	kubectl -n flux-system set image deployment/notification-controller manager=${IMG}
 
-# Build fuzzers
+# Build fuzzers used by oss-fuzz.
 fuzz-build:
 	rm -rf $(shell pwd)/build/fuzz/
 	mkdir -p $(shell pwd)/build/fuzz/out/
@@ -122,13 +126,19 @@ fuzz-build:
 		-v "$(shell pwd)/build/fuzz/out":/out \
 		local-fuzzing:latest
 
-# Run each fuzzer once to ensure they are working
+# Run each fuzzer once to ensure they will work when executed by oss-fuzz.
 fuzz-smoketest: fuzz-build
 	docker run --rm \
 		-v "$(shell pwd)/build/fuzz/out":/out \
 		-v "$(shell pwd)/tests/fuzz/oss_fuzz_run.sh":/runner.sh \
 		local-fuzzing:latest \
 		bash -c "/runner.sh"
+
+# Run fuzz tests for the duration set in FUZZ_TIME.
+fuzz-native: 
+	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) \
+	FUZZ_TIME=$(FUZZ_TIME) \
+		./tests/fuzz/native_go_run.sh
 
 # Find or download controller-gen
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen

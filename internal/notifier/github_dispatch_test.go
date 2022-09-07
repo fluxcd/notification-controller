@@ -18,8 +18,15 @@ package notifier
 
 import (
 	"context"
+	"crypto/x509"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	fuzz "github.com/AdaLogics/go-fuzz-headers"
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,4 +65,41 @@ func TestGitHubDispatch_PostUpdate(t *testing.T) {
 	event.Metadata["commit_status"] = "update"
 	err = githubDispatch.Post(context.TODO(), event)
 	require.NoError(t, err)
+}
+
+func Fuzz_GitHub_Dispatch(f *testing.F) {
+	f.Add("token", "org/repo", "", []byte{}, []byte{})
+	f.Add("token", "org/repo", "update", []byte{}, []byte{})
+	f.Add("", "", "", []byte{}, []byte{})
+
+	f.Fuzz(func(t *testing.T,
+		token, urlSuffix, commitStatus string, seed, response []byte) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(response)
+			io.Copy(io.Discard, r.Body)
+			r.Body.Close()
+		}))
+		defer ts.Close()
+
+		var cert x509.CertPool
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+
+		dispatch, err := NewGitHubDispatch(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert)
+		if err != nil {
+			return
+		}
+
+		event := events.Event{}
+		// Try to fuzz the event object, but if it fails (not enough seed),
+		// ignore it, as other inputs are also being used in this test.
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
+
+		if event.Metadata == nil {
+			event.Metadata = map[string]string{}
+		}
+
+		event.Metadata["commit_status"] = commitStatus
+
+		_ = dispatch.Post(context.TODO(), event)
+	})
 }

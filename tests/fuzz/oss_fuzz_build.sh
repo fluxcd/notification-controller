@@ -19,48 +19,61 @@ set -euxo pipefail
 GOPATH="${GOPATH:-/root/go}"
 GO_SRC="${GOPATH}/src"
 PROJECT_PATH="github.com/fluxcd/notification-controller"
+TMP_DIR=$(mktemp -d /tmp/oss_fuzz-XXXXXX)
 
-cd "${GO_SRC}"
+cleanup(){
+	rm -rf "${TMP_DIR}"
+}
+trap cleanup EXIT
 
-# Move fuzzer to their respective directories.
-# This removes dependency noises from the modules' go.mod and go.sum files.
-cp "${PROJECT_PATH}/tests/fuzz/util_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/alertmanager_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/opsgenie_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/webex_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/discord_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/forwarder_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/lark_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/matrix_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/rocket_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/slack_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/teams_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/google_chat_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/azure_devops_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/bitbucket_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/github_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
-cp "${PROJECT_PATH}/tests/fuzz/gitlab_fuzzer.go" "${PROJECT_PATH}/internal/notifier/"
+install_deps(){
+	if ! command -v go-118-fuzz-build &> /dev/null || ! command -v addimport &> /dev/null; then
+		mkdir -p "${TMP_DIR}/go-118-fuzz-build"
 
+		git clone https://github.com/AdamKorcz/go-118-fuzz-build "${TMP_DIR}/go-118-fuzz-build"
+		cd "${TMP_DIR}/go-118-fuzz-build"
+		go build -o "${GOPATH}/bin/go-118-fuzz-build"
 
-# compile fuzz tests for the runtime module
-pushd "${PROJECT_PATH}"
+		cd addimport
+		go build -o "${GOPATH}/bin/addimport"
+	fi
 
-go get -d github.com/AdaLogics/go-fuzz-headers
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzNotifierUtil fuzz_notifier_util
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzAlertmanager fuzz_alert_manager
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzOpsGenie fuzz_opsgenie
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzWebex fuzz_webex
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzDiscord fuzz_discord
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzForwarder fuzz_forwarder
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzLark fuzz_lark
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzMatrix fuzz_matrix
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzRocket fuzz_rocket
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzSlack fuzz_slack
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzMSTeams fuzz_msteams
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzGoogleChat fuzz_google_chat
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzAzureDevOps fuzz_azure_devops
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzBitbucket fuzz_bitbucket
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzGitHub fuzz_github
-compile_go_fuzzer "${PROJECT_PATH}/internal/notifier/" FuzzGitLab fuzz_gitlab
+	if ! command -v goimports &> /dev/null; then
+		go install golang.org/x/tools/cmd/goimports@latest
+	fi
+}
 
-popd
+# Removes the content of test funcs which could cause the Fuzz
+# tests to break.
+remove_test_funcs(){
+	filename=$1
+
+	echo "removing co-located *testing.T"
+	sed -i -e '/func Test.*testing.T) {$/ {:r;/\n}/!{N;br}; s/\n.*\n/\n/}' "${filename}"
+
+	# After removing the body of the go testing funcs, consolidate the imports.
+	goimports -w "${filename}"
+}
+
+install_deps
+
+cd "${GO_SRC}/${PROJECT_PATH}"
+
+go get github.com/AdamKorcz/go-118-fuzz-build/utils
+
+# Iterate through all Go Fuzz targets, compiling each into a fuzzer.
+test_files=$(grep -r --include='**_test.go' --files-with-matches 'func Fuzz' .)
+for file in ${test_files}
+do
+	remove_test_funcs "${file}"
+
+	targets=$(grep -oP 'func \K(Fuzz\w*)' "${file}")
+	for target_name in ${targets}
+	do
+		fuzzer_name=$(echo "${target_name}" | tr '[:upper:]' '[:lower:]')
+		target_dir=$(dirname "${file}")
+
+		echo "Building ${file}.${target_name} into ${fuzzer_name}"
+		compile_native_go_fuzzer "${target_dir}" "${target_name}" "${fuzzer_name}"
+	done
+done

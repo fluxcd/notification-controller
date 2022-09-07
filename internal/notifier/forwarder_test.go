@@ -18,12 +18,15 @@ package notifier
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	fuzz "github.com/AdaLogics/go-fuzz-headers"
 	"github.com/fluxcd/pkg/runtime/events"
 
 	"github.com/stretchr/testify/require"
@@ -51,4 +54,34 @@ func TestForwarder_Post(t *testing.T) {
 
 	err = forwarder.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
+}
+
+func Fuzz_Forwarder(f *testing.F) {
+	f.Add("", []byte{}, []byte{})
+
+	f.Fuzz(func(t *testing.T,
+		urlSuffix string, seed, response []byte) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(response)
+			io.Copy(io.Discard, r.Body)
+			r.Body.Close()
+		}))
+		defer ts.Close()
+
+		var cert x509.CertPool
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+
+		header := make(map[string]string)
+		_ = fuzz.NewConsumer(seed).FuzzMap(&header)
+
+		forwarder, err := NewForwarder(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", header, &cert)
+		if err != nil {
+			return
+		}
+
+		event := events.Event{}
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
+
+		_ = forwarder.Post(context.TODO(), event)
+	})
 }

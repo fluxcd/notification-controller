@@ -18,12 +18,16 @@ package notifier
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	fuzz "github.com/AdaLogics/go-fuzz-headers"
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/stretchr/testify/require"
 )
 
@@ -55,4 +59,41 @@ func TestSlack_PostUpdate(t *testing.T) {
 	event.Metadata["commit_status"] = "update"
 	err = slack.Post(context.TODO(), event)
 	require.NoError(t, err)
+}
+
+func Fuzz_Slack(f *testing.F) {
+	f.Add("token", "user", "channel", "", "error", "", "", []byte{}, []byte{})
+	f.Add("token", "", "channel", "", "info", "", "", []byte{}, []byte{})
+	f.Add("token", "", "channel", "", "info", "update", "", []byte{}, []byte{})
+
+	f.Fuzz(func(t *testing.T,
+		token, username, channel, urlSuffix, severity, commitStatus, message string, seed, response []byte) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(response)
+			io.Copy(io.Discard, r.Body)
+			r.Body.Close()
+		}))
+		defer ts.Close()
+
+		var cert x509.CertPool
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+
+		slack, err := NewSlack(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", token, &cert, username, channel)
+		if err != nil {
+			return
+		}
+
+		event := events.Event{}
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
+
+		if event.Metadata == nil {
+			event.Metadata = map[string]string{}
+		}
+
+		event.Metadata["commit_status"] = commitStatus
+		event.Severity = severity
+		event.Message = message
+
+		_ = slack.Post(context.TODO(), event)
+	})
 }
