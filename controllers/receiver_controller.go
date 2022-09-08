@@ -30,6 +30,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/ratelimiter"
 
 	"github.com/fluxcd/pkg/apis/meta"
@@ -127,6 +128,18 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		r.Metrics.RecordDuration(ctx, receiver, start)
 
 	}()
+
+	if !controllerutil.ContainsFinalizer(receiver, v1beta1.NotificationFinalizer) {
+		controllerutil.AddFinalizer(receiver, v1beta1.NotificationFinalizer)
+		result = ctrl.Result{Requeue: true}
+		return
+	}
+
+	if !receiver.ObjectMeta.DeletionTimestamp.IsZero() {
+		controllerutil.RemoveFinalizer(receiver, v1beta1.NotificationFinalizer)
+		result = ctrl.Result{}
+		return
+	}
 
 	return r.reconcile(ctx, receiver)
 }

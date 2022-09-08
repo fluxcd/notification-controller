@@ -30,6 +30,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/ratelimiter"
 	"sigs.k8s.io/yaml"
@@ -132,6 +133,18 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		r.Metrics.RecordDuration(ctx, provider, start)
 
 	}()
+
+	if !controllerutil.ContainsFinalizer(provider, v1beta1.NotificationFinalizer) {
+		controllerutil.AddFinalizer(provider, v1beta1.NotificationFinalizer)
+		result = ctrl.Result{Requeue: true}
+		return
+	}
+
+	if !provider.ObjectMeta.DeletionTimestamp.IsZero() {
+		controllerutil.RemoveFinalizer(provider, v1beta1.NotificationFinalizer)
+		result = ctrl.Result{}
+		return
+	}
 
 	return r.reconcile(ctx, provider)
 }

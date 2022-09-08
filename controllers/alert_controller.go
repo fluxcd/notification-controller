@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/ratelimiter"
@@ -153,6 +154,18 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 		r.Metrics.RecordReadiness(ctx, alert)
 		r.Metrics.RecordDuration(ctx, alert, start)
 	}()
+
+	if !controllerutil.ContainsFinalizer(alert, v1beta1.NotificationFinalizer) {
+		controllerutil.AddFinalizer(alert, v1beta1.NotificationFinalizer)
+		result = ctrl.Result{Requeue: true}
+		return
+	}
+
+	if !alert.ObjectMeta.DeletionTimestamp.IsZero() {
+		controllerutil.RemoveFinalizer(alert, v1beta1.NotificationFinalizer)
+		result = ctrl.Result{}
+		return
+	}
 
 	return r.reconcile(ctx, alert)
 }

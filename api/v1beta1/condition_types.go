@@ -16,6 +16,8 @@ limitations under the License.
 
 package v1beta1
 
+const NotificationFinalizer = "finalizers.fluxcd.io"
+
 const (
 	// InitializedReason represents the fact that a given resource has been initialized.
 	InitializedReason string = "Initialized"
