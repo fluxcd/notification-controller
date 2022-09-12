@@ -103,7 +103,7 @@ spec:
                 type: array
               exclusionList:
                 description: A list of Golang regular expressions to be used for excluding
-                  messages.
+                  messages and names.
                 items:
                   type: string
                 type: array
