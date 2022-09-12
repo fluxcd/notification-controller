@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.26.0
+
+**Release date:** 2022-09-12
+
+This prerelease comes with with finalizers to properly record the reconciliation metrics
+for deleted resources. In addition, the controller dependencies have been updated
+to Kubernetes controller-runtime v0.12.
+
+:warning: **Breaking change:** The controller logs have been aligned
+with the Kubernetes structured logging. For more details on the new logging
+structure please see: [fluxcd/flux2#3051](https://github.com/fluxcd/flux2/issues/3051).
+
+Improvements:
+* Align controller logs to Kubernetes structured logging
+  [#412](https://github.com/fluxcd/notification-controller/pull/412)
+* Add finalizers to the custom resources
+  [#416](https://github.com/fluxcd/notification-controller/pull/416)
+* Add `.spec.timeout` to the Provider API
+  [#410](https://github.com/fluxcd/notification-controller/pull/410)
+* Refactor Fuzzers based on Go native fuzzing
+  [#414](https://github.com/fluxcd/notification-controller/pull/414)
+* Fuzz optimisations
+  [#413](https://github.com/fluxcd/notification-controller/pull/413)
+
 ## 0.25.2
 
 **Release date:** 2022-08-29
