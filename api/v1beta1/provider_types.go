@@ -49,6 +49,8 @@ type ProviderSpec struct {
 	Address string `json:"address,omitempty"`
 
 	// Timeout for sending alerts to the provider.
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m))+$"
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
