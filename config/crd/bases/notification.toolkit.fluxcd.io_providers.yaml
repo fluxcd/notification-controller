@@ -83,6 +83,7 @@ spec:
                 type: boolean
               timeout:
                 description: Timeout for sending alerts to the provider.
+                pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m))+$
                 type: string
               type:
                 description: Type of provider
