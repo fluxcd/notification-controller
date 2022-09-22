@@ -76,6 +76,7 @@ Git commit status providers:
 | Bitbucket    | bitbucket   |
 | GitHub       | github      |
 | GitLab       | gitlab      |
+
 Status:
 
 ```go
