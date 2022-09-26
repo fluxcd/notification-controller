@@ -159,7 +159,7 @@ func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts R
 		Complete(r)
 }
 
-/// reconcile steps through the actual reconciliation tasks for the object, it returns early on the first step that
+// reconcile steps through the actual reconciliation tasks for the object, it returns early on the first step that
 // produces an error.
 func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *v1beta1.Receiver) (ctrl.Result, error) {
 	// Mark the resource as under reconciliation
