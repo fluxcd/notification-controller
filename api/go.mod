@@ -3,9 +3,9 @@ module github.com/fluxcd/notification-controller/api
 go 1.18
 
 require (
-	github.com/fluxcd/pkg/apis/meta v0.15.0
-	k8s.io/apimachinery v0.25.0
-	sigs.k8s.io/controller-runtime v0.12.3
+	github.com/fluxcd/pkg/apis/meta v0.16.0
+	k8s.io/apimachinery v0.25.2
+	sigs.k8s.io/controller-runtime v0.13.0
 )
 
 // Fix CVE-2022-28948
