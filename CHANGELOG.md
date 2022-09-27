@@ -2,6 +2,32 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.27.0
+
+**Release date:** 2022-09-27
+
+This prerelease comes with strict validation rules for API fields which define a
+(time) duration. Effectively, this means values without a time unit (e.g. `ms`,
+`s`, `m`, `h`) will now be rejected by the API server. To stimulate sane
+configurations, the units `ns`, `us` and `µs` can no longer be configured, nor
+can `h` be set for fields defining a timeout value.
+
+In addition, the controller dependencies have been updated
+to Kubernetes controller-runtime v0.13.
+
+:warning: **Breaking changes:**
+- `Provider.spec.timeout` new validation pattern is `"^([0-9]+(\\.[0-9]+)?(ms|s|m))+$"`
+
+Improvements:
+* api: add custom validation for v1.Duration types
+  [#420](https://github.com/fluxcd/notification-controller/pull/420)
+* Update dependencies
+  [#423](https://github.com/fluxcd/notification-controller/pull/423)
+* Dockerfile: Build with Go 1.19
+  [#424](https://github.com/fluxcd/notification-controller/pull/424)
+* docs: Fix table with git commit status providers
+  [#421](https://github.com/fluxcd/notification-controller/pull/421)
+
 ## 0.26.0
 
 **Release date:** 2022-09-12
