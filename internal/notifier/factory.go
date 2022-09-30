@@ -56,7 +56,9 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	var err error
 	switch provider {
 	case v1beta1.GenericProvider:
-		n, err = NewForwarder(f.URL, f.ProxyURL, f.Headers, f.CertPool)
+		n, err = NewForwarder(f.URL, f.ProxyURL, f.Headers, f.CertPool, nil)
+	case v1beta1.GenericHMACProvider:
+		n, err = NewForwarder(f.URL, f.ProxyURL, f.Headers, f.CertPool, []byte(f.Token))
 	case v1beta1.SlackProvider:
 		n, err = NewSlack(f.URL, f.ProxyURL, f.Token, f.CertPool, f.Username, f.Channel)
 	case v1beta1.DiscordProvider:
