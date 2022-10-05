@@ -9,7 +9,7 @@ Spec:
 ```go
 type ProviderSpec struct {
 	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;github;gitlab;bitbucket;azuredevops;googlechat;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;githubdispatch
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;bitbucket;azuredevops;googlechat;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;githubdispatch
 	// +required
 	Type string `json:"type"`
 
@@ -51,22 +51,23 @@ Notification providers:
 
 | Provider        | Type           |
 | --------------- | -------------- |
-| Alertmanager    | alertmanager   |
-| Azure Event Hub | azureeventhub  |
-| Discord         | discord        |
-| Generic webhook | generic        |
-| GitHub dispatch | githubdispatch |
-| Google Chat     | googlechat     |
-| Grafana         | grafana        |
-| Lark            | lark           |
-| Matrix          | matrix         |
-| Microsoft Teams | msteams        |
-| Opsgenie        | opsgenie       |
-| Rocket          | rocket         |
-| Sentry          | sentry         |
-| Slack           | slack          |
-| Telegram        | telegram       |
-| WebEx           | webex          |
+| Alertmanager              | alertmanager   |
+| Azure Event Hub           | azureeventhub  |
+| Discord                   | discord        |
+| Generic webhook           | generic        |
+| Generic webhook with HMAC | generic-hmac   |
+| GitHub dispatch           | githubdispatch |
+| Google Chat               | googlechat     |
+| Grafana                   | grafana        |
+| Lark                      | lark           |
+| Matrix                    | matrix         |
+| Microsoft Teams           | msteams        |
+| Opsgenie                  | opsgenie       |
+| Rocket                    | rocket         |
+| Sentry                    | sentry         |
+| Slack                     | slack          |
+| Telegram                  | telegram       |
+| WebEx                     | webex          |
 
 Git commit status providers:
 
@@ -209,6 +210,54 @@ stringData:
   headers: |
      Authorization: token
      X-Forwarded-Proto: https
+```
+
+### Generic webhook with HMAC
+
+If you set the `.spec.type` of a `Provider` resource to `generic-hmac` then the HTTP request sent to the webhook will include the `X-Signature` HTTP header carrying the HMAC of the request body. This allows the webhook server to authenticate the request. The key used for the HMAC must be supplied in the `token` field of the Secret resource referenced in `.spec.secretRef`. The HTTP header value has the following format:
+
+```
+X-Signature: HASH_FUNC=HASH
+```
+
+`HASH_FUNC` denotes the Hash function used to generate the HMAC and currently defaults to `sha256` but may change in the future. You must make sure to take this value into account when verifying the HMAC. `HASH` is the hex-encoded HMAC value. The following Go code illustrates how the header is parsed and verified:
+
+```go
+func verifySignature(sig string, payload, key []byte) error {
+	sigHdr := strings.Split(sig, "=")
+	if len(shgHdr) != 2 {
+		return fmt.Errorf("invalid signature value")
+	}
+	var newF func() hash.Hash
+	switch sigHdr[0] {
+	case "sha224":
+		newF = sha256.New224
+	case "sha256":
+		newF = sha256.New
+	case "sha384":
+		newF = sha512.New384
+	case "sha512":
+		newF = sha512.New
+	default:
+		return fmt.Errorf("unsupported signature algorithm %q", sigHdr[0])
+	}
+	mac := hmac.New(newF, key)
+	if _, err := mac.Write(payload); err != nil {
+		return fmt.Errorf("error MAC'ing payload: %w", err)
+	}
+	sum := fmt.Sprintf("%x", mac.Sum(nil))
+	if sum != sigHdr[1] {
+		return fmt.Errorf("HMACs don't match: %#v != %#v", sum, sigHdr[1])
+	}
+	return nil
+}
+[...]
+key := []byte("b1fad212fb1b87a56c79e5da48018650b85ab7cf")
+if len(r.Header["X-Signature"]) > 0 {
+	if err := verifySignature(r.Header["X-Signature"][0], body, key); err != nil {
+		// handle signature verification failure here
+	}
+}
 ```
 
 ### Self-signed certificates

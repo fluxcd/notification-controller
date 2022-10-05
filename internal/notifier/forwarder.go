@@ -18,7 +18,10 @@ package notifier
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"net/url"
 
@@ -38,11 +41,16 @@ type Forwarder struct {
 	ProxyURL string
 	Headers  map[string]string
 	CertPool *x509.CertPool
+	HMACKey  []byte
 }
 
-func NewForwarder(hookURL string, proxyURL string, headers map[string]string, certPool *x509.CertPool) (*Forwarder, error) {
+func NewForwarder(hookURL string, proxyURL string, headers map[string]string, certPool *x509.CertPool, hmacKey []byte) (*Forwarder, error) {
 	if _, err := url.ParseRequestURI(hookURL); err != nil {
 		return nil, fmt.Errorf("invalid hook URL %s: %w", hookURL, err)
+	}
+
+	if hmacKey != nil && len(hmacKey) == 0 {
+		return nil, fmt.Errorf("HMAC key is empty")
 	}
 
 	return &Forwarder{
@@ -50,14 +58,32 @@ func NewForwarder(hookURL string, proxyURL string, headers map[string]string, ce
 		ProxyURL: proxyURL,
 		Headers:  headers,
 		CertPool: certPool,
+		HMACKey:  hmacKey,
 	}, nil
 }
 
+func sign(payload, key []byte) string {
+	h := hmac.New(sha256.New, key)
+	h.Write(payload)
+	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
 func (f *Forwarder) Post(ctx context.Context, event events.Event) error {
+	var sig string
+	if len(f.HMACKey) != 0 {
+		eventJSON, err := json.Marshal(event)
+		if err != nil {
+			return fmt.Errorf("failed marshalling event: %w", err)
+		}
+		sig = fmt.Sprintf("sha256=%s", sign(eventJSON, f.HMACKey))
+	}
 	err := postMessage(ctx, f.URL, f.ProxyURL, f.CertPool, event, func(req *retryablehttp.Request) {
 		req.Header.Set(NotificationHeader, event.ReportingController)
 		for key, val := range f.Headers {
 			req.Header.Set(key, val)
+		}
+		if sig != "" {
+			req.Header.Set("X-Signature", sig)
 		}
 	})
 
