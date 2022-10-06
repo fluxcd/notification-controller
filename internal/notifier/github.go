@@ -107,6 +107,13 @@ func (g *GitHub) Post(ctx context.Context, event events.Event) error {
 	}
 	name, desc := formatNameAndDescription(event)
 
+	// prepend summary to generated name - every reconciller will be writing it's own report
+	summary := event.Metadata["summary"]
+	if len(summary) > 0 {
+		name = fmt.Sprintf("%s/%s", summary, name)
+	}
+
+	
 	status := &github.RepoStatus{
 		State:       &state,
 		Context:     &name,
