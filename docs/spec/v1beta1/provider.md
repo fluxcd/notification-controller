@@ -594,6 +594,8 @@ spec:
       name: '*'
     - kind: OCIRepository
       name: '*'
+    - kind: Terraform
+      name: '*'
 ```
 
 

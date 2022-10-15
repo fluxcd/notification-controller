@@ -73,6 +73,7 @@ spec:
                       - ImagePolicy
                       - ImageUpdateAutomation
                       - OCIRepository
+                      - Terraform
                       type: string
                     matchLabels:
                       additionalProperties:
