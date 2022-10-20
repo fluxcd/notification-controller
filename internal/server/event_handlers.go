@@ -264,6 +264,16 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				}
 			}
 
+			if provider.Spec.CommitStatusPrefix != "" {
+				if notification.Metadata == nil {
+					notification.Metadata = map[string]string{
+						"commitStatusPrefix": provider.Spec.CommitStatusPrefix,
+					}
+				} else {
+					notification.Metadata["commitStatusPrefix"] = provider.Spec.CommitStatusPrefix
+				}
+			}
+
 			go func(n notifier.Interface, e events.Event) {
 				ctx, cancel := context.WithTimeout(context.Background(), provider.GetTimeout())
 				defer cancel()
