@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.28.0
+
+**Release date:** 2022-10-20
+
+This prerelease comes with a new Alert Provider type named `generic-hmac`
+for authenticating the webhook requests coming from notification-controller.
+
+In addition, the controller dependencies have been updated to Kubernetes v1.25.3.
+The `golang.org/x/text` package was updated to v0.4.0 (fix for CVE-2022-32149).
+
+Features:
+* Add `generic-hmac` Provider
+  [#426](https://github.com/fluxcd/notification-controller/pull/426)
+
+Improvements:
+* Update dependencies
+  [#430](https://github.com/fluxcd/notification-controller/pull/430)
+
 ## 0.27.0
 
 **Release date:** 2022-09-27
