@@ -54,13 +54,13 @@ func TestUtil_ParseRevisionNestedBranch(t *testing.T) {
 func TestUtil_ParseRevisionOneComponents(t *testing.T) {
 	revString := "master"
 	_, err := parseRevision(revString)
-	require.EqualError(t, err, "Revision string format incorrect: master")
+	require.EqualError(t, err, "revision string format incorrect: master")
 }
 
 func TestUtil_ParseRevisionTooFewComponents(t *testing.T) {
 	revString := "master/"
 	_, err := parseRevision(revString)
-	require.EqualError(t, err, "Commit Sha cannot be empty: master/")
+	require.EqualError(t, err, "commit SHA cannot be empty: master/")
 }
 
 func TestUtil_ParseGitHttps(t *testing.T) {

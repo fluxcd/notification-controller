@@ -34,12 +34,13 @@ import (
 )
 
 type GitHub struct {
-	Owner  string
-	Repo   string
-	Client *github.Client
+	Owner       string
+	Repo        string
+	ProviderUID string
+	Client      *github.Client
 }
 
-func NewGitHub(addr string, token string, certPool *x509.CertPool) (*GitHub, error) {
+func NewGitHub(providerUID string, addr string, token string, certPool *x509.CertPool) (*GitHub, error) {
 	if len(token) == 0 {
 		return nil, errors.New("github token cannot be empty")
 	}
@@ -81,9 +82,10 @@ func NewGitHub(addr string, token string, certPool *x509.CertPool) (*GitHub, err
 	}
 
 	return &GitHub{
-		Owner:  comp[0],
-		Repo:   comp[1],
-		Client: client,
+		Owner:       comp[0],
+		Repo:        comp[1],
+		ProviderUID: providerUID,
+		Client:      client,
 	}, nil
 }
 
@@ -106,11 +108,12 @@ func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 	if err != nil {
 		return err
 	}
-	name, desc := formatNameAndDescription(event)
 
+	_, desc := formatNameAndDescription(event)
+	id := generateCommitStatusID(g.ProviderUID, event)
 	status := &github.RepoStatus{
 		State:       &state,
-		Context:     &name,
+		Context:     &id,
 		Description: &desc,
 	}
 

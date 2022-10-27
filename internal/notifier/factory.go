@@ -24,26 +24,36 @@ import (
 )
 
 type Factory struct {
-	URL      string
-	ProxyURL string
-	Username string
-	Channel  string
-	Token    string
-	Headers  map[string]string
-	CertPool *x509.CertPool
-	Password string
+	URL         string
+	ProxyURL    string
+	Username    string
+	Channel     string
+	Token       string
+	Headers     map[string]string
+	CertPool    *x509.CertPool
+	Password    string
+	ProviderUID string
 }
 
-func NewFactory(url string, proxy string, username string, channel string, token string, headers map[string]string, certPool *x509.CertPool, password string) *Factory {
+func NewFactory(url string,
+	proxy string,
+	username string,
+	channel string,
+	token string,
+	headers map[string]string,
+	certPool *x509.CertPool,
+	password string,
+	providerUID string) *Factory {
 	return &Factory{
-		URL:      url,
-		ProxyURL: proxy,
-		Channel:  channel,
-		Username: username,
-		Token:    token,
-		Headers:  headers,
-		CertPool: certPool,
-		Password: password,
+		URL:         url,
+		ProxyURL:    proxy,
+		Channel:     channel,
+		Username:    username,
+		Token:       token,
+		Headers:     headers,
+		CertPool:    certPool,
+		Password:    password,
+		ProviderUID: providerUID,
 	}
 }
 
@@ -68,15 +78,15 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	case apiv1.MSTeamsProvider:
 		n, err = NewMSTeams(f.URL, f.ProxyURL, f.CertPool)
 	case apiv1.GitHubProvider:
-		n, err = NewGitHub(f.URL, f.Token, f.CertPool)
+		n, err = NewGitHub(f.ProviderUID, f.URL, f.Token, f.CertPool)
 	case apiv1.GitHubDispatchProvider:
 		n, err = NewGitHubDispatch(f.URL, f.Token, f.CertPool)
 	case apiv1.GitLabProvider:
-		n, err = NewGitLab(f.URL, f.Token, f.CertPool)
+		n, err = NewGitLab(f.ProviderUID, f.URL, f.Token, f.CertPool)
 	case apiv1.BitbucketProvider:
 		n, err = NewBitbucket(f.URL, f.Token, f.CertPool)
 	case apiv1.AzureDevOpsProvider:
-		n, err = NewAzureDevOps(f.URL, f.Token, f.CertPool)
+		n, err = NewAzureDevOps(f.ProviderUID, f.URL, f.Token, f.CertPool)
 	case apiv1.GoogleChatProvider:
 		n, err = NewGoogleChat(f.URL, f.ProxyURL)
 	case apiv1.WebexProvider:

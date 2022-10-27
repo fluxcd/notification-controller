@@ -30,15 +30,14 @@ import (
 )
 
 func Fuzz_GitHub(f *testing.F) {
-	f.Add("token", "org/repo", "revision/abce1", "error", "", []byte{}, []byte(`[{"context":"/","state":"failure","description":""}]`))
-	f.Add("token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[{"context":"/","state":"success","description":""}]`))
-	f.Add("token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[{"context":"/","state":"failure","description":""}]`))
-	f.Add("token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[{"context":"/"}]`))
-	f.Add("token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[{}]`))
-	f.Add("token", "org/repo", "revision/abce1", "info", "Progressing", []byte{}, []byte{})
+	f.Add("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "token", "org/repo", "revision/abce1", "error", "", []byte{}, []byte(`[{"context":"/","state":"failure","description":""}]`))
+	f.Add("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[{"context":"/","state":"success","description":""}]`))
+	f.Add("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[{"context":"/","state":"failure","description":""}]`))
+	f.Add("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[{"context":"/"}]`))
+	f.Add("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[{}]`))
+	f.Add("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "token", "org/repo", "revision/abce1", "info", "Progressing", []byte{}, []byte{})
 
-	f.Fuzz(func(t *testing.T,
-		token, urlSuffix, revision, severity, reason string, seed, response []byte) {
+	f.Fuzz(func(t *testing.T, uuid, token, urlSuffix, revision, severity, reason string, seed, response []byte) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write(response)
 			io.Copy(io.Discard, r.Body)
@@ -49,7 +48,7 @@ func Fuzz_GitHub(f *testing.F) {
 		var cert x509.CertPool
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
-		github, err := NewGitHub(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert)
+		github, err := NewGitHub(uuid, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert)
 		if err != nil {
 			return
 		}

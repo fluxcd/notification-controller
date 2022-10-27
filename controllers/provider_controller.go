@@ -206,7 +206,7 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider *apiv1.Provi
 		}
 	}
 
-	factory := notifier.NewFactory(address, proxy, username, provider.Spec.Channel, token, headers, certPool, password)
+	factory := notifier.NewFactory(address, proxy, username, provider.Spec.Channel, token, headers, certPool, password, string(provider.UID))
 	if _, err := factory.Notifier(provider.Spec.Type); err != nil {
 		return fmt.Errorf("failed to initialize provider, error: %w", err)
 	}
