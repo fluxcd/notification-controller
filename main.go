@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux authors
+Copyright 2022 The Flux authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,13 +21,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/fluxcd/pkg/runtime/acl"
-	"github.com/fluxcd/pkg/runtime/client"
-	helper "github.com/fluxcd/pkg/runtime/controller"
-	"github.com/fluxcd/pkg/runtime/leaderelection"
-	"github.com/fluxcd/pkg/runtime/logger"
-	"github.com/fluxcd/pkg/runtime/pprof"
-	"github.com/fluxcd/pkg/runtime/probes"
 	"github.com/sethvargo/go-limiter/memorystore"
 	prommetrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
@@ -38,7 +31,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
-	"github.com/fluxcd/notification-controller/api/v1beta1"
+	"github.com/fluxcd/pkg/runtime/acl"
+	"github.com/fluxcd/pkg/runtime/client"
+	helper "github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/leaderelection"
+	"github.com/fluxcd/pkg/runtime/logger"
+	"github.com/fluxcd/pkg/runtime/pprof"
+	"github.com/fluxcd/pkg/runtime/probes"
+
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 	"github.com/fluxcd/notification-controller/controllers"
 	"github.com/fluxcd/notification-controller/internal/server"
 	// +kubebuilder:scaffold:imports
@@ -54,7 +55,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
-	_ = v1beta1.AddToScheme(scheme)
+	_ = apiv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -123,9 +124,9 @@ func main() {
 	metricsH := helper.MustMakeMetrics(mgr)
 
 	if err = (&controllers.ProviderReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Metrics: metricsH,
+		Client:         mgr.GetClient(),
+		ControllerName: controllerName,
+		Metrics:        metricsH,
 	}).SetupWithManagerAndOptions(mgr, controllers.ProviderReconcilerOptions{
 		MaxConcurrentReconciles: concurrent,
 		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),
@@ -134,9 +135,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.AlertReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Metrics: metricsH,
+		Client:         mgr.GetClient(),
+		ControllerName: controllerName,
+		Metrics:        metricsH,
 	}).SetupWithManagerAndOptions(mgr, controllers.AlertReconcilerOptions{
 		MaxConcurrentReconciles: concurrent,
 		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),
@@ -145,9 +146,9 @@ func main() {
 		os.Exit(1)
 	}
 	if err = (&controllers.ReceiverReconciler{
-		Client:  mgr.GetClient(),
-		Scheme:  mgr.GetScheme(),
-		Metrics: metricsH,
+		Client:         mgr.GetClient(),
+		ControllerName: controllerName,
+		Metrics:        metricsH,
 	}).SetupWithManagerAndOptions(mgr, controllers.ReceiverReconcilerOptions{
 		MaxConcurrentReconciles: concurrent,
 		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),

@@ -23,18 +23,19 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/google/go-github/v41/github"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/go-github/v41/github"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/logger"
+
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 )
 
 func Test_validate(t *testing.T) {
@@ -48,19 +49,19 @@ func Test_validate(t *testing.T) {
 		hashOpts     hashOpts
 		headers      map[string]string
 		payload      map[string]interface{}
-		receiver     *v1beta1.Receiver
+		receiver     *apiv1.Receiver
 		receiverType string
 		secret       *corev1.Secret
 		expectedErr  bool
 	}{
 		{
 			name: "Generic receiver",
-			receiver: &v1beta1.Receiver{
+			receiver: &apiv1.Receiver{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-receiver",
 				},
-				Spec: v1beta1.ReceiverSpec{
-					Type: v1beta1.GenericReceiver,
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
@@ -78,12 +79,12 @@ func Test_validate(t *testing.T) {
 		},
 		{
 			name: "gitlab receiver",
-			receiver: &v1beta1.Receiver{
+			receiver: &apiv1.Receiver{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "gitlab-receiver",
 				},
-				Spec: v1beta1.ReceiverSpec{
-					Type: v1beta1.GitLabReceiver,
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GitLabReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
@@ -104,12 +105,12 @@ func Test_validate(t *testing.T) {
 		},
 		{
 			name: "github receiver",
-			receiver: &v1beta1.Receiver{
+			receiver: &apiv1.Receiver{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-receiver",
 				},
-				Spec: v1beta1.ReceiverSpec{
-					Type: v1beta1.GitHubReceiver,
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GitHubReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
@@ -137,12 +138,12 @@ func Test_validate(t *testing.T) {
 		},
 		{
 			name: "generic hmac receiver",
-			receiver: &v1beta1.Receiver{
+			receiver: &apiv1.Receiver{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "generic-hmac-receiver",
 				},
-				Spec: v1beta1.ReceiverSpec{
-					Type: v1beta1.GenericHMACReceiver,
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericHMACReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
@@ -167,12 +168,12 @@ func Test_validate(t *testing.T) {
 		},
 		{
 			name: "bitbucket receiver",
-			receiver: &v1beta1.Receiver{
+			receiver: &apiv1.Receiver{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bitbucket-receiver",
 				},
-				Spec: v1beta1.ReceiverSpec{
-					Type:   v1beta1.BitbucketReceiver,
+				Spec: apiv1.ReceiverSpec{
+					Type:   apiv1.BitbucketReceiver,
 					Events: []string{"push"},
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
@@ -199,12 +200,12 @@ func Test_validate(t *testing.T) {
 		},
 		{
 			name: "quay receiver",
-			receiver: &v1beta1.Receiver{
+			receiver: &apiv1.Receiver{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "quay-receiver",
 				},
-				Spec: v1beta1.ReceiverSpec{
-					Type: v1beta1.QuayReceiver,
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.QuayReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
@@ -228,12 +229,12 @@ func Test_validate(t *testing.T) {
 		},
 		{
 			name: "harbor receiver",
-			receiver: &v1beta1.Receiver{
+			receiver: &apiv1.Receiver{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "harbor-receiver",
 				},
-				Spec: v1beta1.ReceiverSpec{
-					Type: v1beta1.HarborReceiver,
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.HarborReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
@@ -254,12 +255,12 @@ func Test_validate(t *testing.T) {
 		},
 		{
 			name: "missing secret",
-			receiver: &v1beta1.Receiver{
+			receiver: &apiv1.Receiver{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "missing-secret",
 				},
-				Spec: v1beta1.ReceiverSpec{
-					Type: v1beta1.GenericReceiver,
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
 					SecretRef: meta.LocalObjectReference{
 						Name: "non-existing",
 					},
@@ -270,7 +271,7 @@ func Test_validate(t *testing.T) {
 	}
 
 	scheme := runtime.NewScheme()
-	v1beta1.AddToScheme(scheme)
+	apiv1.AddToScheme(scheme)
 	corev1.AddToScheme(scheme)
 
 	for _, tt := range tests {

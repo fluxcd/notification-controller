@@ -20,7 +20,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/fluxcd/notification-controller/api/v1beta1"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 )
 
 type Factory struct {
@@ -55,47 +55,47 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	var n Interface
 	var err error
 	switch provider {
-	case v1beta1.GenericProvider:
+	case apiv1.GenericProvider:
 		n, err = NewForwarder(f.URL, f.ProxyURL, f.Headers, f.CertPool, nil)
-	case v1beta1.GenericHMACProvider:
+	case apiv1.GenericHMACProvider:
 		n, err = NewForwarder(f.URL, f.ProxyURL, f.Headers, f.CertPool, []byte(f.Token))
-	case v1beta1.SlackProvider:
+	case apiv1.SlackProvider:
 		n, err = NewSlack(f.URL, f.ProxyURL, f.Token, f.CertPool, f.Username, f.Channel)
-	case v1beta1.DiscordProvider:
+	case apiv1.DiscordProvider:
 		n, err = NewDiscord(f.URL, f.ProxyURL, f.Username, f.Channel)
-	case v1beta1.RocketProvider:
+	case apiv1.RocketProvider:
 		n, err = NewRocket(f.URL, f.ProxyURL, f.CertPool, f.Username, f.Channel)
-	case v1beta1.MSTeamsProvider:
+	case apiv1.MSTeamsProvider:
 		n, err = NewMSTeams(f.URL, f.ProxyURL, f.CertPool)
-	case v1beta1.GitHubProvider:
+	case apiv1.GitHubProvider:
 		n, err = NewGitHub(f.URL, f.Token, f.CertPool)
-	case v1beta1.GitHubDispatchProvider:
+	case apiv1.GitHubDispatchProvider:
 		n, err = NewGitHubDispatch(f.URL, f.Token, f.CertPool)
-	case v1beta1.GitLabProvider:
+	case apiv1.GitLabProvider:
 		n, err = NewGitLab(f.URL, f.Token, f.CertPool)
-	case v1beta1.BitbucketProvider:
+	case apiv1.BitbucketProvider:
 		n, err = NewBitbucket(f.URL, f.Token, f.CertPool)
-	case v1beta1.AzureDevOpsProvider:
+	case apiv1.AzureDevOpsProvider:
 		n, err = NewAzureDevOps(f.URL, f.Token, f.CertPool)
-	case v1beta1.GoogleChatProvider:
+	case apiv1.GoogleChatProvider:
 		n, err = NewGoogleChat(f.URL, f.ProxyURL)
-	case v1beta1.WebexProvider:
+	case apiv1.WebexProvider:
 		n, err = NewWebex(f.URL, f.ProxyURL, f.CertPool, f.Channel, f.Token)
-	case v1beta1.SentryProvider:
+	case apiv1.SentryProvider:
 		n, err = NewSentry(f.CertPool, f.URL, f.Channel)
-	case v1beta1.AzureEventHubProvider:
+	case apiv1.AzureEventHubProvider:
 		n, err = NewAzureEventHub(f.URL, f.Token, f.Channel)
-	case v1beta1.TelegramProvider:
+	case apiv1.TelegramProvider:
 		n, err = NewTelegram(f.Channel, f.Token)
-	case v1beta1.LarkProvider:
+	case apiv1.LarkProvider:
 		n, err = NewLark(f.URL)
-	case v1beta1.Matrix:
+	case apiv1.Matrix:
 		n, err = NewMatrix(f.URL, f.Token, f.Channel, f.CertPool)
-	case v1beta1.OpsgenieProvider:
+	case apiv1.OpsgenieProvider:
 		n, err = NewOpsgenie(f.URL, f.ProxyURL, f.CertPool, f.Token)
-	case v1beta1.AlertManagerProvider:
+	case apiv1.AlertManagerProvider:
 		n, err = NewAlertmanager(f.URL, f.ProxyURL, f.CertPool)
-	case v1beta1.GrafanaProvider:
+	case apiv1.GrafanaProvider:
 		n, err = NewGrafana(f.URL, f.ProxyURL, f.Token, f.CertPool, f.Username, f.Password)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)

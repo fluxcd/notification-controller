@@ -137,3 +137,19 @@ rules:
   - helmrepositories/status
   verbs:
   - get
+- apiGroups:
+  - source.fluxcd.io
+  resources:
+  - ocirepositories
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - source.fluxcd.io
+  resources:
+  - ocirepositories/status
+  verbs:
+  - get

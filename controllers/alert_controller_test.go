@@ -1,3 +1,19 @@
+/*
+Copyright 2022 The Flux authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controllers
 
 import (
@@ -16,26 +32,127 @@ import (
 	prommetrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 
-	notifyv1 "github.com/fluxcd/notification-controller/api/v1beta1"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 	"github.com/fluxcd/notification-controller/internal/server"
 )
 
-func TestEventHandler(t *testing.T) {
-	// randomize var? create http server here?
+func TestAlertReconciler_Reconcile(t *testing.T) {
+	g := NewWithT(t)
+	timeout := 5 * time.Second
+	resultA := &apiv1.Alert{}
+	namespaceName := "alert-" + randStringRunes(5)
+	providerName := "provider-" + randStringRunes(5)
+
+	g.Expect(createNamespace(namespaceName)).NotTo(HaveOccurred(), "failed to create test namespace")
+
+	provider := &apiv1.Provider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      providerName,
+			Namespace: namespaceName,
+		},
+		Spec: apiv1.ProviderSpec{
+			Type:    "generic",
+			Address: "https://webhook.internal",
+		},
+	}
+
+	alert := &apiv1.Alert{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("alert-%s", randStringRunes(5)),
+			Namespace: namespaceName,
+		},
+		Spec: apiv1.AlertSpec{
+			ProviderRef: meta.LocalObjectReference{
+				Name: providerName,
+			},
+			EventSeverity: "info",
+			EventSources: []apiv1.CrossNamespaceObjectReference{
+				{
+					Kind: "Bucket",
+					Name: "*",
+				},
+			},
+		},
+	}
+	g.Expect(k8sClient.Create(context.Background(), alert)).To(Succeed())
+
+	t.Run("fails with provider not found error", func(t *testing.T) {
+		g.Eventually(func() bool {
+			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), resultA)
+			return conditions.Has(resultA, meta.ReadyCondition)
+		}, timeout, time.Second).Should(BeTrue())
+
+		g.Expect(conditions.IsReady(resultA)).To(BeFalse())
+		g.Expect(conditions.GetReason(resultA, meta.ReadyCondition)).To(BeIdenticalTo(apiv1.ValidationFailedReason))
+		g.Expect(conditions.GetMessage(resultA, meta.ReadyCondition)).To(ContainSubstring(providerName))
+
+		g.Expect(conditions.Has(resultA, meta.ReconcilingCondition)).To(BeTrue())
+		g.Expect(conditions.GetReason(resultA, meta.ReconcilingCondition)).To(BeIdenticalTo(apiv1.ProgressingWithRetryReason))
+		g.Expect(conditions.GetObservedGeneration(resultA, meta.ReconcilingCondition)).To(BeIdenticalTo(resultA.Generation))
+		g.Expect(controllerutil.ContainsFinalizer(resultA, apiv1.NotificationFinalizer)).To(BeTrue())
+	})
+
+	t.Run("recovers when provider exists", func(t *testing.T) {
+		g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())
+
+		g.Eventually(func() bool {
+			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), resultA)
+			return conditions.IsReady(resultA)
+		}, timeout, time.Second).Should(BeTrue())
+
+		g.Expect(conditions.GetObservedGeneration(resultA, meta.ReadyCondition)).To(BeIdenticalTo(resultA.Generation))
+		g.Expect(resultA.Status.ObservedGeneration).To(BeIdenticalTo(resultA.Generation))
+		g.Expect(conditions.Has(resultA, meta.ReconcilingCondition)).To(BeFalse())
+	})
+
+	t.Run("handles reconcileAt", func(t *testing.T) {
+		reconcileRequestAt := metav1.Now().String()
+		resultA.SetAnnotations(map[string]string{
+			meta.ReconcileRequestAnnotation: reconcileRequestAt,
+		})
+		g.Expect(k8sClient.Update(context.Background(), resultA)).To(Succeed())
+
+		g.Eventually(func() bool {
+			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), resultA)
+			return resultA.Status.LastHandledReconcileAt == reconcileRequestAt
+		}, timeout, time.Second).Should(BeTrue())
+	})
+
+	t.Run("finalizes suspended object", func(t *testing.T) {
+		resultA.Spec.Suspend = true
+		g.Expect(k8sClient.Update(context.Background(), resultA)).To(Succeed())
+
+		g.Eventually(func() bool {
+			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), resultA)
+			return resultA.Spec.Suspend == true
+		}, timeout, time.Second).Should(BeTrue())
+
+		g.Expect(k8sClient.Delete(context.Background(), resultA)).To(Succeed())
+
+		g.Eventually(func() bool {
+			err := k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), resultA)
+			return apierrors.IsNotFound(err)
+		}, timeout, time.Second).Should(BeTrue())
+	})
+}
+
+func TestAlertReconciler_EventHandler(t *testing.T) {
 	g := NewWithT(t)
 	var (
 		namespace = "events-" + randStringRunes(5)
 		req       *http.Request
-		provider  *notifyv1.Provider
+		provider  *apiv1.Provider
 	)
 	g.Expect(createNamespace(namespace)).NotTo(HaveOccurred(), "failed to create test namespace")
 
@@ -67,19 +184,19 @@ func TestEventHandler(t *testing.T) {
 		Name:      fmt.Sprintf("provider-%s", randStringRunes(5)),
 		Namespace: namespace,
 	}
-	provider = &notifyv1.Provider{
+	provider = &apiv1.Provider{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      providerKey.Name,
 			Namespace: providerKey.Namespace,
 		},
-		Spec: notifyv1.ProviderSpec{
+		Spec: apiv1.ProviderSpec{
 			Type:    "generic",
 			Address: rcvServer.URL,
 		},
 	}
 	g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())
 	g.Eventually(func() bool {
-		var obj notifyv1.Provider
+		var obj apiv1.Provider
 		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), &obj))
 		return conditions.IsReady(&obj)
 	}, 30*time.Second, time.Second).Should(BeTrue())
@@ -105,17 +222,17 @@ func TestEventHandler(t *testing.T) {
 		Namespace: namespace,
 	}
 
-	alert := &notifyv1.Alert{
+	alert := &apiv1.Alert{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      alertKey.Name,
 			Namespace: alertKey.Namespace,
 		},
-		Spec: notifyv1.AlertSpec{
+		Spec: apiv1.AlertSpec{
 			ProviderRef: meta.LocalObjectReference{
 				Name: providerKey.Name,
 			},
 			EventSeverity: "info",
-			EventSources: []notifyv1.CrossNamespaceObjectReference{
+			EventSources: []apiv1.CrossNamespaceObjectReference{
 				{
 					Kind:      "Bucket",
 					Name:      "hyacinth",
@@ -149,7 +266,7 @@ func TestEventHandler(t *testing.T) {
 
 	// wait for controller to mark the alert as ready
 	g.Eventually(func() bool {
-		var obj notifyv1.Alert
+		var obj apiv1.Alert
 		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), &obj))
 		return conditions.IsReady(&obj)
 	}, 30*time.Second, time.Second).Should(BeTrue())

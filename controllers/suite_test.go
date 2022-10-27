@@ -1,5 +1,5 @@
 /*
-Copyright 2020, 2021 The Flux authors
+Copyright 2022 The Flux authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/fluxcd/pkg/runtime/controller"
@@ -29,6 +30,7 @@ import (
 	"github.com/fluxcd/pkg/ssa"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/cli-utils/pkg/kstatus/polling"
@@ -36,7 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
-	notifyv1 "github.com/fluxcd/notification-controller/api/v1beta1"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -49,7 +51,7 @@ var (
 
 func TestMain(m *testing.M) {
 	var err error
-	utilruntime.Must(notifyv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(apiv1.AddToScheme(scheme.Scheme))
 	//utilruntime.Must(sourcev1.AddToScheme(scheme.Scheme))
 
 	testEnv = testenv.New(testenv.WithCRDPath(
@@ -61,26 +63,32 @@ func TestMain(m *testing.M) {
 		panic(fmt.Sprintf("failed to create k8s client: %v", err))
 	}
 
+	controllerName := "notification-controller"
 	testMetricsH := controller.MustMakeMetrics(testEnv)
-	//controllerName := "notification-controller"
+
 	reconciler := AlertReconciler{
-		Client:  testEnv,
-		Metrics: testMetricsH,
+		Client:         testEnv,
+		Metrics:        testMetricsH,
+		ControllerName: controllerName,
 	}
 	if err := (reconciler).SetupWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Failed to start AlerReconciler: %v", err))
 	}
 
 	if err := (&ProviderReconciler{
-		Client: testEnv,
+		Client:         testEnv,
+		Metrics:        testMetricsH,
+		ControllerName: controllerName,
 	}).SetupWithManager(testEnv); err != nil {
-		panic(fmt.Sprintf("Failed to start PRoviderReconciler: %v", err))
+		panic(fmt.Sprintf("Failed to start ProviderReconciler: %v", err))
 	}
 
 	if err := (&ReceiverReconciler{
-		Client: testEnv,
+		Client:         testEnv,
+		Metrics:        testMetricsH,
+		ControllerName: controllerName,
 	}).SetupWithManager(testEnv); err != nil {
-		panic(fmt.Sprintf("Failed to start PRoviderReconciler: %v", err))
+		panic(fmt.Sprintf("Failed to start ReceiverReconciler: %v", err))
 	}
 
 	go func() {
@@ -98,8 +106,8 @@ func TestMain(m *testing.M) {
 
 	poller := polling.NewStatusPoller(k8sClient, restMapper, polling.Options{})
 	owner := ssa.Owner{
-		Field: "notification-controller",
-		Group: "notification-controller",
+		Field: controllerName,
+		Group: controllerName,
 	}
 	manager = ssa.NewResourceManager(k8sClient, poller, owner)
 
@@ -130,4 +138,19 @@ func createNamespace(name string) error {
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 	}
 	return k8sClient.Create(context.Background(), namespace)
+}
+
+func readManifest(manifest, namespace string) (*unstructured.Unstructured, error) {
+	data, err := os.ReadFile(manifest)
+	if err != nil {
+		return nil, err
+	}
+	yml := fmt.Sprintf(string(data), namespace)
+
+	object, err := ssa.ReadObject(strings.NewReader(yml))
+	if err != nil {
+		return nil, err
+	}
+
+	return object, nil
 }
