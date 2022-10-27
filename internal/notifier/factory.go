@@ -84,7 +84,7 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 	case apiv1.GitLabProvider:
 		n, err = NewGitLab(f.ProviderUID, f.URL, f.Token, f.CertPool)
 	case apiv1.BitbucketProvider:
-		n, err = NewBitbucket(f.URL, f.Token, f.CertPool)
+		n, err = NewBitbucket(f.ProviderUID, f.URL, f.Token, f.CertPool)
 	case apiv1.AzureDevOpsProvider:
 		n, err = NewAzureDevOps(f.ProviderUID, f.URL, f.Token, f.CertPool)
 	case apiv1.GoogleChatProvider:
