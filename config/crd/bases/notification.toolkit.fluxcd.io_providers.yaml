@@ -230,6 +230,7 @@ spec:
             properties:
               address:
                 description: HTTP/S webhook address of this provider
+                maxLength: 2048
                 pattern: ^(http|https)://
                 type: string
               certSecretRef:
@@ -244,9 +245,11 @@ spec:
                 type: object
               channel:
                 description: Alert channel for this provider
+                maxLength: 2048
                 type: string
               proxy:
                 description: HTTP/S address of the proxy
+                maxLength: 2048
                 pattern: ^(http|https)://
                 type: string
               secretRef:
@@ -294,6 +297,7 @@ spec:
                 type: string
               username:
                 description: Bot username for this provider
+                maxLength: 2048
                 type: string
             required:
             - type

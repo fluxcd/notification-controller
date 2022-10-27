@@ -311,6 +311,7 @@ spec:
                 type: object
               summary:
                 description: Short description of the impact and affected cluster.
+                maxLength: 255
                 type: string
               suspend:
                 description: This flag tells the controller to suspend subsequent

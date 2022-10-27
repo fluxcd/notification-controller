@@ -47,6 +47,7 @@ type AlertSpec struct {
 	ExclusionList []string `json:"exclusionList,omitempty"`
 
 	// Short description of the impact and affected cluster.
+	// +kubebuilder:validation:MaxLength:=255
 	// +optional
 	Summary string `json:"summary,omitempty"`
 

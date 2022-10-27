@@ -35,15 +35,18 @@ type ProviderSpec struct {
 	Type string `json:"type"`
 
 	// Alert channel for this provider
+	// +kubebuilder:validation:MaxLength:=2048
 	// +optional
 	Channel string `json:"channel,omitempty"`
 
 	// Bot username for this provider
+	// +kubebuilder:validation:MaxLength:=2048
 	// +optional
 	Username string `json:"username,omitempty"`
 
 	// HTTP/S webhook address of this provider
 	// +kubebuilder:validation:Pattern="^(http|https)://"
+	// +kubebuilder:validation:MaxLength:=2048
 	// +kubebuilder:validation:Optional
 	// +optional
 	Address string `json:"address,omitempty"`
@@ -56,6 +59,7 @@ type ProviderSpec struct {
 
 	// HTTP/S address of the proxy
 	// +kubebuilder:validation:Pattern="^(http|https)://"
+	// +kubebuilder:validation:MaxLength:=2048
 	// +kubebuilder:validation:Optional
 	// +optional
 	Proxy string `json:"proxy,omitempty"`

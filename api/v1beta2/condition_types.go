@@ -26,7 +26,7 @@ const (
 	// couldn't be validated.
 	ValidationFailedReason string = "ValidationFailed"
 
-	// TokenNotFound represents the fact that receiver token can't be found.
+	// TokenNotFoundReason represents the fact that receiver token can't be found.
 	TokenNotFoundReason string = "TokenNotFound"
 
 	// ProgressingWithRetryReason represents the fact that
