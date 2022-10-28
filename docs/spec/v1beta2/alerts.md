@@ -15,6 +15,7 @@ metadata:
   namespace: flux-system
 spec:
   type: slack
+  channel: general
   address: https://slack.com/api/chat.postMessage
   secretRef:
     name: slack-bot-token
@@ -47,7 +48,8 @@ In the above example:
 - The notification-controller starts listening for events sent for
   all GitRepositories and Kustomizations in the `flux-system` namespace.
 - When an event with severity `error` is received, the controller posts
-  a message on Slack containing the `summary` text and the reconciliation error.
+  a message on Slack channel from `.spec.channel`,
+  containing the `summary` text and the reconciliation error.
 
 You can run this example by saving the manifests into `slack-alerts.yaml`.
 
@@ -72,10 +74,17 @@ valid [DNS subdomain name](https://kubernetes.io/docs/concepts/overview/working-
 An Alert also needs a
 [`.spec` section](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#spec-and-status).
 
+### Summary
+
+`.spec.summary` is an optional field to specify a short description of the
+impact and affected cluster.
+
+The summary max length can't be greater than 255 characters. 
+
 ### Provider reference
 
 `.spec.providerRef.name` is a required field to specify a name reference to a
-Provider in the same namespace as the Alert.
+[Provider](providers.md) in the same namespace as the Alert.
 
 ### Event sources
 
@@ -142,7 +151,7 @@ To receive alerts only on errors, set the field value to `error`.
 `.spec.exclusionList` is an optional field to specify a list of regex expressions to filter
 events based on message content.
 
-### Example
+#### Example
 
 Skip alerting if the message matches a [Go regex](https://golang.org/pkg/regexp/syntax)
 from the exclusion list:
@@ -166,3 +175,9 @@ The above definition will not send alerts for transient Git clone errors like:
 ```text
 unable to clone 'ssh://git@ssh.dev.azure.com/v3/...', error: SSH could not read data: Error waiting on socket
 ```
+
+### Suspend
+
+`.spec.suspend` is an optional field to suspend the altering.
+When set to `true`, the controller will stop processing events.
+When the field is set to `false` or removed, it will resume.
