@@ -233,7 +233,7 @@ stringData:
 When set to `true`, the controller will stop sending events to this provider.
 When the field is set to `false` or removed, it will resume.
 
-## Provider guids
+## Provider guides
 
 ### Generic webhook
 
