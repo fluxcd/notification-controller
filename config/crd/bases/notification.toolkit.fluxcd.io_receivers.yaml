@@ -230,7 +230,7 @@ spec:
     name: v1beta2
     schema:
       openAPIV3Schema:
-        description: Receiver is the Schema for the receivers API
+        description: Receiver is the Schema for the receivers API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -245,11 +245,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: ReceiverSpec defines the desired state of Receiver
+            description: ReceiverSpec defines the desired state of the Receiver.
             properties:
               events:
-                description: A list of events to handle, e.g. 'push' for GitHub or
-                  'Push Hook' for GitLab.
+                description: Events specifies the list of event types to handle, e.g.
+                  'push' for GitHub or 'Push Hook' for GitLab.
                 items:
                   type: string
                 type: array
@@ -260,10 +260,10 @@ spec:
                     to let you locate the typed referenced object at cluster level
                   properties:
                     apiVersion:
-                      description: API version of the referent
+                      description: API version of the referent.
                       type: string
                     kind:
-                      description: Kind of the referent
+                      description: Kind of the referent.
                       enum:
                       - Bucket
                       - GitRepository
@@ -286,12 +286,12 @@ spec:
                         are ANDed.
                       type: object
                     name:
-                      description: Name of the referent
+                      description: Name of the referent.
                       maxLength: 53
                       minLength: 1
                       type: string
                     namespace:
-                      description: Namespace of the referent
+                      description: Namespace of the referent.
                       maxLength: 53
                       minLength: 1
                       type: string
@@ -300,8 +300,8 @@ spec:
                   type: object
                 type: array
               secretRef:
-                description: Secret reference containing the token used to validate
-                  the payload authenticity
+                description: SecretRef specifies the Secret containing the token used
+                  to validate the payload authenticity.
                 properties:
                   name:
                     description: Name of the referent.
@@ -310,8 +310,8 @@ spec:
                 - name
                 type: object
               suspend:
-                description: This flag tells the controller to suspend subsequent
-                  events handling. Defaults to false.
+                description: Suspend tells the controller to suspend subsequent events
+                  handling for this receiver.
                 type: boolean
               type:
                 description: Type of webhook sender, used to determine the validation
@@ -336,9 +336,10 @@ spec:
           status:
             default:
               observedGeneration: -1
-            description: ReceiverStatus defines the observed state of Receiver
+            description: ReceiverStatus defines the observed state of the Receiver.
             properties:
               conditions:
+                description: Conditions holds the conditions for the Receiver.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct
@@ -412,11 +413,13 @@ spec:
                   be detected.
                 type: string
               observedGeneration:
-                description: ObservedGeneration is the last observed generation.
+                description: ObservedGeneration is the last observed generation of
+                  the Receiver object.
                 format: int64
                 type: integer
               url:
-                description: Generated webhook URL in the format of '/hook/sha256sum(token+name+namespace)'.
+                description: URL is the generated incoming webhook address in the
+                  format of '/hook/sha256sum(token+name+namespace)'.
                 type: string
             type: object
         type: object

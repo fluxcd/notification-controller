@@ -25,42 +25,45 @@ const (
 	AlertKind string = "Alert"
 )
 
-// AlertSpec defines an alerting rule for events involving a list of objects
+// AlertSpec defines an alerting rule for events involving a list of objects.
 type AlertSpec struct {
-	// Send events using this provider.
+	// ProviderRef specifies which Provider this Alert should use.
 	// +required
 	ProviderRef meta.LocalObjectReference `json:"providerRef"`
 
-	// Filter events based on severity, defaults to ('info').
+	// EventSeverity specifies how to filter events based on severity.
 	// If set to 'info' no events will be filtered.
 	// +kubebuilder:validation:Enum=info;error
 	// +kubebuilder:default:=info
 	// +optional
 	EventSeverity string `json:"eventSeverity,omitempty"`
 
-	// Filter events based on the involved objects.
+	// EventSources specifies how to filter events based
+	// on the involved object kind, name and namespace.
 	// +required
 	EventSources []CrossNamespaceObjectReference `json:"eventSources"`
 
-	// A list of Golang regular expressions to be used for excluding messages.
+	// ExclusionList specifies a list of Golang regular expressions
+	// to be used for excluding messages.
 	// +optional
 	ExclusionList []string `json:"exclusionList,omitempty"`
 
-	// Short description of the impact and affected cluster.
+	// Summary holds a short description of the impact and affected cluster.
 	// +kubebuilder:validation:MaxLength:=255
 	// +optional
 	Summary string `json:"summary,omitempty"`
 
-	// This flag tells the controller to suspend subsequent events dispatching.
-	// Defaults to false.
+	// Suspend tells the controller to suspend subsequent
+	// events handling for this Alert.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
 }
 
-// AlertStatus defines the observed state of Alert
+// AlertStatus defines the observed state of the Alert.
 type AlertStatus struct {
 	meta.ReconcileRequestStatus `json:",inline"`
 
+	// Conditions holds the conditions for the Alert.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
@@ -88,12 +91,6 @@ type Alert struct {
 	Status AlertStatus `json:"status,omitempty"`
 }
 
-// GetStatusConditions returns a pointer to the Status.Conditions slice
-// Deprecated: use GetConditions instead.
-func (in *Alert) GetStatusConditions() *[]metav1.Condition {
-	return &in.Status.Conditions
-}
-
 // GetConditions returns the status conditions of the object.
 func (in *Alert) GetConditions() []metav1.Condition {
 	return in.Status.Conditions
@@ -106,7 +103,7 @@ func (in *Alert) SetConditions(conditions []metav1.Condition) {
 
 // +kubebuilder:object:root=true
 
-// AlertList contains a list of Alert
+// AlertList contains a list of Alerts.
 type AlertList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

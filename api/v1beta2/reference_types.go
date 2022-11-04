@@ -19,22 +19,22 @@ package v1beta2
 // CrossNamespaceObjectReference contains enough information to let you locate the
 // typed referenced object at cluster level
 type CrossNamespaceObjectReference struct {
-	// API version of the referent
+	// API version of the referent.
 	// +optional
 	APIVersion string `json:"apiVersion,omitempty"`
 
-	// Kind of the referent
+	// Kind of the referent.
 	// +kubebuilder:validation:Enum=Bucket;GitRepository;Kustomization;HelmRelease;HelmChart;HelmRepository;ImageRepository;ImagePolicy;ImageUpdateAutomation;OCIRepository
 	// +required
 	Kind string `json:"kind,omitempty"`
 
-	// Name of the referent
+	// Name of the referent.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=53
 	// +required
 	Name string `json:"name"`
 
-	// Namespace of the referent
+	// Namespace of the referent.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=53
 	// +kubebuilder:validation:Optional

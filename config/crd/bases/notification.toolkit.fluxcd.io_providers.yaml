@@ -211,7 +211,7 @@ spec:
     name: v1beta2
     schema:
       openAPIV3Schema:
-        description: Provider is the Schema for the providers API
+        description: Provider is the Schema for the providers API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -226,16 +226,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: ProviderSpec defines the desired state of Provider
+            description: ProviderSpec defines the desired state of the Provider.
             properties:
               address:
-                description: HTTP/S webhook address of this provider
+                description: Address specifies the HTTP/S incoming webhook address
+                  of this Provider.
                 maxLength: 2048
                 pattern: ^(http|https)://
                 type: string
               certSecretRef:
-                description: CertSecretRef can be given the name of a secret containing
-                  a PEM-encoded CA certificate (`caFile`)
+                description: CertSecretRef specifies the Secret containing a PEM-encoded
+                  CA certificate (`caFile`).
                 properties:
                   name:
                     description: Name of the referent.
@@ -244,17 +245,18 @@ spec:
                 - name
                 type: object
               channel:
-                description: Alert channel for this provider
+                description: Channel specifies the destination channel where events
+                  should be posted.
                 maxLength: 2048
                 type: string
               proxy:
-                description: HTTP/S address of the proxy
+                description: Proxy the HTTP/S address of the proxy server.
                 maxLength: 2048
                 pattern: ^(http|https)://
                 type: string
               secretRef:
-                description: Secret reference containing the provider webhook URL
-                  using "address" as data key
+                description: SecretRef specifies the Secret containing the authentication
+                  credentials for this Provider.
                 properties:
                   name:
                     description: Name of the referent.
@@ -263,15 +265,15 @@ spec:
                 - name
                 type: object
               suspend:
-                description: This flag tells the controller to suspend subsequent
-                  events handling. Defaults to false.
+                description: Suspend tells the controller to suspend subsequent events
+                  handling for this Provider.
                 type: boolean
               timeout:
-                description: Timeout for sending alerts to the provider.
+                description: Timeout for sending alerts to the Provider.
                 pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m))+$
                 type: string
               type:
-                description: Type of provider
+                description: Type specifies which Provider implementation to use.
                 enum:
                 - slack
                 - discord
@@ -296,7 +298,7 @@ spec:
                 - githubdispatch
                 type: string
               username:
-                description: Bot username for this provider
+                description: Username specifies the name under which events are posted.
                 maxLength: 2048
                 type: string
             required:
@@ -305,9 +307,10 @@ spec:
           status:
             default:
               observedGeneration: -1
-            description: ProviderStatus defines the observed state of Provider
+            description: ProviderStatus defines the observed state of the Provider.
             properties:
               conditions:
+                description: Conditions holds the conditions for the Provider.
                 items:
                   description: "Condition contains details for one aspect of the current
                     state of this API Resource. --- This struct is intended for direct

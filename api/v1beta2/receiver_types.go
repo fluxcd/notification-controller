@@ -41,7 +41,7 @@ const (
 	ACRReceiver         string = "acr"
 )
 
-// ReceiverSpec defines the desired state of Receiver
+// ReceiverSpec defines the desired state of the Receiver.
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
@@ -49,7 +49,7 @@ type ReceiverSpec struct {
 	// +required
 	Type string `json:"type"`
 
-	// A list of events to handle,
+	// Events specifies the list of event types to handle,
 	// e.g. 'push' for GitHub or 'Push Hook' for GitLab.
 	// +optional
 	Events []string `json:"events"`
@@ -58,38 +58,33 @@ type ReceiverSpec struct {
 	// +required
 	Resources []CrossNamespaceObjectReference `json:"resources"`
 
-	// Secret reference containing the token used
-	// to validate the payload authenticity
+	// SecretRef specifies the Secret containing the token used
+	// to validate the payload authenticity.
 	// +required
 	SecretRef meta.LocalObjectReference `json:"secretRef,omitempty"`
 
-	// This flag tells the controller to suspend subsequent events handling.
-	// Defaults to false.
+	// Suspend tells the controller to suspend subsequent
+	// events handling for this receiver.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
 }
 
-// ReceiverStatus defines the observed state of Receiver
+// ReceiverStatus defines the observed state of the Receiver.
 type ReceiverStatus struct {
 	meta.ReconcileRequestStatus `json:",inline"`
 
+	// Conditions holds the conditions for the Receiver.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// Generated webhook URL in the format
+	// URL is the generated incoming webhook address in the format
 	// of '/hook/sha256sum(token+name+namespace)'.
 	// +optional
 	URL string `json:"url,omitempty"`
 
-	// ObservedGeneration is the last observed generation.
+	// ObservedGeneration is the last observed generation of the Receiver object.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
-}
-
-// GetStatusConditions returns a pointer to the Status.Conditions slice
-// Deprecated: use GetConditions instead.
-func (in *Receiver) GetStatusConditions() *[]metav1.Condition {
-	return &in.Status.Conditions
 }
 
 // GetConditions returns the status conditions of the object.
@@ -117,7 +112,7 @@ func (in *Receiver) GetWebhookURL(token string) string {
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status",description=""
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message",description=""
 
-// Receiver is the Schema for the receivers API
+// Receiver is the Schema for the receivers API.
 type Receiver struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -129,7 +124,7 @@ type Receiver struct {
 
 // +kubebuilder:object:root=true
 
-// ReceiverList contains a list of Receiver
+// ReceiverList contains a list of Receivers.
 type ReceiverList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

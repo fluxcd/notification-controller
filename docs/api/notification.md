@@ -6,7 +6,7 @@
 </li>
 </ul>
 <h2 id="notification.toolkit.fluxcd.io/v1beta2">notification.toolkit.fluxcd.io/v1beta2</h2>
-<p>Package v1beta2 contains API Schema definitions for the notification v1beta2 API group</p>
+<p>Package v1beta2 contains API Schema definitions for the notification v1beta2 API group.</p>
 Resource Types:
 <ul class="simple"><li>
 <a href="#notification.toolkit.fluxcd.io/v1beta2.Alert">Alert</a>
@@ -82,7 +82,7 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
-<p>Send events using this provider.</p>
+<p>ProviderRef specifies which Provider this Alert should use.</p>
 </td>
 </tr>
 <tr>
@@ -94,7 +94,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Filter events based on severity, defaults to (&lsquo;info&rsquo;).
+<p>EventSeverity specifies how to filter events based on severity.
 If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 </tr>
@@ -108,7 +108,8 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </em>
 </td>
 <td>
-<p>Filter events based on the involved objects.</p>
+<p>EventSources specifies how to filter events based
+on the involved object kind, name and namespace.</p>
 </td>
 </tr>
 <tr>
@@ -120,7 +121,8 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>A list of Golang regular expressions to be used for excluding messages.</p>
+<p>ExclusionList specifies a list of Golang regular expressions
+to be used for excluding messages.</p>
 </td>
 </tr>
 <tr>
@@ -132,7 +134,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Short description of the impact and affected cluster.</p>
+<p>Summary holds a short description of the impact and affected cluster.</p>
 </td>
 </tr>
 <tr>
@@ -144,8 +146,8 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events dispatching.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this Alert.</p>
 </td>
 </tr>
 </table>
@@ -169,7 +171,7 @@ AlertStatus
 </div>
 <h3 id="notification.toolkit.fluxcd.io/v1beta2.Provider">Provider
 </h3>
-<p>Provider is the Schema for the providers API</p>
+<p>Provider is the Schema for the providers API.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -232,7 +234,7 @@ string
 </em>
 </td>
 <td>
-<p>Type of provider</p>
+<p>Type specifies which Provider implementation to use.</p>
 </td>
 </tr>
 <tr>
@@ -244,7 +246,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Alert channel for this provider</p>
+<p>Channel specifies the destination channel where events should be posted.</p>
 </td>
 </tr>
 <tr>
@@ -256,7 +258,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Bot username for this provider</p>
+<p>Username specifies the name under which events are posted.</p>
 </td>
 </tr>
 <tr>
@@ -268,7 +270,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>HTTP/S webhook address of this provider</p>
+<p>Address specifies the HTTP/S incoming webhook address of this Provider.</p>
 </td>
 </tr>
 <tr>
@@ -282,7 +284,7 @@ Kubernetes meta/v1.Duration
 </td>
 <td>
 <em>(Optional)</em>
-<p>Timeout for sending alerts to the provider.</p>
+<p>Timeout for sending alerts to the Provider.</p>
 </td>
 </tr>
 <tr>
@@ -294,7 +296,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>HTTP/S address of the proxy</p>
+<p>Proxy the HTTP/S address of the proxy server.</p>
 </td>
 </tr>
 <tr>
@@ -308,8 +310,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>Secret reference containing the provider webhook URL
-using &ldquo;address&rdquo; as data key</p>
+<p>SecretRef specifies the Secret containing the authentication
+credentials for this Provider.</p>
 </td>
 </tr>
 <tr>
@@ -323,8 +325,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>CertSecretRef can be given the name of a secret containing
-a PEM-encoded CA certificate (<code>caFile</code>)</p>
+<p>CertSecretRef specifies the Secret containing
+a PEM-encoded CA certificate (<code>caFile</code>).</p>
 </td>
 </tr>
 <tr>
@@ -336,8 +338,8 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events handling.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this Provider.</p>
 </td>
 </tr>
 </table>
@@ -361,7 +363,7 @@ ProviderStatus
 </div>
 <h3 id="notification.toolkit.fluxcd.io/v1beta2.Receiver">Receiver
 </h3>
-<p>Receiver is the Schema for the receivers API</p>
+<p>Receiver is the Schema for the receivers API.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -437,7 +439,7 @@ the validation procedure and payload deserialization.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>A list of events to handle,
+<p>Events specifies the list of event types to handle,
 e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </td>
 </tr>
@@ -464,8 +466,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
-<p>Secret reference containing the token used
-to validate the payload authenticity</p>
+<p>SecretRef specifies the Secret containing the token used
+to validate the payload authenticity.</p>
 </td>
 </tr>
 <tr>
@@ -477,8 +479,8 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events handling.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this receiver.</p>
 </td>
 </tr>
 </table>
@@ -506,7 +508,7 @@ ReceiverStatus
 (<em>Appears on:</em>
 <a href="#notification.toolkit.fluxcd.io/v1beta2.Alert">Alert</a>)
 </p>
-<p>AlertSpec defines an alerting rule for events involving a list of objects</p>
+<p>AlertSpec defines an alerting rule for events involving a list of objects.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -527,7 +529,7 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
-<p>Send events using this provider.</p>
+<p>ProviderRef specifies which Provider this Alert should use.</p>
 </td>
 </tr>
 <tr>
@@ -539,7 +541,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Filter events based on severity, defaults to (&lsquo;info&rsquo;).
+<p>EventSeverity specifies how to filter events based on severity.
 If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 </tr>
@@ -553,7 +555,8 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </em>
 </td>
 <td>
-<p>Filter events based on the involved objects.</p>
+<p>EventSources specifies how to filter events based
+on the involved object kind, name and namespace.</p>
 </td>
 </tr>
 <tr>
@@ -565,7 +568,8 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>A list of Golang regular expressions to be used for excluding messages.</p>
+<p>ExclusionList specifies a list of Golang regular expressions
+to be used for excluding messages.</p>
 </td>
 </tr>
 <tr>
@@ -577,7 +581,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Short description of the impact and affected cluster.</p>
+<p>Summary holds a short description of the impact and affected cluster.</p>
 </td>
 </tr>
 <tr>
@@ -589,8 +593,8 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events dispatching.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this Alert.</p>
 </td>
 </tr>
 </tbody>
@@ -603,7 +607,7 @@ Defaults to false.</p>
 (<em>Appears on:</em>
 <a href="#notification.toolkit.fluxcd.io/v1beta2.Alert">Alert</a>)
 </p>
-<p>AlertStatus defines the observed state of Alert</p>
+<p>AlertStatus defines the observed state of the Alert.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -640,6 +644,7 @@ github.com/fluxcd/pkg/apis/meta.ReconcileRequestStatus
 </td>
 <td>
 <em>(Optional)</em>
+<p>Conditions holds the conditions for the Alert.</p>
 </td>
 </tr>
 <tr>
@@ -686,7 +691,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>API version of the referent</p>
+<p>API version of the referent.</p>
 </td>
 </tr>
 <tr>
@@ -697,7 +702,7 @@ string
 </em>
 </td>
 <td>
-<p>Kind of the referent</p>
+<p>Kind of the referent.</p>
 </td>
 </tr>
 <tr>
@@ -708,7 +713,7 @@ string
 </em>
 </td>
 <td>
-<p>Name of the referent</p>
+<p>Name of the referent.</p>
 </td>
 </tr>
 <tr>
@@ -720,7 +725,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Namespace of the referent</p>
+<p>Namespace of the referent.</p>
 </td>
 </tr>
 <tr>
@@ -747,7 +752,7 @@ operator is &ldquo;In&rdquo;, and the values array contains only &ldquo;value&rd
 (<em>Appears on:</em>
 <a href="#notification.toolkit.fluxcd.io/v1beta2.Provider">Provider</a>)
 </p>
-<p>ProviderSpec defines the desired state of Provider</p>
+<p>ProviderSpec defines the desired state of the Provider.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -766,7 +771,7 @@ string
 </em>
 </td>
 <td>
-<p>Type of provider</p>
+<p>Type specifies which Provider implementation to use.</p>
 </td>
 </tr>
 <tr>
@@ -778,7 +783,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Alert channel for this provider</p>
+<p>Channel specifies the destination channel where events should be posted.</p>
 </td>
 </tr>
 <tr>
@@ -790,7 +795,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Bot username for this provider</p>
+<p>Username specifies the name under which events are posted.</p>
 </td>
 </tr>
 <tr>
@@ -802,7 +807,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>HTTP/S webhook address of this provider</p>
+<p>Address specifies the HTTP/S incoming webhook address of this Provider.</p>
 </td>
 </tr>
 <tr>
@@ -816,7 +821,7 @@ Kubernetes meta/v1.Duration
 </td>
 <td>
 <em>(Optional)</em>
-<p>Timeout for sending alerts to the provider.</p>
+<p>Timeout for sending alerts to the Provider.</p>
 </td>
 </tr>
 <tr>
@@ -828,7 +833,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>HTTP/S address of the proxy</p>
+<p>Proxy the HTTP/S address of the proxy server.</p>
 </td>
 </tr>
 <tr>
@@ -842,8 +847,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>Secret reference containing the provider webhook URL
-using &ldquo;address&rdquo; as data key</p>
+<p>SecretRef specifies the Secret containing the authentication
+credentials for this Provider.</p>
 </td>
 </tr>
 <tr>
@@ -857,8 +862,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>CertSecretRef can be given the name of a secret containing
-a PEM-encoded CA certificate (<code>caFile</code>)</p>
+<p>CertSecretRef specifies the Secret containing
+a PEM-encoded CA certificate (<code>caFile</code>).</p>
 </td>
 </tr>
 <tr>
@@ -870,8 +875,8 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events handling.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this Provider.</p>
 </td>
 </tr>
 </tbody>
@@ -884,7 +889,7 @@ Defaults to false.</p>
 (<em>Appears on:</em>
 <a href="#notification.toolkit.fluxcd.io/v1beta2.Provider">Provider</a>)
 </p>
-<p>ProviderStatus defines the observed state of Provider</p>
+<p>ProviderStatus defines the observed state of the Provider.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -921,6 +926,7 @@ github.com/fluxcd/pkg/apis/meta.ReconcileRequestStatus
 </td>
 <td>
 <em>(Optional)</em>
+<p>Conditions holds the conditions for the Provider.</p>
 </td>
 </tr>
 <tr>
@@ -945,7 +951,7 @@ int64
 (<em>Appears on:</em>
 <a href="#notification.toolkit.fluxcd.io/v1beta2.Receiver">Receiver</a>)
 </p>
-<p>ReceiverSpec defines the desired state of Receiver</p>
+<p>ReceiverSpec defines the desired state of the Receiver.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -977,7 +983,7 @@ the validation procedure and payload deserialization.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>A list of events to handle,
+<p>Events specifies the list of event types to handle,
 e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </td>
 </tr>
@@ -1004,8 +1010,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
-<p>Secret reference containing the token used
-to validate the payload authenticity</p>
+<p>SecretRef specifies the Secret containing the token used
+to validate the payload authenticity.</p>
 </td>
 </tr>
 <tr>
@@ -1017,8 +1023,8 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events handling.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this receiver.</p>
 </td>
 </tr>
 </tbody>
@@ -1031,7 +1037,7 @@ Defaults to false.</p>
 (<em>Appears on:</em>
 <a href="#notification.toolkit.fluxcd.io/v1beta2.Receiver">Receiver</a>)
 </p>
-<p>ReceiverStatus defines the observed state of Receiver</p>
+<p>ReceiverStatus defines the observed state of the Receiver.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -1068,6 +1074,7 @@ github.com/fluxcd/pkg/apis/meta.ReconcileRequestStatus
 </td>
 <td>
 <em>(Optional)</em>
+<p>Conditions holds the conditions for the Receiver.</p>
 </td>
 </tr>
 <tr>
@@ -1079,7 +1086,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Generated webhook URL in the format
+<p>URL is the generated incoming webhook address in the format
 of &lsquo;/hook/sha256sum(token+name+namespace)&rsquo;.</p>
 </td>
 </tr>
@@ -1092,7 +1099,7 @@ int64
 </td>
 <td>
 <em>(Optional)</em>
-<p>ObservedGeneration is the last observed generation.</p>
+<p>ObservedGeneration is the last observed generation of the Receiver object.</p>
 </td>
 </tr>
 </tbody>

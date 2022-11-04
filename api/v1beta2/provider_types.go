@@ -24,63 +24,7 @@ import (
 )
 
 const (
-	ProviderKind string = "Provider"
-)
-
-// ProviderSpec defines the desired state of Provider
-type ProviderSpec struct {
-	// Type of provider
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;bitbucket;azuredevops;googlechat;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;
-	// +required
-	Type string `json:"type"`
-
-	// Alert channel for this provider
-	// +kubebuilder:validation:MaxLength:=2048
-	// +optional
-	Channel string `json:"channel,omitempty"`
-
-	// Bot username for this provider
-	// +kubebuilder:validation:MaxLength:=2048
-	// +optional
-	Username string `json:"username,omitempty"`
-
-	// HTTP/S webhook address of this provider
-	// +kubebuilder:validation:Pattern="^(http|https)://"
-	// +kubebuilder:validation:MaxLength:=2048
-	// +kubebuilder:validation:Optional
-	// +optional
-	Address string `json:"address,omitempty"`
-
-	// Timeout for sending alerts to the provider.
-	// +kubebuilder:validation:Type=string
-	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m))+$"
-	// +optional
-	Timeout *metav1.Duration `json:"timeout,omitempty"`
-
-	// HTTP/S address of the proxy
-	// +kubebuilder:validation:Pattern="^(http|https)://"
-	// +kubebuilder:validation:MaxLength:=2048
-	// +kubebuilder:validation:Optional
-	// +optional
-	Proxy string `json:"proxy,omitempty"`
-
-	// Secret reference containing the provider webhook URL
-	// using "address" as data key
-	// +optional
-	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
-
-	// CertSecretRef can be given the name of a secret containing
-	// a PEM-encoded CA certificate (`caFile`)
-	// +optional
-	CertSecretRef *meta.LocalObjectReference `json:"certSecretRef,omitempty"`
-
-	// This flag tells the controller to suspend subsequent events handling.
-	// Defaults to false.
-	// +optional
-	Suspend bool `json:"suspend,omitempty"`
-}
-
-const (
+	ProviderKind           string = "Provider"
 	GenericProvider        string = "generic"
 	GenericHMACProvider    string = "generic-hmac"
 	SlackProvider          string = "slack"
@@ -104,10 +48,64 @@ const (
 	AlertManagerProvider   string = "alertmanager"
 )
 
-// ProviderStatus defines the observed state of Provider
+// ProviderSpec defines the desired state of the Provider.
+type ProviderSpec struct {
+	// Type specifies which Provider implementation to use.
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;bitbucket;azuredevops;googlechat;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;
+	// +required
+	Type string `json:"type"`
+
+	// Channel specifies the destination channel where events should be posted.
+	// +kubebuilder:validation:MaxLength:=2048
+	// +optional
+	Channel string `json:"channel,omitempty"`
+
+	// Username specifies the name under which events are posted.
+	// +kubebuilder:validation:MaxLength:=2048
+	// +optional
+	Username string `json:"username,omitempty"`
+
+	// Address specifies the HTTP/S incoming webhook address of this Provider.
+	// +kubebuilder:validation:Pattern="^(http|https)://"
+	// +kubebuilder:validation:MaxLength:=2048
+	// +kubebuilder:validation:Optional
+	// +optional
+	Address string `json:"address,omitempty"`
+
+	// Timeout for sending alerts to the Provider.
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m))+$"
+	// +optional
+	Timeout *metav1.Duration `json:"timeout,omitempty"`
+
+	// Proxy the HTTP/S address of the proxy server.
+	// +kubebuilder:validation:Pattern="^(http|https)://"
+	// +kubebuilder:validation:MaxLength:=2048
+	// +kubebuilder:validation:Optional
+	// +optional
+	Proxy string `json:"proxy,omitempty"`
+
+	// SecretRef specifies the Secret containing the authentication
+	// credentials for this Provider.
+	// +optional
+	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
+
+	// CertSecretRef specifies the Secret containing
+	// a PEM-encoded CA certificate (`caFile`).
+	// +optional
+	CertSecretRef *meta.LocalObjectReference `json:"certSecretRef,omitempty"`
+
+	// Suspend tells the controller to suspend subsequent
+	// events handling for this Provider.
+	// +optional
+	Suspend bool `json:"suspend,omitempty"`
+}
+
+// ProviderStatus defines the observed state of the Provider.
 type ProviderStatus struct {
 	meta.ReconcileRequestStatus `json:",inline"`
 
+	// Conditions holds the conditions for the Provider.
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
@@ -125,7 +123,7 @@ type ProviderStatus struct {
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status",description=""
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message",description=""
 
-// Provider is the Schema for the providers API
+// Provider is the Schema for the providers API.
 type Provider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -133,12 +131,6 @@ type Provider struct {
 	Spec ProviderSpec `json:"spec,omitempty"`
 	// +kubebuilder:default:={"observedGeneration":-1}
 	Status ProviderStatus `json:"status,omitempty"`
-}
-
-// GetStatusConditions returns a pointer to the Status.Conditions slice
-// Deprecated: use GetConditions instead.
-func (in *Provider) GetStatusConditions() *[]metav1.Condition {
-	return &in.Status.Conditions
 }
 
 // GetConditions returns the status conditions of the object.
@@ -153,7 +145,7 @@ func (in *Provider) SetConditions(conditions []metav1.Condition) {
 
 // +kubebuilder:object:root=true
 
-// ProviderList contains a list of Provider
+// ProviderList contains a list of Providers.
 type ProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -164,6 +156,7 @@ func init() {
 	SchemeBuilder.Register(&Provider{}, &ProviderList{})
 }
 
+// GetTimeout returns the timeout value with a default of 15s for this Provider.
 func (in *Provider) GetTimeout() time.Duration {
 	duration := 15 * time.Second
 	if in.Spec.Timeout != nil {
