@@ -18,18 +18,16 @@ package server
 
 import (
 	"context"
-	"crypto/sha256"
-	"fmt"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/slok/go-http-metrics/middleware"
 	"github.com/slok/go-http-metrics/middleware/std"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 )
 
 // ReceiverServer handles webhook POST requests
@@ -39,7 +37,7 @@ type ReceiverServer struct {
 	kubeClient client.Client
 }
 
-// NewEventServer returns an HTTP server that handles webhooks
+// NewReceiverServer returns an HTTP server that handles webhooks
 func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client) *ReceiverServer {
 	return &ReceiverServer{
 		port:       port,
@@ -51,7 +49,7 @@ func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client
 // ListenAndServe starts the HTTP server on the specified port
 func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Middleware) {
 	mux := http.NewServeMux()
-	mux.Handle("/hook/", http.HandlerFunc(s.handlePayload()))
+	mux.Handle(apiv1.ReceiverWebhookPath, http.HandlerFunc(s.handlePayload()))
 	h := std.Handler("", mdlw, mux)
 	srv := &http.Server{
 		Addr:    s.port,
@@ -75,11 +73,4 @@ func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.
 	} else {
 		s.logger.Info("Receiver server stopped")
 	}
-}
-
-func receiverKeyFunc(r *http.Request) (string, error) {
-	id := url.PathEscape(strings.TrimLeft(r.RequestURI, "/hook/"))
-	val := strings.Join([]string{"receiver", id}, "/")
-	digest := sha256.Sum256([]byte(val))
-	return fmt.Sprintf("%x", digest), nil
 }

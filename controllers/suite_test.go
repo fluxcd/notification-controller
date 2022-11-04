@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"math/rand"
 	"os"
@@ -153,4 +154,9 @@ func readManifest(manifest, namespace string) (*unstructured.Unstructured, error
 	}
 
 	return object, nil
+}
+
+func sha256sum(val string) string {
+	digest := sha256.Sum256([]byte(val))
+	return fmt.Sprintf("%x", digest)
 }

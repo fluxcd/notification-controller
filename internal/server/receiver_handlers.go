@@ -45,7 +45,7 @@ import (
 func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
-		digest := url.PathEscape(strings.TrimLeft(r.RequestURI, "/hook/"))
+		digest := url.PathEscape(strings.TrimLeft(r.RequestURI, apiv1.ReceiverWebhookPath))
 
 		s.logger.Info(fmt.Sprintf("handling request: %s", digest))
 
@@ -61,7 +61,7 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 		for _, receiver := range allReceivers.Items {
 			if !receiver.Spec.Suspend &&
 				conditions.IsReady(&receiver) &&
-				receiver.Status.URL == fmt.Sprintf("/hook/%s", digest) {
+				receiver.Status.URL == fmt.Sprintf("%s%s", apiv1.ReceiverWebhookPath, digest) {
 				receivers = append(receivers, receiver)
 			}
 		}
@@ -231,10 +231,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		logger.Info(fmt.Sprintf("handling DockerHub event from %s for tag %s", p.Repository.URL, p.PushData.Tag))
 		return nil
 	case apiv1.GCRReceiver:
-		const (
-			insert     = "insert"
-			tokenIndex = len("Bearer ")
-		)
+		const tokenIndex = len("Bearer ")
 
 		type data struct {
 			Action string `json:"action"`

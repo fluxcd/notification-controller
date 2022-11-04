@@ -17,9 +17,28 @@ limitations under the License.
 package v1beta2
 
 import (
+	"crypto/sha256"
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/fluxcd/pkg/apis/meta"
+)
+
+const (
+	ReceiverKind        string = "Receiver"
+	ReceiverWebhookPath string = "/hook/"
+	GenericReceiver     string = "generic"
+	GenericHMACReceiver string = "generic-hmac"
+	GitHubReceiver      string = "github"
+	GitLabReceiver      string = "gitlab"
+	BitbucketReceiver   string = "bitbucket"
+	HarborReceiver      string = "harbor"
+	DockerHubReceiver   string = "dockerhub"
+	QuayReceiver        string = "quay"
+	GCRReceiver         string = "gcr"
+	NexusReceiver       string = "nexus"
+	ACRReceiver         string = "acr"
 )
 
 // ReceiverSpec defines the desired state of Receiver
@@ -67,21 +86,6 @@ type ReceiverStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
-const (
-	GenericReceiver     string = "generic"
-	GenericHMACReceiver string = "generic-hmac"
-	GitHubReceiver      string = "github"
-	GitLabReceiver      string = "gitlab"
-	BitbucketReceiver   string = "bitbucket"
-	HarborReceiver      string = "harbor"
-	DockerHubReceiver   string = "dockerhub"
-	QuayReceiver        string = "quay"
-	GCRReceiver         string = "gcr"
-	NexusReceiver       string = "nexus"
-	ReceiverKind        string = "Receiver"
-	ACRReceiver         string = "acr"
-)
-
 // GetStatusConditions returns a pointer to the Status.Conditions slice
 // Deprecated: use GetConditions instead.
 func (in *Receiver) GetStatusConditions() *[]metav1.Condition {
@@ -96,6 +100,12 @@ func (in *Receiver) GetConditions() []metav1.Condition {
 // SetConditions sets the status conditions on the object.
 func (in *Receiver) SetConditions(conditions []metav1.Condition) {
 	in.Status.Conditions = conditions
+}
+
+// GetWebhookURL returns the incoming webhook URL for the given token.
+func (in *Receiver) GetWebhookURL(token string) string {
+	digest := sha256.Sum256([]byte(token + in.GetName() + in.GetNamespace()))
+	return fmt.Sprintf("%s%x", ReceiverWebhookPath, digest)
 }
 
 // +genclient

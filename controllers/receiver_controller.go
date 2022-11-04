@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"time"
 
@@ -142,7 +141,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	receiverURL := fmt.Sprintf("/hook/%s", sha256sum(token+obj.Name+obj.Namespace))
+	receiverURL := obj.GetWebhookURL(token)
 	msg := fmt.Sprintf("Receiver initialized with URL: %s", receiverURL)
 
 	// Mark the resource as ready and set the URL
@@ -225,9 +224,4 @@ func (r *ReceiverReconciler) token(ctx context.Context, receiver *apiv1.Receiver
 	}
 
 	return token, nil
-}
-
-func sha256sum(val string) string {
-	digest := sha256.Sum256([]byte(val))
-	return fmt.Sprintf("%x", digest)
 }
