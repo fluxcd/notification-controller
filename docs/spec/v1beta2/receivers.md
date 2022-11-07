@@ -128,6 +128,12 @@ to another tenant's resources.
 `.spec.secretRef.name` is a required field to specify a name reference to a
 Secret in the same namespace as the Receiver, containing the secret token.
 
+### Interval
+
+`.spec.interval` is a required field with a default of ten minutes that specifies
+the time interval at which the controller reconciles the provider with its Secret
+references.
+
 ### Suspend
 
 `.spec.suspend` is an optional field to suspend the receiver.

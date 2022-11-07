@@ -249,6 +249,12 @@ spec:
                   should be posted.
                 maxLength: 2048
                 type: string
+              interval:
+                default: 10m
+                description: Interval at which to reconcile the Provider with its
+                  Secret references.
+                pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
+                type: string
               proxy:
                 description: Proxy the HTTP/S address of the proxy server.
                 maxLength: 2048
@@ -302,6 +308,7 @@ spec:
                 maxLength: 2048
                 type: string
             required:
+            - interval
             - type
             type: object
           status:

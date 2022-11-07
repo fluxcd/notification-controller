@@ -62,6 +62,7 @@ func TestProviderReconciler_Reconcile(t *testing.T) {
 	g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())
 
 	t.Run("reports ready status", func(t *testing.T) {
+		g := NewWithT(t)
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), resultP)
 			return resultP.Status.ObservedGeneration == resultP.Generation
@@ -75,6 +76,7 @@ func TestProviderReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("fails with secret not found error", func(t *testing.T) {
+		g := NewWithT(t)
 		resultP.Spec.SecretRef = &meta.LocalObjectReference{
 			Name: secretName,
 		}
@@ -95,6 +97,7 @@ func TestProviderReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("recovers when secret exists", func(t *testing.T) {
+		g := NewWithT(t)
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      secretName,
@@ -117,6 +120,7 @@ func TestProviderReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("handles reconcileAt", func(t *testing.T) {
+		g := NewWithT(t)
 		reconcileRequestAt := metav1.Now().String()
 		resultP.SetAnnotations(map[string]string{
 			meta.ReconcileRequestAnnotation: reconcileRequestAt,
@@ -130,6 +134,7 @@ func TestProviderReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("finalizes suspended object", func(t *testing.T) {
+		g := NewWithT(t)
 		resultP.Spec.Suspend = true
 		g.Expect(k8sClient.Update(context.Background(), resultP)).To(Succeed())
 

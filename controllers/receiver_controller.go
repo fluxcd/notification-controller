@@ -150,7 +150,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 
 	ctrl.LoggerFrom(ctx).Info(msg)
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: obj.Spec.Interval.Duration}, nil
 }
 
 // patch updates the object status, conditions and finalizers.

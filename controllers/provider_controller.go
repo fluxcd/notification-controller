@@ -135,7 +135,7 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1.Provider)
 	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, apiv1.InitializedReason)
 	ctrl.LoggerFrom(ctx).Info("Provider initialized")
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: obj.Spec.Interval.Duration}, nil
 }
 
 func (r *ProviderReconciler) validate(ctx context.Context, provider *apiv1.Provider) error {

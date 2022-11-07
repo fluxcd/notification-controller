@@ -239,6 +239,19 @@ string
 </tr>
 <tr>
 <td>
+<code>interval</code><br>
+<em>
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<p>Interval at which to reconcile the Provider with its Secret references.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>channel</code><br>
 <em>
 string
@@ -428,6 +441,19 @@ string
 <td>
 <p>Type of webhook sender, used to determine
 the validation procedure and payload deserialization.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interval</code><br>
+<em>
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<p>Interval at which to reconcile the Receiver with its Secret references.</p>
 </td>
 </tr>
 <tr>
@@ -776,6 +802,19 @@ string
 </tr>
 <tr>
 <td>
+<code>interval</code><br>
+<em>
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<p>Interval at which to reconcile the Provider with its Secret references.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>channel</code><br>
 <em>
 string
@@ -972,6 +1011,19 @@ string
 <td>
 <p>Type of webhook sender, used to determine
 the validation procedure and payload deserialization.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interval</code><br>
+<em>
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<p>Interval at which to reconcile the Receiver with its Secret references.</p>
 </td>
 </tr>
 <tr>

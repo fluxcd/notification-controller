@@ -89,6 +89,7 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 	g.Expect(k8sClient.Create(context.Background(), receiver)).To(Succeed())
 
 	t.Run("reports ready status", func(t *testing.T) {
+		g := NewWithT(t)
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
 			return resultR.Status.ObservedGeneration == resultR.Generation
@@ -102,6 +103,7 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("fails with secret not found error", func(t *testing.T) {
+		g := NewWithT(t)
 		g.Expect(k8sClient.Delete(context.Background(), secret)).To(Succeed())
 
 		reconcileRequestAt := metav1.Now().String()
@@ -124,6 +126,7 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("recovers when secret exists", func(t *testing.T) {
+		g := NewWithT(t)
 		newSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      secretName,
@@ -146,6 +149,7 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("handles reconcileAt", func(t *testing.T) {
+		g := NewWithT(t)
 		reconcileRequestAt := metav1.Now().String()
 		resultR.SetAnnotations(map[string]string{
 			meta.ReconcileRequestAnnotation: reconcileRequestAt,
@@ -159,6 +163,7 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("finalizes suspended object", func(t *testing.T) {
+		g := NewWithT(t)
 		resultR.Spec.Suspend = true
 		g.Expect(k8sClient.Update(context.Background(), resultR)).To(Succeed())
 
@@ -254,6 +259,7 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 	address := fmt.Sprintf("/hook/%s", sha256sum(token+receiverKey.Name+receiverKey.Namespace))
 
 	t.Run("generates URL when ready", func(t *testing.T) {
+		g := NewWithT(t)
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
 			return conditions.IsReady(resultR)
@@ -263,6 +269,7 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 	})
 
 	t.Run("doesn't update the URL on spec updates", func(t *testing.T) {
+		g := NewWithT(t)
 		resultR.Spec.Events = []string{"ping", "push"}
 		g.Expect(k8sClient.Update(context.Background(), resultR)).To(Succeed())
 
@@ -276,6 +283,7 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 	})
 
 	t.Run("handles event", func(t *testing.T) {
+		g := NewWithT(t)
 		res, err := http.Post("http://localhost:56788/"+address, "application/json", nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.StatusCode).To(Equal(http.StatusOK))

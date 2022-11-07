@@ -253,6 +253,12 @@ spec:
                 items:
                   type: string
                 type: array
+              interval:
+                default: 10m
+                description: Interval at which to reconcile the Receiver with its
+                  Secret references.
+                pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
+                type: string
               resources:
                 description: A list of resources to be notified about changes.
                 items:
@@ -330,6 +336,7 @@ spec:
                 - acr
                 type: string
             required:
+            - interval
             - resources
             - type
             type: object
