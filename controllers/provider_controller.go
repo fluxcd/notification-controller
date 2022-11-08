@@ -26,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	kuberecorder "k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,6 +50,7 @@ import (
 type ProviderReconciler struct {
 	client.Client
 	helper.Metrics
+	kuberecorder.EventRecorder
 
 	ControllerName string
 }
@@ -96,6 +98,11 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		r.Metrics.RecordReadiness(ctx, obj)
 		r.Metrics.RecordDuration(ctx, obj, reconcileStart)
 		r.Metrics.RecordSuspend(ctx, obj, obj.Spec.Suspend)
+
+		// Issue warning event if the reconciliation failed.
+		if retErr != nil {
+			r.Event(obj, corev1.EventTypeWarning, meta.FailedReason, retErr.Error())
+		}
 
 		// Patch finalizers, status and conditions.
 		retErr = r.patch(ctx, obj, patcher)

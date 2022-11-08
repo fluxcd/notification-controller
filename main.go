@@ -127,6 +127,7 @@ func main() {
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
 		Metrics:        metricsH,
+		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
 	}).SetupWithManagerAndOptions(mgr, controllers.ProviderReconcilerOptions{
 		MaxConcurrentReconciles: concurrent,
 		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),
@@ -138,6 +139,7 @@ func main() {
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
 		Metrics:        metricsH,
+		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
 	}).SetupWithManagerAndOptions(mgr, controllers.AlertReconcilerOptions{
 		MaxConcurrentReconciles: concurrent,
 		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),
@@ -149,6 +151,7 @@ func main() {
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
 		Metrics:        metricsH,
+		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
 	}).SetupWithManagerAndOptions(mgr, controllers.ReceiverReconcilerOptions{
 		MaxConcurrentReconciles: concurrent,
 		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),

@@ -67,12 +67,12 @@ func TestMain(m *testing.M) {
 	controllerName := "notification-controller"
 	testMetricsH := controller.MustMakeMetrics(testEnv)
 
-	reconciler := AlertReconciler{
+	if err := (&AlertReconciler{
 		Client:         testEnv,
 		Metrics:        testMetricsH,
 		ControllerName: controllerName,
-	}
-	if err := (reconciler).SetupWithManager(testEnv); err != nil {
+		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
+	}).SetupWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Failed to start AlerReconciler: %v", err))
 	}
 
@@ -80,6 +80,7 @@ func TestMain(m *testing.M) {
 		Client:         testEnv,
 		Metrics:        testMetricsH,
 		ControllerName: controllerName,
+		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
 	}).SetupWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Failed to start ProviderReconciler: %v", err))
 	}
@@ -88,6 +89,7 @@ func TestMain(m *testing.M) {
 		Client:         testEnv,
 		Metrics:        testMetricsH,
 		ControllerName: controllerName,
+		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
 	}).SetupWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Failed to start ReceiverReconciler: %v", err))
 	}

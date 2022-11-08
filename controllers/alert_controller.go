@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -115,6 +116,11 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 		r.Metrics.RecordReadiness(ctx, obj)
 		r.Metrics.RecordDuration(ctx, obj, reconcileStart)
 		r.Metrics.RecordSuspend(ctx, obj, obj.Spec.Suspend)
+
+		// Issue warning event if the reconciliation failed.
+		if retErr != nil {
+			r.Event(obj, corev1.EventTypeWarning, meta.FailedReason, retErr.Error())
+		}
 
 		// Patch finalizers, status and conditions.
 		retErr = r.patch(ctx, obj, patcher)
