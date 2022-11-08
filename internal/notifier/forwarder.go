@@ -25,7 +25,7 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 
 	"github.com/hashicorp/go-retryablehttp"
 )
@@ -68,7 +68,7 @@ func sign(payload, key []byte) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func (f *Forwarder) Post(ctx context.Context, event events.Event) error {
+func (f *Forwarder) Post(ctx context.Context, event eventv1.Event) error {
 	var sig string
 	if len(f.HMACKey) != 0 {
 		eventJSON, err := json.Marshal(event)

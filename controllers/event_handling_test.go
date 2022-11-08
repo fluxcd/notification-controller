@@ -21,9 +21,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
-	"github.com/fluxcd/pkg/runtime/events"
 
 	notifyv1 "github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/notification-controller/internal/server"
@@ -154,7 +154,7 @@ func TestEventHandler(t *testing.T) {
 		return conditions.IsReady(&obj)
 	}, 30*time.Second, time.Second).Should(BeTrue())
 
-	event := events.Event{
+	event := eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Bucket",
 			Name:      "hyacinth",
@@ -194,17 +194,17 @@ func TestEventHandler(t *testing.T) {
 
 	tests := []struct {
 		name            string
-		modifyEventFunc func(e events.Event) events.Event
+		modifyEventFunc func(e eventv1.Event) eventv1.Event
 		forwarded       bool
 	}{
 		{
 			name:            "forwards when source is a match",
-			modifyEventFunc: func(e events.Event) events.Event { return e },
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event { return e },
 			forwarded:       true,
 		},
 		{
 			name: "drops event when source Kind does not match",
-			modifyEventFunc: func(e events.Event) events.Event {
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Kind = "GitRepository"
 				return e
 			},
@@ -212,7 +212,7 @@ func TestEventHandler(t *testing.T) {
 		},
 		{
 			name: "drops event when source name does not match",
-			modifyEventFunc: func(e events.Event) events.Event {
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Name = "slop"
 				return e
 			},
@@ -220,7 +220,7 @@ func TestEventHandler(t *testing.T) {
 		},
 		{
 			name: "drops event when source namespace does not match",
-			modifyEventFunc: func(e events.Event) events.Event {
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Namespace = "all-buckets"
 				return e
 			},
@@ -228,7 +228,7 @@ func TestEventHandler(t *testing.T) {
 		},
 		{
 			name: "drops event that is matched by exclusion",
-			modifyEventFunc: func(e events.Event) events.Event {
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.Message = "this is excluded"
 				return e
 			},
@@ -236,7 +236,7 @@ func TestEventHandler(t *testing.T) {
 		},
 		{
 			name: "forwards events when name wildcard is used",
-			modifyEventFunc: func(e events.Event) events.Event {
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Kind = "Kustomization"
 				e.InvolvedObject.Name = "test"
 				e.InvolvedObject.Namespace = namespace
@@ -247,7 +247,7 @@ func TestEventHandler(t *testing.T) {
 		},
 		{
 			name: "forwards events when the label matches",
-			modifyEventFunc: func(e events.Event) events.Event {
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Kind = "GitRepository"
 				e.InvolvedObject.Name = "podinfo"
 				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1beta1"
@@ -259,7 +259,7 @@ func TestEventHandler(t *testing.T) {
 		},
 		{
 			name: "drops events when the labels don't match",
-			modifyEventFunc: func(e events.Event) events.Event {
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Kind = "GitRepository"
 				e.InvolvedObject.Name = "podinfo-two"
 				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1beta1"
@@ -271,7 +271,7 @@ func TestEventHandler(t *testing.T) {
 		},
 		{
 			name: "drops events for cross-namespace sources",
-			modifyEventFunc: func(e events.Event) events.Event {
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Kind = "Kustomization"
 				e.InvolvedObject.Name = "test"
 				e.InvolvedObject.Namespace = "test"

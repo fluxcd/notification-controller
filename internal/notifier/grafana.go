@@ -23,7 +23,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/hashicorp/go-retryablehttp"
 )
 
@@ -61,9 +61,9 @@ func NewGrafana(URL string, proxyURL string, token string, certPool *x509.CertPo
 }
 
 // Post annotation
-func (g *Grafana) Post(ctx context.Context, event events.Event) error {
-	// Skip any update events
-	if isCommitStatus(event.Metadata, "update") {
+func (g *Grafana) Post(ctx context.Context, event eventv1.Event) error {
+	// Skip Git commit status update event.
+	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
 		return nil
 	}
 

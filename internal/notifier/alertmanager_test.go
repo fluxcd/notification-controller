@@ -26,7 +26,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/stretchr/testify/require"
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
@@ -72,7 +72,7 @@ func Fuzz_AlertManager(f *testing.F) {
 			return
 		}
 
-		event := events.Event{}
+		event := eventv1.Event{}
 
 		// Try to fuzz the event object, but if it fails (not enough seed),
 		// ignore it, as other inputs are also being used in this test.

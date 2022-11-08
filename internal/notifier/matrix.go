@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/hashicorp/go-retryablehttp"
 )
 
@@ -40,7 +40,7 @@ func NewMatrix(serverURL, token, roomId string, certPool *x509.CertPool) (*Matri
 	}, nil
 }
 
-func (m *Matrix) Post(ctx context.Context, event events.Event) error {
+func (m *Matrix) Post(ctx context.Context, event eventv1.Event) error {
 	txId, err := sha1sum(event)
 	if err != nil {
 		return fmt.Errorf("unable to generate unique tx id: %s", err)
@@ -49,7 +49,7 @@ func (m *Matrix) Post(ctx context.Context, event events.Event) error {
 		m.URL, m.RoomId, txId)
 
 	emoji := "💫"
-	if event.Severity == events.EventSeverityError {
+	if event.Severity == eventv1.EventSeverityError {
 		emoji = "🚨"
 	}
 	var metadata string
@@ -76,7 +76,7 @@ func (m *Matrix) Post(ctx context.Context, event events.Event) error {
 	return nil
 }
 
-func sha1sum(event events.Event) (string, error) {
+func sha1sum(event eventv1.Event) (string, error) {
 	val, err := json.Marshal(event)
 	if err != nil {
 		return "", err

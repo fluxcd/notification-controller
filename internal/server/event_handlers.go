@@ -35,10 +35,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/masktoken"
-	"github.com/fluxcd/pkg/runtime/events"
 
-	"github.com/fluxcd/notification-controller/api/v1beta1"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta1"
 	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
@@ -53,7 +53,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		}
 		defer r.Body.Close()
 
-		event := &events.Event{}
+		event := &eventv1.Event{}
 		err = json.Unmarshal(body, event)
 		if err != nil {
 			s.logger.Error(err, "decoding the request body failed")
@@ -66,7 +66,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
 
-		var allAlerts v1beta1.AlertList
+		var allAlerts apiv1.AlertList
 		err = s.kubeClient.List(ctx, &allAlerts)
 		if err != nil {
 			s.logger.Error(err, "listing alerts failed")
@@ -75,7 +75,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		}
 
 		// find matching alerts
-		alerts := make([]v1beta1.Alert, 0)
+		alerts := make([]apiv1.Alert, 0)
 	each_alert:
 		for _, alert := range allAlerts.Items {
 			// skip suspended and not ready alerts
@@ -134,13 +134,13 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
-			var provider v1beta1.Provider
+			var provider apiv1.Provider
 			providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
 
 			err = s.kubeClient.Get(ctx, providerName, &provider)
 			if err != nil {
 				s.logger.Error(err, "failed to read provider",
-					"reconciler kind", v1beta1.ProviderKind,
+					"reconciler kind", apiv1.ProviderKind,
 					"name", providerName.Name,
 					"namespace", providerName.Namespace)
 				continue
@@ -163,7 +163,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				err = s.kubeClient.Get(ctx, secretName, &secret)
 				if err != nil {
 					s.logger.Error(err, "failed to read secret",
-						"reconciler kind", v1beta1.ProviderKind,
+						"reconciler kind", apiv1.ProviderKind,
 						"name", providerName.Name,
 						"namespace", providerName.Namespace)
 					continue
@@ -193,7 +193,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 					err := yaml.Unmarshal(h, &headers)
 					if err != nil {
 						s.logger.Error(err, "failed to read headers from secret",
-							"reconciler kind", v1beta1.ProviderKind,
+							"reconciler kind", apiv1.ProviderKind,
 							"name", providerName.Name,
 							"namespace", providerName.Namespace)
 						continue
@@ -209,7 +209,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				err = s.kubeClient.Get(ctx, secretName, &secret)
 				if err != nil {
 					s.logger.Error(err, "failed to read secret",
-						"reconciler kind", v1beta1.ProviderKind,
+						"reconciler kind", apiv1.ProviderKind,
 						"name", providerName.Name,
 						"namespace", providerName.Namespace)
 					continue
@@ -218,7 +218,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				caFile, ok := secret.Data["caFile"]
 				if !ok {
 					s.logger.Error(err, "failed to read secret key caFile",
-						"reconciler kind", v1beta1.ProviderKind,
+						"reconciler kind", apiv1.ProviderKind,
 						"name", providerName.Name,
 						"namespace", providerName.Namespace)
 					continue
@@ -228,7 +228,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				ok = certPool.AppendCertsFromPEM(caFile)
 				if !ok {
 					s.logger.Error(err, "could not append to cert pool",
-						"reconciler kind", v1beta1.ProviderKind,
+						"reconciler kind", apiv1.ProviderKind,
 						"name", providerName.Name,
 						"namespace", providerName.Namespace)
 					continue
@@ -237,7 +237,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 			if webhook == "" {
 				s.logger.Error(nil, "provider has no address",
-					"reconciler kind", v1beta1.ProviderKind,
+					"reconciler kind", apiv1.ProviderKind,
 					"name", providerName.Name,
 					"namespace", providerName.Namespace)
 				continue
@@ -247,7 +247,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {
 				s.logger.Error(err, "failed to initialize provider",
-					"reconciler kind", v1beta1.ProviderKind,
+					"reconciler kind", apiv1.ProviderKind,
 					"name", providerName.Name,
 					"namespace", providerName.Namespace)
 				continue
@@ -264,7 +264,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				}
 			}
 
-			go func(n notifier.Interface, e events.Event) {
+			go func(n notifier.Interface, e eventv1.Event) {
 				ctx, cancel := context.WithTimeout(context.Background(), provider.GetTimeout())
 				defer cancel()
 				if err := n.Post(ctx, e); err != nil {
@@ -286,12 +286,9 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (s *EventServer) eventMatchesAlert(ctx context.Context, event *events.Event, source v1beta1.CrossNamespaceObjectReference, severity string) bool {
-	if event.InvolvedObject.Namespace == source.Namespace &&
-		event.InvolvedObject.Kind == source.Kind {
-		if event.Severity == severity ||
-			severity == events.EventSeverityInfo {
-
+func (s *EventServer) eventMatchesAlert(ctx context.Context, event *eventv1.Event, source apiv1.CrossNamespaceObjectReference, severity string) bool {
+	if event.InvolvedObject.Namespace == source.Namespace && event.InvolvedObject.Kind == source.Kind {
+		if event.Severity == severity || severity == eventv1.EventSeverityInfo {
 			labelMatch := true
 			if source.Name == "*" && source.MatchLabels != nil {
 				var obj metav1.PartialObjectMetadata
@@ -326,21 +323,13 @@ func (s *EventServer) eventMatchesAlert(ctx context.Context, event *events.Event
 	return false
 }
 
-// TODO: move the metadata filtering function to fluxcd/pkg/runtime/events
 // cleanupMetadata removes metadata entries which are not used for alerting
-func cleanupMetadata(event *events.Event) {
+func cleanupMetadata(event *eventv1.Event) {
 	group := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group
-	excludeList := []string{fmt.Sprintf("%s/checksum", group)}
+	excludeList := []string{fmt.Sprintf("%s/%s", group, eventv1.MetaChecksumKey)}
 
 	meta := make(map[string]string)
-
 	if event.Metadata != nil && len(event.Metadata) > 0 {
-		// For backwards compatibility, include the revision without a group prefix
-		revisionKey := "revision"
-		if rev, ok := event.Metadata[revisionKey]; ok {
-			meta[revisionKey] = rev
-		}
-
 		// Filter other meta based on group prefix, while filtering out excludes
 		for key, val := range event.Metadata {
 			if strings.HasPrefix(key, group) && !inList(excludeList, key) {

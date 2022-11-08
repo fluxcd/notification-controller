@@ -30,7 +30,7 @@ import (
 	"github.com/sethvargo/go-limiter/memorystore"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 func TestEventKeyFunc(t *testing.T) {
@@ -61,7 +61,7 @@ func TestEventKeyFunc(t *testing.T) {
 				Name:       "1",
 				Namespace:  "1",
 			},
-			severity:  events.EventSeverityInfo,
+			severity:  eventv1.EventSeverityInfo,
 			message:   "Health check passed",
 			rateLimit: false,
 		},
@@ -72,7 +72,7 @@ func TestEventKeyFunc(t *testing.T) {
 				Name:       "1",
 				Namespace:  "1",
 			},
-			severity:  events.EventSeverityInfo,
+			severity:  eventv1.EventSeverityInfo,
 			message:   "Health check passed",
 			rateLimit: true,
 		},
@@ -83,7 +83,7 @@ func TestEventKeyFunc(t *testing.T) {
 				Name:       "1",
 				Namespace:  "1",
 			},
-			severity:  events.EventSeverityError,
+			severity:  eventv1.EventSeverityError,
 			message:   "Health check timed out for [Deployment 'foo/bar']",
 			rateLimit: false,
 		},
@@ -94,7 +94,7 @@ func TestEventKeyFunc(t *testing.T) {
 				Name:       "2",
 				Namespace:  "2",
 			},
-			severity:  events.EventSeverityInfo,
+			severity:  eventv1.EventSeverityInfo,
 			message:   "Health check passed",
 			rateLimit: false,
 		},
@@ -105,7 +105,7 @@ func TestEventKeyFunc(t *testing.T) {
 				Name:       "3",
 				Namespace:  "3",
 			},
-			severity:  events.EventSeverityInfo,
+			severity:  eventv1.EventSeverityInfo,
 			message:   "Health check passed",
 			rateLimit: false,
 		},
@@ -116,14 +116,14 @@ func TestEventKeyFunc(t *testing.T) {
 				Name:       "2",
 				Namespace:  "2",
 			},
-			severity:  events.EventSeverityInfo,
+			severity:  eventv1.EventSeverityInfo,
 			message:   "Health check passed",
 			rateLimit: true,
 		},
 	}
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
-			event := events.Event{
+			event := eventv1.Event{
 				InvolvedObject: tt.involvedObject,
 				Severity:       tt.severity,
 				Message:        tt.message,

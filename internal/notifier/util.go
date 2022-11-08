@@ -24,7 +24,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	giturls "github.com/whilp/git-urls"
 )
 
@@ -45,12 +45,20 @@ func parseGitAddress(s string) (string, string, error) {
 	return host, id, nil
 }
 
-func formatNameAndDescription(event events.Event) (string, string) {
+func formatNameAndDescription(event eventv1.Event) (string, string) {
 	name := fmt.Sprintf("%v/%v", event.InvolvedObject.Kind, event.InvolvedObject.Name)
 	name = strings.ToLower(name)
 	desc := strings.Join(splitCamelcase(event.Reason), " ")
 	desc = strings.ToLower(desc)
 	return name, desc
+}
+
+// generateCommitStatusID returns a unique ID per cluster based on the Provider UID,
+// involved object kind and name.
+func generateCommitStatusID(providerUID string, event eventv1.Event) string {
+	uidParts := strings.Split(providerUID, "-")
+	id := fmt.Sprintf("%s/%s/%s", event.InvolvedObject.Kind, event.InvolvedObject.Name, uidParts[0])
+	return strings.ToLower(id)
 }
 
 func splitCamelcase(src string) (entries []string) {
@@ -108,13 +116,6 @@ func parseRevision(rev string) (string, error) {
 		return "", fmt.Errorf("Commit Sha cannot be empty: %v", rev)
 	}
 	return sha, nil
-}
-
-func isCommitStatus(meta map[string]string, status string) bool {
-	if val, ok := meta["commit_status"]; ok && val == status {
-		return true
-	}
-	return false
 }
 
 func sha1String(str string) string {

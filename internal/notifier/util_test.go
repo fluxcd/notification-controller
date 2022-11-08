@@ -20,13 +20,13 @@ import (
 	"testing"
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 )
 
 func TestUtil_NameAndDescription(t *testing.T) {
-	event := events.Event{
+	event := eventv1.Event{
 		InvolvedObject: v1.ObjectReference{
 			Kind: "Kustomization",
 			Name: "gitops-system",
@@ -137,7 +137,7 @@ func Fuzz_Util_FormatNameAndDescription(f *testing.F) {
 	f.Add("aA1-", []byte{})
 
 	f.Fuzz(func(t *testing.T, reason string, seed []byte) {
-		event := events.Event{}
+		event := eventv1.Event{}
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
 
 		event.Reason = reason

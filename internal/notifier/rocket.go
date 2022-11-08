@@ -24,7 +24,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 // Rocket holds the hook URL
@@ -61,9 +61,9 @@ func NewRocket(hookURL string, proxyURL string, certPool *x509.CertPool, usernam
 }
 
 // Post Rocket message
-func (s *Rocket) Post(ctx context.Context, event events.Event) error {
-	// Skip any update events
-	if isCommitStatus(event.Metadata, "update") {
+func (s *Rocket) Post(ctx context.Context, event eventv1.Event) error {
+	// Skip Git commit status update event.
+	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
 		return nil
 	}
 
@@ -73,7 +73,7 @@ func (s *Rocket) Post(ctx context.Context, event events.Event) error {
 	}
 
 	color := "#0076D7"
-	if event.Severity == events.EventSeverityError {
+	if event.Severity == eventv1.EventSeverityError {
 		color = "#FF0000"
 	}
 
