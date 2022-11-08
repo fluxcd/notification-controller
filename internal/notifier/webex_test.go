@@ -25,6 +25,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 func TestWebex_Post(t *testing.T) {
@@ -50,7 +52,7 @@ func TestWebex_PostUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	event := testEvent()
-	event.Metadata["commit_status"] = "update"
+	event.Metadata[eventv1.MetaCommitStatusKey] = eventv1.MetaCommitStatusUpdateValue
 	err = webex.Post(context.TODO(), event)
 	require.NoError(t, err)
 }

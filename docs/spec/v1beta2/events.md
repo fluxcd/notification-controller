@@ -41,7 +41,7 @@ In the above example:
 ## Event structure
 
 The Go type that defines the event structure can be found in the
-[fluxcd/pkg/runtime/events](https://github.com/fluxcd/pkg/blob/main/runtime/events/event.go)
+[fluxcd/pkg/apis/event/v1beta1](https://github.com/fluxcd/pkg/blob/main/apis/event/v1beta1/event.go)
 package.
 
 ## Rate limiting

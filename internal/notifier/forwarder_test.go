@@ -25,10 +25,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
-	"github.com/stretchr/testify/require"
 )
 
 func TestForwarder_New(t *testing.T) {
