@@ -26,6 +26,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/google/go-github/v45/github"
 	"golang.org/x/oauth2"
 
@@ -80,6 +81,66 @@ func NewGitHub(addr string, token string, certPool *x509.CertPool) (*GitHub, err
 		}
 	}
 
+	return &GitHub{
+		Owner:  comp[0],
+		Repo:   comp[1],
+		Client: client,
+	}, nil
+}
+
+func NewGitHubApp(addr string, appID int64, installationID int64, privateKey []byte, certPool *x509.CertPool) (*GitHub, error) {
+	if appID == 0 {
+		return nil, errors.New("appID cannot be empty")
+	}
+
+	if installationID == 0 {
+		return nil, errors.New("installationID cannot be empty")
+	}
+
+	if len(privateKey) == 0 {
+		return nil, errors.New("privateKey cannot be empty")
+	}
+
+	host, id, err := parseGitAddress(addr)
+	if err != nil {
+		return nil, err
+	}
+
+	baseUrl, err := url.Parse(host)
+	if err != nil {
+		return nil, err
+	}
+
+	comp := strings.Split(id, "/")
+	if len(comp) != 2 {
+		return nil, fmt.Errorf("invalid repository id %q", id)
+	}
+
+	itr, err := ghinstallation.New(http.DefaultTransport,
+		appID, installationID, privateKey)
+	if err != nil {
+		return nil, err
+	}
+	client := github.NewClient(&http.Client{Transport: itr})
+	if baseUrl.Host != "github.com" {
+		if certPool != nil {
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: certPool,
+				},
+			}
+
+			itr, err := ghinstallation.New(tr, appID, installationID, privateKey)
+			if err != nil {
+				return nil, err
+			}
+			itr.BaseURL = host
+		}
+		client, err = github.NewEnterpriseClient(host, host, &http.Client{Transport: itr})
+		if err != nil {
+			return nil, fmt.Errorf("could not create enterprise GitHub client: %v", err)
+		}
+	}
 	return &GitHub{
 		Owner:  comp[0],
 		Repo:   comp[1],

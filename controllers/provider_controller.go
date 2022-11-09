@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"strconv"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -171,6 +172,8 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Pro
 	username := provider.Spec.Username
 	password := ""
 	token := ""
+	var githubAppID, githubAppInstallationID int64
+	githubAppPrivateKey := []byte{}
 	headers := make(map[string]string)
 	if provider.Spec.SecretRef != nil {
 		var secret corev1.Secret
@@ -194,6 +197,26 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Pro
 
 		if t, ok := secret.Data["token"]; ok {
 			token = string(t)
+		}
+
+		if a, ok := secret.Data["githubAppID"]; ok {
+			var err error
+			githubAppID, err = strconv.ParseInt(string(a), 10, 64)
+			if err != nil {
+				return fmt.Errorf("could not convert appID to int64, error: %w", err)
+			}
+		}
+
+		if i, ok := secret.Data["githubAppInstallationID"]; ok {
+			var err error
+			githubAppInstallationID, err = strconv.ParseInt(string(i), 10, 64)
+			if err != nil {
+				return fmt.Errorf("could not convert installationID to int64, error: %w", err)
+			}
+		}
+
+		if p, ok := secret.Data["githubAppPrivateKey"]; ok {
+			githubAppPrivateKey = p
 		}
 
 		if u, ok := secret.Data["username"]; ok {
@@ -233,7 +256,7 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Pro
 		}
 	}
 
-	factory := notifier.NewFactory(address, proxy, username, provider.Spec.Channel, token, headers, certPool, password)
+	factory := notifier.NewFactory(address, proxy, username, provider.Spec.Channel, token, githubAppID, githubAppInstallationID, githubAppPrivateKey, headers, certPool, password)
 	if _, err := factory.Notifier(provider.Spec.Type); err != nil {
 		return fmt.Errorf("failed to initialize provider, error: %w", err)
 	}

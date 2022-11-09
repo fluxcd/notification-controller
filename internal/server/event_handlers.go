@@ -25,6 +25,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -156,6 +157,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			token := ""
 			password := ""
 			headers := make(map[string]string)
+			var githubAppID, githubAppInstallationID int64
+			githubAppPrivateKey := []byte{}
 			if provider.Spec.SecretRef != nil {
 				var secret corev1.Secret
 				secretName := types.NamespacedName{Namespace: alert.Namespace, Name: provider.Spec.SecretRef.Name}
@@ -183,6 +186,34 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 
 				if t, ok := secret.Data["token"]; ok {
 					token = string(t)
+				}
+
+				if a, ok := secret.Data["githubAppID"]; ok {
+					var err error
+					githubAppID, err = strconv.ParseInt(string(a), 10, 64)
+					if err != nil {
+						s.logger.Error(err, "failed to convert githubAppID from secret",
+							"reconciler kind", apiv1.ProviderKind,
+							"name", providerName.Name,
+							"namespace", providerName.Namespace)
+						continue
+					}
+				}
+
+				if i, ok := secret.Data["githubInstallationID"]; ok {
+					var err error
+					githubAppInstallationID, err = strconv.ParseInt(string(i), 10, 64)
+					if err != nil {
+						s.logger.Error(err, "failed to convert githubInstallationID from secret",
+							"reconciler kind", apiv1.ProviderKind,
+							"name", providerName.Name,
+							"namespace", providerName.Namespace)
+						continue
+					}
+				}
+
+				if p, ok := secret.Data["githubPrivateKey"]; ok {
+					githubAppPrivateKey = p
 				}
 
 				if u, ok := secret.Data["username"]; ok {
@@ -243,7 +274,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
-			factory := notifier.NewFactory(webhook, proxy, username, provider.Spec.Channel, token, headers, certPool, password)
+			factory := notifier.NewFactory(webhook, proxy, username, provider.Spec.Channel, token, githubAppID, githubAppInstallationID, githubAppPrivateKey, headers, certPool, password)
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {
 				s.logger.Error(err, "failed to initialize provider",

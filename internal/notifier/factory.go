@@ -24,26 +24,32 @@ import (
 )
 
 type Factory struct {
-	URL      string
-	ProxyURL string
-	Username string
-	Channel  string
-	Token    string
-	Headers  map[string]string
-	CertPool *x509.CertPool
-	Password string
+	URL                     string
+	ProxyURL                string
+	Username                string
+	Channel                 string
+	Token                   string
+	GitHubAppID             int64
+	GitHubAppInstallationID int64
+	GitHubAppPrivateKey     []byte
+	Headers                 map[string]string
+	CertPool                *x509.CertPool
+	Password                string
 }
 
-func NewFactory(url string, proxy string, username string, channel string, token string, headers map[string]string, certPool *x509.CertPool, password string) *Factory {
+func NewFactory(url string, proxy string, username string, channel string, token string, githubAppID int64, githubAppInstallationID int64, githubAppPrivateKey []byte, headers map[string]string, certPool *x509.CertPool, password string) *Factory {
 	return &Factory{
-		URL:      url,
-		ProxyURL: proxy,
-		Channel:  channel,
-		Username: username,
-		Token:    token,
-		Headers:  headers,
-		CertPool: certPool,
-		Password: password,
+		URL:                     url,
+		ProxyURL:                proxy,
+		Channel:                 channel,
+		Username:                username,
+		Token:                   token,
+		GitHubAppID:             githubAppID,
+		GitHubAppInstallationID: githubAppInstallationID,
+		GitHubAppPrivateKey:     githubAppPrivateKey,
+		Headers:                 headers,
+		CertPool:                certPool,
+		Password:                password,
 	}
 }
 
@@ -69,8 +75,12 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewMSTeams(f.URL, f.ProxyURL, f.CertPool)
 	case v1beta1.GitHubProvider:
 		n, err = NewGitHub(f.URL, f.Token, f.CertPool)
+	case v1beta1.GitHubAppProvider:
+		n, err = NewGitHubApp(f.URL, f.GitHubAppID, f.GitHubAppInstallationID, f.GitHubAppPrivateKey, f.CertPool)
 	case v1beta1.GitHubDispatchProvider:
 		n, err = NewGitHubDispatch(f.URL, f.Token, f.CertPool)
+	case v1beta1.GitHubAppDispatchProvider:
+		n, err = NewGitHubAppDispatch(f.URL, f.GitHubAppID, f.GitHubAppInstallationID, f.GitHubAppPrivateKey, f.CertPool)
 	case v1beta1.GitLabProvider:
 		n, err = NewGitLab(f.URL, f.Token, f.CertPool)
 	case v1beta1.BitbucketProvider:
