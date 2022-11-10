@@ -99,13 +99,23 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		r.Metrics.RecordDuration(ctx, obj, reconcileStart)
 		r.Metrics.RecordSuspend(ctx, obj, obj.Spec.Suspend)
 
-		// Issue warning event if the reconciliation failed.
+		// Emit warning event if the reconciliation failed.
 		if retErr != nil {
 			r.Event(obj, corev1.EventTypeWarning, meta.FailedReason, retErr.Error())
 		}
 
+		// Log and emit success event.
+		if retErr == nil && conditions.IsReady(obj) {
+			msg := fmt.Sprintf("Reconciliation finished in %s, next run in %s",
+				time.Since(reconcileStart).String(), obj.Spec.Interval.Duration.String())
+			log.Info(msg)
+			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
+		}
+
 		// Patch finalizers, status and conditions.
-		retErr = r.patch(ctx, obj, patcher)
+		if err := r.patch(ctx, obj, patcher); err != nil {
+			retErr = kerrors.NewAggregate([]error{retErr, err})
+		}
 	}()
 
 	if !controllerutil.ContainsFinalizer(obj, apiv1.NotificationFinalizer) {
@@ -140,7 +150,6 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1.Provider)
 	}
 
 	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, apiv1.InitializedReason)
-	ctrl.LoggerFrom(ctx).Info("Provider initialized")
 
 	return ctrl.Result{RequeueAfter: obj.Spec.Interval.Duration}, nil
 }
