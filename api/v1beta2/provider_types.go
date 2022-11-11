@@ -59,7 +59,7 @@ type ProviderSpec struct {
 	// +kubebuilder:default="10m"
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m|h))+$"
-	// +required
+	// +optional
 	Interval metav1.Duration `json:"interval"`
 
 	// Channel specifies the destination channel where events should be posted.

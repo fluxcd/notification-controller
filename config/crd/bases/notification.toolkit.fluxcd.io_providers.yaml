@@ -308,7 +308,6 @@ spec:
                 maxLength: 2048
                 type: string
             required:
-            - interval
             - type
             type: object
           status:

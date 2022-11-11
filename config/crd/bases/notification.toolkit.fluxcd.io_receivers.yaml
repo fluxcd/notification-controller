@@ -336,7 +336,6 @@ spec:
                 - acr
                 type: string
             required:
-            - interval
             - resources
             - type
             type: object

@@ -112,6 +112,11 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 	patcher := patch.NewSerialPatcher(obj, r.Client)
 
 	defer func() {
+		// Patch finalizers, status and conditions.
+		if err := r.patch(ctx, obj, patcher); err != nil {
+			retErr = kerrors.NewAggregate([]error{retErr, err})
+		}
+
 		// Record Prometheus metrics.
 		r.Metrics.RecordReadiness(ctx, obj)
 		r.Metrics.RecordDuration(ctx, obj, reconcileStart)
@@ -128,11 +133,6 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 				time.Since(reconcileStart).String())
 			log.Info(msg)
 			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
-		}
-
-		// Patch finalizers, status and conditions.
-		if err := r.patch(ctx, obj, patcher); err != nil {
-			retErr = kerrors.NewAggregate([]error{retErr, err})
 		}
 	}()
 

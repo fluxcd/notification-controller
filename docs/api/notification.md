@@ -247,6 +247,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Interval at which to reconcile the Provider with its Secret references.</p>
 </td>
 </tr>
@@ -453,6 +454,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Interval at which to reconcile the Receiver with its Secret references.</p>
 </td>
 </tr>
@@ -810,6 +812,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Interval at which to reconcile the Provider with its Secret references.</p>
 </td>
 </tr>
@@ -1023,6 +1026,7 @@ Kubernetes meta/v1.Duration
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Interval at which to reconcile the Receiver with its Secret references.</p>
 </td>
 </tr>
