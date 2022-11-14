@@ -45,7 +45,6 @@ import (
 
 func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		r.Context()
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			s.logger.Error(err, "reading the request body failed")

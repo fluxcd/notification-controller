@@ -106,7 +106,7 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		recorder := &statusRecorder{
 			ResponseWriter: w,
-			Status:         200,
+			Status:         http.StatusOK,
 		}
 		h.ServeHTTP(recorder, r)
 
