@@ -141,6 +141,7 @@ func TestEventHandler(t *testing.T) {
 			ExclusionList: []string{
 				"doesnotoccur", // not intended to match
 				"excluded",
+				"name-drop",
 			},
 		},
 	}
@@ -227,9 +228,17 @@ func TestEventHandler(t *testing.T) {
 			forwarded: false,
 		},
 		{
-			name: "drops event that is matched by exclusion",
+			name: "drops event that is matched by exclusion with message",
 			modifyEventFunc: func(e events.Event) events.Event {
 				e.Message = "this is excluded"
+				return e
+			},
+			forwarded: false,
+		},
+		{
+			name: "drops event that is matched by exclusion with name",
+			modifyEventFunc: func(e events.Event) events.Event {
+				e.InvolvedObject.Name = "name-drop"
 				return e
 			},
 			forwarded: false,

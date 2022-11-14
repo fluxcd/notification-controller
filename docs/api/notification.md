@@ -120,7 +120,7 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>A list of Golang regular expressions to be used for excluding messages.</p>
+<p>A list of Golang regular expressions to be used for excluding messages and names.</p>
 </td>
 </tr>
 <tr>
@@ -565,7 +565,7 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>A list of Golang regular expressions to be used for excluding messages.</p>
+<p>A list of Golang regular expressions to be used for excluding messages and names.</p>
 </td>
 </tr>
 <tr>

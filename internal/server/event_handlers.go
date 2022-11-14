@@ -88,7 +88,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			if len(alert.Spec.ExclusionList) > 0 {
 				for _, exp := range alert.Spec.ExclusionList {
 					if r, err := regexp.Compile(exp); err == nil {
-						if r.Match([]byte(event.Message)) {
+						if r.Match([]byte(event.Message)) || r.Match([]byte(event.InvolvedObject.Name)) {
 							continue each_alert
 						}
 					} else {
