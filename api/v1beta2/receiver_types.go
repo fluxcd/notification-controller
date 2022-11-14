@@ -104,8 +104,8 @@ func (in *Receiver) SetConditions(conditions []metav1.Condition) {
 	in.Status.Conditions = conditions
 }
 
-// GetWebhookURL returns the incoming webhook URL for the given token.
-func (in *Receiver) GetWebhookURL(token string) string {
+// GetWebhookPath returns the incoming webhook path for the given token.
+func (in *Receiver) GetWebhookPath(token string) string {
 	digest := sha256.Sum256([]byte(token + in.GetName() + in.GetNamespace()))
 	return fmt.Sprintf("%s%x", ReceiverWebhookPath, digest)
 }

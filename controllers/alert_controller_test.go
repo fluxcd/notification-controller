@@ -95,7 +95,7 @@ func TestAlertReconciler_Reconcile(t *testing.T) {
 		}, timeout, time.Second).Should(BeTrue())
 
 		g.Expect(conditions.IsReady(resultA)).To(BeFalse())
-		g.Expect(conditions.GetReason(resultA, meta.ReadyCondition)).To(BeIdenticalTo(apiv1.ValidationFailedReason))
+		g.Expect(conditions.GetReason(resultA, meta.ReadyCondition)).To(BeIdenticalTo(meta.FailedReason))
 		g.Expect(conditions.GetMessage(resultA, meta.ReadyCondition)).To(ContainSubstring(providerName))
 
 		g.Expect(conditions.Has(resultA, meta.ReconcilingCondition)).To(BeTrue())

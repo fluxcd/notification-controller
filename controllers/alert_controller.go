@@ -129,8 +129,7 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 
 		// Log and emit success event.
 		if retErr == nil && conditions.IsReady(obj) {
-			msg := fmt.Sprintf("Reconciliation finished in %s",
-				time.Since(reconcileStart).String())
+			msg := "Reconciliation finished"
 			log.Info(msg)
 			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
 		}
@@ -158,12 +157,12 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 }
 
 func (r *AlertReconciler) reconcile(ctx context.Context, alert *apiv1.Alert) (ctrl.Result, error) {
-	// Mark the resource as under reconciliation
+	// Mark the resource as under reconciliation.
 	conditions.MarkReconciling(alert, meta.ProgressingReason, "Reconciliation in progress")
 
-	// validate alert spec and provider
-	if err := r.validate(ctx, alert); err != nil {
-		conditions.MarkFalse(alert, meta.ReadyCondition, apiv1.ValidationFailedReason, err.Error())
+	// Check if the provider exist and is ready.
+	if err := r.isProviderReady(ctx, alert); err != nil {
+		conditions.MarkFalse(alert, meta.ReadyCondition, meta.FailedReason, err.Error())
 		return ctrl.Result{Requeue: true}, client.IgnoreNotFound(err)
 	}
 
@@ -172,7 +171,7 @@ func (r *AlertReconciler) reconcile(ctx context.Context, alert *apiv1.Alert) (ct
 	return ctrl.Result{}, nil
 }
 
-func (r *AlertReconciler) validate(ctx context.Context, alert *apiv1.Alert) error {
+func (r *AlertReconciler) isProviderReady(ctx context.Context, alert *apiv1.Alert) error {
 	provider := &apiv1.Provider{}
 	providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
 	if err := r.Get(ctx, providerName, provider); err != nil {

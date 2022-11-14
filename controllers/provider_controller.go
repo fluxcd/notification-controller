@@ -112,8 +112,8 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 		// Log and emit success event.
 		if retErr == nil && conditions.IsReady(obj) {
-			msg := fmt.Sprintf("Reconciliation finished in %s, next run in %s",
-				time.Since(reconcileStart).String(), obj.Spec.Interval.Duration.String())
+			msg := fmt.Sprintf("Reconciliation finished, next run in %s",
+				obj.Spec.Interval.Duration.String())
 			log.Info(msg)
 			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
 		}

@@ -118,8 +118,7 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 		// Log and emit success event.
 		if retErr == nil && conditions.IsReady(obj) {
-			msg := fmt.Sprintf("Reconciliation finished in %s, next run in %s",
-				time.Since(reconcileStart).String(), obj.Spec.Interval.Duration.String())
+			msg := fmt.Sprintf("Reconciliation finished, next run in %s", obj.Spec.Interval.Duration.String())
 			log.Info(msg)
 			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
 		}
@@ -159,7 +158,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	receiverURL := obj.GetWebhookURL(token)
+	receiverURL := obj.GetWebhookPath(token)
 	msg := fmt.Sprintf("Receiver initialized with URL: %s", receiverURL)
 
 	// Mark the resource as ready and set the URL
