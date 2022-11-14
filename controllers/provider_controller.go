@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"net/url"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -143,8 +144,14 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1.Provider)
 	// Mark the resource as under reconciliation
 	conditions.MarkReconciling(obj, meta.ProgressingReason, "Reconciliation in progress")
 
-	// validate provider spec and credentials
-	if err := r.validate(ctx, obj); err != nil {
+	// Validate the provider inline address and proxy.
+	if err := r.validateURLs(obj); err != nil {
+		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.ValidationFailedReason, err.Error())
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	// Validate the provider credentials.
+	if err := r.validateCredentials(ctx, obj); err != nil {
 		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.ValidationFailedReason, err.Error())
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -154,7 +161,22 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1.Provider)
 	return ctrl.Result{RequeueAfter: obj.Spec.Interval.Duration}, nil
 }
 
-func (r *ProviderReconciler) validate(ctx context.Context, provider *apiv1.Provider) error {
+func (r *ProviderReconciler) validateURLs(provider *apiv1.Provider) error {
+	address := provider.Spec.Address
+	proxy := provider.Spec.Proxy
+
+	if provider.Spec.SecretRef == nil {
+		if _, err := url.ParseRequestURI(address); err != nil {
+			return fmt.Errorf("invalid address %s: %w", address, err)
+		}
+		if _, err := url.ParseRequestURI(proxy); proxy != "" && err != nil {
+			return fmt.Errorf("invalid proxy %s: %w", proxy, err)
+		}
+	}
+	return nil
+}
+
+func (r *ProviderReconciler) validateCredentials(ctx context.Context, provider *apiv1.Provider) error {
 	address := provider.Spec.Address
 	proxy := provider.Spec.Proxy
 	username := provider.Spec.Username
