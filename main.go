@@ -72,6 +72,7 @@ func main() {
 		leaderElectionOptions leaderelection.Options
 		aclOptions            acl.Options
 		rateLimiterOptions    helper.RateLimiterOptions
+		insecureAllowHTTP     bool
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -82,6 +83,7 @@ func main() {
 	flag.BoolVar(&watchAllNamespaces, "watch-all-namespaces", true,
 		"Watch for custom resources in all namespaces, if set to false it will only watch the runtime namespace.")
 	flag.DurationVar(&rateLimitInterval, "rate-limit-interval", 5*time.Minute, "Interval in which rate limit has effect.")
+	flag.BoolVar(&insecureAllowHTTP, "insecure-allow-http", true, "Enable the use of HTTP Scheme (no HTTPS) across all controller level objects. This is not recommended for production environments")
 	clientOptions.BindFlags(flag.CommandLine)
 	logOptions.BindFlags(flag.CommandLine)
 	leaderElectionOptions.BindFlags(flag.CommandLine)
@@ -169,7 +171,7 @@ func main() {
 			Registry: crtlmetrics.Registry,
 		}),
 	})
-	eventServer := server.NewEventServer(eventsAddr, log, mgr.GetClient(), aclOptions.NoCrossNamespaceRefs)
+	eventServer := server.NewEventServer(eventsAddr, log, mgr.GetClient(), aclOptions.NoCrossNamespaceRefs, insecureAllowHTTP)
 	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)

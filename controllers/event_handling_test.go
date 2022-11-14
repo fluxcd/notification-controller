@@ -12,7 +12,7 @@ import (
 
 	"github.com/fluxcd/pkg/ssa"
 	. "github.com/onsi/gomega"
-	"github.com/sethvargo/go-limiter/memorystore"
+	"github.com/sethvargo/go-limiter/noopstore"
 	prommetrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
 	corev1 "k8s.io/api/core/v1"
@@ -45,20 +45,17 @@ func TestEventHandler(t *testing.T) {
 		}),
 	})
 
-	store, err := memorystore.New(&memorystore.Config{
-		Interval: 5 * time.Minute,
-	})
-	if err != nil {
-		t.Fatalf("failed to create memory storage")
-	}
+	store, err := noopstore.New()
+	g.Expect(err).ToNot(HaveOccurred())
 
-	eventServer := server.NewEventServer("127.0.0.1:56789", logf.Log, k8sClient, true)
+	serverEndpoint := "127.0.0.1:56789"
+	eventServer := server.NewEventServer(serverEndpoint, logf.Log, k8sClient, true, true)
 	stopCh := make(chan struct{})
 	go eventServer.ListenAndServe(stopCh, eventMdlw, store)
 
 	rcvServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		req = r
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 	}))
 	defer rcvServer.Close()
 	defer close(stopCh)
@@ -77,6 +74,9 @@ func TestEventHandler(t *testing.T) {
 			Address: rcvServer.URL,
 		},
 	}
+
+	g.Expect(err).ToNot(HaveOccurred())
+
 	g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())
 	g.Eventually(func() bool {
 		var obj notifyv1.Provider
@@ -170,9 +170,9 @@ func TestEventHandler(t *testing.T) {
 	testSent := func() {
 		buf := &bytes.Buffer{}
 		g.Expect(json.NewEncoder(buf).Encode(&event)).To(Succeed())
-		res, err := http.Post("http://localhost:56789/", "application/json", buf)
+		res, err := http.Post("http://"+serverEndpoint, "application/json", buf)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(res.StatusCode).To(Equal(202)) // event_server responds with 202 Accepted
+		g.Expect(res.StatusCode).To(Equal(http.StatusAccepted))
 	}
 
 	testForwarded := func() {

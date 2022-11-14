@@ -44,15 +44,17 @@ type EventServer struct {
 	logger               logr.Logger
 	kubeClient           client.Client
 	noCrossNamespaceRefs bool
+	supportHttpScheme    bool
 }
 
 // NewEventServer returns an HTTP server that handles events
-func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, noCrossNamespaceRefs bool) *EventServer {
+func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, noCrossNamespaceRefs bool, supportHttpScheme bool) *EventServer {
 	return &EventServer{
 		port:                 port,
 		logger:               logger.WithName("event-server"),
 		kubeClient:           kubeClient,
 		noCrossNamespaceRefs: noCrossNamespaceRefs,
+		supportHttpScheme:    supportHttpScheme,
 	}
 }
 
@@ -104,7 +106,7 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		recorder := &statusRecorder{
 			ResponseWriter: w,
-			Status:         200,
+			Status:         http.StatusOK,
 		}
 		h.ServeHTTP(recorder, r)
 
