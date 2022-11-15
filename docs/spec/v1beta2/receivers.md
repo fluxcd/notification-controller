@@ -33,9 +33,9 @@ In the above example:
 
 - A Receiver named `github-receiver` is created, indicated by the
   `.metadata.name` field.
-- The notification-controller generates a unique URL using the Receiver
+- The notification-controller generates a unique webhook path using the Receiver
   name, namespace and the token from the referenced `.spec.secretRef.name` secret.
-- The URL is reported in the `.status.url` field.
+- The incoming webhook path is reported in the `.status.webhookPath` field.
 - When a GitHub push event is received, the controller verifies the that the
   request is legitimate using HMAC and the `X-Hub-Signature` HTTP header.
 - If the event type matches `.spec.events` and the payload is verified, then the controller
@@ -62,12 +62,12 @@ You can run this example by saving the manifest into `github-receiver.yaml`.
 
    ```console
    NAME              READY   STATUS                                                                        
-   github-receiver   True    Receiver initialised with URL: /hook/bed6d00b5555b1603e1f59b94d7fdbca58089cb5663633fb83f2815dc626d92b
+   github-receiver   True    Receiver initialised for path: /hook/bed6d00b5555b1603e1f59b94d7fdbca58089cb5663633fb83f2815dc626d92b
    ```
 
 4. On GitHub, navigate to your repository and click on the "Add webhook" button under "Settings/Webhooks".
    Fill the form with:
-   - **Payload URL**: compose the address using the receiver LB and the generated URL `http://<LoadBalancerAddress>/<ReceiverURL>`.
+   - **Payload URL**: compose the address using the receiver ingress hostname and the generated path `https://<hostname>/<webhookPath>`.
    - **Secret**: use the token string
 
 ## Writing a Receiver spec
@@ -269,7 +269,7 @@ The controller uses the `X-Hub-Signature` HTTP header to verify that the request
 
 ### Gitea receiver
 
-The Gitea webhook works with the [Github receiver](#github-receiver). You can use the same example
+The Gitea webhook works with the [GitHub receiver](#github-receiver). You can use the same example
 given for the Github receiver.
 
 ### GitLab receiver
@@ -381,7 +381,7 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - apiVersion: image.toolkit.fluxcd.io/vbeta1
+    - apiVersion: image.toolkit.fluxcd.io/v1beta1
       kind: ImageRepository
       name: webapp
 ```
@@ -449,5 +449,5 @@ spec:
       name: webapp
 ```
 
-Note that the controller doesn't verify the authenticity of the request as Azure doesn't provide any mechanism for verification.
+Note that the controller doesn't verify the authenticity of the request as Azure does not provide any mechanism for verification.
 You can take a look at the [Azure Container webhook reference](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-webhook-reference).

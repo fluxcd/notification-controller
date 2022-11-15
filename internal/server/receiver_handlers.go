@@ -61,7 +61,7 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 		for _, receiver := range allReceivers.Items {
 			if !receiver.Spec.Suspend &&
 				conditions.IsReady(&receiver) &&
-				receiver.Status.URL == fmt.Sprintf("%s%s", apiv1.ReceiverWebhookPath, digest) {
+				receiver.Status.WebhookPath == fmt.Sprintf("%s%s", apiv1.ReceiverWebhookPath, digest) {
 				receivers = append(receivers, receiver)
 			}
 		}

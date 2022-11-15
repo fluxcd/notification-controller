@@ -148,24 +148,26 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 // reconcile steps through the actual reconciliation tasks for the object, it returns early on the first step that
 // produces an error.
 func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver) (ctrl.Result, error) {
-	// Mark the resource as under reconciliation
+	// Mark the resource as under reconciliation.
 	conditions.MarkReconciling(obj, meta.ProgressingReason, "Reconciliation in progress")
 
 	token, err := r.token(ctx, obj)
 	if err != nil {
 		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.TokenNotFoundReason, err.Error())
 		obj.Status.URL = ""
+		obj.Status.WebhookPath = ""
 		return ctrl.Result{Requeue: true}, err
 	}
 
-	receiverURL := obj.GetWebhookPath(token)
-	msg := fmt.Sprintf("Receiver initialized with URL: %s", receiverURL)
+	webhookPath := obj.GetWebhookPath(token)
+	msg := fmt.Sprintf("Receiver initialized for path: %s", webhookPath)
 
-	// Mark the resource as ready and set the URL
+	// Mark the resource as ready and set the webhook path in status.
 	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, msg)
 
-	if obj.Status.URL != receiverURL {
-		obj.Status.URL = receiverURL
+	if obj.Status.WebhookPath != webhookPath {
+		obj.Status.URL = webhookPath
+		obj.Status.WebhookPath = webhookPath
 		ctrl.LoggerFrom(ctx).Info(msg)
 	}
 

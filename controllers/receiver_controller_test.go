@@ -266,6 +266,8 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 		}, timeout, time.Second).Should(BeTrue())
 
 		g.Expect(resultR.Status.URL).To(BeIdenticalTo(address))
+		g.Expect(resultR.Status.WebhookPath).To(BeIdenticalTo(address))
+		g.Expect(conditions.GetMessage(resultR, meta.ReadyCondition)).To(ContainSubstring(address))
 	})
 
 	t.Run("doesn't update the URL on spec updates", func(t *testing.T) {
@@ -280,6 +282,7 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 
 		g.Expect(conditions.IsReady(resultR))
 		g.Expect(resultR.Status.URL).To(BeIdenticalTo(address))
+		g.Expect(resultR.Status.WebhookPath).To(BeIdenticalTo(address))
 	})
 
 	t.Run("handles event", func(t *testing.T) {
