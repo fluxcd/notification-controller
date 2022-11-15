@@ -28,8 +28,4 @@ const (
 
 	// TokenNotFoundReason represents the fact that receiver token can't be found.
 	TokenNotFoundReason string = "TokenNotFound"
-
-	// ProgressingWithRetryReason represents the fact that
-	// the reconciliation encountered an error that will be retried.
-	ProgressingWithRetryReason string = "ProgressingWithRetry"
 )

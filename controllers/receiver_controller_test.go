@@ -121,7 +121,7 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 		g.Expect(conditions.GetMessage(resultR, meta.ReadyCondition)).To(ContainSubstring(secretName))
 
 		g.Expect(conditions.Has(resultR, meta.ReconcilingCondition)).To(BeTrue())
-		g.Expect(conditions.GetReason(resultR, meta.ReconcilingCondition)).To(BeIdenticalTo(apiv1.ProgressingWithRetryReason))
+		g.Expect(conditions.GetReason(resultR, meta.ReconcilingCondition)).To(BeIdenticalTo(meta.ProgressingWithRetryReason))
 		g.Expect(conditions.GetObservedGeneration(resultR, meta.ReconcilingCondition)).To(BeIdenticalTo(resultR.Generation))
 	})
 

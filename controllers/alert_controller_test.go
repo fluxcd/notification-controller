@@ -99,7 +99,7 @@ func TestAlertReconciler_Reconcile(t *testing.T) {
 		g.Expect(conditions.GetMessage(resultA, meta.ReadyCondition)).To(ContainSubstring(providerName))
 
 		g.Expect(conditions.Has(resultA, meta.ReconcilingCondition)).To(BeTrue())
-		g.Expect(conditions.GetReason(resultA, meta.ReconcilingCondition)).To(BeIdenticalTo(apiv1.ProgressingWithRetryReason))
+		g.Expect(conditions.GetReason(resultA, meta.ReconcilingCondition)).To(BeIdenticalTo(meta.ProgressingWithRetryReason))
 		g.Expect(conditions.GetObservedGeneration(resultA, meta.ReconcilingCondition)).To(BeIdenticalTo(resultA.Generation))
 		g.Expect(controllerutil.ContainsFinalizer(resultA, apiv1.NotificationFinalizer)).To(BeTrue())
 	})

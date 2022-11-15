@@ -206,7 +206,7 @@ func (r *ReceiverReconciler) patch(ctx context.Context, obj *apiv1.Receiver, pat
 	if conditions.IsFalse(obj, meta.ReadyCondition) &&
 		conditions.Has(obj, meta.ReconcilingCondition) {
 		rc := conditions.Get(obj, meta.ReconcilingCondition)
-		rc.Reason = apiv1.ProgressingWithRetryReason
+		rc.Reason = meta.ProgressingWithRetryReason
 		conditions.Set(obj, rc)
 	}
 

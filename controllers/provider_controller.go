@@ -146,7 +146,7 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1.Provider)
 
 	// Validate the provider inline address and proxy.
 	if err := r.validateURLs(obj); err != nil {
-		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.ValidationFailedReason, err.Error())
+		conditions.MarkFalse(obj, meta.ReadyCondition, meta.InvalidURLReason, err.Error())
 		return ctrl.Result{Requeue: true}, err
 	}
 
@@ -284,7 +284,7 @@ func (r *ProviderReconciler) patch(ctx context.Context, obj *apiv1.Provider, pat
 	if conditions.IsFalse(obj, meta.ReadyCondition) &&
 		conditions.Has(obj, meta.ReconcilingCondition) {
 		rc := conditions.Get(obj, meta.ReconcilingCondition)
-		rc.Reason = apiv1.ProgressingWithRetryReason
+		rc.Reason = meta.ProgressingWithRetryReason
 		conditions.Set(obj, rc)
 	}
 
