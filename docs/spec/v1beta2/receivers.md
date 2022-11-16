@@ -131,7 +131,7 @@ should be reconciled when an event is received.
 
 A resource entry must contain the following fields:
 - `apiVersion` is the Flux Custom Resource API group and version such as `source.toolkit.fluxcd.io/v1beta2`.
-- `kind` is the Flux Custom Resource `.kind` such as GitRepository, OCIRepository, HelmRepository, etc.
+- `kind` is the Flux Custom Resource `.kind` such as GitRepository, OCIRepository, HelmRepository and Bucket.
 - `name` is the Flux Custom Resource `.metadata.name`.
 - `namespace` is the Flux Custom Resource `.metadata.namespace`.
   When not specified, the Receiver `.metadata.namespace` is used instead.
@@ -471,3 +471,63 @@ spec:
 
 Note that the controller doesn't verify the authenticity of the request as Azure does not provide any mechanism for verification.
 You can take a look at the [Azure Container webhook reference](https://docs.microsoft.com/en-us/azure/container-registry/container-registry-webhook-reference).
+
+## Receiver Status
+
+### Conditions
+
+An Receiver enters various states during its lifecycle, reflected as
+[Kubernetes Conditions][typical-status-properties].
+It can be [ready](#ready-receiver), or it can [fail during
+reconciliation](#failed-receiver).
+
+The Receiver API is compatible with the [kstatus specification][kstatus-spec],
+and reports the `Reconciling` condition where applicable.
+
+#### Ready Receiver
+
+The notification-controller marks a Receiver as _ready_ when it has the following
+characteristics:
+
+- The Receiver's Secret referenced in `.spec.secretRef.name` is found on the cluster.
+- The Receiver's Secret contains a `token` key.
+
+When the Receiver is "ready", the controller sets a Condition with the following
+attributes in the Alert's `.status.conditions`:
+
+- `type: Ready`
+- `status: "True"`
+- `reason: Succeeded`
+
+#### Failed Receiver
+
+The notification-controller may get stuck trying to reconcile a Receiver if its secret token
+can't be found.
+
+When this happens, the controller sets the `Ready` Condition status to `False`,
+and adds a Condition with the following attributes:
+
+- `type: Reconciling`
+- `status: "True"`
+- `reason: ProgressingWithRetry`
+
+### Observed Generation
+
+The notification-controller reports an
+[observed generation][typical-status-properties]
+in the Receiver's `.status.observedGeneration`. The observed generation is the
+latest `.metadata.generation` which resulted in a [ready state](#ready-receiver).
+
+### Last Handled Reconcile At
+
+The notification-controller reports the last `reconcile.fluxcd.io/requestedAt`
+annotation value it acted on in the `.status.lastHandledReconcileAt` field.
+
+### Webhook Path
+
+When a Receiver becomes [ready](#ready-receiver), the controller reports the generated
+incoming webhook path under `.status.webhookPath`.
+The path format is `/hook/sha256sum(token+name+namespace)`.
+
+[typical-status-properties]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+[kstatus-spec]: https://github.com/kubernetes-sigs/cli-utils/tree/master/pkg/kstatus

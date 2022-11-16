@@ -1147,3 +1147,89 @@ You can create the secret with `kubectl` like this:
 ```shell
 kubectl create secret generic github-token --from-literal=token=<AZURE-TOKEN>
 ```
+
+## Provider Status
+
+### Conditions
+
+An Provider enters various states during its lifecycle, reflected as
+[Kubernetes Conditions][typical-status-properties].
+It can be [ready](#ready-provider), [stalled](#stalled-provider), or it can [fail during
+reconciliation](#failed-provider).
+
+The Provider API is compatible with the [kstatus specification][kstatus-spec],
+and reports `Reconciling` and `Stalled` conditions where applicable to
+provide better (timeout) support to solutions polling the Provider to become
+`Ready`.
+
+#### Ready Provider
+
+The notification-controller marks a Provider as _ready_ when it has the following
+characteristics:
+
+- The Provider's address and proxy are well-formatted URLs.
+- The Provider's referenced Secrets are found on the cluster.
+- The Provider's referenced Secrets contain valid keys and values.
+
+When the Provider is "ready", the controller sets a Condition with the following
+attributes in the Provider's `.status.conditions`:
+
+- `type: Ready`
+- `status: "True"`
+- `reason: Succeeded`
+
+#### Stalled Provider
+
+The notification-controller may not be able to reconcile a Provider due to miss-configuration.
+This can occur due to some of the following factors:
+
+- The specified address and/or proxy is not a valid URL.
+- The specified proxy is not a valid URL.
+
+When this happens, the controller sets the `Ready` Condition status to `False`,
+and adds a Condition with the following attributes:
+
+- `type: Stalling`
+- `status: "True"`
+- `reason: InvalidURL`
+
+This condition has a ["negative polarity"][typical-status-properties],
+and is only present on the Provider while the status value is `"True"`.
+
+#### Failed Provider
+
+The notification-controller may get stuck trying to reconcile a Provider.
+This can occur due to some of the following factors:
+
+- The [Secret reference](#secret-reference) contains a reference to a
+  non-existing Secret.
+- The credentials in the referenced Secret are invalid.
+- The [TLS Secret reference](#tls-certificates) contains a reference to a
+  non-existing Secret.
+- The TLS certs in the referenced Secret are invalid.
+
+When this happens, the controller sets the `Ready` Condition status to `False`,
+and adds a Condition with the following attributes:
+
+- `type: Reconciling`
+- `status: "True"`
+- `reason: ProgressingWithRetry`
+
+While the Provider has this Condition, the controller will continue to attempt
+to reconcile it with an exponential backoff, until
+it succeeds and the Provider is marked as [ready](#ready-provider).
+
+### Observed Generation
+
+The notification-controller reports an
+[observed generation][typical-status-properties]
+in the Provider's `.status.observedGeneration`. The observed generation is the
+latest `.metadata.generation` which resulted in a [ready state](#ready-provider).
+
+### Last Handled Reconcile At
+
+The notification-controller reports the last `reconcile.fluxcd.io/requestedAt`
+annotation value it acted on in the `.status.lastHandledReconcileAt` field.
+
+[typical-status-properties]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+[kstatus-spec]: https://github.com/kubernetes-sigs/cli-utils/tree/master/pkg/kstatus
