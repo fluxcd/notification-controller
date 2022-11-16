@@ -73,6 +73,7 @@ func TestProviderReconciler_Reconcile(t *testing.T) {
 
 		g.Expect(conditions.Has(resultP, meta.ReconcilingCondition)).To(BeFalse())
 		g.Expect(controllerutil.ContainsFinalizer(resultP, apiv1.NotificationFinalizer)).To(BeTrue())
+		g.Expect(resultP.Spec.Interval.Duration).To(BeIdenticalTo(10 * time.Minute))
 	})
 
 	t.Run("fails with secret not found error", func(t *testing.T) {
@@ -131,6 +132,38 @@ func TestProviderReconciler_Reconcile(t *testing.T) {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), resultP)
 			return resultP.Status.LastHandledReconcileAt == reconcileRequestAt
 		}, timeout, time.Second).Should(BeTrue())
+	})
+
+	t.Run("becomes stalled on invalid proxy", func(t *testing.T) {
+		g := NewWithT(t)
+		resultP.Spec.SecretRef = nil
+		resultP.Spec.Proxy = "https://proxy.internal|"
+		g.Expect(k8sClient.Update(context.Background(), resultP)).To(Succeed())
+
+		g.Eventually(func() bool {
+			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), resultP)
+			return !conditions.IsReady(resultP)
+		}, timeout, time.Second).Should(BeTrue())
+
+		g.Expect(conditions.Has(resultP, meta.ReconcilingCondition)).To(BeFalse())
+		g.Expect(conditions.Has(resultP, meta.StalledCondition)).To(BeTrue())
+		g.Expect(conditions.GetObservedGeneration(resultP, meta.StalledCondition)).To(BeIdenticalTo(resultP.Generation))
+		g.Expect(conditions.GetReason(resultP, meta.StalledCondition)).To(BeIdenticalTo(meta.InvalidURLReason))
+		g.Expect(conditions.GetReason(resultP, meta.ReadyCondition)).To(BeIdenticalTo(meta.InvalidURLReason))
+	})
+
+	t.Run("recovers from staleness", func(t *testing.T) {
+		g := NewWithT(t)
+		resultP.Spec.Proxy = "https://proxy.internal"
+		g.Expect(k8sClient.Update(context.Background(), resultP)).To(Succeed())
+
+		g.Eventually(func() bool {
+			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), resultP)
+			return conditions.IsReady(resultP)
+		}, timeout, time.Second).Should(BeTrue())
+
+		g.Expect(conditions.Has(resultP, meta.ReconcilingCondition)).To(BeFalse())
+		g.Expect(conditions.Has(resultP, meta.StalledCondition)).To(BeFalse())
 	})
 
 	t.Run("finalizes suspended object", func(t *testing.T) {

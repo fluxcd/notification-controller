@@ -232,7 +232,7 @@ spec:
                 description: Address specifies the HTTP/S incoming webhook address
                   of this Provider.
                 maxLength: 2048
-                pattern: ^(http|https)://
+                pattern: ^(http|https)://.*$
                 type: string
               certSecretRef:
                 description: CertSecretRef specifies the Secret containing a PEM-encoded
@@ -250,7 +250,7 @@ spec:
                 maxLength: 2048
                 type: string
               interval:
-                default: 10m
+                default: 600s
                 description: Interval at which to reconcile the Provider with its
                   Secret references.
                 pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
@@ -258,7 +258,7 @@ spec:
               proxy:
                 description: Proxy the HTTP/S address of the proxy server.
                 maxLength: 2048
-                pattern: ^(http|https)://
+                pattern: ^(http|https)://.*$
                 type: string
               secretRef:
                 description: SecretRef specifies the Secret containing the authentication

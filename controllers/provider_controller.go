@@ -110,6 +110,14 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 			r.Event(obj, corev1.EventTypeWarning, meta.FailedReason, retErr.Error())
 		}
 
+		// Log the staleness error and pause reconciliation until spec changes.
+		if conditions.IsStalled(obj) {
+			result = ctrl.Result{Requeue: false}
+			log.Error(retErr, "Reconciliation has stalled")
+			retErr = nil
+			return
+		}
+
 		// Log and emit success event.
 		if retErr == nil && conditions.IsReady(obj) {
 			msg := fmt.Sprintf("Reconciliation finished, next run in %s",
@@ -141,12 +149,14 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 }
 
 func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1.Provider) (ctrl.Result, error) {
-	// Mark the resource as under reconciliation
+	// Mark the resource as under reconciliation.
 	conditions.MarkReconciling(obj, meta.ProgressingReason, "Reconciliation in progress")
+	conditions.Delete(obj, meta.StalledCondition)
 
-	// Validate the provider inline address and proxy.
+	// Mark the reconciliation as stalled if the inline URL and/or proxy are invalid.
 	if err := r.validateURLs(obj); err != nil {
 		conditions.MarkFalse(obj, meta.ReadyCondition, meta.InvalidURLReason, err.Error())
+		conditions.MarkTrue(obj, meta.StalledCondition, meta.InvalidURLReason, err.Error())
 		return ctrl.Result{Requeue: true}, err
 	}
 
@@ -272,10 +282,11 @@ func (r *ProviderReconciler) patch(ctx context.Context, obj *apiv1.Provider, pat
 		obj.Status.LastHandledReconcileAt = v
 	}
 
-	// Remove the Reconciling condition and update the observed generation
+	// Remove the Reconciling/Stalled condition and update the observed generation
 	// if the reconciliation was successful.
 	if conditions.IsTrue(obj, meta.ReadyCondition) {
 		conditions.Delete(obj, meta.ReconcilingCondition)
+		conditions.Delete(obj, meta.StalledCondition)
 		obj.Status.ObservedGeneration = obj.Generation
 	}
 
@@ -286,6 +297,11 @@ func (r *ProviderReconciler) patch(ctx context.Context, obj *apiv1.Provider, pat
 		rc := conditions.Get(obj, meta.ReconcilingCondition)
 		rc.Reason = meta.ProgressingWithRetryReason
 		conditions.Set(obj, rc)
+	}
+
+	// Remove the Reconciling condition if the reconciliation has stalled.
+	if conditions.Has(obj, meta.StalledCondition) {
+		conditions.Delete(obj, meta.ReconcilingCondition)
 	}
 
 	// Patch the object status, conditions and finalizers.

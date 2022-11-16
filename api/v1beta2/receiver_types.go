@@ -50,11 +50,11 @@ type ReceiverSpec struct {
 	Type string `json:"type"`
 
 	// Interval at which to reconcile the Receiver with its Secret references.
-	// +kubebuilder:default="10m"
+	// +kubebuilder:default="600s"
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m|h))+$"
 	// +optional
-	Interval metav1.Duration `json:"interval"`
+	Interval *metav1.Duration `json:"interval,omitempty"`
 
 	// Events specifies the list of event types to handle,
 	// e.g. 'push' for GitHub or 'Push Hook' for GitLab.

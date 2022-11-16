@@ -56,11 +56,11 @@ type ProviderSpec struct {
 	Type string `json:"type"`
 
 	// Interval at which to reconcile the Provider with its Secret references.
-	// +kubebuilder:default="10m"
+	// +kubebuilder:default="600s"
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m|h))+$"
 	// +optional
-	Interval metav1.Duration `json:"interval"`
+	Interval *metav1.Duration `json:"interval,omitempty"`
 
 	// Channel specifies the destination channel where events should be posted.
 	// +kubebuilder:validation:MaxLength:=2048
@@ -73,7 +73,7 @@ type ProviderSpec struct {
 	Username string `json:"username,omitempty"`
 
 	// Address specifies the HTTP/S incoming webhook address of this Provider.
-	// +kubebuilder:validation:Pattern="^(http|https)://"
+	// +kubebuilder:validation:Pattern="^(http|https)://.*$"
 	// +kubebuilder:validation:MaxLength:=2048
 	// +kubebuilder:validation:Optional
 	// +optional
@@ -86,7 +86,7 @@ type ProviderSpec struct {
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
 	// Proxy the HTTP/S address of the proxy server.
-	// +kubebuilder:validation:Pattern="^(http|https)://"
+	// +kubebuilder:validation:Pattern="^(http|https)://.*$"
 	// +kubebuilder:validation:MaxLength:=2048
 	// +kubebuilder:validation:Optional
 	// +optional
@@ -171,4 +171,10 @@ func (in *Provider) GetTimeout() time.Duration {
 	}
 
 	return duration
+}
+
+// GetRequeueAfter returns the duration after which the Provider must be
+// reconciled again.
+func (in *Provider) GetRequeueAfter() time.Duration {
+	return in.Spec.Interval.Duration
 }
