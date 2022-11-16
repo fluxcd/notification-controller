@@ -58,14 +58,34 @@ You can run this example by saving the manifest into `github-receiver.yaml`.
    kubectl -n flux-system apply -f github-receiver.yaml
    ```
 
-3. Run `kubectl -n flux-system get receivers` to see the generated URL:
+3. Run `kubectl -n flux-system describe receiver github-receiver` to see its status:
+
+   ```console
+   ...
+   Status:
+     Conditions:
+       Last Transition Time:  2022-11-16T23:43:38Z
+       Message:               Receiver initialised for path: /hook/bed6d00b5555b1603e1f59b94d7fdbca58089cb5663633fb83f2815dc626d92b
+       Observed Generation:   1
+       Reason:                Succeeded
+       Status:                True
+       Type:                  Ready
+     Observed Generation:     1
+     Webhook Path:            /hook/bed6d00b5555b1603e1f59b94d7fdbca58089cb5663633fb83f2815dc626d92b
+   Events:
+     Type    Reason    Age   From                     Message
+     ----    ------    ----  ----                     -------
+     Normal  Succeeded 82s   notification-controller  Reconciliation finished, next run in 10m
+   ```
+
+4. Run `kubectl -n flux-system get receivers` to see the generated webhook path:
 
    ```console
    NAME              READY   STATUS                                                                        
    github-receiver   True    Receiver initialised for path: /hook/bed6d00b5555b1603e1f59b94d7fdbca58089cb5663633fb83f2815dc626d92b
    ```
 
-4. On GitHub, navigate to your repository and click on the "Add webhook" button under "Settings/Webhooks".
+5. On GitHub, navigate to your repository and click on the "Add webhook" button under "Settings/Webhooks".
    Fill the form with:
    - **Payload URL**: compose the address using the receiver ingress hostname and the generated path `https://<hostname>/<webhookPath>`.
    - **Secret**: use the token string
@@ -154,7 +174,7 @@ It is therefore a good idea to set rate limits on the ingress resource which exp
 If you are using ingress-nginx that can be done by
 [adding annotations](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/#rate-limiting).
 
-## Provider guides
+## Working with Receivers
 
 ### Generic receiver
 

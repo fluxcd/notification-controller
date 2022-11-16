@@ -66,6 +66,25 @@ You can run this example by saving the manifests into `slack-alerts.yaml`.
    kubectl -n flagger-system apply --server-side -f slack-alerts.yaml
    ```
 
+3. Run `kubectl -n flagger-system describe provider slack-bot` to see its status:
+
+   ```console
+   ...
+   Status:
+     Conditions:
+       Last Transition Time:  2022-11-16T23:43:38Z
+       Message:               Initialized
+       Observed Generation:   1
+       Reason:                Succeeded
+       Status:                True
+       Type:                  Ready
+     Observed Generation:     1
+   Events:
+     Type    Reason    Age   From                     Message
+     ----    ------    ----  ----                     -------
+     Normal  Succeeded 82s   notification-controller  Reconciliation finished, next run in 10m
+   ```
+
 ## Writing a provider spec
 
 As with all other Kubernetes config, a Provider needs `apiVersion`,
@@ -106,6 +125,7 @@ The supported providers are:
 
 If the address contains sensitive information such as tokens or passwords, it is 
 recommended to store the address in the Kubernetes secret referenced by `.spec.secretRef.name`.
+When the referenced Secret contains an `address` key, the `.spec.address` value is ignored.
 
 ### Channel
 
@@ -126,7 +146,7 @@ The Kubernetes secret can have any of the following keys:
 
 #### Address example
 
-For providers which emblem tokens or other sensitive information in the URL,
+For providers which embed tokens or other sensitive information in the URL,
 the incoming webhooks address can be stored in the secret using the `address` key:
 
 ```yaml
@@ -227,6 +247,10 @@ stringData:
 
 `.spec.proxy` is an optional field to specify an HTTP/S proxy address.
 
+If the proxy address contains sensitive information such as basic auth credentials, it is
+recommended to store the proxy in the Kubernetes secret referenced by `.spec.secretRef.name`.
+When the referenced Secret contains a `proxy` key, the `.spec.proxy` value is ignored.
+
 ### Interval
 
 `.spec.interval` is a required field with a default of ten minutes that specifies
@@ -239,7 +263,7 @@ references.
 When set to `true`, the controller will stop sending events to this provider.
 When the field is set to `false` or removed, it will resume.
 
-## Provider guides
+## Working with Providers
 
 ### Generic webhook
 

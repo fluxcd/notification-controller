@@ -65,6 +65,25 @@ You can run this example by saving the manifests into `slack-alerts.yaml`.
    kubectl -n flux-system apply --server-side -f slack-alerts.yaml
    ```
 
+3. Run `kubectl -n flux-system describe alert slack` to see its status:
+
+   ```console
+   ...
+   Status:
+     Conditions:
+       Last Transition Time:  2022-11-16T23:43:38Z
+       Message:               Initialized
+       Observed Generation:   1
+       Reason:                Succeeded
+       Status:                True
+       Type:                  Ready
+     Observed Generation:     1
+   Events:
+     Type    Reason    Age   From                     Message
+     ----    ------    ----  ----                     -------
+     Normal  Succeeded 82s   notification-controller  Initialized
+   ```
+
 ## Writing an Alert spec
 
 As with all other Kubernetes config, an Alert needs `apiVersion`,
@@ -136,9 +155,10 @@ eventSources:
 
 #### Disable cross-namespace selectors
 
-**Note:** On multi-tenant clusters, platform admins can disable cross-namespace references with the
-`--no-cross-namespace-refs=true` flag. When this flag is set, alerts can only refer to event sources
-in the same namespace as the alert object, preventing tenants from subscribing to another tenant's events.
+**Note:** On multi-tenant clusters, platform admins can disable cross-namespace references by
+starting the controller with the `--no-cross-namespace-refs=true` flag.
+When this flag is set, alerts can only refer to event sources in the same namespace as the alert object,
+preventing tenants from subscribing to another tenant's events.
 
 ### Event severity
 
