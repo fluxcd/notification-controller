@@ -201,3 +201,57 @@ unable to clone 'ssh://git@ssh.dev.azure.com/v3/...', error: SSH could not read 
 `.spec.suspend` is an optional field to suspend the altering.
 When set to `true`, the controller will stop processing events.
 When the field is set to `false` or removed, it will resume.
+
+## Alert Status
+
+### Conditions
+
+An Alert enters various states during its lifecycle, reflected as
+[Kubernetes Conditions][typical-status-properties].
+It can be [ready](#ready-alert), or it can [fail during
+reconciliation](#failed-alert).
+
+The Alert API is compatible with the [kstatus specification][kstatus-spec],
+and reports the `Reconciling` condition where applicable.
+
+#### Ready Alert
+
+The notification-controller marks an Alert as _ready_ when it has the following
+characteristics:
+
+- The Alert's Provider referenced in `.spec.providerRef.name` is found on the cluster.
+- The Alert's Provider `Ready` status condition is set to `True`.
+
+When the Alert is "ready", the controller sets a Condition with the following
+attributes in the Alert's `.status.conditions`:
+
+- `type: Ready`
+- `status: "True"`
+- `reason: Succeeded`
+
+#### Failed Alert
+
+The notification-controller may get stuck trying to reconcile an Alert if its Provider
+can't be found or if the Provider is not ready.
+
+When this happens, the controller sets the `Ready` Condition status to `False`,
+and adds a Condition with the following attributes:
+
+- `type: Reconciling`
+- `status: "True"`
+- `reason: ProgressingWithRetry`
+
+### Observed Generation
+
+The notification-controller reports an
+[observed generation][typical-status-properties]
+in the Alert's `.status.observedGeneration`. The observed generation is the
+latest `.metadata.generation` which resulted in a [ready state](#ready-alert).
+
+### Last Handled Reconcile At
+
+The notification-controller reports the last `reconcile.fluxcd.io/requestedAt`
+annotation value it acted on in the `.status.lastHandledReconcileAt` field.
+
+[typical-status-properties]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+[kstatus-spec]: https://github.com/kubernetes-sigs/cli-utils/tree/master/pkg/kstatus
