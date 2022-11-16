@@ -97,7 +97,7 @@ A Provider also needs a
 
 `.spec.type` is a required field that specifies which SaaS API to use.
 
-The supported providers are:
+The supported alerting providers are:
 
 | Provider                                                | Type             |
 |---------------------------------------------------------|------------------|
@@ -118,6 +118,15 @@ The supported providers are:
 | [Slack](#slack)                                         | `slack`          |
 | [Telegram](#telegram)                                   | `telegram`       |
 | [WebEx](#webex)                                         | `webex`          |
+
+The supported providers for [Git commit status updates](#git-commit-status-updates) are:
+
+| Provider                      | Type          |
+|-------------------------------|---------------|
+| [Azure DevOps](#azure-devops) | `azuredevops` |
+| [Bitbucket](#bitbucket)       | `bitbucket`   |
+| [GitHub](#github)             | `github`      |
+| [GitLab](#gitlab)             | `gitlab`      |
 
 ### Address
 
@@ -1047,4 +1056,94 @@ To create the needed secret:
 ```shell
 kubectl create secret generic azure-webhook \
 --from-literal=address="Endpoint=sb://fluxv2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=yoursaskeygeneatedbyazure"
+```
+
+### Git Commit Status Updates
+
+The notification-controller can mark Git commits as reconciled by posting
+Flux `Kustomization` events to the origin repository using Git SaaS providers APIs.
+
+#### Example
+
+The following is an example of how to update the Git commit status for the GitHub repository where
+Flux was bootstrapped with `flux bootstrap github --owner=my-gh-org --repository=my-gh-repo`.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: github-status
+  namespace: flux-system
+spec:
+  type: github
+  address: https://github.com/my-gh-org/my-gh-repo
+  secretRef:
+    name: github-token
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Alert
+metadata:
+  name: github-status
+  namespace: flux-system
+spec:
+  providerRef:
+    name: github-status
+  eventSources:
+    - kind: Kustomization
+      name: flux-system
+```
+
+#### GitHub
+
+When `.spec.type` is set to `github`, the referenced secret must contain a key called `token` with the value set to a
+[GitHub personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
+
+The token must has permissions to update the commit status for the GitHub repository specified in `.spec.address`.
+
+You can create the secret with `kubectl` like this:
+
+```shell
+kubectl create secret generic github-token --from-literal=token=<GITHUB-TOKEN>
+```
+
+#### GitLab
+
+When `.spec.type` is set to `gitlab`, the referenced secret must contain a key called `token` with the value set to a
+[GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html).
+
+The token must has permissions to update the commit status for the GitLab repository specified in `.spec.address`.
+
+You can create the secret with `kubectl` like this:
+
+```shell
+kubectl create secret generic gitlab-token --from-literal=token=<GITLAB-TOKEN>
+```
+
+#### BitBucket
+
+When `.spec.type` is set to `bitbucket`, the referenced secret must contain a key called `token` with the value
+set to a BitBucket username and an
+[app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/#Create-an-app-password)
+in the format `<username>:<app-password>`.
+
+The app password must have `Repositories (Read/Write)` permission for
+the BitBucket repository specified in `.spec.address`.
+
+You can create the secret with `kubectl` like this:
+
+```shell
+kubectl create secret generic gitlab-token --from-literal=token=<username>:<app-password>
+```
+
+#### Azure DevOps
+
+When `.spec.type` is set to `azuredevops`, the referenced secret must contain a key called `token` with the value set to a
+[Azure DevOps personal access token](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page).
+
+The token must has permissions to update the commit status for the Azure DevOps repository specified in `.spec.address`.
+
+You can create the secret with `kubectl` like this:
+
+```shell
+kubectl create secret generic github-token --from-literal=token=<AZURE-TOKEN>
 ```
