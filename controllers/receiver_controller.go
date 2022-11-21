@@ -86,6 +86,7 @@ func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts R
 // +kubebuilder:rbac:groups=source.fluxcd.io,resources=helmrepositories/status,verbs=get
 // +kubebuilder:rbac:groups=image.fluxcd.io,resources=imagerepositories,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=image.fluxcd.io,resources=imagerepositories/status,verbs=get
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, retErr error) {
