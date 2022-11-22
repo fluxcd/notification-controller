@@ -8,6 +8,7 @@ require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20221103172237-443f56ff4ba8
 	github.com/Azure/azure-amqp-common-go/v3 v3.2.3
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.20
+	github.com/bradleyfalzon/ghinstallation/v2 v2.1.0
 	github.com/containrrr/shoutrrr v0.6.1
 	github.com/fluxcd/notification-controller/api v0.29.0
 	github.com/fluxcd/pkg/apis/event v0.2.0
@@ -17,7 +18,7 @@ require (
 	github.com/fluxcd/pkg/ssa v0.22.0
 	github.com/getsentry/sentry-go v0.15.0
 	github.com/go-logr/logr v1.2.3
-	github.com/google/go-github/v41 v41.0.0
+	github.com/google/go-github/v45 v45.2.0
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/ktrysmt/go-bitbucket v0.9.54
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
