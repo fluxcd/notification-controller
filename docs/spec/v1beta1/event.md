@@ -1,70 +1,58 @@
-# Event
+# Events
 
-The `Event` API defines what information a report of an event issued by a controller should contain.
+The `Event` API defines the structure of the events issued by Flux controllers.
 
-## Specification
+Flux controllers use the [`github.com/fluxcd/pkg/runtime/events`](https://github.com/fluxcd/pkg/tree/main/runtime/events)
+package to push events to the notification-controller API.
 
-Spec:
+## Example
 
-```go
-type Event struct {
-	// The object that this event is about.
-	// +required
-	InvolvedObject corev1.ObjectReference `json:"involvedObject"`
+The following is an example of an event sent by kustomize-controller to report a reconciliation error.
 
-	// Severity type of this event (info, error)
-	// +required
-	Severity string `json:"severity"`
-
-	// The time at which this event was recorded.
-	// +required
-	Timestamp metav1.Time `json:"timestamp"`
-
-	// A human-readable description of this event.
-	// Maximum length 39,000 characters
-	// +required
-	Message string `json:"message"`
-
-	// A machine understandable string that gives the reason
-	// for the transition into the object's current status.
-	// +required
-	Reason string `json:"reason"`
-
-	// Metadata of this event, e.g. apply change set.
-	// +optional
-	Metadata map[string]string `json:"metadata,omitempty"`
-
-	// Name of the controller that emitted this event, e.g. `source-controller`.
-	// +required
-	ReportingController string `json:"reportingController"`
-
-	// ID of the controller instance, e.g. `source-controller-xyzf`.
-	// +optional
-	ReportingInstance string `json:"reportingInstance,omitempty"`
+```json
+{
+  "involvedObject": {
+    "apiVersion": "kustomize.toolkit.fluxcd.io/v1beta2",
+    "kind": "Kustomization",
+    "name": "webapp",
+    "namespace": "apps",
+    "uid": "7d0cdc51-ddcf-4743-b223-83ca5c699632"
+  },
+  "metadata": {
+    "kustomize.toolkit.fluxcd.io/revision": "main/731f7eaddfb6af01cb2173e18f0f75b0ba780ef1"
+  },
+  "severity":"error",
+  "reason": "ValidationFailed",
+  "message":"service/apps/webapp validation error: spec.type: Unsupported value: Ingress",
+  "reportingController":"kustomize-controller",
+  "timestamp":"2022-10-28T07:26:19Z"
 }
 ```
 
-Event severity:
+In the above example:
 
-```go
-const (
-	EventSeverityInfo string = "info"
-	EventSeverityError string = "error"
-)
-```
+- An event is issued by kustomize-controller for a specific object, indicated in the
+  `involvedObject` field.
+- The notification-controller receives the event and finds the [alerts](alert.md)
+  that match the `involvedObject` and `severity` values.
+- For all matching alerts, the controller posts the `message` and the source revision
+  extracted from `metadata` to the alert provider API.
 
-Controller implementations can use the [fluxcd/pkg/runtime/events](https://github.com/fluxcd/pkg/tree/main/runtime/events)
-package to push events to notification-controller API.
+## Event structure
+
+The Go type defining the event structure can be found in the
+[`github.com/fluxcd/pkg/apis/event/v1beta1`](https://github.com/fluxcd/pkg/blob/main/apis/event/v1beta1/event.go)
+package.
 
 ## Rate limiting
 
 Events received by notification-controller are subject to rate limiting to reduce the
 amount of duplicate alerts sent to external systems like Slack, Sentry, etc.
 
-Events are rate limited based on `InvolvedObject.Name`, `InvolvedObject.Namespace`,
-`InvolvedObject.Kind`, `Message`, and `Metadata.revision`.
+Events are rate limited based on `.involvedObject.name`, `.involvedObject.namespace`,
+`.involvedObject.kind`, `.message`, and `.metadata`.
 The interval of the rate limit is set by default to `5m` but can be configured
-with the `--rate-limit-interval` option.
+with the `--rate-limit-interval` controller flag.
 
 The event server exposes HTTP request metrics to track the amount of rate limited events.
 The following promql will get the rate at which requests are rate limited:
@@ -72,4 +60,3 @@ The following promql will get the rate at which requests are rate limited:
 ```
 rate(gotk_event_http_request_duration_seconds_count{code="429"}[30s])
 ```
-
