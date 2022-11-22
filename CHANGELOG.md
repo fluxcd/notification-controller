@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.29.0
+
+**Release date:** 2022-11-22
+
+This prerelease comes with a change to the Event API, which is now declared
+in the [`github.com/fluxcd/pkg/apis/event/v1beta1`](https://pkg.go.dev/github.com/fluxcd/pkg/apis/event/v1beta1)
+package. For more information, refer to the updated [Event API
+documentation](https://github.com/fluxcd/notification-controller/blob/main/docs/spec/v1beta1/event.md).
+
+In addition, dependencies have been updated.
+
+Fixes:
+* Remove `nsswitch.conf` creation
+  [#439](https://github.com/fluxcd/notification-controller/pull/439)
+
+Improvements:
+* Refactor notifiers to use Flux Event v1beta1 API
+  [#442](https://github.com/fluxcd/notification-controller/pull/442)
+* Update dependencies
+  [#442](https://github.com/fluxcd/notification-controller/pull/442)
+* docs: update spec to reflect v1beta1 Event API
+  [#443](https://github.com/fluxcd/notification-controller/pull/443)
+
 ## 0.28.0
 
 **Release date:** 2022-10-20
