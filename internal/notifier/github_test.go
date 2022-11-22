@@ -26,7 +26,7 @@ import (
 	"testing"
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/google/go-github/v41/github"
 	"github.com/stretchr/testify/assert"
 )
@@ -102,7 +102,7 @@ func Fuzz_GitHub(f *testing.F) {
 			return
 		}
 
-		event := events.Event{}
+		event := eventv1.Event{}
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
 
 		if event.Metadata == nil && (revision != "") {

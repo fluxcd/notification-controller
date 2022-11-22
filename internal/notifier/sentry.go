@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/getsentry/sentry-go"
 )
 
@@ -58,15 +58,15 @@ func NewSentry(certPool *x509.CertPool, dsn string, environment string) (*Sentry
 }
 
 // Post event to Sentry
-func (s *Sentry) Post(ctx context.Context, event events.Event) error {
+func (s *Sentry) Post(ctx context.Context, event eventv1.Event) error {
 	var sev *sentry.Event
 	// Send event to Sentry
 	switch event.Severity {
-	case events.EventSeverityInfo:
+	case eventv1.EventSeverityInfo:
 		// Info is sent as a trace
 		sev = eventToSpan(event)
 		break
-	case events.EventSeverityError:
+	case eventv1.EventSeverityError:
 		// Errors are sent as normal events
 		sev = toSentryEvent(event)
 		break
@@ -81,7 +81,7 @@ func (s *Sentry) Post(ctx context.Context, event events.Event) error {
 // alerts by default and are saved differently.
 // They are shown in a dashobard with graphs, so they can be used to check if and how often
 // flux tasks are running
-func eventToSpan(event events.Event) *sentry.Event {
+func eventToSpan(event eventv1.Event) *sentry.Event {
 	obj := event.InvolvedObject
 
 	// Sadly you can't create spans on specific clients, they are always auto-generated
@@ -107,15 +107,15 @@ func eventToSpan(event events.Event) *sentry.Event {
 		Type:        "transaction",
 		Transaction: eventSummary(event),
 		Message:     event.Message,
-		Contexts: map[string]interface{}{
-			"trace": &sentry.TraceContext{
+		Contexts: map[string]sentry.Context{
+			"trace": sentry.TraceContext{
 				TraceID:      span.TraceID,
 				SpanID:       span.SpanID,
 				ParentSpanID: span.ParentSpanID,
 				Op:           span.Op,
 				Description:  span.Description,
 				Status:       span.Status,
-			},
+			}.Map(),
 		},
 		Tags:      span.Tags,
 		Extra:     span.Data,
@@ -125,13 +125,13 @@ func eventToSpan(event events.Event) *sentry.Event {
 	}
 }
 
-func eventSummary(event events.Event) string {
+func eventSummary(event eventv1.Event) string {
 	obj := event.InvolvedObject
 	return fmt.Sprintf("%s: %s/%s", obj.Kind, obj.Namespace, obj.Name)
 }
 
 // Maps a controller-issued event to a Sentry event
-func toSentryEvent(event events.Event) *sentry.Event {
+func toSentryEvent(event eventv1.Event) *sentry.Event {
 	// Prepare Metadata
 	extra := make(map[string]interface{}, len(event.Metadata))
 	for k, v := range event.Metadata {

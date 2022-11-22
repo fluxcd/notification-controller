@@ -20,7 +20,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/getsentry/sentry-go"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -38,7 +38,7 @@ func TestNewSentry(t *testing.T) {
 
 func TestToSentryEvent(t *testing.T) {
 	// Construct test event
-	e := events.Event{
+	e := eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "GitRepository",
 			Namespace: "flux-system",
@@ -71,7 +71,7 @@ func TestToSentryEvent(t *testing.T) {
 
 func TestToSentrySpan(t *testing.T) {
 	// Construct test event
-	e := events.Event{
+	e := eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "GitRepository",
 			Namespace: "flux-system",

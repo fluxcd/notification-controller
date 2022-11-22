@@ -26,7 +26,7 @@ import (
 	"testing"
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -89,7 +89,7 @@ func Fuzz_GitHub_Dispatch(f *testing.F) {
 			return
 		}
 
-		event := events.Event{}
+		event := eventv1.Event{}
 		// Try to fuzz the event object, but if it fails (not enough seed),
 		// ignore it, as other inputs are also being used in this test.
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)

@@ -24,10 +24,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/fluxcd/pkg/runtime/events"
-
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
+
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	"github.com/fluxcd/pkg/apis/meta"
 )
 
 const genre string = "fluxcd"
@@ -77,13 +78,13 @@ func NewAzureDevOps(addr string, token string, certPool *x509.CertPool) (*AzureD
 }
 
 // Post Azure DevOps commit status
-func (a AzureDevOps) Post(ctx context.Context, event events.Event) error {
+func (a AzureDevOps) Post(ctx context.Context, event eventv1.Event) error {
 	// Skip progressing events
-	if event.Reason == "Progressing" {
+	if event.HasReason(meta.ProgressingReason) {
 		return nil
 	}
 
-	revString, ok := event.Metadata["revision"]
+	revString, ok := event.Metadata[eventv1.MetaRevisionKey]
 	if !ok {
 		return errors.New("missing revision metadata")
 	}
@@ -135,9 +136,9 @@ func (a AzureDevOps) Post(ctx context.Context, event events.Event) error {
 
 func toAzureDevOpsState(severity string) (git.GitStatusState, error) {
 	switch severity {
-	case events.EventSeverityInfo:
+	case eventv1.EventSeverityInfo:
 		return git.GitStatusStateValues.Succeeded, nil
-	case events.EventSeverityError:
+	case eventv1.EventSeverityError:
 		return git.GitStatusStateValues.Error, nil
 	default:
 		return "", errors.New("can't convert to azure devops state")

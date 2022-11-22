@@ -20,7 +20,7 @@ import (
 
 	"github.com/Azure/azure-amqp-common-go/v3/auth"
 	eventhub "github.com/Azure/azure-event-hubs-go/v3"
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 // AzureEventHub holds the eventhub client
@@ -52,9 +52,9 @@ func NewAzureEventHub(endpointURL, token, eventHubNamespace string) (*AzureEvent
 }
 
 // Post all notification-controller messages to EventHub
-func (e *AzureEventHub) Post(ctx context.Context, event events.Event) error {
-	// Skip any update events
-	if isCommitStatus(event.Metadata, "update") {
+func (e *AzureEventHub) Post(ctx context.Context, event eventv1.Event) error {
+	// Skip Git commit status update event.
+	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
 		return nil
 	}
 

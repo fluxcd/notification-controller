@@ -11,7 +11,7 @@ import (
 	"time"
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -23,13 +23,13 @@ func TestSha1Sum(t *testing.T) {
 	}
 
 	tests := []struct {
-		event events.Event
+		event eventv1.Event
 		sha1  string
 	}{
 		{
-			event: events.Event{
+			event: eventv1.Event{
 				InvolvedObject: corev1.ObjectReference{},
-				Severity:       events.EventSeverityInfo,
+				Severity:       eventv1.EventSeverityInfo,
 				Timestamp: metav1.Time{
 					Time: timestamp,
 				},
@@ -78,7 +78,7 @@ func Fuzz_Matrix(f *testing.F) {
 			return
 		}
 
-		event := events.Event{}
+		event := eventv1.Event{}
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
 
 		event.Severity = severity

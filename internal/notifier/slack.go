@@ -23,7 +23,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/hashicorp/go-retryablehttp"
 )
 
@@ -80,9 +80,9 @@ func NewSlack(hookURL string, proxyURL string, token string, certPool *x509.Cert
 }
 
 // Post Slack message
-func (s *Slack) Post(ctx context.Context, event events.Event) error {
-	// Skip any update events
-	if isCommitStatus(event.Metadata, "update") {
+func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
+	// Skip Git commit status update event.
+	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
 		return nil
 	}
 
@@ -99,7 +99,7 @@ func (s *Slack) Post(ctx context.Context, event events.Event) error {
 	}
 
 	color := "good"
-	if event.Severity == events.EventSeverityError {
+	if event.Severity == eventv1.EventSeverityError {
 		color = "danger"
 	}
 

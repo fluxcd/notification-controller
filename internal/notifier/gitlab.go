@@ -24,8 +24,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/xanzy/go-gitlab"
+
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	"github.com/fluxcd/pkg/apis/meta"
 )
 
 type GitLab struct {
@@ -67,13 +69,13 @@ func NewGitLab(addr string, token string, certPool *x509.CertPool) (*GitLab, err
 }
 
 // Post GitLab commit status
-func (g *GitLab) Post(ctx context.Context, event events.Event) error {
+func (g *GitLab) Post(ctx context.Context, event eventv1.Event) error {
 	// Skip progressing events
-	if event.Reason == "Progressing" {
+	if event.HasReason(meta.ProgressingReason) {
 		return nil
 	}
 
-	revString, ok := event.Metadata["revision"]
+	revString, ok := event.Metadata[eventv1.MetaRevisionKey]
 	if !ok {
 		return errors.New("missing revision metadata")
 	}
@@ -118,9 +120,9 @@ func (g *GitLab) Post(ctx context.Context, event events.Event) error {
 
 func toGitLabState(severity string) (gitlab.BuildStateValue, error) {
 	switch severity {
-	case events.EventSeverityInfo:
+	case eventv1.EventSeverityInfo:
 		return gitlab.Success, nil
-	case events.EventSeverityError:
+	case eventv1.EventSeverityError:
 		return gitlab.Failed, nil
 	default:
 		return "", errors.New("can't convert to gitlab state")

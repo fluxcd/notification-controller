@@ -19,11 +19,11 @@ package notifier
 import (
 	"context"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 type NopNotifier struct{}
 
-func (n *NopNotifier) Post(ctx context.Context, event events.Event) error {
+func (n *NopNotifier) Post(ctx context.Context, event eventv1.Event) error {
 	return nil
 }

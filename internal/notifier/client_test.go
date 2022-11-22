@@ -25,7 +25,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -69,8 +69,8 @@ func Test_postSelfSignedCert(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func testEvent() events.Event {
-	return events.Event{
+func testEvent() eventv1.Event {
+	return eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "GitRepository",
 			Namespace: "gitops-system",

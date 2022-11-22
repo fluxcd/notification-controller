@@ -26,7 +26,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 	"github.com/stretchr/testify/assert"
 
@@ -100,7 +100,7 @@ func Fuzz_AzureDevOps(f *testing.F) {
 			return
 		}
 
-		event := events.Event{}
+		event := eventv1.Event{}
 
 		// Try to fuzz the event object, but if it fails (not enough seed),
 		// ignore it, as other inputs are also being used in this test.

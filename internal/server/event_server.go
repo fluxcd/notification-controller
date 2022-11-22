@@ -35,7 +35,7 @@ import (
 	"github.com/slok/go-http-metrics/middleware/std"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 // EventServer handles event POST requests
@@ -116,7 +116,7 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 				return
 			}
 
-			event := &events.Event{}
+			event := &eventv1.Event{}
 			err = json.Unmarshal(body, event)
 			if err != nil {
 				s.logger.Error(err, "decoding the request body failed")
@@ -140,7 +140,7 @@ func eventKeyFunc(r *http.Request) (string, error) {
 		return "", err
 	}
 
-	event := &events.Event{}
+	event := &eventv1.Event{}
 	err = json.Unmarshal(body, event)
 	if err != nil {
 		return "", err
@@ -149,7 +149,7 @@ func eventKeyFunc(r *http.Request) (string, error) {
 	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 	comps := []string{"event", event.InvolvedObject.Name, event.InvolvedObject.Namespace, event.InvolvedObject.Kind, event.Message}
-	revString, ok := event.Metadata["revision"]
+	revString, ok := event.Metadata[eventv1.MetaRevisionKey]
 	if ok {
 		comps = append(comps, revString)
 	}

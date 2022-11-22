@@ -19,9 +19,9 @@ package notifier
 import (
 	"context"
 
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 type Interface interface {
-	Post(ctx context.Context, event events.Event) error
+	Post(ctx context.Context, event eventv1.Event) error
 }

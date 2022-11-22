@@ -28,7 +28,7 @@ import (
 	"time"
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	"github.com/fluxcd/pkg/runtime/events"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stretchr/testify/require"
@@ -114,7 +114,7 @@ func TestForwarder_Post(t *testing.T) {
 				} else {
 					require.Equal(t, tt.hmacHeader, r.Header.Get("X-Signature"))
 				}
-				var payload = events.Event{}
+				var payload = eventv1.Event{}
 				err = json.Unmarshal(b, &payload)
 				require.NoError(t, err)
 				require.Equal(t, "webapp", payload.InvolvedObject.Name)
@@ -161,7 +161,7 @@ func Fuzz_Forwarder(f *testing.F) {
 			return
 		}
 
-		event := events.Event{}
+		event := eventv1.Event{}
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
 
 		_ = forwarder.Post(context.TODO(), event)

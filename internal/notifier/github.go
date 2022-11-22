@@ -26,10 +26,11 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fluxcd/pkg/runtime/events"
-
 	"github.com/google/go-github/v41/github"
 	"golang.org/x/oauth2"
+
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	"github.com/fluxcd/pkg/apis/meta"
 )
 
 type GitHub struct {
@@ -87,13 +88,13 @@ func NewGitHub(addr string, token string, certPool *x509.CertPool) (*GitHub, err
 }
 
 // Post Github commit status
-func (g *GitHub) Post(ctx context.Context, event events.Event) error {
+func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 	// Skip progressing events
-	if event.Reason == "Progressing" {
+	if event.HasReason(meta.ProgressingReason) {
 		return nil
 	}
 
-	revString, ok := event.Metadata["revision"]
+	revString, ok := event.Metadata[eventv1.MetaRevisionKey]
 	if !ok {
 		return errors.New("missing revision metadata")
 	}
@@ -132,9 +133,9 @@ func (g *GitHub) Post(ctx context.Context, event events.Event) error {
 
 func toGitHubState(severity string) (string, error) {
 	switch severity {
-	case events.EventSeverityInfo:
+	case eventv1.EventSeverityInfo:
 		return "success", nil
-	case events.EventSeverityError:
+	case eventv1.EventSeverityError:
 		return "failure", nil
 	default:
 		return "", errors.New("can't convert to github state")
