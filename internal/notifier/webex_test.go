@@ -18,16 +18,12 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/stretchr/testify/require"
 )
 
@@ -57,40 +53,4 @@ func TestWebex_PostUpdate(t *testing.T) {
 	event.Metadata["commit_status"] = "update"
 	err = webex.Post(context.TODO(), event)
 	require.NoError(t, err)
-}
-
-func Fuzz_Webex(f *testing.F) {
-	f.Add("token", "channel", "", "error", "", "", []byte{}, []byte{})
-	f.Add("token", "channel", "", "info", "", "update", []byte{}, []byte{})
-
-	f.Fuzz(func(t *testing.T,
-		token, channel, urlSuffix, severity, message, commitStatus string, seed, response []byte) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write(response)
-			io.Copy(io.Discard, r.Body)
-			r.Body.Close()
-		}))
-		defer ts.Close()
-
-		var cert x509.CertPool
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
-
-		webex, err := NewWebex(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &cert, channel, token)
-		if err != nil {
-			return
-		}
-
-		event := eventv1.Event{}
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
-
-		if event.Metadata == nil {
-			event.Metadata = map[string]string{}
-		}
-
-		event.Metadata["commit_status"] = commitStatus
-		event.Message = message
-		event.Severity = severity
-
-		_ = webex.Post(context.TODO(), event)
-	})
 }

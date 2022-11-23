@@ -18,36 +18,43 @@ package notifier
 
 import (
 	"context"
-	"encoding/json"
+	"crypto/x509"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	fuzz "github.com/AdaLogics/go-fuzz-headers"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
-func TestGrafana_Post(t *testing.T) {
-	t.Run("Successfully post and expect 200 ok", func(t *testing.T) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			b, err := io.ReadAll(r.Body)
-			require.NoError(t, err)
-			var payload = GraphitePayload{}
-			err = json.Unmarshal(b, &payload)
-			require.NoError(t, err)
+func Fuzz_Forwarder(f *testing.F) {
+	f.Add("", []byte{}, []byte{}, []byte{})
 
-			require.Equal(t, "gitrepository/webapp.gitops-system", payload.Text)
-			require.Equal(t, "flux", payload.Tags[0])
-			require.Equal(t, "source-controller", payload.Tags[1])
-			require.Equal(t, "test: metadata", payload.Tags[2])
+	f.Fuzz(func(t *testing.T,
+		urlSuffix string, seed, response, hmacKey []byte) {
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Write(response)
+			io.Copy(io.Discard, r.Body)
+			r.Body.Close()
 		}))
 		defer ts.Close()
 
-		grafana, err := NewGrafana(ts.URL, "", "", nil, "", "")
-		require.NoError(t, err)
+		var cert x509.CertPool
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
-		err = grafana.Post(context.TODO(), testEvent())
-		assert.NoError(t, err)
+		header := make(map[string]string)
+		_ = fuzz.NewConsumer(seed).FuzzMap(&header)
+
+		forwarder, err := NewForwarder(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", header, &cert, hmacKey)
+		if err != nil {
+			return
+		}
+
+		event := eventv1.Event{}
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
+
+		_ = forwarder.Post(context.TODO(), event)
 	})
 }
