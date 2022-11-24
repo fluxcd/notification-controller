@@ -17,30 +17,29 @@ limitations under the License.
 package notifier
 
 import (
-	"context"
-	"encoding/json"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	fuzz "github.com/AdaLogics/go-fuzz-headers"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
-func TestAlertmanager_Post(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
-		var payload []AlertManagerAlert
-		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+func Fuzz_Util_ParseGitAddress(f *testing.F) {
+	f.Add("ssh://git@abc.com")
 
-	}))
-	defer ts.Close()
+	f.Fuzz(func(t *testing.T, gitAddress string) {
+		_, _, _ = parseGitAddress(gitAddress)
+	})
+}
 
-	alertmanager, err := NewAlertmanager(ts.URL, "", nil)
-	require.NoError(t, err)
+func Fuzz_Util_FormatNameAndDescription(f *testing.F) {
+	f.Add("aA1-", []byte{})
 
-	err = alertmanager.Post(context.TODO(), testEvent())
-	require.NoError(t, err)
+	f.Fuzz(func(t *testing.T, reason string, seed []byte) {
+		event := eventv1.Event{}
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
+
+		event.Reason = reason
+
+		_, _ = formatNameAndDescription(event)
+	})
 }

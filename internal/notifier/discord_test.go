@@ -19,15 +19,12 @@ package notifier
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,38 +48,4 @@ func TestDiscord_Post(t *testing.T) {
 
 	err = discord.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
-}
-
-func Fuzz_Discord(f *testing.F) {
-	f.Add("username", "channel", "/slack", "info", "update", []byte{}, []byte("{}"))
-	f.Add("", "channel", "", "error", "", []byte{}, []byte(""))
-
-	f.Fuzz(func(t *testing.T,
-		username, channel, urlSuffix, severity, commitStatus string, seed, response []byte) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			io.Copy(io.Discard, r.Body)
-			w.Write(response)
-			r.Body.Close()
-		}))
-		defer ts.Close()
-
-		discord, err := NewDiscord(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", username, channel)
-		if err != nil {
-			return
-		}
-
-		event := eventv1.Event{}
-		// Try to fuzz the event object, but if it fails (not enough seed),
-		// ignore it, as other inputs are also being used in this test.
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
-
-		if event.Metadata == nil {
-			event.Metadata = map[string]string{}
-		}
-
-		event.Metadata["commit_status"] = commitStatus
-		event.Severity = severity
-
-		_ = discord.Post(context.TODO(), event)
-	})
 }

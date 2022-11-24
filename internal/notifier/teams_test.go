@@ -18,16 +18,12 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,41 +45,4 @@ func TestTeams_Post(t *testing.T) {
 
 	err = teams.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
-}
-
-func Fuzz_MSTeams(f *testing.F) {
-	f.Add("token", "", "error", "", "", []byte{}, []byte{})
-	f.Add("token", "", "info", "", "", []byte{}, []byte{})
-	f.Add("token", "", "info", "", "update", []byte{}, []byte{})
-
-	f.Fuzz(func(t *testing.T,
-		token, urlSuffix, severity, message, commitStatus string, seed, response []byte) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write(response)
-			io.Copy(io.Discard, r.Body)
-			r.Body.Close()
-		}))
-		defer ts.Close()
-
-		var cert x509.CertPool
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
-
-		teams, err := NewMSTeams(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &cert)
-		if err != nil {
-			return
-		}
-
-		event := eventv1.Event{}
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
-
-		if event.Metadata == nil {
-			event.Metadata = map[string]string{}
-		}
-
-		event.Metadata["commit_status"] = commitStatus
-		event.Message = message
-		event.Severity = severity
-
-		_ = teams.Post(context.TODO(), event)
-	})
 }

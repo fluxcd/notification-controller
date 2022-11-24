@@ -17,16 +17,8 @@ limitations under the License.
 package notifier
 
 import (
-	"context"
-	"crypto/x509"
-	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
-	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -52,43 +44,4 @@ func TestNewGitLabSelfHosted(t *testing.T) {
 func TestNewGitLabEmptyToken(t *testing.T) {
 	_, err := NewGitLab("https://gitlab.com/foo/bar", "", nil)
 	assert.NotNil(t, err)
-}
-
-func Fuzz_GitLab(f *testing.F) {
-	f.Add("token", "org/repo", "revision/abce1", "error", "", []byte{}, []byte(`[{"sha":"abce1","status":"failed","name":"/","description":""}]`))
-	f.Add("token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[{"sha":"abce1","status":"failed","name":"/","description":""}]`))
-	f.Add("token", "org/repo", "revision/abce1", "info", "Progressing", []byte{}, []byte{})
-	f.Add("token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[]`))
-
-	f.Fuzz(func(t *testing.T,
-		token, urlSuffix, revision, severity, reason string, seed, response []byte) {
-		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Write(response)
-			io.Copy(io.Discard, r.Body)
-			r.Body.Close()
-		}))
-		defer ts.Close()
-
-		var cert x509.CertPool
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
-
-		gitLab, err := NewGitLab(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert)
-		if err != nil {
-			return
-		}
-
-		event := eventv1.Event{}
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&event)
-
-		if event.Metadata == nil && (revision != "") {
-			event.Metadata = map[string]string{
-				"revision": revision,
-			}
-		}
-
-		event.Severity = severity
-		event.Reason = reason
-
-		_ = gitLab.Post(context.TODO(), event)
-	})
 }
