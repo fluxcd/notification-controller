@@ -36,7 +36,7 @@ Notification API:
 
 * [Alerts](v1beta2/alerts.md)
 * [Providers](v1beta2/providers.md)
-* [Git Commit Status Updates](v1beta2/statusupdates.md)
+* [Events](v1beta2/events.md)
 
 The alert delivery method is **at-most once** with a timeout of 15 seconds.
 The controller performs automatic retries for connection errors and 500-range response code.

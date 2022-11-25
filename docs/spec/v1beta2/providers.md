@@ -4,7 +4,8 @@ The `Provider` API defines how events are encoded and where to send them.
 
 ## Example
 
-The following is an example of how to send alerts to Slack when Flux fails to install or upgrade Flagger.
+The following is an example of how to send alerts to Slack when Flux fails to
+install or upgrade [Flagger](https://github.com/fluxcd/flagger).
 
 ```yaml
 ---
@@ -48,7 +49,8 @@ In the above example:
 - The notification-controller starts listening for events sent for
   all HelmRepositories and HelmReleases in the `flagger-system` namespace.
 - When an event with severity `error` is received, the controller posts
-  a message on Slack containing the `summary` text and the Helm install or upgrade error.
+  a message on Slack containing the `summary` text and the Helm install or
+  upgrade error.
 - The controller uses the Slack Bot token from the secret indicated by the
   `Provider.spec.secretRef.name` to authenticate with the Slack API.
 
@@ -90,6 +92,7 @@ You can run this example by saving the manifests into `slack-alerts.yaml`.
 As with all other Kubernetes config, a Provider needs `apiVersion`,
 `kind`, and `metadata` fields. The name of an Alert object must be a
 valid [DNS subdomain name](https://kubernetes.io/docs/concepts/overview/working-with-objects/names#dns-subdomain-names).
+
 A Provider also needs a
 [`.spec` section](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#spec-and-status).
 
@@ -101,11 +104,10 @@ The supported alerting providers are:
 
 | Provider                                                | Type             |
 |---------------------------------------------------------|------------------|
-| [Prometheus Alertmanager](#prometheus-alertmanager)     | `alertmanager`   |
-| [Azure Event Hub](#azure-event-hub)                     | `azureeventhub`  |
-| [Discord](#discord)                                     | `discord`        |
 | [Generic webhook](#generic-webhook)                     | `generic`        |
 | [Generic webhook with HMAC](#generic-webhook-with-hmac) | `generic-hmac`   |
+| [Azure Event Hub](#azure-event-hub)                     | `azureeventhub`  |
+| [Discord](#discord)                                     | `discord`        |
 | [GitHub dispatch](#github-dispatch)                     | `githubdispatch` |
 | [Google Chat](#google-chat)                             | `googlechat`     |
 | [Grafana](#grafana)                                     | `grafana`        |
@@ -113,6 +115,7 @@ The supported alerting providers are:
 | [Matrix](#matrix)                                       | `matrix`         |
 | [Microsoft Teams](#microsoft-teams)                     | `msteams`        |
 | [Opsgenie](#opsgenie)                                   | `opsgenie`       |
+| [Prometheus Alertmanager](#prometheus-alertmanager)     | `alertmanager`   |
 | [Rocket](#rocket)                                       | `rocket`         |
 | [Sentry](#sentry)                                       | `sentry`         |
 | [Slack](#slack)                                         | `slack`          |
@@ -128,6 +131,687 @@ The supported providers for [Git commit status updates](#git-commit-status-updat
 | [GitHub](#github)             | `github`      |
 | [GitLab](#gitlab)             | `gitlab`      |
 
+#### Alerting
+
+##### Generic webhook
+
+When `.spec.type` is set to `generic`, the controller will send an HTTP POST
+request to the provided [Address](#address).
+
+The body of the request is a [JSON `Event` object](events.md#event-structure),
+for example:
+
+```json
+{
+  "involvedObject": {
+    "apiVersion": "kustomize.toolkit.fluxcd.io/v1beta2",
+    "kind": "Kustomization",
+    "name": "webapp",
+    "namespace": "apps",
+    "uid": "7d0cdc51-ddcf-4743-b223-83ca5c699632"
+  },
+  "metadata": {
+    "kustomize.toolkit.fluxcd.io/revision": "main/731f7eaddfb6af01cb2173e18f0f75b0ba780ef1"
+  },
+  "severity":"error",
+  "reason": "ValidationFailed",
+  "message":"service/apps/webapp validation error: spec.type: Unsupported value: Ingress",
+  "reportingController":"kustomize-controller",
+  "reportingInstance":"kustomize-controller-7c7b47f5f-8bhrp",
+  "timestamp":"2022-10-28T07:26:19Z"
+}
+```
+
+Where the `involvedObject` key contains the metadata from the object triggering
+the event.
+
+The controller includes a `Gotk-Component` header in the request, which can be
+used to identify the component which sent the event, e.g. `source-controller`
+or `notification-controller`.
+
+```
+POST / HTTP/1.1
+Host: example.com
+Accept-Encoding: gzip
+Content-Length: 452
+Content-Type: application/json
+Gotk-Component: kustomize-controller
+User-Agent: Go-http-client/1.1
+```
+
+You can add additional headers to the POST request using a [`headers` key in the
+referenced Secret](#http-headers-example).
+
+##### Generic webhook with HMAC
+
+When `.spec.type` is set to `generic-hmac`, the controller will send an HTTP
+POST request to the provided [Address](#address) for an [Event](events.md#event-structure),
+while including an `X-Signature` HTTP header carrying the HMAC of the request
+body. The inclusion of the header allows the receiver to verify the
+authenticity and integrity of the request.
+
+The `X-Signature` header is calculated by generating an HMAC of the request
+body using the [`token` key from the referenced Secret](#token-example). The
+HTTP header value has the following format:
+
+```
+X-Signature: <hash-function>=<hash>
+```
+
+`<hash-function>` denotes the hash function used to generate the HMAC and
+currently defaults to `sha256`, which may change in the future. `<hash>` is the
+HMAC of the request body, encoded as a hexadecimal string.
+
+while `<hash>` is the hex-encoded HMAC value.
+
+The body of the request is a [JSON `Event` object](events.md#event-structure),
+as described in the [Generic webhook](#generic-webhook) section.
+
+###### HMAC verification example
+
+The following example in Go shows how to verify the authenticity and integrity
+of a request by using the X-Signature header.
+
+```go
+func verifySignature(signature string, payload, key []byte) error {
+	sig := strings.Split(signature, "=")
+
+	if len(sig) != 2 {
+		return fmt.Errorf("invalid signature value")
+	}
+
+	var newF func() hash.Hash
+	switch sig[0] {
+	case "sha224":
+		newF = sha256.New224
+	case "sha256":
+		newF = sha256.New
+	case "sha384":
+		newF = sha512.New384
+	case "sha512":
+		newF = sha512.New
+	default:
+		return fmt.Errorf("unsupported signature algorithm %q", sigHdr[0])
+	}
+
+	mac := hmac.New(newF, key)
+	if _, err := mac.Write(payload); err != nil {
+		return fmt.Errorf("failed to write payload to HMAC encoder: %w", err)
+	}
+
+	sum := fmt.Sprintf("%x", mac.Sum(nil))
+	if sum != sig[0] {
+		return fmt.Errorf("HMACs do not match: %#v != %#v", sum, sigHdr[0])
+	}
+	return nil
+}
+
+func handleRequest(w http.ResponseWriter, r *http.Request) {
+	// Require a X-Signature header
+	if len(r.Header["X-Signature"])) == 0 {
+		http.Error(w, "missing X-Signature header", http.StatusBadRequest)
+		return
+	}
+
+	// Read the request body with a limit of 1MB
+	lr := io.LimitReader(r.Body, 1<<20)
+	body, err := ioutil.ReadAll(lr)
+	if err != nil {
+		http.Error(w, "failed to read request body", http.StatusBadRequest)
+		return
+	}
+
+	// Verify signature using the same token as the Secret referenced in
+	// Provider
+	key := "<token>"
+	if err := verifySignature(r.Header.Get("X-Signature"), body, key); err != nil {
+		http.Error(w, fmt.Sprintf("failed to verify HMAC signature: %s", err.String()), http.StatusBadRequest)
+		return
+	}
+
+	// Do something with the verified request body
+	// ...
+}
+```
+
+##### Slack
+
+When `.spec.type` is set to `slack`, the controller will send a message for an
+[Event](events.md#event-structure) to the provided Slack API [Address](#address). 
+
+The Event will be formatted into a Slack message using an [Attachment](https://api.slack.com/reference/messaging/attachments),
+with the metadata attached as fields, and the involved object as author.
+The severity of the Event is used to set the color of the attachment.
+
+When a [Channel](#channel) is provided, it will be added as a [`channel`
+field](https://api.slack.com/methods/chat.postMessage#arg_channel) to the API
+payload. Otherwise, the further configuration of the [Address](#address) will
+determine the channel.
+
+When [Username](#username) is set, this will be added as a [`username`
+field](https://api.slack.com/methods/chat.postMessage#arg_username) to the
+payload, defaulting to the name of the reporting controller.
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [TLS certificates](#tls-certificates).
+
+###### Slack example
+
+To configure a Provider for Slack, we recommend using a Slack Bot App token which is
+not attached to a specific Slack account. To obtain a token, please follow
+[Slack's guide on creating an app](https://api.slack.com/authentication/basics#creating).
+
+Once you have obtained a token, [create a Secret containing the `token`
+key](#token-example) and a `slack` Provider with the `address` set to
+`https://slack.com/api/chat.postMessage`.
+
+Using this API endpoint, it is possible to send messages to multiple channels
+by adding the integration to each channel.
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: slack
+  namespace: default
+spec:
+  type: slack
+  channel: general
+  address: https://slack.com/api/chat.postMessage
+  secretRef:
+    name: slack-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: slack-token
+  namespace: default
+stringData:
+    token: xoxb-1234567890-1234567890-1234567890-1234567890
+```
+
+###### Slack (legacy) example
+
+To configure a Provider for Slack using the [legacy incoming webhook API](https://api.slack.com/messaging/webhooks),
+create a Secret with the `address` set to `https://hooks.slack.com/services/...`,
+and a `slack` Provider with a [Secret reference](#address-example).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: slack
+  namespace: default
+spec:
+  type: slack
+  secretRef:
+    name: slack-webhook
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: slack-webhook
+  namespace: default
+stringData:
+  address: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+```
+
+##### Microsoft Teams
+
+When `.spec.type` is set to `msteams`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided Microsoft Teams [Address](#address).
+
+The Event will be formatted into a Microsoft Teams
+[connector message](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/connectors-using#example-of-connector-message),
+with the metadata attached as facts, and the involved object as summary.
+The severity of the Event is used to set the color of the message.
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [TLS certificates](#tls-certificates), but lacks support for
+configuring a [Channel](#channel). This can be configured during the
+creation of the incoming webhook in Microsoft Teams.
+
+###### Microsoft Teams example
+
+To configure a Provider for Microsoft Teams, create a Secret with [the
+`address`](#address-example) set to the [webhook URL](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook#create-incoming-webhooks-1),
+and a `msteams` Provider with a [Secret reference](#address-example).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: msteams
+  namespace: default
+spec:
+  type: msteams
+  secretRef:
+    name: slack-webhook
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: msteams-webhook
+  namespace: default
+stringData:
+    address: "https://xxx.webhook.office.com/..."
+```
+
+##### Discord
+
+When `.spec.type` is set to `discord`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided Discord [Address](#address).
+
+The Event will be formatted into a [Slack message](#slack) and send to the
+`/slack` endpoint of the provided Discord [Address](#address).
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [TLS certificates](#tls-certificates), but lacks support for
+configuring a [Channel](#channel). This can be configured [during the creation
+of the address](https://discord.com/developers/docs/resources/webhook#create-webhook)
+
+###### Discord example
+
+To configure a Provider for Discord, create a Secret with [the `address`](#address-example)
+set to the [webhook URL](https://discord.com/developers/docs/resources/webhook#create-webhook),
+and a `discord` Provider with a [Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: discord
+  namespace: default
+spec:
+  type: discord
+  secretRef:
+    name: discord-webhook
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: discord-webhook
+  namespace: default
+stringData:
+    address: "https://discord.com/api/webhooks/..."
+```
+
+
+##### Sentry
+
+When `.spec.type` is set to `sentry`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided Sentry [Address](#address).
+
+Depending on the `severity` of the Event, the controller will capture a [Sentry
+Event](https://develop.sentry.dev/sdk/event-payloads/)for `error`, or [Sentry
+Transaction Event](https://develop.sentry.dev/sdk/event-payloads/transaction/)
+with a [Span](https://develop.sentry.dev/sdk/event-payloads/span/) for `info`.
+The metadata of the Event is included as [`extra` data](https://develop.sentry.dev/sdk/event-payloads/#optional-attributes)
+in the Sentry Event, or as [Span `tags`](https://develop.sentry.dev/sdk/event-payloads/span/#attributes).
+
+The Provider's [Channel](#channel) is used to set the `environment` on the
+Sentry client.
+
+This Provider type supports the configuration of
+[TLS certificates](#tls-certificates).
+
+###### Sentry example
+
+To configure a Provider for Sentry, create a Secret with [the `address`](#address-example)
+set to a [Sentry DSN](https://docs.sentry.io/product/sentry-basics/dsn-explainer/),
+and a `sentry` Provider with a [Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: sentry
+  namespace: default
+spec:
+  type: sentry
+  channel: staging-env
+  secretRef:
+    name: sentry-webhook
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sentry-webhook
+  namespace: default
+stringData:
+  address: "https://....@sentry.io/12341234"
+```
+
+**Note:** The `sentry` Provider also sends traces for events with the severity
+`info`. This can be disabled by setting the `spec.eventSeverity` field to
+`error` on an `Alert`.
+
+##### Telegram
+
+When `.spec.type` is set to `telegram`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided Telegram [Address](#address).
+
+The Event will be formatted into a message string, with the metadata attached
+as a list of key-value pairs.
+
+The Provider's [Channel](#channel) is used to set the receiver of the message.
+This can be a unique identifier (`-1234567890`) for the target chat, or
+the username (`@username`) of the target channel.
+
+This Provider type does not support the configuration of a [proxy URL](#https-proxy)
+or [TLS certificates](#tls-certificates).
+
+###### Telegram example
+
+To configure a Provider for Telegram, create a Secret with [the `token`](#token-example)
+obtained from [the BotFather](https://core.telegram.org/bots#how-do-i-create-a-bot),
+and a `telegram` Provider with a [Secret reference](#secret-reference), and the
+`address` set to `https://api.telegram.org`.
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: telegram
+  namespace: default
+spec:
+  type: telegram
+  address: https://api.telegram.org
+  channel: "@fluxcd" # or "-1557265138" (channel id)
+  secretRef:
+    name: telegram-token
+```
+
+##### Matrix
+
+When `.spec.type` is set to `matrix`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided Matrix [Address](#address).
+
+The Event will be formatted into a message string, with the metadata attached 
+as a list of key-value pairs, and send as a [`m.room.message` text event](https://spec.matrix.org/v1.3/client-server-api/#mroommessage)
+to the provided Matrix [Address](#address).
+
+The Provider's [Channel](#channel) is used to set the receiver of the message
+using a room identifier (`!1234567890:example.org`).
+
+This provider type does support the configuration of [TLS
+certificates](#tls-certificates).
+
+###### Matrix example
+
+To configure a Provider for Matrix, create a Secret with [the `token`](#token-example)
+obtained from [the Matrix endpoint](https://matrix.org/docs/guides/client-server-api#registration),
+and a `matrix` Provider with a [Secret reference](#secret-reference).
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: matrix
+  namespace: default
+spec:
+  type: matrix
+  address: https://matrix.org
+  channel: "!jezptmDwEeLapMLjOc:matrix.org"
+  secretRef:
+    name: matrix-token
+```
+
+##### Lark
+
+When `.spec.type` is set to `lark`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided Lark [Address](#address).
+
+The Event will be formatted into a [Lark Message card](https://open.larksuite.com/document/ukTMukTMukTM/uczM3QjL3MzN04yNzcDN),
+with the metadata written to the message string.
+
+This Provider type does not support the configuration of a [proxy URL](#https-proxy)
+or [TLS certificates](#tls-certificates).
+
+###### Lark example
+
+To configure a Provider for Lark, create a Secret with [the `address`](#address-example)
+obtained from [adding a bot to a group](https://open.larksuite.com/document/uAjLw4CM/ukTMukTMukTM/bot-v3/use-custom-bots-in-a-group#57181e84),
+and a `lark` Provider with a [Secret reference](#secret-reference).
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: lark
+  namespace: default
+spec:
+  type: lark
+  secretRef:
+    name: lark-webhook
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: lark-webhook
+  namespace: default
+stringData:
+    address: "https://open.larksuite.com/open-apis/bot/v2/hook/xxxxxxxxxxxxxxxxx"
+```
+
+##### Rocket
+
+When `.spec.type` is set to `rocket`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided Rocket [Address](#address).
+
+The Event will be formatted into a [Slack message](#slack) and send as a
+payload the provided Rocket [Address](#address).
+
+This Provider type does support the configuration of a [proxy URL](#https-proxy)
+and [TLS certificates](#tls-certificates).
+
+###### Rocket example
+
+To configure a Provider for Rocket, create a Secret with [the `address`](#address-example)
+set to the Rocket [webhook URL](https://docs.rocket.chat/guides/administration/admin-panel/integrations#incoming-webhook-script),
+and a `rocket` Provider with a [Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: rocket
+  namespace: default
+spec:
+  type: rocket
+  secretRef:
+    name: rocket-webhook
+```
+
+##### Google Chat
+
+When `.spec.type` is set to `googlechat`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided Google Chat [Address](#address).
+
+The Event will be formatted into a [Google Chat card message](https://developers.google.com/chat/api/reference/rest/v1/cards-v1),
+with the metadata added as a list of [key-value pairs](https://developers.google.com/chat/api/reference/rest/v1/cards-v1#keyvalue)
+in a [widget](https://developers.google.com/chat/api/reference/rest/v1/cards-v1#widgetmarkup).
+
+This Provider type does support the configuration of a [proxy URL](#https-proxy).
+
+###### Google Chat example
+
+To configure a Provider for Google Chat, create a Secret with [the `address`](#address-example)
+set to the Google Chat [webhook URL](https://developers.google.com/chat/how-tos/webhooks#create_a_webhook),
+and a `googlechat` Provider with a [Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: google
+  namespace: default
+spec:
+  type: googlechat
+  secretRef:
+    name: google-webhook
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: google-webhook
+  namespace: default
+stringData:
+  address: https://chat.googleapis.com/v1/spaces/...
+```
+
+##### Opsgenie
+
+When `.spec.type` is set to `opsgenie`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided Opsgenie [Address](#address).
+
+The Event will be formatted into a [Opsgenie alert](https://docs.opsgenie.com/docs/alert-api#section-create-alert-request),
+with the metadata added to the [`details` field](https://docs.opsgenie.com/docs/alert-api#create-alert)
+as a list of key-value pairs.
+
+This Provider type does support the configuration of a [proxy URL](#https-proxy)
+and [TLS certificates](#tls-certificates).
+
+###### Opsgenie example
+
+To configure a Provider for Opsgenie, create a Secret with [the `token`](#token-example)
+set to the Opsgenie [API token](https://support.atlassian.com/opsgenie/docs/create-a-default-api-integration/),
+and a `opsgenie` Provider with a [Secret reference](#secret-reference) and the
+`address` set to `https://api.opsgenie.com/v2/alerts`.
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: opsgenie
+  namespace: default
+spec:
+  type: opsgenie
+  address: https://api.opsgenie.com/v2/alerts
+  secretRef:
+    name: opsgenie-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: opsgenie-token
+  namespace: default
+stringData:
+    token: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+##### Prometheus Alertmanager
+
+When `.spec.type` is set to `alertmanager`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided Prometheus Alertmanager
+[Address](#address).
+
+The Event will be formatted into a `firing` [Prometheus Alertmanager
+alert](https://prometheus.io/docs/alerting/latest/notifications/#alert),
+with the metadata added to the `labels` fields, and the `message` (and optional
+`.metadata.summary`) added as annotations.
+
+In addition to the metadata from the Event, the following labels will be added:
+
+| Label     | Description                                                                                          |
+|-----------|------------------------------------------------------------------------------------------------------|
+| alertname | The string Flux followed by the Kind and the reason for the event e.g `FluxKustomizationProgressing` |
+| severity  | The severity of the event (`error` or `info`)                                                        |
+| timestamp | The timestamp of the event                                                                           |
+| reason    | The machine readable reason for the objects transition into the current status                       |
+| kind      | The kind of the involved object associated with the event                                            |
+| name      | The name of the involved object associated with the event                                            |
+| namespace | The namespace of the involved object associated with the event                                       |
+
+This Provider type does support the configuration of a [proxy URL](#https-proxy)
+and [TLS certificates](#tls-certificates).
+
+###### Prometheus Alertmanager example
+
+To configure a Provider for Prometheus Alertmanager, create a Secret with [the
+`address`](#address-example) set to the Prometheus Alertmanager [HTTP API
+URL](https://prometheus.io/docs/alerting/latest/https/#http-traffic)
+including Basic Auth credentials, and a `alertmanager` Provider with a [Secret
+reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: alertmanager
+  namespace: default
+spec:
+  type: alertmanager
+  secretRef:
+    name: alertmanager-address
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-address
+  namespace: default
+stringData:
+    address: https://username:password@<alertmanager-url>/api/v2/alerts/"
+```
+
+##### Webex
+
+When `.spec.type` is set to `webex`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided Webex [Address](#address).
+
+The Event will be formatted into a message string, with the metadata attached
+as a list of key-value pairs, and send as a [Webex message](https://developer.webex.com/docs/api/v1/messages/create-a-message).
+
+The [Channel](#channel) is used to set the ID of the room to send the message
+to.
+
+This Provider type does support the configuration of a [proxy URL](#https-proxy)
+and [TLS certificates](#tls-certificates).
+
+###### Webex example
+
+To configure a Provider for Webex, create a Secret with [the `token`](#token-example)
+set to the Webex [access token](https://developer.webex.com/docs/api/getting-started#authentication),
+and a `webex` Provider with a [Secret reference](#secret-reference) and the
+`address` set to `https://webexapis.com/v1/messages`.
+
+**Note:** To be able to send messages to a Webex room, the bot needs to be
+added to the room. Failing to do so will result in 404 errors, logged by the
+controller.
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: webex
+  namespace: default
+spec:
+  type: webex
+  address: https://webexapis.com/v1/messages
+  channel: <webexSpaceRoomID>
+  secretRef:
+    name: webex-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: webex-token
+  namespace: default
+stringData:
+  token: <bot-token>
+```
+
 ### Address
 
 `.spec.address` is an optional field that specifies the URL where the events are posted.
@@ -140,6 +824,11 @@ When the referenced Secret contains an `address` key, the `.spec.address` value 
 
 `.spec.channel` is an optional field that specifies the channel where the events are posted.
 
+### Username
+
+`.spec.username` is an optional field that specifies the username used to post
+the events. Can be overwritten with a [Secret reference](#secret-reference).
+
 ### Secret reference
 
 `.spec.secretRef.name` is an optional field to specify a name reference to a
@@ -151,6 +840,7 @@ The Kubernetes secret can have any of the following keys:
 - `address` - overrides `.spec.address`
 - `proxy` - overrides `.spec.proxy`
 - `token` - used for authentication
+- `username` - overrides `.spec.username`
 - `headers` - HTTP headers values included in the POST request
 
 #### Address example
@@ -274,525 +964,6 @@ When the field is set to `false` or removed, it will resume.
 
 ## Working with Providers
 
-### Generic webhook
-
-The `generic` webhook triggers an HTTP POST request to the provided endpoint.
-
-The `Gotk-Component` header identifies which component this event is coming
-from, e.g. `source-controller`, `kustomize-controller`.
-
-```
-POST / HTTP/1.1
-Host: example.com
-Accept-Encoding: gzip
-Content-Length: 452
-Content-Type: application/json
-Gotk-Component: source-controller
-User-Agent: Go-http-client/1.1
-```
-
-The body of the request looks like this:
-
-```json
-{
-  "involvedObject": {
-    "apiVersion": "kustomize.toolkit.fluxcd.io/v1beta2",
-    "kind": "Kustomization",
-    "name": "webapp",
-    "namespace": "apps",
-    "uid": "7d0cdc51-ddcf-4743-b223-83ca5c699632"
-  },
-  "metadata": {
-    "kustomize.toolkit.fluxcd.io/revision": "main/731f7eaddfb6af01cb2173e18f0f75b0ba780ef1"
-  },
-  "severity":"error",
-  "reason": "ValidationFailed",
-  "message":"service/apps/webapp validation error: spec.type: Unsupported value: Ingress",
-  "reportingController":"kustomize-controller",
-  "reportingInstance":"kustomize-controller-7c7b47f5f-8bhrp",
-  "timestamp":"2022-10-28T07:26:19Z"
-}
-```
-
-The `involvedObject` key contains the object that triggered the event.
-
-You can add additional headers to the POST request by providing a `headers` field to the secret
-referenced by the provider. An example is given below:
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: generic
-  namespace: default
-spec:
-  type: generic
-  address: https://api.github.com/repos/owner/repo/dispatches
-  secretRef:
-    name: generic-secret
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: generic-secret
-  namespace: default
-stringData:
-  headers: |
-     Authorization: token
-     X-Forwarded-Proto: https
-```
-
-### Generic webhook with HMAC
-
-If you set the `.spec.type` of a `Provider` resource to `generic-hmac` then the HTTP request
-sent to the webhook will include the `X-Signature` HTTP header carrying the HMAC of the request body.
-This allows the webhook server to authenticate the request.
-The key used for the HMAC must be supplied in the `token` field of the Secret resource referenced in `.spec.secretRef`.
-The HTTP header value has the following format:
-
-```
-X-Signature: HASH_FUNC=HASH
-```
-
-`HASH_FUNC` denotes the Hash function used to generate the HMAC and currently defaults
-to `sha256` but may change in the future. You must make sure to take this value into
-account when verifying the HMAC. `HASH` is the hex-encoded HMAC value.
-The following Go code illustrates how the header is parsed and verified:
-
-```go
-func verifySignature(sig string, payload, key []byte) error {
-	sigHdr := strings.Split(sig, "=")
-	if len(shgHdr) != 2 {
-		return fmt.Errorf("invalid signature value")
-	}
-	var newF func() hash.Hash
-	switch sigHdr[0] {
-	case "sha224":
-		newF = sha256.New224
-	case "sha256":
-		newF = sha256.New
-	case "sha384":
-		newF = sha512.New384
-	case "sha512":
-		newF = sha512.New
-	default:
-		return fmt.Errorf("unsupported signature algorithm %q", sigHdr[0])
-	}
-	mac := hmac.New(newF, key)
-	if _, err := mac.Write(payload); err != nil {
-		return fmt.Errorf("error MAC'ing payload: %w", err)
-	}
-	sum := fmt.Sprintf("%x", mac.Sum(nil))
-	if sum != sigHdr[1] {
-		return fmt.Errorf("HMACs don't match: %#v != %#v", sum, sigHdr[1])
-	}
-	return nil
-}
-[...]
-key := []byte("b1fad212fb1b87a56c79e5da48018650b85ab7cf")
-if len(r.Header["X-Signature"]) > 0 {
-	if err := verifySignature(r.Header["X-Signature"][0], body, key); err != nil {
-		// handle signature verification failure here
-	}
-}
-```
-
-### Slack
-
-To send alerts to Slack, we recommend using a Slack Bot App token.
-To obtain a token, please follow [Slack's guide on bot users](https://api.slack.com/bot-users).
-
-Once you have a Slack bot token (starts with `xoxb-`), create a secret for it with:
-
-```shell
-kubectl create secret generic slack-token --from-literal=token=BOT-TOKEN
-```
-
-Create a provider of type `slack`, with the address set to `https://slack.com/api/chat.postMessage`
-and reference the `slack-token` secret:
-
-```yaml
----
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: slack
-  namespace: default
-spec:
-  type: slack
-  channel: general
-  address: https://slack.com/api/chat.postMessage
-  secretRef:
-    name: slack-token
-```
-
-Slack legacy webhooks are also supported, the webhook URL can be set in the `address` field or in the secret:
-
-```yaml
----
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: slack
-  namespace: default
-spec:
-  type: slack
-  secretRef:
-    name: slack-webhook
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: slack-webhook
-  namespace: default
-stringData:
-  address: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
-```
-
-### Microsoft Teams
-
-To send alerts to Teams, first create an
-[incoming webhook](https://docs.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook)
-on the Microsoft Teams UI:
-
-1. Open the settings of the channel you want the notifications to be sent to.
-2. Click on `Connectors`.
-3. Click on the `Add` button for `Incoming Webhook`.
-4. Click on `Configure` and copy the webhook URL given.
-
-Once you have the webhook URL, create a secret for it with:
-
-```shell
-kubectl create secret generic teams-webhook \
---from-literal=address=<YOUR-TEAMS-WEBHOOK>
-```
-
-Create a provider of type `msteam` and reference the `teams-webhook` secret:
-
-```yaml
----
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: msteams
-  namespace: default
-spec:
-  type: msteams
-  secretRef:
-    name: slack-webhook
-```
-
-### Discord
-
-To send events to Discord, first [create a webhook](https://discord.com/developers/docs/resources/webhook#create-webhook).
-
-Once you have the webhook URL, create a secret for it with:
-
-```shell
-kubectl create secret generic discord-webhook \
---from-literal=address=<YOUR-WEBHOOK>
-```
-
-Create a provider of type `discord` and reference the `discord-webhook` secret:
-
-```yaml
----
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: discord
-  namespace: default
-spec:
-  type: discord
-  secretRef:
-    name: discord-webhook
-```
-
-### Sentry
-
-To send events to Sentry, create a provider of type `sentry` and a secret with the Sentry URL:
-
-```yaml
----
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: sentry
-  namespace: default
-spec:
-  type: sentry
-  channel: staging-env
-  secretRef:
-    name: sentry-webhook
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: sentry-webhook
-  namespace: default
-stringData:
-  address: "https://....@sentry.io/12341234"
-```
-
-Note that the `.spec.channel` field can be used to specify which environment the messages are sent for.
-
-The sentry provider also sends traces for events with the severity `info`.
-This can be disabled by setting, the `Alert.spec.eventSeverity` field to `error`.
-
-### Telegram
-
-For telegram, You can get the token from [the botfather](https://core.telegram.org/bots#6-botfather)
-and use `https://api.telegram.org/` as the address.
-
-Once you have a Telegram token, create a secret for it with:
-
-```shell
-kubectl create secret generic telegram-token \
---from-literal=token=BOT-TOKEN
-```
-
-Create a provider of type `telegram` and reference the `telegram-token` secret:
-
-```yaml
----
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: telegram
-  namespace: default
-spec:
-  type: telegram
-  address: https://api.telegram.org
-  channel: "@fluxtest" # or "-1557265138" (channel id)
-  secretRef:
-    name: telegram-token
-```
-
-Note that `.spec.channel` can be a unique identifier for the target chat
-or the username of the target channel (in the format `@channelusername`).
-
-### Matrix
-
-For Matrix, the address is the homeserver URL and the token is the access token
-returned by a call to `/login` or `/register`.
-
-Once you have a Matrix token, create a secret for it with:
-
-```shell
-kubectl create secret generic matrix-token \
---from-literal=token=MY-TOKEN
-```
-
-Create a provider of type `matrix` and reference the `matrix-token` secret:
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: matrix
-  namespace: default
-spec:
-  type: matrix
-  address: https://matrix.org
-  channel: "!jezptmDwEeLapMLjOc:matrix.org"
-  secretRef:
-    name: matrix-token
-```
-
-Note that `.spec.channel` holds the room ID.
-
-### Lark
-
-For sending notifications to Lark, you will have to
-[add a bot to the group](https://www.larksuite.com/hc/en-US/articles/360048487736-Bot-Use-bots-in-groups#III.%20How%20to%20configure%20custom%20bots%20in%20a%20group%C2%A0)
-and set up a webhook for that bot account. This serves as the address field in the secret:
-
-```shell
-kubectl create secret generic lark-webhook \
---from-literal=address=<lark-webhook-url>
-```
-
-Create a provider of type `lark` and reference the `lark-webhook` secret:
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: lark
-  namespace: default
-spec:
-  type: lark
-  secretRef:
-    name: lark-webhook
-```
-
-### Rocket
-
-To send events to Rocket chat, first [create an incoming webhook](https://docs.rocket.chat/guides/administration/admin-panel/integrations#create-a-new-incoming-webhook).
-
-Once you have the webhook URL, create a secret for it with:
-
-```shell
-kubectl create secret generic rocket-webhook \
---from-literal=address=<YOUR-WEBHOOK>
-```
-
-Create a provider of type `rocket` and reference the `rocket-webhook` secret:
-
-```yaml
----
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: rocket
-  namespace: default
-spec:
-  type: rocket
-  secretRef:
-    name: rocket-webhook
-```
-
-### Google Chat
-
-To send notifications to Google chat, first [create an incoming webhook](https://developers.google.com/chat/how-tos/webhooks#create_a_webhook).
-
-Once you have the webhook URL, create a secret for it with:
-
-```shell
-kubectl create secret generic google-webhook \
---from-literal=address=<YOUR-WEBHOOK>
-```
-
-Create a provider of type `googlechat` and reference the `google-webhook` secret:
-
-```yaml
----
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: google
-  namespace: default
-spec:
-  type: googlechat
-  secretRef:
-    name: google-webhook
-```
-
-### Opsgenie
-
-To send notifications to Opsgenie, first
-[add a REST API integration](https://support.atlassian.com/opsgenie/docs/create-a-default-api-integration/).
-
-Once you have a Opsgenie API key, create a secret for it with:
-
-```shell
-kubectl create secret generic opsgenie-token \
---from-literal=token=<opsgenie-api-key>
-```
-
-Create a provider of type `opsgenie` and reference the `opsgenie-token` secret:
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: opsgenie
-  namespace: default
-spec:
-  type: opsgenie
-  address: https://api.opsgenie.com/v2/alerts
-  secretRef:
-    name: opsgenie-token
-```
-
-### Prometheus Alertmanager
-
-To send events to the Prometheus [Alertmanager v2 API](https://github.com/prometheus/alertmanager/blob/main/api/v2/openapi.yaml),
-create a provider of type `alertmanager` and set the `address` field to the `api/v2/alerts` endpoint:
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: alertmanager
-  namespace: default
-spec:
-  type: alertmanager
-  # webhook address (ignored if secretRef is specified)
-  address: https://....@<alertmanager-url>/api/v2/alerts/"
-```
-
-If Alertmanager has basic authentication configured, it is recommended to use
-`.spec.secretRef` and include the `username:password` in the address string inside the secret.
-
-When an event is received, the controller will send a single alert with at least one annotation
-which is the `message` found for the event.
-If an  `Alert.spec.summary` is provided, an additional "summary" annotation will be added.
-
-The provider will send the following labels for the event:
-
-
-| Label     | Description                                                                                          |
-|-----------|------------------------------------------------------------------------------------------------------|
-| alertname | The string Flux followed by the Kind and the reason for the event e.g `FluxKustomizationProgressing` |
-| severity  | The severity of the event (`error` or `info`)                                                        |
-| timestamp | The timestamp of the event                                                                           |
-| reason    | The machine readable reason for the objects transition into the current status                       |
-| kind      | The kind of the involved object associated with the event                                            |
-| name      | The name of the involved object associated with the event                                            |
-| namespace | The namespace of the involved object associated with the event                                       |
-
-### Webex
-
-General steps on how to send notifications to a Webex space:
-
-From the Webex App UI:
-
-- create a Webex space where you want notifications to be sent
-- after creating a Webex bot (described in next section), add the bot email address to the Webex space ("People | Add people")
-
-Register to https://developer.webex.com/, after signing in:
-
-- Create a bot for forwarding Flux notifications to a Webex Space
-  (User profile icon | MyWebexApps | Create a New App | Create a Bot).
-- Make a note of the bot email address, this email needs to be added to the Webex space from the Webex App.
-- Generate a bot access token, this is the ID to use in the kubernetes Secret "token" field.
-- Find the room ID associated to the webex space using https://developer.webex.com/docs/api/v1/rooms/list-rooms
-  (select GET, click on "Try It" and search the GET results for the matching Webex space entry),
-  this is the ID to use in the webex Provider manifest "channel" field.
-
-Example:
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
-kind: Provider
-metadata:
-  name: webex
-  namespace: default
-spec:
-  type: webex
-  address: https://webexapis.com/v1/messages
-  channel: <webexSpaceRoomID>
-  secretRef:
-    name: webex-token
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: webex-token
-  namespace: default
-stringData:
-  token: <bot-token>
-```
-
-Notes:
-
-- `.spec.address` should always be set to the same global Webex API gateway `https://webexapis.com/v1/messages`
-- `.spec.channel` should contain the Webex space room ID as obtained from `https://developer.webex.com/` (long alphanumeric string copied as is).
-
-If you do not see any notifications in the targeted Webex space, check that you have added the bot
-email address to the Webex space, if the bot email address is not added to the space,
-the notification-controller will log a 404 room not found error every time a notification is sent out.
 
 ### Grafana
 
@@ -1042,8 +1213,9 @@ stringData:
   address: <SAS-URL>
 ```
 
-Assuming that you have created Azure event hub and namespace you should be able to use a similar command to get your
-connection string. This will give you the default Root SAS, it's NOT supposed to be used in production.
+Assuming that you have created the Azure event hub and namespace you should be
+able to use a similar command to get your connection string. This will give
+you the default Root SAS, which is NOT supposed to be used in production.
 
 ```shell
 az eventhubs namespace authorization-rule keys list --resource-group <rg-name> --namespace-name <namespace-name> --name RootManageSharedAccessKey -o tsv --query primaryConnectionString
@@ -1098,7 +1270,7 @@ spec:
 When `.spec.type` is set to `github`, the referenced secret must contain a key called `token` with the value set to a
 [GitHub personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
 
-The token must has permissions to update the commit status for the GitHub repository specified in `.spec.address`.
+The token must have permissions to update the commit status for the GitHub repository specified in `.spec.address`.
 
 You can create the secret with `kubectl` like this:
 
@@ -1111,7 +1283,7 @@ kubectl create secret generic github-token --from-literal=token=<GITHUB-TOKEN>
 When `.spec.type` is set to `gitlab`, the referenced secret must contain a key called `token` with the value set to a
 [GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html).
 
-The token must has permissions to update the commit status for the GitLab repository specified in `.spec.address`.
+The token must have permissions to update the commit status for the GitLab repository specified in `.spec.address`.
 
 You can create the secret with `kubectl` like this:
 
@@ -1140,7 +1312,7 @@ kubectl create secret generic gitlab-token --from-literal=token=<username>:<app-
 When `.spec.type` is set to `azuredevops`, the referenced secret must contain a key called `token` with the value set to a
 [Azure DevOps personal access token](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page).
 
-The token must has permissions to update the commit status for the Azure DevOps repository specified in `.spec.address`.
+The token must have permissions to update the commit status for the Azure DevOps repository specified in `.spec.address`.
 
 You can create the secret with `kubectl` like this:
 

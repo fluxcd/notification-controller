@@ -136,7 +136,7 @@ handle the incoming webhook request.
 #### Generic
 
 When a Receiver's `.spec.type` is set to `generic`, the controller will respond
-to any HTTP request to the generated [`.status.webhookURL` path](#webhook-path),
+to any HTTP request to the generated [`.status.webhookPath` path](#webhook-path),
 and request a reconciliation for all listed [Resources](#resources).
 
 **Note:** This type of Receiver does not perform any validation on the incoming
@@ -165,7 +165,7 @@ spec:
 #### Generic HMAC
 
 When a Receiver's `.spec.type` is set to `generic-hmac`, the controller will
-respond to any HTTP request to the generated [`.status.webhookURL` path](#webhook-path),
+respond to any HTTP request to the generated [`.status.webhookPath` path](#webhook-path),
 while verifying the request's payload integrity and authenticity using [HMAC][].
 
 The controller uses the `X-Signature` header to get the hash signature. This
@@ -225,7 +225,7 @@ spec:
 
 When a Receiver's `.spec.type` is set to `github`, the controller will respond
 to an [HTTP webhook event payload](https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads)
-from GitHub to the generated [`.status.webhookURL` path](#webhook-path),
+from GitHub to the generated [`.status.webhookPath` path](#webhook-path),
 while verifying the payload using [HMAC][].
 
 The controller uses the [`X-Hub-Signature` header](https://docs.github.com/en/developers/webhooks-and-events/webhooks/webhook-events-and-payloads#delivery-headers)
@@ -286,7 +286,7 @@ to see the list of available [events](#events).
 
 When a Receiver's `.spec.type` is set to `gitlab`, the controller will respond
 to an [HTTP webhook event payload](https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#events)
-from GitLab to the generated [`.status.webhookURL` path](#webhook-path).
+from GitLab to the generated [`.status.webhookPath` path](#webhook-path).
 
 The controller validates the payload's authenticity by comparing the
 [`X-Gitlab-Token` header](https://docs.gitlab.com/ee/user/project/integrations/webhooks.html#validate-payloads-by-using-a-secret-token)
@@ -338,7 +338,7 @@ events.
 
 When a Receiver's `.spec.type` is set to `bitbucket`, the controller will
 respond to an [HTTP webhook event payload](https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html)
-from Bitbucket Server to the generated [`.status.webhookURL` path](#webhook-path),
+from Bitbucket Server to the generated [`.status.webhookPath` path](#webhook-path),
 while verifying the payload's integrity and authenticity using [HMAC][].
 
 The controller uses the [`X-Hub-Signature` header](https://confluence.atlassian.com/bitbucketserver/manage-webhooks-938025878.html#Managewebhooks-webhooksecrets)
@@ -393,7 +393,7 @@ events.
 
 When a Receiver's `.spec.type` is set to `harbor`, the controller will respond
 to an [HTTP webhook event payload](https://goharbor.io/docs/latest/working-with-projects/project-configuration/configure-webhooks/#payload-format)
-from Harbor to the generated [`.status.webhookURL` path](#webhook-path).
+from Harbor to the generated [`.status.webhookPath` path](#webhook-path).
 
 The controller validates the payload's authenticity by comparing the
 `Authorization` header from the request made by Harbor to the `token` string
@@ -432,7 +432,7 @@ spec:
 
 When a Receiver's `.spec.type` is set to `dockerhub`, the controller will
 respond to an [HTTP webhook event payload](https://docs.docker.com/docker-hub/webhooks/)
-from DockerHub to the generated [`.status.webhookURL` path](#webhook-path).
+from DockerHub to the generated [`.status.webhookPath` path](#webhook-path).
 
 The controller performs minimal validation of the payload by attempting to
 unmarshal the [JSON request body](https://docs.docker.com/docker-hub/webhooks/#example-webhook-payload).
@@ -465,7 +465,7 @@ spec:
 
 When a Receiver's `.spec.type` is set to `quay`, the controller will respond to
 an HTTP [Repository Push Notification payload](https://docs.quay.io/guides/notifications.html#repository-push)
-from Quay to the generated [`.status.webhookURL` path](#webhook-path).
+from Quay to the generated [`.status.webhookPath` path](#webhook-path).
 
 The controller performs minimal validation of the payload by attempting to
 unmarshal the JSON request body to the expected format. If the unmarshalling is
@@ -499,7 +499,7 @@ spec:
 
 When a Receiver's `.spec.type` is set to `nexus`, the controller will respond
 to an [HTTP webhook event payload](https://help.sonatype.com/repomanager3/integrations/webhooks/example-headers-and-payloads)
-from Nexus Repository Manager 3 to the generated [`.status.webhookURL`
+from Nexus Repository Manager 3 to the generated [`.status.webhookPath`
 path](#webhook-path), while verifying the payload's integrity and
 authenticity using [HMAC][].
 
@@ -543,7 +543,7 @@ spec:
 
 When a Receiver's `.spec.type` is set to `gcr`, the controller will respond to
 an [HTTP webhook event payload](https://cloud.google.com/container-registry/docs/configuring-notifications#notification_examples)
-from Google Cloud Registry to the generated [`.status.webhookURL`](#webhook-path),
+from Google Cloud Registry to the generated [`.status.webhookPath`](#webhook-path),
 while verifying the payload is legitimate using [JWT](https://cloud.google.com/pubsub/docs/push#authentication).
 
 The controller verifies the request originates from Google by validating the 
@@ -583,7 +583,7 @@ spec:
 
 When a Receiver's `.spec.type` is set to `acr`, the controller will respond to
 an [HTTP webhook event payload](https://learn.microsoft.com/en-us/azure/container-registry/container-registry-webhook-reference),
-from Azure Container Registry to the generated [`.status.webhookURL`](#webhook-path).
+from Azure Container Registry to the generated [`.status.webhookPath`](#webhook-path).
 
 The controller performs minimal validation of the payload by attempting to
 unmarshal the JSON request body. If the unmarshalling is successful, the
@@ -666,7 +666,7 @@ metadata:
 type: Opaque
 stringData:
   token: <random token>
-````
+```
 
 ### Interval
 
@@ -698,9 +698,8 @@ path](#webhook-path) will result in request to the Kubernetes API, as the
 controller needs to fetch information about the resource. This endpoint may be
 protected with a token, but this does not defend against a situation where a
 legitimate webhook caller starts sending large amounts of requests, or the
-token is somehow leaked. This may result in unwanted consequences for the
-controller, as it may get rate limited by the Kubernetes API, degrading its
-functionality.
+token is somehow leaked. This may result in the controller, as it may get rate
+limited by the Kubernetes API, degrading its functionality.
 
 It is therefore a good idea to set rate limits on the Ingress which exposes
 the Kubernetes Service. If you are using ingress-nginx, this can be done by
