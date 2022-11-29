@@ -23,9 +23,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/google/go-github/v41/github"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/google/go-github/v45/github"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
