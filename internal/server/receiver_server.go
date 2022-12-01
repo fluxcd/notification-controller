@@ -50,7 +50,7 @@ func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client
 
 // ListenAndServe starts the HTTP server on the specified port
 func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Middleware) {
-	mux := http.DefaultServeMux
+	mux := http.NewServeMux()
 	mux.Handle("/hook/", http.HandlerFunc(s.handlePayload()))
 	h := std.Handler("", mdlw, mux)
 	srv := &http.Server{
