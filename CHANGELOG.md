@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.29.1
+
+**Release date:** 2022-12-01
+
+This prerelease comes with a minor improvement in the receiver to use its own
+ServeMux instead of using the default global one.
+
+Fixes:
+* receiver: Use new ServeMux
+  [#448](https://github.com/fluxcd/notification-controller/pull/448)
+
+Improvements:
+* build: Fix cifuzz and improve fuzz tests' reliability
+  [#446](https://github.com/fluxcd/notification-controller/pull/446)
+
 ## 0.29.0
 
 **Release date:** 2022-11-22
