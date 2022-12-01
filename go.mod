@@ -9,7 +9,7 @@ require (
 	github.com/Azure/azure-amqp-common-go/v3 v3.2.3
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.20
 	github.com/containrrr/shoutrrr v0.6.1
-	github.com/fluxcd/notification-controller/api v0.29.0
+	github.com/fluxcd/notification-controller/api v0.29.1
 	github.com/fluxcd/pkg/apis/event v0.2.0
 	github.com/fluxcd/pkg/apis/meta v0.18.0
 	github.com/fluxcd/pkg/masktoken v0.2.0
