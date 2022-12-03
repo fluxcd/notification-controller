@@ -130,6 +130,7 @@ The supported providers for [Git commit status updates](#git-commit-status-updat
 | [Bitbucket](#bitbucket)       | `bitbucket`   |
 | [GitHub](#github)             | `github`      |
 | [GitLab](#gitlab)             | `gitlab`      |
+| [Gitea](#gitea)               | `gitea`       |
 
 #### Alerting
 
@@ -1289,6 +1290,19 @@ You can create the secret with `kubectl` like this:
 
 ```shell
 kubectl create secret generic gitlab-token --from-literal=token=<GITLAB-TOKEN>
+```
+
+#### Gitea
+
+When `.spec.type` is set to `gitea`, the referenced secret must contain a key called `token` with the value set to a
+[Gitea token](https://docs.gitea.io/en-us/api-usage/#generating-and-listing-api-tokens).
+
+The token owner must have permissions to update the commit status for the Gitea repository specified in `.spec.address`.
+
+You can create the secret with `kubectl` like this:
+
+```shell
+kubectl create secret generic gitea-token --from-literal=token=<GITEA-TOKEN>
 ```
 
 #### BitBucket
