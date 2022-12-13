@@ -89,6 +89,7 @@ func TestAlertReconciler_Reconcile(t *testing.T) {
 
 	t.Run("fails with provider not found error", func(t *testing.T) {
 		g := NewWithT(t)
+
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), resultA)
 			return conditions.Has(resultA, meta.ReadyCondition)
@@ -106,6 +107,7 @@ func TestAlertReconciler_Reconcile(t *testing.T) {
 
 	t.Run("recovers when provider exists", func(t *testing.T) {
 		g := NewWithT(t)
+
 		g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())
 
 		g.Eventually(func() bool {
@@ -120,6 +122,9 @@ func TestAlertReconciler_Reconcile(t *testing.T) {
 
 	t.Run("handles reconcileAt", func(t *testing.T) {
 		g := NewWithT(t)
+
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), resultA)).To(Succeed())
+
 		reconcileRequestAt := metav1.Now().String()
 		resultA.SetAnnotations(map[string]string{
 			meta.ReconcileRequestAnnotation: reconcileRequestAt,
@@ -134,6 +139,9 @@ func TestAlertReconciler_Reconcile(t *testing.T) {
 
 	t.Run("finalizes suspended object", func(t *testing.T) {
 		g := NewWithT(t)
+
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), resultA)).To(Succeed())
+
 		resultA.Spec.Suspend = true
 		g.Expect(k8sClient.Update(context.Background(), resultA)).To(Succeed())
 

@@ -45,6 +45,7 @@ import (
 
 func TestReceiverReconciler_Reconcile(t *testing.T) {
 	g := NewWithT(t)
+
 	timeout := 5 * time.Second
 	resultR := &apiv1.Receiver{}
 	namespaceName := "receiver-" + randStringRunes(5)
@@ -90,6 +91,7 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 
 	t.Run("reports ready status", func(t *testing.T) {
 		g := NewWithT(t)
+
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
 			return resultR.Status.ObservedGeneration == resultR.Generation
@@ -105,7 +107,10 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 
 	t.Run("fails with secret not found error", func(t *testing.T) {
 		g := NewWithT(t)
+
 		g.Expect(k8sClient.Delete(context.Background(), secret)).To(Succeed())
+
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)).To(Succeed())
 
 		reconcileRequestAt := metav1.Now().String()
 		resultR.SetAnnotations(map[string]string{
@@ -151,6 +156,9 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 
 	t.Run("handles reconcileAt", func(t *testing.T) {
 		g := NewWithT(t)
+
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)).To(Succeed())
+
 		reconcileRequestAt := metav1.Now().String()
 		resultR.SetAnnotations(map[string]string{
 			meta.ReconcileRequestAnnotation: reconcileRequestAt,
@@ -165,6 +173,9 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 
 	t.Run("finalizes suspended object", func(t *testing.T) {
 		g := NewWithT(t)
+
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)).To(Succeed())
+
 		resultR.Spec.Suspend = true
 		g.Expect(k8sClient.Update(context.Background(), resultR)).To(Succeed())
 
@@ -273,6 +284,9 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 
 	t.Run("doesn't update the URL on spec updates", func(t *testing.T) {
 		g := NewWithT(t)
+
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)).To(Succeed())
+
 		resultR.Spec.Events = []string{"ping", "push"}
 		g.Expect(k8sClient.Update(context.Background(), resultR)).To(Succeed())
 
