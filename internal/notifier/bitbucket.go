@@ -34,13 +34,14 @@ import (
 
 // Bitbucket is a Bitbucket Server notifier.
 type Bitbucket struct {
-	Owner  string
-	Repo   string
-	Client *bitbucket.Client
+	Owner       string
+	Repo        string
+	ProviderUID string
+	Client      *bitbucket.Client
 }
 
 // NewBitbucket creates and returns a new Bitbucket notifier.
-func NewBitbucket(addr string, token string, certPool *x509.CertPool) (*Bitbucket, error) {
+func NewBitbucket(providerUID string, addr string, token string, certPool *x509.CertPool) (*Bitbucket, error) {
 	if len(token) == 0 {
 		return nil, errors.New("bitbucket token cannot be empty")
 	}
@@ -76,9 +77,10 @@ func NewBitbucket(addr string, token string, certPool *x509.CertPool) (*Bitbucke
 	}
 
 	return &Bitbucket{
-		Owner:  owner,
-		Repo:   repo,
-		Client: client,
+		Owner:       owner,
+		Repo:        repo,
+		ProviderUID: providerUID,
+		Client:      client,
 	}, nil
 }
 
@@ -103,8 +105,9 @@ func (b Bitbucket) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	name, desc := formatNameAndDescription(event)
+	id := generateCommitStatusID(b.ProviderUID, event)
 	// key has a limitation of 40 characters in bitbucket api
-	key := sha1String(name)
+	key := sha1String(id)
 
 	cmo := &bitbucket.CommitsOptions{
 		Owner:    b.Owner,

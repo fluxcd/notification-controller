@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux authors
+Copyright 2022 The Flux authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -43,7 +43,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/predicates"
 	kuberecorder "k8s.io/client-go/tools/record"
 
-	"github.com/fluxcd/notification-controller/api/v1beta1"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 )
 
 var (
@@ -56,7 +56,7 @@ type AlertReconciler struct {
 	helper.Metrics
 	kuberecorder.EventRecorder
 
-	Scheme *runtime.Scheme
+	ControllerName string
 }
 
 type AlertReconcilerOptions struct {
@@ -69,9 +69,9 @@ func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *AlertReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts AlertReconcilerOptions) error {
-	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &v1beta1.Alert{}, ProviderIndexKey,
+	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &apiv1.Alert{}, ProviderIndexKey,
 		func(o client.Object) []string {
-			alert := o.(*v1beta1.Alert)
+			alert := o.(*apiv1.Alert)
 			return []string{
 				fmt.Sprintf("%s/%s", alert.GetNamespace(), alert.Spec.ProviderRef.Name),
 			}
@@ -80,10 +80,11 @@ func (r *AlertReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts Aler
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1beta1.Alert{}).
-		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{})).
+		For(&apiv1.Alert{}, builder.WithPredicates(
+			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
+		)).
 		Watches(
-			&source.Kind{Type: &v1beta1.Provider{}},
+			&source.Kind{Type: &apiv1.Provider{}},
 			handler.EnqueueRequestsFromMapFunc(r.requestsForProviderChange),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 		).
@@ -97,97 +98,82 @@ func (r *AlertReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts Aler
 
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=alerts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=alerts/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, retErr error) {
-	start := time.Now()
+	reconcileStart := time.Now()
 	log := ctrl.LoggerFrom(ctx)
 
-	alert := &v1beta1.Alert{}
-	if err := r.Get(ctx, req.NamespacedName, alert); err != nil {
+	obj := &apiv1.Alert{}
+	if err := r.Get(ctx, req.NamespacedName, obj); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// record suspension metrics
-	r.RecordSuspend(ctx, alert, alert.Spec.Suspend)
-
-	if alert.Spec.Suspend {
-		log.Info("Reconciliation is suspended for this object")
-		return ctrl.Result{}, nil
-	}
-
-	patchHelper, err := patch.NewHelper(alert, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	// Initialize the runtime patcher with the current version of the object.
+	patcher := patch.NewSerialPatcher(obj, r.Client)
 
 	defer func() {
-		patchOpts := []patch.Option{
-			patch.WithOwnedConditions{
-				Conditions: []string{
-					meta.ReadyCondition,
-					meta.ReconcilingCondition,
-					meta.StalledCondition,
-				},
-			},
-		}
-
-		if retErr == nil && (result.IsZero() || !result.Requeue) {
-			conditions.Delete(alert, meta.ReconcilingCondition)
-
-			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
-
-			readyCondition := conditions.Get(alert, meta.ReadyCondition)
-			switch readyCondition.Status {
-			case metav1.ConditionFalse:
-				// As we are no longer reconciling and the end-state is not ready, the reconciliation has stalled
-				conditions.MarkStalled(alert, readyCondition.Reason, readyCondition.Message)
-			case metav1.ConditionTrue:
-				// As we are no longer reconciling and the end-state is ready, the reconciliation is no longer stalled
-				conditions.Delete(alert, meta.StalledCondition)
-			}
-		}
-
-		if err := patchHelper.Patch(ctx, alert, patchOpts...); err != nil {
+		// Patch finalizers, status and conditions.
+		if err := r.patch(ctx, obj, patcher); err != nil {
 			retErr = kerrors.NewAggregate([]error{retErr, err})
 		}
 
-		r.Metrics.RecordReadiness(ctx, alert)
-		r.Metrics.RecordDuration(ctx, alert, start)
+		// Record Prometheus metrics.
+		r.Metrics.RecordReadiness(ctx, obj)
+		r.Metrics.RecordDuration(ctx, obj, reconcileStart)
+		r.Metrics.RecordSuspend(ctx, obj, obj.Spec.Suspend)
+
+		// Emit warning event if the reconciliation failed.
+		if retErr != nil {
+			r.Event(obj, corev1.EventTypeWarning, meta.FailedReason, retErr.Error())
+		}
+
+		// Log and emit success event.
+		if retErr == nil && conditions.IsReady(obj) {
+			msg := "Reconciliation finished"
+			log.Info(msg)
+			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
+		}
 	}()
 
-	if !controllerutil.ContainsFinalizer(alert, v1beta1.NotificationFinalizer) {
-		controllerutil.AddFinalizer(alert, v1beta1.NotificationFinalizer)
+	if !controllerutil.ContainsFinalizer(obj, apiv1.NotificationFinalizer) {
+		controllerutil.AddFinalizer(obj, apiv1.NotificationFinalizer)
 		result = ctrl.Result{Requeue: true}
 		return
 	}
 
-	if !alert.ObjectMeta.DeletionTimestamp.IsZero() {
-		controllerutil.RemoveFinalizer(alert, v1beta1.NotificationFinalizer)
+	if !obj.ObjectMeta.DeletionTimestamp.IsZero() {
+		controllerutil.RemoveFinalizer(obj, apiv1.NotificationFinalizer)
 		result = ctrl.Result{}
 		return
 	}
 
-	return r.reconcile(ctx, alert)
-}
-
-func (r *AlertReconciler) reconcile(ctx context.Context, alert *v1beta1.Alert) (ctrl.Result, error) {
-	// Mark the resource as under reconciliation
-	conditions.MarkReconciling(alert, meta.ProgressingReason, "")
-
-	// validate alert spec and provider
-	if err := r.validate(ctx, alert); err != nil {
-		conditions.MarkFalse(alert, meta.ReadyCondition, v1beta1.ValidationFailedReason, err.Error())
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	// Return early if the object is suspended.
+	if obj.Spec.Suspend {
+		log.Info("Reconciliation is suspended for this object")
+		return ctrl.Result{}, nil
 	}
 
-	conditions.MarkTrue(alert, meta.ReadyCondition, meta.SucceededReason, v1beta1.InitializedReason)
-	ctrl.LoggerFrom(ctx).Info("Alert initialized")
+	return r.reconcile(ctx, obj)
+}
+
+func (r *AlertReconciler) reconcile(ctx context.Context, alert *apiv1.Alert) (ctrl.Result, error) {
+	// Mark the resource as under reconciliation.
+	conditions.MarkReconciling(alert, meta.ProgressingReason, "Reconciliation in progress")
+
+	// Check if the provider exist and is ready.
+	if err := r.isProviderReady(ctx, alert); err != nil {
+		conditions.MarkFalse(alert, meta.ReadyCondition, meta.FailedReason, err.Error())
+		return ctrl.Result{Requeue: true}, client.IgnoreNotFound(err)
+	}
+
+	conditions.MarkTrue(alert, meta.ReadyCondition, meta.SucceededReason, apiv1.InitializedReason)
 
 	return ctrl.Result{}, nil
 }
 
-func (r *AlertReconciler) validate(ctx context.Context, alert *v1beta1.Alert) error {
-	provider := &v1beta1.Provider{}
+func (r *AlertReconciler) isProviderReady(ctx context.Context, alert *apiv1.Alert) error {
+	provider := &apiv1.Provider{}
 	providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
 	if err := r.Get(ctx, providerName, provider); err != nil {
 		// log not found errors since they get filtered out
@@ -203,13 +189,13 @@ func (r *AlertReconciler) validate(ctx context.Context, alert *v1beta1.Alert) er
 }
 
 func (r *AlertReconciler) requestsForProviderChange(o client.Object) []reconcile.Request {
-	provider, ok := o.(*v1beta1.Provider)
+	provider, ok := o.(*apiv1.Provider)
 	if !ok {
 		panic(fmt.Errorf("expected a provider, got %T", o))
 	}
 
 	ctx := context.Background()
-	var list v1beta1.AlertList
+	var list apiv1.AlertList
 	if err := r.List(ctx, &list, client.MatchingFields{
 		ProviderIndexKey: client.ObjectKeyFromObject(provider).String(),
 	}); err != nil {
@@ -222,4 +208,54 @@ func (r *AlertReconciler) requestsForProviderChange(o client.Object) []reconcile
 	}
 
 	return reqs
+}
+
+// patch updates the object status, conditions and finalizers.
+func (r *AlertReconciler) patch(ctx context.Context, obj *apiv1.Alert, patcher *patch.SerialPatcher) (retErr error) {
+	// Configure the runtime patcher.
+	patchOpts := []patch.Option{}
+	ownedConditions := []string{
+		meta.ReadyCondition,
+		meta.ReconcilingCondition,
+		meta.StalledCondition,
+	}
+	patchOpts = append(patchOpts,
+		patch.WithOwnedConditions{Conditions: ownedConditions},
+		patch.WithForceOverwriteConditions{},
+		patch.WithFieldOwner(r.ControllerName),
+	)
+
+	// Set the value of the reconciliation request in status.
+	if v, ok := meta.ReconcileAnnotationValue(obj.GetAnnotations()); ok {
+		obj.Status.LastHandledReconcileAt = v
+	}
+
+	// Remove the Reconciling condition and update the observed generation
+	// if the reconciliation was successful.
+	if conditions.IsTrue(obj, meta.ReadyCondition) {
+		conditions.Delete(obj, meta.ReconcilingCondition)
+		obj.Status.ObservedGeneration = obj.Generation
+	}
+
+	// Set the Reconciling reason to ProgressingWithRetry if the
+	// reconciliation has failed.
+	if conditions.IsFalse(obj, meta.ReadyCondition) &&
+		conditions.Has(obj, meta.ReconcilingCondition) {
+		rc := conditions.Get(obj, meta.ReconcilingCondition)
+		rc.Reason = meta.ProgressingWithRetryReason
+		conditions.Set(obj, rc)
+	}
+
+	// Patch the object status, conditions and finalizers.
+	if err := patcher.Patch(ctx, obj, patchOpts...); err != nil {
+		if !obj.GetDeletionTimestamp().IsZero() {
+			err = kerrors.FilterOut(err, func(e error) bool { return apierrors.IsNotFound(e) })
+		}
+		retErr = kerrors.NewAggregate([]error{retErr, err})
+		if retErr != nil {
+			return retErr
+		}
+	}
+
+	return nil
 }

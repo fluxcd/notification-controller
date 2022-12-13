@@ -35,13 +35,14 @@ const genre string = "fluxcd"
 
 // AzureDevOps is a Azure DevOps notifier.
 type AzureDevOps struct {
-	Project string
-	Repo    string
-	Client  git.Client
+	Project     string
+	Repo        string
+	ProviderUID string
+	Client      git.Client
 }
 
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
-func NewAzureDevOps(addr string, token string, certPool *x509.CertPool) (*AzureDevOps, error) {
+func NewAzureDevOps(providerUID string, addr string, token string, certPool *x509.CertPool) (*AzureDevOps, error) {
 	if len(token) == 0 {
 		return nil, errors.New("azure devops token cannot be empty")
 	}
@@ -71,9 +72,10 @@ func NewAzureDevOps(addr string, token string, certPool *x509.CertPool) (*AzureD
 		Client: *client,
 	}
 	return &AzureDevOps{
-		Project: proj,
-		Repo:    repo,
-		Client:  gitClient,
+		Project:     proj,
+		Repo:        repo,
+		ProviderUID: providerUID,
+		Client:      gitClient,
 	}, nil
 }
 
@@ -99,7 +101,8 @@ func (a AzureDevOps) Post(ctx context.Context, event eventv1.Event) error {
 
 	// Check if the exact status is already set
 	g := genre
-	name, desc := formatNameAndDescription(event)
+	_, desc := formatNameAndDescription(event)
+	id := generateCommitStatusID(a.ProviderUID, event)
 	createArgs := git.CreateCommitStatusArgs{
 		Project:      &a.Project,
 		RepositoryId: &a.Repo,
@@ -109,7 +112,7 @@ func (a AzureDevOps) Post(ctx context.Context, event eventv1.Event) error {
 			State:       &state,
 			Context: &git.GitStatusContext{
 				Genre: &g,
-				Name:  &name,
+				Name:  &id,
 			},
 		},
 	}

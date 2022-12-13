@@ -34,9 +34,9 @@ events are processed and where to dispatch them.
 
 Notification API:
 
-* [Provider](v1beta1/provider.md)
-* [Alert](v1beta1/alert.md)
-* [Event](v1beta1/event.md)
+* [Alerts](v1beta2/alerts.md)
+* [Providers](v1beta2/providers.md)
+* [Events](v1beta2/events.md)
 
 The alert delivery method is **at-most once** with a timeout of 15 seconds.
 The controller performs automatic retries for connection errors and 500-range response code.
@@ -52,7 +52,7 @@ to be accessed by GitHub, GitLab, Bitbucket, Harbor, DockerHub, Jenkins, Quay, e
 
 Receiver API:
 
-* [Receiver](v1beta1/receiver.md)
+* [Receivers](v1beta2/receivers.md)
 
 When a `Receiver` is created, the controller sets the `Receiver`
 status to Ready and generates a URL in the format `/hook/sha256sum(token+name+namespace)`.
@@ -64,74 +64,3 @@ When the controller receives a POST request:
 * validates the signature using the `token` secret
 * extract the event type from the payload 
 * triggers a reconciliation for `spec.resources` if the event type matches one of the `spec.events` items
-
-## Example
-
-After installing notification-controller, we can configure alerting for events issued
-by source-controller and kustomize-controller.
-
-Create a notification provider for Slack:
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta1
-kind: Provider
-metadata:
-  name: slack
-spec:
-  type: slack
-  channel: prod-alerts
-  secretRef:
-    name: slack-url
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: slack-url
-data:
-  address: <encoded-url>
-```
-
-Create an alert for a list of GitRepositories and Kustomizations:
-
-```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta1
-kind: Alert
-metadata:
-  name: on-call-webapp
-spec:
-  providerRef: 
-    name: slack
-  eventSeverity: info
-  eventSources:
-    - kind: GitRepository
-      name: '*'
-    - kind: Kustomization
-      name: webapp-frontend
-    - kind: Kustomization
-      name: webapp-backend
-```
-
-Based on the above configuration, the controller will post messages on Slack every time there is an event
-issued for the webapp Git repository and Kustomizations.
-
-Kustomization apply event example:
-
-```json
-{
-  "severity": "info",
-  "ts": "2020-09-17T07:27:11.921Z",
-  "reportingController": "kustomize-controller",
-  "reason": "ApplySucceed",
-  "message": "Kustomization applied in 1.4s, revision: master/a1afe267b54f38b46b487f6e938a6fd508278c07",
-  "involvedObject": {
-    "kind": "Kustomization",
-    "name": "webapp-backend",
-    "namespace": "default"
-  },
-  "metadata": {
-    "service/backend": "created",
-    "deployment.apps/backend": "created",
-    "horizontalpodautoscaler.autoscaling/backend": "created"
-  }
-}
-```

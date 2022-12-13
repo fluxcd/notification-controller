@@ -10,4 +10,13 @@ resources:
 - group: notification
   kind: Receiver
   version: v1beta1
+- group: notification
+  kind: Provider
+  version: v1beta2
+- group: notification
+  kind: Alert
+  version: v1beta2
+- group: notification
+  kind: Receiver
+  version: v1beta2
 version: "2"

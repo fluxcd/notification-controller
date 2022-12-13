@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux authors
+Copyright 2022 The Flux authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -20,14 +20,16 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	"net/url"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	kuberecorder "k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -41,7 +43,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/patch"
 	"github.com/fluxcd/pkg/runtime/predicates"
 
-	"github.com/fluxcd/notification-controller/api/v1beta1"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
@@ -49,8 +51,9 @@ import (
 type ProviderReconciler struct {
 	client.Client
 	helper.Metrics
+	kuberecorder.EventRecorder
 
-	Scheme *runtime.Scheme
+	ControllerName string
 }
 
 type ProviderReconcilerOptions struct {
@@ -64,8 +67,9 @@ func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func (r *ProviderReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts ProviderReconcilerOptions) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1beta1.Provider{}).
-		WithEventFilter(predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{})).
+		For(&apiv1.Provider{}, builder.WithPredicates(
+			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
+		)).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.MaxConcurrentReconciles,
 			RateLimiter:             opts.RateLimiter,
@@ -76,96 +80,114 @@ func (r *ProviderReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts P
 
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=providers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=providers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, retErr error) {
-	start := time.Now()
+	reconcileStart := time.Now()
 	log := ctrl.LoggerFrom(ctx)
 
-	provider := &v1beta1.Provider{}
-	if err := r.Get(ctx, req.NamespacedName, provider); err != nil {
+	obj := &apiv1.Provider{}
+	if err := r.Get(ctx, req.NamespacedName, obj); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	r.RecordSuspend(ctx, provider, provider.Spec.Suspend)
-	// return early if the object is suspended
-	if provider.Spec.Suspend {
-		log.Info("Reconciliation is suspended for this object")
-		return ctrl.Result{}, nil
-	}
-
-	patchHelper, err := patch.NewHelper(provider, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+	// Initialize the runtime patcher with the current version of the object.
+	patcher := patch.NewSerialPatcher(obj, r.Client)
 
 	defer func() {
-		patchOpts := []patch.Option{
-			patch.WithOwnedConditions{
-				Conditions: []string{
-					meta.ReadyCondition,
-					meta.ReconcilingCondition,
-					meta.StalledCondition,
-				},
-			},
-		}
-
-		if retErr == nil && (result.IsZero() || !result.Requeue) {
-			conditions.Delete(provider, meta.ReconcilingCondition)
-
-			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
-
-			readyCondition := conditions.Get(provider, meta.ReadyCondition)
-			switch readyCondition.Status {
-			case metav1.ConditionFalse:
-				// As we are no longer reconciling and the end-state is not ready, the reconciliation has stalled
-				conditions.MarkStalled(provider, readyCondition.Reason, readyCondition.Message)
-			case metav1.ConditionTrue:
-				// As we are no longer reconciling and the end-state is ready, the reconciliation is no longer stalled
-				conditions.Delete(provider, meta.StalledCondition)
-			}
-		}
-
-		if err := patchHelper.Patch(ctx, provider, patchOpts...); err != nil {
+		// Patch finalizers, status and conditions.
+		if err := r.patch(ctx, obj, patcher); err != nil {
 			retErr = kerrors.NewAggregate([]error{retErr, err})
 		}
 
-		r.Metrics.RecordReadiness(ctx, provider)
-		r.Metrics.RecordDuration(ctx, provider, start)
+		// Record Prometheus metrics.
+		r.Metrics.RecordReadiness(ctx, obj)
+		r.Metrics.RecordDuration(ctx, obj, reconcileStart)
+		r.Metrics.RecordSuspend(ctx, obj, obj.Spec.Suspend)
 
+		// Emit warning event if the reconciliation failed.
+		if retErr != nil {
+			r.Event(obj, corev1.EventTypeWarning, meta.FailedReason, retErr.Error())
+		}
+
+		// Log the staleness error and pause reconciliation until spec changes.
+		if conditions.IsStalled(obj) {
+			result = ctrl.Result{Requeue: false}
+			log.Error(retErr, "Reconciliation has stalled")
+			retErr = nil
+			return
+		}
+
+		// Log and emit success event.
+		if retErr == nil && conditions.IsReady(obj) {
+			msg := fmt.Sprintf("Reconciliation finished, next run in %s",
+				obj.Spec.Interval.Duration.String())
+			log.Info(msg)
+			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
+		}
 	}()
 
-	if !controllerutil.ContainsFinalizer(provider, v1beta1.NotificationFinalizer) {
-		controllerutil.AddFinalizer(provider, v1beta1.NotificationFinalizer)
+	if !controllerutil.ContainsFinalizer(obj, apiv1.NotificationFinalizer) {
+		controllerutil.AddFinalizer(obj, apiv1.NotificationFinalizer)
 		result = ctrl.Result{Requeue: true}
 		return
 	}
 
-	if !provider.ObjectMeta.DeletionTimestamp.IsZero() {
-		controllerutil.RemoveFinalizer(provider, v1beta1.NotificationFinalizer)
+	if !obj.ObjectMeta.DeletionTimestamp.IsZero() {
+		controllerutil.RemoveFinalizer(obj, apiv1.NotificationFinalizer)
 		result = ctrl.Result{}
 		return
 	}
 
-	return r.reconcile(ctx, provider)
-}
-
-func (r *ProviderReconciler) reconcile(ctx context.Context, obj *v1beta1.Provider) (ctrl.Result, error) {
-	// Mark the resource as under reconciliation
-	conditions.MarkReconciling(obj, meta.ProgressingReason, "")
-
-	// validate provider spec and credentials
-	if err := r.validate(ctx, obj); err != nil {
-		conditions.MarkFalse(obj, meta.ReadyCondition, v1beta1.ValidationFailedReason, err.Error())
-		return ctrl.Result{}, err
+	// Return early if the object is suspended.
+	if obj.Spec.Suspend {
+		log.Info("Reconciliation is suspended for this object")
+		return ctrl.Result{}, nil
 	}
 
-	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, v1beta1.InitializedReason)
-	ctrl.LoggerFrom(ctx).Info("Provider initialized")
-
-	return ctrl.Result{}, nil
+	return r.reconcile(ctx, obj)
 }
 
-func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Provider) error {
+func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1.Provider) (ctrl.Result, error) {
+	// Mark the resource as under reconciliation.
+	conditions.MarkReconciling(obj, meta.ProgressingReason, "Reconciliation in progress")
+	conditions.Delete(obj, meta.StalledCondition)
+
+	// Mark the reconciliation as stalled if the inline URL and/or proxy are invalid.
+	if err := r.validateURLs(obj); err != nil {
+		conditions.MarkFalse(obj, meta.ReadyCondition, meta.InvalidURLReason, err.Error())
+		conditions.MarkTrue(obj, meta.StalledCondition, meta.InvalidURLReason, err.Error())
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	// Validate the provider credentials.
+	if err := r.validateCredentials(ctx, obj); err != nil {
+		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.ValidationFailedReason, err.Error())
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, apiv1.InitializedReason)
+
+	return ctrl.Result{RequeueAfter: obj.Spec.Interval.Duration}, nil
+}
+
+func (r *ProviderReconciler) validateURLs(provider *apiv1.Provider) error {
+	address := provider.Spec.Address
+	proxy := provider.Spec.Proxy
+
+	if provider.Spec.SecretRef == nil {
+		if _, err := url.ParseRequestURI(address); err != nil {
+			return fmt.Errorf("invalid address %s: %w", address, err)
+		}
+		if _, err := url.ParseRequestURI(proxy); proxy != "" && err != nil {
+			return fmt.Errorf("invalid proxy %s: %w", proxy, err)
+		}
+	}
+	return nil
+}
+
+func (r *ProviderReconciler) validateCredentials(ctx context.Context, provider *apiv1.Provider) error {
 	address := provider.Spec.Address
 	proxy := provider.Spec.Proxy
 	username := provider.Spec.Username
@@ -233,9 +255,65 @@ func (r *ProviderReconciler) validate(ctx context.Context, provider *v1beta1.Pro
 		}
 	}
 
-	factory := notifier.NewFactory(address, proxy, username, provider.Spec.Channel, token, headers, certPool, password)
+	factory := notifier.NewFactory(address, proxy, username, provider.Spec.Channel, token, headers, certPool, password, string(provider.UID))
 	if _, err := factory.Notifier(provider.Spec.Type); err != nil {
 		return fmt.Errorf("failed to initialize provider, error: %w", err)
+	}
+
+	return nil
+}
+
+// patch updates the object status, conditions and finalizers.
+func (r *ProviderReconciler) patch(ctx context.Context, obj *apiv1.Provider, patcher *patch.SerialPatcher) (retErr error) {
+	// Configure the runtime patcher.
+	patchOpts := []patch.Option{}
+	ownedConditions := []string{
+		meta.ReadyCondition,
+		meta.ReconcilingCondition,
+		meta.StalledCondition,
+	}
+	patchOpts = append(patchOpts,
+		patch.WithOwnedConditions{Conditions: ownedConditions},
+		patch.WithForceOverwriteConditions{},
+		patch.WithFieldOwner(r.ControllerName),
+	)
+
+	// Set the value of the reconciliation request in status.
+	if v, ok := meta.ReconcileAnnotationValue(obj.GetAnnotations()); ok {
+		obj.Status.LastHandledReconcileAt = v
+	}
+
+	// Remove the Reconciling/Stalled condition and update the observed generation
+	// if the reconciliation was successful.
+	if conditions.IsTrue(obj, meta.ReadyCondition) {
+		conditions.Delete(obj, meta.ReconcilingCondition)
+		conditions.Delete(obj, meta.StalledCondition)
+		obj.Status.ObservedGeneration = obj.Generation
+	}
+
+	// Set the Reconciling reason to ProgressingWithRetry if the
+	// reconciliation has failed.
+	if conditions.IsFalse(obj, meta.ReadyCondition) &&
+		conditions.Has(obj, meta.ReconcilingCondition) {
+		rc := conditions.Get(obj, meta.ReconcilingCondition)
+		rc.Reason = meta.ProgressingWithRetryReason
+		conditions.Set(obj, rc)
+	}
+
+	// Remove the Reconciling condition if the reconciliation has stalled.
+	if conditions.Has(obj, meta.StalledCondition) {
+		conditions.Delete(obj, meta.ReconcilingCondition)
+	}
+
+	// Patch the object status, conditions and finalizers.
+	if err := patcher.Patch(ctx, obj, patchOpts...); err != nil {
+		if !obj.GetDeletionTimestamp().IsZero() {
+			err = kerrors.FilterOut(err, func(e error) bool { return apierrors.IsNotFound(e) })
+		}
+		retErr = kerrors.NewAggregate([]error{retErr, err})
+		if retErr != nil {
+			return retErr
+		}
 	}
 
 	return nil

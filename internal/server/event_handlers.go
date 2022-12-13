@@ -38,7 +38,7 @@ import (
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/masktoken"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta1"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
@@ -243,7 +243,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				continue
 			}
 
-			factory := notifier.NewFactory(webhook, proxy, username, provider.Spec.Channel, token, headers, certPool, password)
+			factory := notifier.NewFactory(webhook, proxy, username, provider.Spec.Channel, token, headers, certPool, password, string(provider.UID))
 			sender, err := factory.Notifier(provider.Spec.Type)
 			if err != nil {
 				s.logger.Error(err, "failed to initialize provider",

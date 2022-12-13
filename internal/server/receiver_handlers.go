@@ -39,17 +39,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/fluxcd/notification-controller/api/v1beta1"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 )
 
 func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
-		digest := url.PathEscape(strings.TrimLeft(r.RequestURI, "/hook/"))
+		digest := url.PathEscape(strings.TrimLeft(r.RequestURI, apiv1.ReceiverWebhookPath))
 
 		s.logger.Info(fmt.Sprintf("handling request: %s", digest))
 
-		var allReceivers v1beta1.ReceiverList
+		var allReceivers apiv1.ReceiverList
 		err := s.kubeClient.List(ctx, &allReceivers)
 		if err != nil {
 			s.logger.Error(err, "unable to list receivers")
@@ -57,11 +57,11 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 			return
 		}
 
-		receivers := make([]v1beta1.Receiver, 0)
+		receivers := make([]apiv1.Receiver, 0)
 		for _, receiver := range allReceivers.Items {
 			if !receiver.Spec.Suspend &&
 				conditions.IsReady(&receiver) &&
-				receiver.Status.URL == fmt.Sprintf("/hook/%s", digest) {
+				receiver.Status.WebhookPath == fmt.Sprintf("%s%s", apiv1.ReceiverWebhookPath, digest) {
 				receivers = append(receivers, receiver)
 			}
 		}
@@ -74,7 +74,7 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 		withErrors := false
 		for _, receiver := range receivers {
 			logger := s.logger.WithValues(
-				"reconciler kind", v1beta1.ReceiverKind,
+				"reconciler kind", apiv1.ReceiverKind,
 				"name", receiver.Name,
 				"namespace", receiver.Namespace)
 
@@ -104,21 +104,21 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver, r *http.Request) error {
+func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, r *http.Request) error {
 	token, err := s.token(ctx, receiver)
 	if err != nil {
 		return fmt.Errorf("unable to read token, error: %w", err)
 	}
 
 	logger := s.logger.WithValues(
-		"reconciler kind", v1beta1.ReceiverKind,
+		"reconciler kind", apiv1.ReceiverKind,
 		"name", receiver.Name,
 		"namespace", receiver.Namespace)
 
 	switch receiver.Spec.Type {
-	case v1beta1.GenericReceiver:
+	case apiv1.GenericReceiver:
 		return nil
-	case v1beta1.GenericHMACReceiver:
+	case apiv1.GenericHMACReceiver:
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			return fmt.Errorf("unable to read request body: %s", err)
@@ -129,7 +129,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 			return fmt.Errorf("unable to validate HMAC signature: %s", err)
 		}
 		return nil
-	case v1beta1.GitHubReceiver:
+	case apiv1.GitHubReceiver:
 		_, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
 			return fmt.Errorf("the GitHub signature header is invalid, err: %w", err)
@@ -151,7 +151,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 
 		logger.Info(fmt.Sprintf("handling GitHub event: %s", event))
 		return nil
-	case v1beta1.GitLabReceiver:
+	case apiv1.GitLabReceiver:
 		if r.Header.Get("X-Gitlab-Token") != token {
 			return fmt.Errorf("the X-Gitlab-Token header value does not match the receiver token")
 		}
@@ -172,7 +172,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 
 		logger.Info(fmt.Sprintf("handling GitLab event: %s", event))
 		return nil
-	case v1beta1.BitbucketReceiver:
+	case apiv1.BitbucketReceiver:
 		_, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
 			return fmt.Errorf("the Bitbucket server signature header is invalid, err: %w", err)
@@ -194,7 +194,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 
 		logger.Info(fmt.Sprintf("handling Bitbucket server event: %s", event))
 		return nil
-	case v1beta1.QuayReceiver:
+	case apiv1.QuayReceiver:
 		type payload struct {
 			DockerUrl   string   `json:"docker_url"`
 			UpdatedTags []string `json:"updated_tags"`
@@ -207,14 +207,14 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 
 		logger.Info(fmt.Sprintf("handling Quay event from %s", p.DockerUrl))
 		return nil
-	case v1beta1.HarborReceiver:
+	case apiv1.HarborReceiver:
 		if r.Header.Get("Authorization") != token {
 			return fmt.Errorf("the Harbor Authorization header value does not match the receiver token")
 		}
 
 		logger.Info("handling Harbor event")
 		return nil
-	case v1beta1.DockerHubReceiver:
+	case apiv1.DockerHubReceiver:
 		type payload struct {
 			PushData struct {
 				Tag string `json:"tag"`
@@ -230,11 +230,8 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 
 		logger.Info(fmt.Sprintf("handling DockerHub event from %s for tag %s", p.Repository.URL, p.PushData.Tag))
 		return nil
-	case v1beta1.GCRReceiver:
-		const (
-			insert     = "insert"
-			tokenIndex = len("Bearer ")
-		)
+	case apiv1.GCRReceiver:
+		const tokenIndex = len("Bearer ")
 
 		type data struct {
 			Action string `json:"action"`
@@ -271,7 +268,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 
 		logger.Info(fmt.Sprintf("handling GCR event from %s for tag %s", d.Digest, d.Tag))
 		return nil
-	case v1beta1.NexusReceiver:
+	case apiv1.NexusReceiver:
 		signature := r.Header.Get("X-Nexus-Webhook-Signature")
 		if len(signature) == 0 {
 			return fmt.Errorf("Nexus signature is missing from header")
@@ -296,7 +293,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 
 		logger.Info(fmt.Sprintf("handling Nexus event from %s", p.RepositoryName))
 		return nil
-	case v1beta1.ACRReceiver:
+	case apiv1.ACRReceiver:
 		type target struct {
 			Repository string `json:"repository"`
 			Tag        string `json:"tag"`
@@ -319,7 +316,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver v1beta1.Receiver
 	return fmt.Errorf("recevier type '%s' not supported", receiver.Spec.Type)
 }
 
-func (s *ReceiverServer) token(ctx context.Context, receiver v1beta1.Receiver) (string, error) {
+func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (string, error) {
 	token := ""
 	secretName := types.NamespacedName{
 		Namespace: receiver.GetNamespace(),
@@ -341,7 +338,7 @@ func (s *ReceiverServer) token(ctx context.Context, receiver v1beta1.Receiver) (
 	return token, nil
 }
 
-func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNamespaceObjectReference, defaultNamespace string) error {
+func (s *ReceiverServer) annotate(ctx context.Context, resource apiv1.CrossNamespaceObjectReference, defaultNamespace string) error {
 	namespace := defaultNamespace
 	if resource.Namespace != "" {
 		namespace = resource.Namespace
@@ -355,6 +352,7 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource v1beta1.CrossNam
 		"Bucket":          "source.toolkit.fluxcd.io/v1beta2",
 		"HelmRepository":  "source.toolkit.fluxcd.io/v1beta2",
 		"GitRepository":   "source.toolkit.fluxcd.io/v1beta2",
+		"OCIRepository":   "source.toolkit.fluxcd.io/v1beta2",
 		"ImageRepository": "image.toolkit.fluxcd.io/v1beta1",
 	}
 

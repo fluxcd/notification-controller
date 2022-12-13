@@ -22,6 +22,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 func TestNewGitHubDispatchBasic(t *testing.T) {
@@ -55,7 +57,7 @@ func TestGitHubDispatch_PostUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	event := testEvent()
-	event.Metadata["commit_status"] = "update"
+	event.Metadata[eventv1.MetaCommitStatusKey] = eventv1.MetaCommitStatusUpdateValue
 	err = githubDispatch.Post(context.TODO(), event)
 	require.NoError(t, err)
 }

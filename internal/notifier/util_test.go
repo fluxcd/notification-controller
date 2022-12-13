@@ -19,14 +19,15 @@ package notifier
 import (
 	"testing"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
+
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 func TestUtil_NameAndDescription(t *testing.T) {
 	event := eventv1.Event{
-		InvolvedObject: v1.ObjectReference{
+		InvolvedObject: corev1.ObjectReference{
 			Kind: "Kustomization",
 			Name: "gitops-system",
 		},
@@ -54,13 +55,13 @@ func TestUtil_ParseRevisionNestedBranch(t *testing.T) {
 func TestUtil_ParseRevisionOneComponents(t *testing.T) {
 	revString := "master"
 	_, err := parseRevision(revString)
-	require.EqualError(t, err, "Revision string format incorrect: master")
+	require.EqualError(t, err, "revision string format incorrect: master")
 }
 
 func TestUtil_ParseRevisionTooFewComponents(t *testing.T) {
 	revString := "master/"
 	_, err := parseRevision(revString)
-	require.EqualError(t, err, "Commit Sha cannot be empty: master/")
+	require.EqualError(t, err, "commit SHA cannot be empty: master/")
 }
 
 func TestUtil_ParseGitHttps(t *testing.T) {

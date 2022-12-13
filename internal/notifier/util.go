@@ -109,11 +109,11 @@ func splitCamelcase(src string) (entries []string) {
 func parseRevision(rev string) (string, error) {
 	comp := strings.Split(rev, "/")
 	if len(comp) < 2 {
-		return "", fmt.Errorf("Revision string format incorrect: %v", rev)
+		return "", fmt.Errorf("revision string format incorrect: %v", rev)
 	}
 	sha := comp[len(comp)-1]
 	if sha == "" {
-		return "", fmt.Errorf("Commit Sha cannot be empty: %v", rev)
+		return "", fmt.Errorf("commit SHA cannot be empty: %v", rev)
 	}
 	return sha, nil
 }

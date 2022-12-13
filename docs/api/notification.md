@@ -2,20 +2,20 @@
 <p>Packages:</p>
 <ul class="simple">
 <li>
-<a href="#notification.toolkit.fluxcd.io%2fv1beta1">notification.toolkit.fluxcd.io/v1beta1</a>
+<a href="#notification.toolkit.fluxcd.io%2fv1beta2">notification.toolkit.fluxcd.io/v1beta2</a>
 </li>
 </ul>
-<h2 id="notification.toolkit.fluxcd.io/v1beta1">notification.toolkit.fluxcd.io/v1beta1</h2>
-<p>Package v1beta1 contains API Schema definitions for the notification v1beta1 API group</p>
+<h2 id="notification.toolkit.fluxcd.io/v1beta2">notification.toolkit.fluxcd.io/v1beta2</h2>
+<p>Package v1beta2 contains API Schema definitions for the notification v1beta2 API group.</p>
 Resource Types:
 <ul class="simple"><li>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.Alert">Alert</a>
+<a href="#notification.toolkit.fluxcd.io/v1beta2.Alert">Alert</a>
 </li><li>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.Provider">Provider</a>
+<a href="#notification.toolkit.fluxcd.io/v1beta2.Provider">Provider</a>
 </li><li>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.Receiver">Receiver</a>
+<a href="#notification.toolkit.fluxcd.io/v1beta2.Receiver">Receiver</a>
 </li></ul>
-<h3 id="notification.toolkit.fluxcd.io/v1beta1.Alert">Alert
+<h3 id="notification.toolkit.fluxcd.io/v1beta2.Alert">Alert
 </h3>
 <p>Alert is the Schema for the alerts API</p>
 <div class="md-typeset__scrollwrap">
@@ -33,7 +33,7 @@ Resource Types:
 <code>apiVersion</code><br>
 string</td>
 <td>
-<code>notification.toolkit.fluxcd.io/v1beta1</code>
+<code>notification.toolkit.fluxcd.io/v1beta2</code>
 </td>
 </tr>
 <tr>
@@ -63,7 +63,7 @@ Refer to the Kubernetes API documentation for the fields of the
 <td>
 <code>spec</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.AlertSpec">
+<a href="#notification.toolkit.fluxcd.io/v1beta2.AlertSpec">
 AlertSpec
 </a>
 </em>
@@ -82,7 +82,7 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
-<p>Send events using this provider.</p>
+<p>ProviderRef specifies which Provider this Alert should use.</p>
 </td>
 </tr>
 <tr>
@@ -94,7 +94,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Filter events based on severity, defaults to (&lsquo;info&rsquo;).
+<p>EventSeverity specifies how to filter events based on severity.
 If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 </tr>
@@ -102,13 +102,14 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 <td>
 <code>eventSources</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.CrossNamespaceObjectReference">
+<a href="#notification.toolkit.fluxcd.io/v1beta2.CrossNamespaceObjectReference">
 []CrossNamespaceObjectReference
 </a>
 </em>
 </td>
 <td>
-<p>Filter events based on the involved objects.</p>
+<p>EventSources specifies how to filter events based
+on the involved object kind, name and namespace.</p>
 </td>
 </tr>
 <tr>
@@ -120,7 +121,8 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>A list of Golang regular expressions to be used for excluding messages.</p>
+<p>ExclusionList specifies a list of Golang regular expressions
+to be used for excluding messages.</p>
 </td>
 </tr>
 <tr>
@@ -132,7 +134,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Short description of the impact and affected cluster.</p>
+<p>Summary holds a short description of the impact and affected cluster.</p>
 </td>
 </tr>
 <tr>
@@ -144,8 +146,8 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events dispatching.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this Alert.</p>
 </td>
 </tr>
 </table>
@@ -155,7 +157,7 @@ Defaults to false.</p>
 <td>
 <code>status</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.AlertStatus">
+<a href="#notification.toolkit.fluxcd.io/v1beta2.AlertStatus">
 AlertStatus
 </a>
 </em>
@@ -167,9 +169,9 @@ AlertStatus
 </table>
 </div>
 </div>
-<h3 id="notification.toolkit.fluxcd.io/v1beta1.Provider">Provider
+<h3 id="notification.toolkit.fluxcd.io/v1beta2.Provider">Provider
 </h3>
-<p>Provider is the Schema for the providers API</p>
+<p>Provider is the Schema for the providers API.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -185,7 +187,7 @@ AlertStatus
 <code>apiVersion</code><br>
 string</td>
 <td>
-<code>notification.toolkit.fluxcd.io/v1beta1</code>
+<code>notification.toolkit.fluxcd.io/v1beta2</code>
 </td>
 </tr>
 <tr>
@@ -215,7 +217,7 @@ Refer to the Kubernetes API documentation for the fields of the
 <td>
 <code>spec</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.ProviderSpec">
+<a href="#notification.toolkit.fluxcd.io/v1beta2.ProviderSpec">
 ProviderSpec
 </a>
 </em>
@@ -232,7 +234,21 @@ string
 </em>
 </td>
 <td>
-<p>Type of provider</p>
+<p>Type specifies which Provider implementation to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interval</code><br>
+<em>
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Interval at which to reconcile the Provider with its Secret references.</p>
 </td>
 </tr>
 <tr>
@@ -244,7 +260,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Alert channel for this provider</p>
+<p>Channel specifies the destination channel where events should be posted.</p>
 </td>
 </tr>
 <tr>
@@ -256,7 +272,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Bot username for this provider</p>
+<p>Username specifies the name under which events are posted.</p>
 </td>
 </tr>
 <tr>
@@ -268,7 +284,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>HTTP/S webhook address of this provider</p>
+<p>Address specifies the HTTP/S incoming webhook address of this Provider.</p>
 </td>
 </tr>
 <tr>
@@ -282,7 +298,7 @@ Kubernetes meta/v1.Duration
 </td>
 <td>
 <em>(Optional)</em>
-<p>Timeout for sending alerts to the provider.</p>
+<p>Timeout for sending alerts to the Provider.</p>
 </td>
 </tr>
 <tr>
@@ -294,7 +310,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>HTTP/S address of the proxy</p>
+<p>Proxy the HTTP/S address of the proxy server.</p>
 </td>
 </tr>
 <tr>
@@ -308,8 +324,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>Secret reference containing the provider webhook URL
-using &ldquo;address&rdquo; as data key</p>
+<p>SecretRef specifies the Secret containing the authentication
+credentials for this Provider.</p>
 </td>
 </tr>
 <tr>
@@ -323,8 +339,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>CertSecretRef can be given the name of a secret containing
-a PEM-encoded CA certificate (<code>caFile</code>)</p>
+<p>CertSecretRef specifies the Secret containing
+a PEM-encoded CA certificate (<code>caFile</code>).</p>
 </td>
 </tr>
 <tr>
@@ -336,8 +352,8 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events handling.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this Provider.</p>
 </td>
 </tr>
 </table>
@@ -347,7 +363,7 @@ Defaults to false.</p>
 <td>
 <code>status</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.ProviderStatus">
+<a href="#notification.toolkit.fluxcd.io/v1beta2.ProviderStatus">
 ProviderStatus
 </a>
 </em>
@@ -359,9 +375,9 @@ ProviderStatus
 </table>
 </div>
 </div>
-<h3 id="notification.toolkit.fluxcd.io/v1beta1.Receiver">Receiver
+<h3 id="notification.toolkit.fluxcd.io/v1beta2.Receiver">Receiver
 </h3>
-<p>Receiver is the Schema for the receivers API</p>
+<p>Receiver is the Schema for the receivers API.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -377,7 +393,7 @@ ProviderStatus
 <code>apiVersion</code><br>
 string</td>
 <td>
-<code>notification.toolkit.fluxcd.io/v1beta1</code>
+<code>notification.toolkit.fluxcd.io/v1beta2</code>
 </td>
 </tr>
 <tr>
@@ -407,7 +423,7 @@ Refer to the Kubernetes API documentation for the fields of the
 <td>
 <code>spec</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.ReceiverSpec">
+<a href="#notification.toolkit.fluxcd.io/v1beta2.ReceiverSpec">
 ReceiverSpec
 </a>
 </em>
@@ -430,6 +446,20 @@ the validation procedure and payload deserialization.</p>
 </tr>
 <tr>
 <td>
+<code>interval</code><br>
+<em>
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Interval at which to reconcile the Receiver with its Secret references.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>events</code><br>
 <em>
 []string
@@ -437,7 +467,7 @@ the validation procedure and payload deserialization.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>A list of events to handle,
+<p>Events specifies the list of event types to handle,
 e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </td>
 </tr>
@@ -445,7 +475,7 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>resources</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.CrossNamespaceObjectReference">
+<a href="#notification.toolkit.fluxcd.io/v1beta2.CrossNamespaceObjectReference">
 []CrossNamespaceObjectReference
 </a>
 </em>
@@ -464,8 +494,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
-<p>Secret reference containing the token used
-to validate the payload authenticity</p>
+<p>SecretRef specifies the Secret containing the token used
+to validate the payload authenticity.</p>
 </td>
 </tr>
 <tr>
@@ -477,8 +507,8 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events handling.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this receiver.</p>
 </td>
 </tr>
 </table>
@@ -488,7 +518,7 @@ Defaults to false.</p>
 <td>
 <code>status</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.ReceiverStatus">
+<a href="#notification.toolkit.fluxcd.io/v1beta2.ReceiverStatus">
 ReceiverStatus
 </a>
 </em>
@@ -500,13 +530,13 @@ ReceiverStatus
 </table>
 </div>
 </div>
-<h3 id="notification.toolkit.fluxcd.io/v1beta1.AlertSpec">AlertSpec
+<h3 id="notification.toolkit.fluxcd.io/v1beta2.AlertSpec">AlertSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.Alert">Alert</a>)
+<a href="#notification.toolkit.fluxcd.io/v1beta2.Alert">Alert</a>)
 </p>
-<p>AlertSpec defines an alerting rule for events involving a list of objects</p>
+<p>AlertSpec defines an alerting rule for events involving a list of objects.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -527,7 +557,7 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
-<p>Send events using this provider.</p>
+<p>ProviderRef specifies which Provider this Alert should use.</p>
 </td>
 </tr>
 <tr>
@@ -539,7 +569,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Filter events based on severity, defaults to (&lsquo;info&rsquo;).
+<p>EventSeverity specifies how to filter events based on severity.
 If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 </tr>
@@ -547,13 +577,14 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 <td>
 <code>eventSources</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.CrossNamespaceObjectReference">
+<a href="#notification.toolkit.fluxcd.io/v1beta2.CrossNamespaceObjectReference">
 []CrossNamespaceObjectReference
 </a>
 </em>
 </td>
 <td>
-<p>Filter events based on the involved objects.</p>
+<p>EventSources specifies how to filter events based
+on the involved object kind, name and namespace.</p>
 </td>
 </tr>
 <tr>
@@ -565,7 +596,8 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>A list of Golang regular expressions to be used for excluding messages.</p>
+<p>ExclusionList specifies a list of Golang regular expressions
+to be used for excluding messages.</p>
 </td>
 </tr>
 <tr>
@@ -577,7 +609,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Short description of the impact and affected cluster.</p>
+<p>Summary holds a short description of the impact and affected cluster.</p>
 </td>
 </tr>
 <tr>
@@ -589,21 +621,21 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events dispatching.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this Alert.</p>
 </td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<h3 id="notification.toolkit.fluxcd.io/v1beta1.AlertStatus">AlertStatus
+<h3 id="notification.toolkit.fluxcd.io/v1beta2.AlertStatus">AlertStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.Alert">Alert</a>)
+<a href="#notification.toolkit.fluxcd.io/v1beta2.Alert">Alert</a>)
 </p>
-<p>AlertStatus defines the observed state of Alert</p>
+<p>AlertStatus defines the observed state of the Alert.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -616,6 +648,21 @@ Defaults to false.</p>
 <tbody>
 <tr>
 <td>
+<code>ReconcileRequestStatus</code><br>
+<em>
+<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#ReconcileRequestStatus">
+github.com/fluxcd/pkg/apis/meta.ReconcileRequestStatus
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>ReconcileRequestStatus</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>conditions</code><br>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
@@ -625,6 +672,7 @@ Defaults to false.</p>
 </td>
 <td>
 <em>(Optional)</em>
+<p>Conditions holds the conditions for the Alert.</p>
 </td>
 </tr>
 <tr>
@@ -643,12 +691,12 @@ int64
 </table>
 </div>
 </div>
-<h3 id="notification.toolkit.fluxcd.io/v1beta1.CrossNamespaceObjectReference">CrossNamespaceObjectReference
+<h3 id="notification.toolkit.fluxcd.io/v1beta2.CrossNamespaceObjectReference">CrossNamespaceObjectReference
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.AlertSpec">AlertSpec</a>, 
-<a href="#notification.toolkit.fluxcd.io/v1beta1.ReceiverSpec">ReceiverSpec</a>)
+<a href="#notification.toolkit.fluxcd.io/v1beta2.AlertSpec">AlertSpec</a>, 
+<a href="#notification.toolkit.fluxcd.io/v1beta2.ReceiverSpec">ReceiverSpec</a>)
 </p>
 <p>CrossNamespaceObjectReference contains enough information to let you locate the
 typed referenced object at cluster level</p>
@@ -671,7 +719,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>API version of the referent</p>
+<p>API version of the referent.</p>
 </td>
 </tr>
 <tr>
@@ -682,7 +730,7 @@ string
 </em>
 </td>
 <td>
-<p>Kind of the referent</p>
+<p>Kind of the referent.</p>
 </td>
 </tr>
 <tr>
@@ -693,7 +741,7 @@ string
 </em>
 </td>
 <td>
-<p>Name of the referent</p>
+<p>Name of the referent.</p>
 </td>
 </tr>
 <tr>
@@ -705,7 +753,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Namespace of the referent</p>
+<p>Namespace of the referent.</p>
 </td>
 </tr>
 <tr>
@@ -726,13 +774,13 @@ operator is &ldquo;In&rdquo;, and the values array contains only &ldquo;value&rd
 </table>
 </div>
 </div>
-<h3 id="notification.toolkit.fluxcd.io/v1beta1.ProviderSpec">ProviderSpec
+<h3 id="notification.toolkit.fluxcd.io/v1beta2.ProviderSpec">ProviderSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.Provider">Provider</a>)
+<a href="#notification.toolkit.fluxcd.io/v1beta2.Provider">Provider</a>)
 </p>
-<p>ProviderSpec defines the desired state of Provider</p>
+<p>ProviderSpec defines the desired state of the Provider.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -751,7 +799,21 @@ string
 </em>
 </td>
 <td>
-<p>Type of provider</p>
+<p>Type specifies which Provider implementation to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interval</code><br>
+<em>
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Interval at which to reconcile the Provider with its Secret references.</p>
 </td>
 </tr>
 <tr>
@@ -763,7 +825,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Alert channel for this provider</p>
+<p>Channel specifies the destination channel where events should be posted.</p>
 </td>
 </tr>
 <tr>
@@ -775,7 +837,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Bot username for this provider</p>
+<p>Username specifies the name under which events are posted.</p>
 </td>
 </tr>
 <tr>
@@ -787,7 +849,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>HTTP/S webhook address of this provider</p>
+<p>Address specifies the HTTP/S incoming webhook address of this Provider.</p>
 </td>
 </tr>
 <tr>
@@ -801,7 +863,7 @@ Kubernetes meta/v1.Duration
 </td>
 <td>
 <em>(Optional)</em>
-<p>Timeout for sending alerts to the provider.</p>
+<p>Timeout for sending alerts to the Provider.</p>
 </td>
 </tr>
 <tr>
@@ -813,7 +875,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>HTTP/S address of the proxy</p>
+<p>Proxy the HTTP/S address of the proxy server.</p>
 </td>
 </tr>
 <tr>
@@ -827,8 +889,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>Secret reference containing the provider webhook URL
-using &ldquo;address&rdquo; as data key</p>
+<p>SecretRef specifies the Secret containing the authentication
+credentials for this Provider.</p>
 </td>
 </tr>
 <tr>
@@ -842,8 +904,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>CertSecretRef can be given the name of a secret containing
-a PEM-encoded CA certificate (<code>caFile</code>)</p>
+<p>CertSecretRef specifies the Secret containing
+a PEM-encoded CA certificate (<code>caFile</code>).</p>
 </td>
 </tr>
 <tr>
@@ -855,21 +917,21 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events handling.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this Provider.</p>
 </td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<h3 id="notification.toolkit.fluxcd.io/v1beta1.ProviderStatus">ProviderStatus
+<h3 id="notification.toolkit.fluxcd.io/v1beta2.ProviderStatus">ProviderStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.Provider">Provider</a>)
+<a href="#notification.toolkit.fluxcd.io/v1beta2.Provider">Provider</a>)
 </p>
-<p>ProviderStatus defines the observed state of Provider</p>
+<p>ProviderStatus defines the observed state of the Provider.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -882,14 +944,17 @@ Defaults to false.</p>
 <tbody>
 <tr>
 <td>
-<code>observedGeneration</code><br>
+<code>ReconcileRequestStatus</code><br>
 <em>
-int64
+<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#ReconcileRequestStatus">
+github.com/fluxcd/pkg/apis/meta.ReconcileRequestStatus
+</a>
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>ObservedGeneration is the last reconciled generation.</p>
+<p>
+(Members of <code>ReconcileRequestStatus</code> are embedded into this type.)
+</p>
 </td>
 </tr>
 <tr>
@@ -903,19 +968,32 @@ int64
 </td>
 <td>
 <em>(Optional)</em>
+<p>Conditions holds the conditions for the Provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>observedGeneration</code><br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ObservedGeneration is the last reconciled generation.</p>
 </td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<h3 id="notification.toolkit.fluxcd.io/v1beta1.ReceiverSpec">ReceiverSpec
+<h3 id="notification.toolkit.fluxcd.io/v1beta2.ReceiverSpec">ReceiverSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.Receiver">Receiver</a>)
+<a href="#notification.toolkit.fluxcd.io/v1beta2.Receiver">Receiver</a>)
 </p>
-<p>ReceiverSpec defines the desired state of Receiver</p>
+<p>ReceiverSpec defines the desired state of the Receiver.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -940,6 +1018,20 @@ the validation procedure and payload deserialization.</p>
 </tr>
 <tr>
 <td>
+<code>interval</code><br>
+<em>
+<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Interval at which to reconcile the Receiver with its Secret references.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>events</code><br>
 <em>
 []string
@@ -947,7 +1039,7 @@ the validation procedure and payload deserialization.</p>
 </td>
 <td>
 <em>(Optional)</em>
-<p>A list of events to handle,
+<p>Events specifies the list of event types to handle,
 e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </td>
 </tr>
@@ -955,7 +1047,7 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>resources</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.CrossNamespaceObjectReference">
+<a href="#notification.toolkit.fluxcd.io/v1beta2.CrossNamespaceObjectReference">
 []CrossNamespaceObjectReference
 </a>
 </em>
@@ -974,8 +1066,8 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </em>
 </td>
 <td>
-<p>Secret reference containing the token used
-to validate the payload authenticity</p>
+<p>SecretRef specifies the Secret containing the token used
+to validate the payload authenticity.</p>
 </td>
 </tr>
 <tr>
@@ -987,21 +1079,21 @@ bool
 </td>
 <td>
 <em>(Optional)</em>
-<p>This flag tells the controller to suspend subsequent events handling.
-Defaults to false.</p>
+<p>Suspend tells the controller to suspend subsequent
+events handling for this receiver.</p>
 </td>
 </tr>
 </tbody>
 </table>
 </div>
 </div>
-<h3 id="notification.toolkit.fluxcd.io/v1beta1.ReceiverStatus">ReceiverStatus
+<h3 id="notification.toolkit.fluxcd.io/v1beta2.ReceiverStatus">ReceiverStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.toolkit.fluxcd.io/v1beta1.Receiver">Receiver</a>)
+<a href="#notification.toolkit.fluxcd.io/v1beta2.Receiver">Receiver</a>)
 </p>
-<p>ReceiverStatus defines the observed state of Receiver</p>
+<p>ReceiverStatus defines the observed state of the Receiver.</p>
 <div class="md-typeset__scrollwrap">
 <div class="md-typeset__table">
 <table>
@@ -1014,6 +1106,21 @@ Defaults to false.</p>
 <tbody>
 <tr>
 <td>
+<code>ReconcileRequestStatus</code><br>
+<em>
+<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#ReconcileRequestStatus">
+github.com/fluxcd/pkg/apis/meta.ReconcileRequestStatus
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>ReconcileRequestStatus</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>conditions</code><br>
 <em>
 <a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#condition-v1-meta">
@@ -1023,6 +1130,7 @@ Defaults to false.</p>
 </td>
 <td>
 <em>(Optional)</em>
+<p>Conditions holds the conditions for the Receiver.</p>
 </td>
 </tr>
 <tr>
@@ -1034,7 +1142,21 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Generated webhook URL in the format
+<p>URL is the generated incoming webhook address in the format
+of &lsquo;/hook/sha256sum(token+name+namespace)&rsquo;.
+Deprecated: Replaced by WebhookPath.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>webhookPath</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>WebhookPath is the generated incoming webhook address in the format
 of &lsquo;/hook/sha256sum(token+name+namespace)&rsquo;.</p>
 </td>
 </tr>
@@ -1047,7 +1169,7 @@ int64
 </td>
 <td>
 <em>(Optional)</em>
-<p>ObservedGeneration is the last observed generation.</p>
+<p>ObservedGeneration is the last observed generation of the Receiver object.</p>
 </td>
 </tr>
 </tbody>

@@ -31,11 +31,12 @@ import (
 )
 
 type GitLab struct {
-	Id     string
-	Client *gitlab.Client
+	Id          string
+	ProviderUID string
+	Client      *gitlab.Client
 }
 
-func NewGitLab(addr string, token string, certPool *x509.CertPool) (*GitLab, error) {
+func NewGitLab(providerUID string, addr string, token string, certPool *x509.CertPool) (*GitLab, error) {
 	if len(token) == 0 {
 		return nil, errors.New("gitlab token cannot be empty")
 	}
@@ -61,8 +62,9 @@ func NewGitLab(addr string, token string, certPool *x509.CertPool) (*GitLab, err
 	}
 
 	gitlab := &GitLab{
-		Id:     id,
-		Client: client,
+		Id:          id,
+		ProviderUID: providerUID,
+		Client:      client,
 	}
 
 	return gitlab, nil
@@ -88,9 +90,10 @@ func (g *GitLab) Post(ctx context.Context, event eventv1.Event) error {
 		return err
 	}
 
-	name, desc := formatNameAndDescription(event)
+	_, desc := formatNameAndDescription(event)
+	id := generateCommitStatusID(g.ProviderUID, event)
 	status := &gitlab.CommitStatus{
-		Name:        name,
+		Name:        id,
 		SHA:         rev,
 		Status:      string(state),
 		Description: desc,
@@ -106,7 +109,7 @@ func (g *GitLab) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	setOpt := &gitlab.SetCommitStatusOptions{
-		Name:        &name,
+		Name:        &id,
 		Description: &desc,
 		State:       state,
 	}
