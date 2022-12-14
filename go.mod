@@ -5,6 +5,7 @@ go 1.18
 replace github.com/fluxcd/notification-controller/api => ./api
 
 require (
+	code.gitea.io/sdk/gitea v0.15.1
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20221103172237-443f56ff4ba8
 	github.com/Azure/azure-amqp-common-go/v3 v3.2.3
 	github.com/Azure/azure-event-hubs-go/v3 v3.3.20
@@ -99,6 +100,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
+	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
