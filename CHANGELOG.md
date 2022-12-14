@@ -2,6 +2,53 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.30.0
+
+**Release date:** 2022-12-20
+
+This prerelease graduates the notification APIs to `v1beta2`.
+In addition, this version comes with support for
+[Gitea commit status updates](https://github.com/fluxcd/notification-controller/blob/api/v0.30.0/docs/spec/v1beta2/provider.md#gitea).
+
+### `notification.toolkit.fluxcd.io/v1beta2`
+
+After upgrading the controller to v0.30.0, you need to update the notification
+**Custom Resources** in Git
+by replacing `notification.toolkit.fluxcd.io/v1beta1` with
+`notification.toolkit.fluxcd.io/v1beta2` in all YAML manifests.
+
+#### Breaking changes
+
+- The `Alert.spec.summary` has a max length of 255 characters.
+- The `Provider.spec.address` and `Provider.spec.proxy` have a max length of 2048 characters.
+- The `Receiver.status.url` was deprecated in favour of `Receiver.status.webhookPath`.
+
+#### API specifications in a user-friendly format
+
+[The new specifications for the `v1beta2` API](https://github.com/fluxcd/notification-controller/tree/v0.30.0/docs/spec/v1beta2)
+have been written in a new format with the aim to be more valuable to a user.
+Featuring separate sections with examples, and information on how to write
+and work with them.
+
+#### Enhanced Kubernetes Conditions
+
+Notification API resources will now advertise more explicit Condition types,
+provide `Reconciling` and `Stalled` Conditions where applicable for
+[better integration with `kstatus`](https://github.com/kubernetes-sigs/cli-utils/blob/master/pkg/kstatus/README.md#conditions),
+and record the Observed Generation on the Condition.
+
+#### Enhanced Git commit status updates
+
+Starting with this version, the controller uses the `Provider` cluster assigned `UID`
+to compose a unique Git commit status ID to avoid name collisions
+when multiple clusters write to the same repository.
+
+Improvements:
+* Refactor reconcilers and introduce v1beta2 API
+  [#435](https://github.com/fluxcd/notification-controller/pull/435)
+- feat: add gitea notifier
+  [#451](https://github.com/fluxcd/notification-controller/pull/451)
+
 ## 0.29.1
 
 **Release date:** 2022-12-01
