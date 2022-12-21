@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.30.1
+
+**Release date:** 2022-12-21
+
+This prerelease comes with a fix to prevent the controller from panicking
+when the Kubernetes conversion webhook upgrades the Provider and Receiver
+custom resources from `v1beta1`to `v1beta2` without setting the
+default value for `spec.interval`.
+
+Fixes:
+* Fix panic when upgrading to v1beta2
+  [#455](https://github.com/fluxcd/notification-controller/pull/455)
+
 ## 0.30.0
 
 **Release date:** 2022-12-20
