@@ -19,6 +19,7 @@ package v1beta2
 import (
 	"crypto/sha256"
 	"fmt"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -114,6 +115,16 @@ func (in *Receiver) SetConditions(conditions []metav1.Condition) {
 func (in *Receiver) GetWebhookPath(token string) string {
 	digest := sha256.Sum256([]byte(token + in.GetName() + in.GetNamespace()))
 	return fmt.Sprintf("%s%x", ReceiverWebhookPath, digest)
+}
+
+// GetInterval returns the interval value with a default of 10m for this Receiver.
+func (in *Receiver) GetInterval() time.Duration {
+	duration := 10 * time.Minute
+	if in.Spec.Interval != nil {
+		duration = in.Spec.Interval.Duration
+	}
+
+	return duration
 }
 
 // +genclient

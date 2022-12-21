@@ -174,6 +174,16 @@ func (in *Provider) GetTimeout() time.Duration {
 	return duration
 }
 
+// GetInterval returns the interval value with a default of 10m for this Provider.
+func (in *Provider) GetInterval() time.Duration {
+	duration := 10 * time.Minute
+	if in.Spec.Interval != nil {
+		duration = in.Spec.Interval.Duration
+	}
+
+	return duration
+}
+
 // GetRequeueAfter returns the duration after which the Provider must be
 // reconciled again.
 func (in *Provider) GetRequeueAfter() time.Duration {
