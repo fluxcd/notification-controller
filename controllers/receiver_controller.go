@@ -119,7 +119,7 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 		// Log and emit success event.
 		if retErr == nil && conditions.IsReady(obj) {
-			msg := fmt.Sprintf("Reconciliation finished, next run in %s", obj.Spec.Interval.Duration.String())
+			msg := fmt.Sprintf("Reconciliation finished, next run in %s", obj.GetInterval().String())
 			log.Info(msg)
 			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
 		}
@@ -172,7 +172,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 		ctrl.LoggerFrom(ctx).Info(msg)
 	}
 
-	return ctrl.Result{RequeueAfter: obj.Spec.Interval.Duration}, nil
+	return ctrl.Result{RequeueAfter: obj.GetInterval()}, nil
 }
 
 // patch updates the object status, conditions and finalizers.

@@ -122,7 +122,7 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		// Log and emit success event.
 		if retErr == nil && conditions.IsReady(obj) {
 			msg := fmt.Sprintf("Reconciliation finished, next run in %s",
-				obj.Spec.Interval.Duration.String())
+				obj.GetInterval().String())
 			log.Info(msg)
 			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
 		}
@@ -169,7 +169,7 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1.Provider)
 
 	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, apiv1.InitializedReason)
 
-	return ctrl.Result{RequeueAfter: obj.Spec.Interval.Duration}, nil
+	return ctrl.Result{RequeueAfter: obj.GetInterval()}, nil
 }
 
 func (r *ProviderReconciler) validateURLs(provider *apiv1.Provider) error {
