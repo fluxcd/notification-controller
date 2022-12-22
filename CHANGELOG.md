@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.30.2
+
+**Release date:** 2022-12-22
+
+This prerelease comes with a fix for the Provider and Receiver
+custom resources upgrade to `v1beta2`.
+
+Fixes:
+* Remove interval default value from CRDs
+  [#457](https://github.com/fluxcd/notification-controller/pull/457)
+
 ## 0.30.1
 
 **Release date:** 2022-12-21
