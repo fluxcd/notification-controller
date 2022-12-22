@@ -74,7 +74,6 @@ func TestProviderReconciler_Reconcile(t *testing.T) {
 
 		g.Expect(conditions.Has(resultP, meta.ReconcilingCondition)).To(BeFalse())
 		g.Expect(controllerutil.ContainsFinalizer(resultP, apiv1.NotificationFinalizer)).To(BeTrue())
-		g.Expect(resultP.Spec.Interval.Duration).To(BeIdenticalTo(10 * time.Minute))
 	})
 
 	t.Run("fails with secret not found error", func(t *testing.T) {
