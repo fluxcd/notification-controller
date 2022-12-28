@@ -32,7 +32,7 @@ Fixes:
 
 This prerelease graduates the notification APIs to `v1beta2`.
 In addition, this version comes with support for
-[Gitea commit status updates](https://github.com/fluxcd/notification-controller/blob/api/v0.30.0/docs/spec/v1beta2/provider.md#gitea).
+[Gitea commit status updates](https://github.com/fluxcd/notification-controller/blob/api/v0.30.0/docs/spec/v1beta2/providers.md#gitea).
 
 ### `notification.toolkit.fluxcd.io/v1beta2`
 
