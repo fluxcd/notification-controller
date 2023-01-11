@@ -1318,7 +1318,7 @@ the BitBucket repository specified in `.spec.address`.
 You can create the secret with `kubectl` like this:
 
 ```shell
-kubectl create secret generic gitlab-token --from-literal=token=<username>:<app-password>
+kubectl create secret generic bitbucket-token --from-literal=token=<username>:<app-password>
 ```
 
 #### Azure DevOps
@@ -1331,7 +1331,7 @@ The token must have permissions to update the commit status for the Azure DevOps
 You can create the secret with `kubectl` like this:
 
 ```shell
-kubectl create secret generic github-token --from-literal=token=<AZURE-TOKEN>
+kubectl create secret generic azuredevops-token --from-literal=token=<AZURE-TOKEN>
 ```
 
 ## Provider Status
