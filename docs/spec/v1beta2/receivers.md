@@ -635,8 +635,7 @@ A resource entry contains the following fields:
   `GitRepository`, `Kustomization`, `HelmRelease`, `HelmChart`,
   `HelmRepository`, `ImageRepository`, `ImagePolicy`, `ImageUpdateAutomation`
   and `OCIRepository`.
-- `name`: The Flux Custom Resource `.metadata.name`. This field may contain
-  a wildcard `*` to match all resources of the `kind`.
+- `name`: The Flux Custom Resource `.metadata.name`.
 - `namespace` (Optional): The Flux Custom Resource `.metadata.namespace`.
   When not specified, the Receiver's `.metadata.namespace` is used instead.
 
