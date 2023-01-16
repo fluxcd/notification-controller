@@ -390,7 +390,7 @@ metadata:
 spec:
   type: msteams
   secretRef:
-    name: slack-webhook
+    name: msteams-webhook
 ---
 apiVersion: v1
 kind: Secret
