@@ -26,9 +26,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/fluxcd/pkg/runtime/controller"
-	"github.com/fluxcd/pkg/runtime/testenv"
-	"github.com/fluxcd/pkg/ssa"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -38,6 +35,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+
+	"github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/testenv"
+	"github.com/fluxcd/pkg/ssa"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 	// +kubebuilder:scaffold:imports
@@ -53,7 +54,6 @@ var (
 func TestMain(m *testing.M) {
 	var err error
 	utilruntime.Must(apiv1.AddToScheme(scheme.Scheme))
-	//utilruntime.Must(sourcev1.AddToScheme(scheme.Scheme))
 
 	testEnv = testenv.New(testenv.WithCRDPath(
 		filepath.Join("..", "config", "crd", "bases"),
@@ -72,7 +72,9 @@ func TestMain(m *testing.M) {
 		Metrics:        testMetricsH,
 		ControllerName: controllerName,
 		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
-	}).SetupWithManager(testEnv); err != nil {
+	}).SetupWithManagerAndOptions(testEnv, AlertReconcilerOptions{
+		RateLimiter: controller.GetDefaultRateLimiter(),
+	}); err != nil {
 		panic(fmt.Sprintf("Failed to start AlerReconciler: %v", err))
 	}
 
@@ -81,7 +83,9 @@ func TestMain(m *testing.M) {
 		Metrics:        testMetricsH,
 		ControllerName: controllerName,
 		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
-	}).SetupWithManager(testEnv); err != nil {
+	}).SetupWithManagerAndOptions(testEnv, ProviderReconcilerOptions{
+		RateLimiter: controller.GetDefaultRateLimiter(),
+	}); err != nil {
 		panic(fmt.Sprintf("Failed to start ProviderReconciler: %v", err))
 	}
 
@@ -90,7 +94,9 @@ func TestMain(m *testing.M) {
 		Metrics:        testMetricsH,
 		ControllerName: controllerName,
 		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
-	}).SetupWithManager(testEnv); err != nil {
+	}).SetupWithManagerAndOptions(testEnv, ReceiverReconcilerOptions{
+		RateLimiter: controller.GetDefaultRateLimiter(),
+	}); err != nil {
 		panic(fmt.Sprintf("Failed to start ReceiverReconciler: %v", err))
 	}
 
