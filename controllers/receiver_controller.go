@@ -62,6 +62,7 @@ func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts ReceiverReconcilerOptions) error {
+	recoverPanic := true
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiv1.Receiver{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
@@ -69,7 +70,7 @@ func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts R
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.MaxConcurrentReconciles,
 			RateLimiter:             opts.RateLimiter,
-			RecoverPanic:            true,
+			RecoverPanic:            &recoverPanic,
 		}).
 		Complete(r)
 }
