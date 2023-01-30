@@ -25,15 +25,18 @@ import (
 	prommetrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
 	flag "github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	"github.com/fluxcd/pkg/runtime/acl"
 	"github.com/fluxcd/pkg/runtime/client"
 	helper "github.com/fluxcd/pkg/runtime/controller"
+	feathelper "github.com/fluxcd/pkg/runtime/features"
 	"github.com/fluxcd/pkg/runtime/leaderelection"
 	"github.com/fluxcd/pkg/runtime/logger"
 	"github.com/fluxcd/pkg/runtime/pprof"
@@ -41,6 +44,7 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 	"github.com/fluxcd/notification-controller/controllers"
+	"github.com/fluxcd/notification-controller/internal/features"
 	"github.com/fluxcd/notification-controller/internal/server"
 	// +kubebuilder:scaffold:imports
 )
@@ -73,6 +77,7 @@ func main() {
 		leaderElectionOptions leaderelection.Options
 		aclOptions            acl.Options
 		rateLimiterOptions    helper.RateLimiterOptions
+		featureGates          feathelper.FeatureGates
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -83,12 +88,20 @@ func main() {
 	flag.BoolVar(&watchAllNamespaces, "watch-all-namespaces", true,
 		"Watch for custom resources in all namespaces, if set to false it will only watch the runtime namespace.")
 	flag.DurationVar(&rateLimitInterval, "rate-limit-interval", 5*time.Minute, "Interval in which rate limit has effect.")
+
 	clientOptions.BindFlags(flag.CommandLine)
 	logOptions.BindFlags(flag.CommandLine)
 	leaderElectionOptions.BindFlags(flag.CommandLine)
 	aclOptions.BindFlags(flag.CommandLine)
 	rateLimiterOptions.BindFlags(flag.CommandLine)
+	featureGates.BindFlags(flag.CommandLine)
+
 	flag.Parse()
+
+	if err := featureGates.WithLogger(setupLog).SupportedFeatures(features.FeatureGates()); err != nil {
+		setupLog.Error(err, "unable to load feature gates")
+		os.Exit(1)
+	}
 
 	log := logger.NewLogger(logOptions)
 	ctrl.SetLogger(log)
@@ -96,6 +109,16 @@ func main() {
 	watchNamespace := ""
 	if !watchAllNamespaces {
 		watchNamespace = os.Getenv("RUNTIME_NAMESPACE")
+	}
+
+	var disableCacheFor []ctrlclient.Object
+	shouldCache, err := features.Enabled(features.CacheSecretsAndConfigMaps)
+	if err != nil {
+		setupLog.Error(err, "unable to check feature gate "+features.CacheSecretsAndConfigMaps)
+		os.Exit(1)
+	}
+	if !shouldCache {
+		disableCacheFor = append(disableCacheFor, &corev1.Secret{}, &corev1.ConfigMap{})
 	}
 
 	restConfig := client.GetConfigOrDie(clientOptions)
@@ -112,6 +135,7 @@ func main() {
 		LeaderElectionID:              fmt.Sprintf("%s-leader-election", controllerName),
 		Namespace:                     watchNamespace,
 		Logger:                        ctrl.Log,
+		ClientDisableCacheFor:         disableCacheFor,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
