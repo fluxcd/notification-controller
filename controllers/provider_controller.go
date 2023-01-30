@@ -66,6 +66,7 @@ func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *ProviderReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts ProviderReconcilerOptions) error {
+	recoverPanic := true
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiv1.Provider{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
@@ -73,7 +74,7 @@ func (r *ProviderReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts P
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: opts.MaxConcurrentReconciles,
 			RateLimiter:             opts.RateLimiter,
-			RecoverPanic:            true,
+			RecoverPanic:            &recoverPanic,
 		}).
 		Complete(r)
 }

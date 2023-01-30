@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/Azure/azure-amqp-common-go/v3/auth"
+	"github.com/Azure/azure-amqp-common-go/v4/auth"
 	eventhub "github.com/Azure/azure-event-hubs-go/v3"
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )

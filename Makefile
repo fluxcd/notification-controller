@@ -2,7 +2,11 @@
 IMG ?= fluxcd/notification-controller:latest
 # Produce CRDs that work back to Kubernetes 1.16
 CRD_OPTIONS ?= crd:crdVersions=v1
-SOURCE_VER ?= v0.31.0
+SOURCE_VER ?= v0.33.0
+
+# Repository root based on Git metadata
+REPOSITORY_ROOT := $(shell git rev-parse --show-toplevel)
+BUILD_DIR := $(REPOSITORY_ROOT)/build
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -11,8 +15,11 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+# Allows for defining additional Go test args, e.g. '-tags integration'.
+GO_TEST_ARGS ?=
+
 # Allows for defining additional Docker buildx arguments, e.g. '--push'.
-BUILD_ARGS ?=
+BUILD_ARGS ?= --load
 # Architectures to build images for.
 BUILD_PLATFORMS ?= linux/amd64
 
@@ -28,7 +35,7 @@ all: manager
 # Run tests
 KUBEBUILDER_ASSETS?="$(shell $(ENVTEST) --arch=$(ENVTEST_ARCH) use -i $(ENVTEST_KUBERNETES_VERSION) --bin-dir=$(ENVTEST_ASSETS_DIR) -p path)"
 test: tidy generate fmt vet manifests api-docs download-crd-deps install-envtest
-	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) go test ./... -coverprofile cover.out
+	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) go test ./... $(GO_TEST_ARGS) -v -coverprofile cover.out
 	cd api; go test ./... -coverprofile cover.out
 
 # Build manager binary
@@ -102,7 +109,6 @@ docker-build:
 	docker buildx build \
 	--platform=$(BUILD_PLATFORMS) \
 	-t ${IMG} \
-	--load \
 	${BUILD_ARGS} .
 
 # Push the docker image
@@ -152,7 +158,8 @@ GEN_CRD_API_REFERENCE_DOCS = $(shell pwd)/bin/gen-crd-api-reference-docs
 gen-crd-api-reference-docs:
 	$(call go-install-tool,$(GEN_CRD_API_REFERENCE_DOCS),github.com/ahmetb/gen-crd-api-reference-docs@v0.3.0)
 
-ENVTEST_ASSETS_DIR=$(shell pwd)/testbin
+# Download the envtest binaries to testbin
+ENVTEST_ASSETS_DIR=$(BUILD_DIR)/testbin
 ENVTEST_KUBERNETES_VERSION?=latest
 install-envtest: setup-envtest
 	mkdir -p ${ENVTEST_ASSETS_DIR}
