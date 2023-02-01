@@ -2,6 +2,34 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.31.0
+
+**Release date:** 2023-02-01
+
+This prerelease disables caching of Secrets and ConfigMaps to improve memory
+usage. To opt-out from this behavior, start the controller with:
+`--feature-gates=CacheSecretsAndConfigMaps=true`.
+
+In addition, the controller dependencies have been updated to Kubernetes
+v1.26.1 and controller-runtime v0.14.2. The controller base image has been
+updated to Alpine 3.17.
+
+Improvements:
+* docs: fix up typos in providers document and changelog
+  [#459](https://github.com/fluxcd/notification-controller/pull/459)
+* Remove erroneous mention of wildcard in Receivers
+  [#462](https://github.com/fluxcd/notification-controller/pull/462)
+* docs: fix secret name in example
+  [#463](https://github.com/fluxcd/notification-controller/pull/463)
+* Set rate limiter option in test reconcilers
+  [#465](https://github.com/fluxcd/notification-controller/pull/465)
+* Update dependencies
+  [#466](https://github.com/fluxcd/notification-controller/pull/466)
+* build: Enable SBOM and SLSA Provenance
+  [#467](https://github.com/fluxcd/notification-controller/pull/467)
+* Disable caching of Secrets and ConfigMaps
+  [#468](https://github.com/fluxcd/notification-controller/pull/468)
+
 ## 0.30.2
 
 **Release date:** 2022-12-22
