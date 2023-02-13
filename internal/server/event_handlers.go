@@ -326,7 +326,10 @@ func (s *EventServer) eventMatchesAlert(ctx context.Context, event *eventv1.Even
 // cleanupMetadata removes metadata entries which are not used for alerting
 func cleanupMetadata(event *eventv1.Event) {
 	group := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group
-	excludeList := []string{fmt.Sprintf("%s/%s", group, eventv1.MetaChecksumKey)}
+	excludeList := []string{
+		fmt.Sprintf("%s/%s", group, eventv1.MetaChecksumKey),
+		fmt.Sprintf("%s/%s", group, eventv1.MetaDigestKey),
+	}
 
 	meta := make(map[string]string)
 	if event.Metadata != nil && len(event.Metadata) > 0 {

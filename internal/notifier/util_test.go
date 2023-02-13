@@ -39,29 +39,55 @@ func TestUtil_NameAndDescription(t *testing.T) {
 }
 
 func TestUtil_ParseRevision(t *testing.T) {
-	revString := "master/a1afe267b54f38b46b487f6e938a6fd508278c07"
-	rev, err := parseRevision(revString)
-	require.NoError(t, err)
-	require.Equal(t, "a1afe267b54f38b46b487f6e938a6fd508278c07", rev)
-}
-
-func TestUtil_ParseRevisionNestedBranch(t *testing.T) {
-	revString := "environment/dev/a1afe267b54f38b46b487f6e938a6fd508278c07"
-	rev, err := parseRevision(revString)
-	require.NoError(t, err)
-	require.Equal(t, "a1afe267b54f38b46b487f6e938a6fd508278c07", rev)
-}
-
-func TestUtil_ParseRevisionOneComponents(t *testing.T) {
-	revString := "master"
-	_, err := parseRevision(revString)
-	require.EqualError(t, err, "revision string format incorrect: master")
-}
-
-func TestUtil_ParseRevisionTooFewComponents(t *testing.T) {
-	revString := "master/"
-	_, err := parseRevision(revString)
-	require.EqualError(t, err, "commit SHA cannot be empty: master/")
+	tests := []struct {
+		name     string
+		revision string
+		expect   string
+		wantErr  string
+	}{
+		{
+			name:     "commit",
+			revision: "sha1:a1afe267b54f38b46b487f6e938a6fd508278c07",
+			expect:   "a1afe267b54f38b46b487f6e938a6fd508278c07",
+		},
+		{
+			name:     "branch",
+			revision: "master@sha1:a1afe267b54f38b46b487f6e938a6fd508278c07",
+			expect:   "a1afe267b54f38b46b487f6e938a6fd508278c07",
+		},
+		{
+			name:     "nested branch",
+			revision: "environment/dev@sha1:a1afe267b54f38b46b487f6e938a6fd508278c07",
+			expect:   "a1afe267b54f38b46b487f6e938a6fd508278c07",
+		},
+		{
+			name:     "legacy",
+			revision: "master/a1afe267b54f38b46b487f6e938a6fd508278c07",
+			expect:   "a1afe267b54f38b46b487f6e938a6fd508278c07",
+		},
+		{
+			name:     "legacy (nested branch)",
+			revision: "environment/dev/a1afe267b54f38b46b487f6e938a6fd508278c07",
+			expect:   "a1afe267b54f38b46b487f6e938a6fd508278c07",
+		},
+		{
+			name:     "legacy (one component)",
+			revision: "master",
+			wantErr:  "failed to extract commit hash from 'master' revision",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rev, err := parseRevision(tt.revision)
+			if tt.wantErr != "" {
+				require.Error(t, err, tt.wantErr)
+				require.Empty(t, rev)
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.expect, rev)
+		})
+	}
 }
 
 func TestUtil_ParseGitHttps(t *testing.T) {
