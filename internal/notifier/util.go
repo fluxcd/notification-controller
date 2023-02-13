@@ -24,6 +24,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/fluxcd/pkg/git"
+
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	giturls "github.com/whilp/git-urls"
 )
@@ -107,15 +109,11 @@ func splitCamelcase(src string) (entries []string) {
 }
 
 func parseRevision(rev string) (string, error) {
-	comp := strings.Split(rev, "/")
-	if len(comp) < 2 {
-		return "", fmt.Errorf("revision string format incorrect: %v", rev)
+	hash := git.ExtractHashFromRevision(git.TransformRevision(rev))
+	if hash.Algorithm() == git.HashTypeUnknown {
+		return "", fmt.Errorf("failed to extract commit hash from '%s' revision", rev)
 	}
-	sha := comp[len(comp)-1]
-	if sha == "" {
-		return "", fmt.Errorf("commit SHA cannot be empty: %v", rev)
-	}
-	return sha, nil
+	return hash.String(), nil
 }
 
 func sha1String(str string) string {

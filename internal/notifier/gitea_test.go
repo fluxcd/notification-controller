@@ -60,7 +60,7 @@ func TestGitea_Post(t *testing.T) {
 			Time: time.Now(),
 		},
 		Metadata: map[string]string{
-			eventv1.MetaRevisionKey: "main/1234567890",
+			eventv1.MetaRevisionKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
 		},
 		Message: "Service/podinfo/podinfo configured",
 		Reason:  "",
