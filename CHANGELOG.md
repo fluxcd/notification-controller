@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.32.0
+
+**Release date:** 2023-02-16
+
+This prerelease adds support for parsing
+[RFC-0005](https://github.com/fluxcd/flux2/tree/main/rfcs/0005-artifact-revision-and-digest)
+revision format. Similar to artifact `Checksum`, the new `Digest` metadata is
+also removed from Alerts.
+
+In addition, the controller dependencies have been updated to their latest
+versions.
+
+Improvements:
+* Support RFC-0005 revision format
+  [#472](https://github.com/fluxcd/notification-controller/pull/472)
+* Update dependencies
+  [#474](https://github.com/fluxcd/notification-controller/pull/474)
+
 ## 0.31.0
 
 **Release date:** 2023-02-01
