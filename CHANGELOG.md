@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.32.1
+
+**Release date:** 2023-02-28
+
+This prerelease comes with a fix to the version of the ImageRepository API
+when it is not specified in the Receiver spec, now defaulting to
+`image.toolkit.fluxcd.io/v1beta2`.
+
+In addition, the controller dependencies have been updated to their latest
+versions.
+
+Fixes:
+* receiver: update default ImageRepository version
+  [#479](https://github.com/fluxcd/notification-controller/pull/479)
+
+Improvements:
+* Update dependencies
+  [#478](https://github.com/fluxcd/notification-controller/pull/478)
+  [#480](https://github.com/fluxcd/notification-controller/pull/480)
+
 ## 0.32.0
 
 **Release date:** 2023-02-16
