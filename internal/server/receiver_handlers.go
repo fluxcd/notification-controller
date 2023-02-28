@@ -42,6 +42,15 @@ import (
 	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 )
 
+// defaultFluxAPIVersions is a map of Flux API kinds to their API versions.
+var defaultFluxAPIVersions = map[string]string{
+	"Bucket":          "source.toolkit.fluxcd.io/v1beta2",
+	"HelmRepository":  "source.toolkit.fluxcd.io/v1beta2",
+	"GitRepository":   "source.toolkit.fluxcd.io/v1beta2",
+	"OCIRepository":   "source.toolkit.fluxcd.io/v1beta2",
+	"ImageRepository": "image.toolkit.fluxcd.io/v1beta2",
+}
+
 func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
@@ -348,20 +357,12 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource apiv1.CrossNames
 		Name:      resource.Name,
 	}
 
-	apiVersionMap := map[string]string{
-		"Bucket":          "source.toolkit.fluxcd.io/v1beta2",
-		"HelmRepository":  "source.toolkit.fluxcd.io/v1beta2",
-		"GitRepository":   "source.toolkit.fluxcd.io/v1beta2",
-		"OCIRepository":   "source.toolkit.fluxcd.io/v1beta2",
-		"ImageRepository": "image.toolkit.fluxcd.io/v1beta1",
-	}
-
 	apiVersion := resource.APIVersion
 	if apiVersion == "" {
-		if apiVersionMap[resource.Kind] == "" {
+		if defaultFluxAPIVersions[resource.Kind] == "" {
 			return fmt.Errorf("apiVersion must be specified for kind '%s'", resource.Kind)
 		}
-		apiVersion = apiVersionMap[resource.Kind]
+		apiVersion = defaultFluxAPIVersions[resource.Kind]
 	}
 
 	group, version := getGroupVersion(apiVersion)
