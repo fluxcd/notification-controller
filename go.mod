@@ -9,28 +9,28 @@ require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230106234847-43070de90fa1
 	github.com/Azure/azure-amqp-common-go/v4 v4.0.0
 	github.com/Azure/azure-event-hubs-go/v3 v3.4.0
-	github.com/containrrr/shoutrrr v0.6.1
+	github.com/containrrr/shoutrrr v0.7.1
 	github.com/fluxcd/notification-controller/api v0.32.0
 	github.com/fluxcd/pkg/apis/event v0.4.0
 	github.com/fluxcd/pkg/apis/meta v0.19.0
 	github.com/fluxcd/pkg/git v0.10.0
 	github.com/fluxcd/pkg/masktoken v0.2.0
 	github.com/fluxcd/pkg/runtime v0.29.0
-	github.com/fluxcd/pkg/ssa v0.23.1
-	github.com/getsentry/sentry-go v0.17.0
+	github.com/fluxcd/pkg/ssa v0.24.1
+	github.com/getsentry/sentry-go v0.18.0
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-github/v41 v41.0.0
 	github.com/hashicorp/go-retryablehttp v0.7.2
 	github.com/ktrysmt/go-bitbucket v0.9.55
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
-	github.com/onsi/gomega v1.26.0
+	github.com/onsi/gomega v1.27.2
 	github.com/sethvargo/go-limiter v0.7.2
 	github.com/slok/go-http-metrics v0.10.0
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.2
 	github.com/whilp/git-urls v1.0.0
-	github.com/xanzy/go-gitlab v0.79.0
-	golang.org/x/oauth2 v0.4.0
+	github.com/xanzy/go-gitlab v0.80.2
+	golang.org/x/oauth2 v0.5.0
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
 	k8s.io/client-go v0.26.1
@@ -44,14 +44,6 @@ replace gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 
 // Fix CVE-2022-1996 (for v2, Go Modules incompatible)
 replace github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.16.0+incompatible
-
-// Fix CVE-2022-1996 (for v3)
-replace github.com/emicklei/go-restful/v3 => github.com/emicklei/go-restful/v3 v3.8.0
-
-// Fix for CVE-2020-29652: https://github.com/golang/crypto/commit/8b5274cf687fd9316b4108863654cc57385531e8
-// Fix for CVE-2021-43565: https://github.com/golang/crypto/commit/5770296d904e90f15f38f77dfc2e43fdf5efc083
-// Fix for CVE-2022-27191: https://github.com/golang/crypto/commit/3147a52a75dda54ac3a611ef8978640d85188a2a
-replace golang.org/x/crypto => golang.org/x/crypto v0.0.0-20220518034528-6f7dac969898
 
 require (
 	github.com/Azure/azure-sdk-for-go v65.0.0+incompatible // indirect
@@ -105,7 +97,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/kr/pretty v0.3.0 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
@@ -135,7 +126,7 @@ require (
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.6.0 // indirect
-	golang.org/x/net v0.6.0 // indirect
+	golang.org/x/net v0.7.0 // indirect
 	golang.org/x/sys v0.5.0 // indirect
 	golang.org/x/term v0.5.0 // indirect
 	golang.org/x/text v0.7.0 // indirect
