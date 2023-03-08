@@ -15,7 +15,7 @@ require (
 	github.com/fluxcd/pkg/apis/meta v0.19.1
 	github.com/fluxcd/pkg/git v0.11.0
 	github.com/fluxcd/pkg/masktoken v0.2.0
-	github.com/fluxcd/pkg/runtime v0.29.0
+	github.com/fluxcd/pkg/runtime v0.31.0
 	github.com/fluxcd/pkg/ssa v0.24.1
 	github.com/getsentry/sentry-go v0.19.0
 	github.com/go-logr/logr v1.2.3
