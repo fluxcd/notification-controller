@@ -2,6 +2,24 @@
 
 All notable changes to this project are documented in this file.
 
+## 0.33.0
+
+**Release date:** 2023-03-08
+
+This release updates to Go version the controller is build with to `1.20`,
+and updates the dependencies to their latest versions.
+
+In addition, `klog` is now configured to log using the same logger as the rest
+of the controller (providing a consistent log format).
+
+Improvements:
+* Update Go to 1.20
+  [#483](https://github.com/fluxcd/notification-controller/pull/483)
+* Update dependencies
+  [#485](https://github.com/fluxcd/notification-controller/pull/485)
+* Use `logger.SetLogger` to also configure `klog`
+  [#486](https://github.com/fluxcd/notification-controller/pull/486)
+
 ## 0.32.1
 
 **Release date:** 2023-02-28
