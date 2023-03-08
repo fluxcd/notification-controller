@@ -98,13 +98,12 @@ func main() {
 
 	flag.Parse()
 
+	logger.SetLogger(logger.NewLogger(logOptions))
+
 	if err := featureGates.WithLogger(setupLog).SupportedFeatures(features.FeatureGates()); err != nil {
 		setupLog.Error(err, "unable to load feature gates")
 		os.Exit(1)
 	}
-
-	log := logger.NewLogger(logOptions)
-	ctrl.SetLogger(log)
 
 	watchNamespace := ""
 	if !watchAllNamespaces {
@@ -197,11 +196,11 @@ func main() {
 			Registry: crtlmetrics.Registry,
 		}),
 	})
-	eventServer := server.NewEventServer(eventsAddr, log, mgr.GetClient(), aclOptions.NoCrossNamespaceRefs)
+	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), aclOptions.NoCrossNamespaceRefs)
 	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)
-	receiverServer := server.NewReceiverServer(receiverAddr, log, mgr.GetClient())
+	receiverServer := server.NewReceiverServer(receiverAddr, ctrl.Log, mgr.GetClient())
 	receiverMdlw := middleware.New(middleware.Config{
 		Recorder: prommetrics.NewRecorder(prommetrics.Config{
 			Prefix:   "gotk_receiver",

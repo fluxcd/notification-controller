@@ -325,8 +325,8 @@ github.com/fluxcd/pkg/git v0.11.0 h1:GvB+3QOB8xbF5WNjVrkskseOnsZBuqSOzW3VxfsHuX4
 github.com/fluxcd/pkg/git v0.11.0/go.mod h1:VHRVlrZMHNoWBlaSAWxlGH6Vwlb9VRazUhPUykviHwY=
 github.com/fluxcd/pkg/masktoken v0.2.0 h1:HoSPTk4l1fz5Fevs2vVRvZGru33blfMwWSZKsHdfG/0=
 github.com/fluxcd/pkg/masktoken v0.2.0/go.mod h1:EA7GleAHL33kN6kTW06m5R3/Q26IyuGO7Ef/0CtpDI0=
-github.com/fluxcd/pkg/runtime v0.29.0 h1:/BDitj/y5shWqczECCiZFsEm9FH7do4VBgMHBiRiol0=
-github.com/fluxcd/pkg/runtime v0.29.0/go.mod h1:NrBONYHO5Piuzm6Y7QTS3cJRlgkgsDPn2EKB6gJ4BQw=
+github.com/fluxcd/pkg/runtime v0.31.0 h1:addyXaANHl/A68bEjCbiR4HzcFKgfXv1eaG7B7ZHxOo=
+github.com/fluxcd/pkg/runtime v0.31.0/go.mod h1:toGOOubMo4ZC1aWhB8C3drdTglr1/A1dETeNwjiIv0g=
 github.com/fluxcd/pkg/ssa v0.24.1 h1:0dn5FqyYdGa+VuDp5EJrkLbPq5xhhSAAkMgGUeMpOM0=
 github.com/fluxcd/pkg/ssa v0.24.1/go.mod h1:nEOUOwGotBlNZkTkO6GHPlI0U0BmHTavFd1Jk+TzsGw=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
