@@ -613,7 +613,7 @@ spec:
 
 ### Events
 
-`.spec.events` in an optional field to specify a list of webhook payload event
+`.spec.events` is an optional field to specify a list of webhook payload event
 types this Receiver should act on. If left empty, no filtering is applied and
 any (valid) payload is handled.
 
@@ -629,7 +629,7 @@ called.
 
 A resource entry contains the following fields:
 
-- `apiVersion`: The Flux Custom Resource API group and version, such as
+- `apiVersion` (Optional): The Flux Custom Resource API group and version, such as
   `source.toolkit.fluxcd.io/v1beta2`.
 - `kind`: The Flux Custom Resource kind, supported values are `Bucket`,
   `GitRepository`, `Kustomization`, `HelmRelease`, `HelmChart`,
@@ -669,7 +669,7 @@ stringData:
 
 ### Interval
 
-`.spec.interval` is a required field with a default of ten minutes that specifies
+`.spec.interval` is an optional field with a default of ten minutes that specifies
 the time interval at which the controller reconciles the provider with its Secret
 reference.
 
