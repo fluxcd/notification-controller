@@ -363,7 +363,11 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 	group, version := getGroupVersion(apiVersion)
 
 	if resource.Name == "*" {
-		logger.Info(fmt.Sprintf("annotate resources by matchLabel for kind '%s' in '%s'",
+		if resource.MatchLabels == nil {
+			return fmt.Errorf("matchLabels field not set when using wildcard '*' as name")
+		}
+
+		logger.V(1).Info(fmt.Sprintf("annotate resources by matchLabel for kind '%s' in '%s'",
 			resource.Kind, namespace), "matchLabels", resource.MatchLabels)
 
 		var resources metav1.PartialObjectMetadataList
@@ -380,11 +384,17 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 			return fmt.Errorf("failed listing resources in namespace %q by matching labels %q: %w", namespace, resource.MatchLabels, err)
 		}
 
+		if len(resources.Items) == 0 {
+			noObjectsFoundErr := fmt.Errorf("no '%s' resources found with matching labels '%s' in '%s' namespace", resource.Kind, resource.MatchLabels, namespace)
+			logger.Error(noObjectsFoundErr, "error annotating resources")
+			return nil
+		}
+
 		for _, resource := range resources.Items {
 			if err := s.annotate(ctx, &resource); err != nil {
 				return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
 			} else {
-				logger.V(1).Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
+				logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
 					resource.Kind, resource.Name, namespace))
 			}
 		}

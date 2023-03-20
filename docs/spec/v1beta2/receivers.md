@@ -635,9 +635,34 @@ A resource entry contains the following fields:
   `GitRepository`, `Kustomization`, `HelmRelease`, `HelmChart`,
   `HelmRepository`, `ImageRepository`, `ImagePolicy`, `ImageUpdateAutomation`
   and `OCIRepository`.
-- `name`: The Flux Custom Resource `.metadata.name`.
+- `name`: The Flux Custom Resource `.metadata.name` or it can be set to '*' wildcard(when `matchLabels` is specified)
 - `namespace` (Optional): The Flux Custom Resource `.metadata.namespace`.
   When not specified, the Receiver's `.metadata.namespace` is used instead.
+- `matchLabels` (Optional): Annotate Flux Custom Resources with specific labels.
+   The `name` field must be set to '*' when using `matchLabels`
+
+#### Annotate objects by name
+
+To annotate single Flux object, set the `kind`, `name` and `namespace`:
+
+```yaml
+resources:
+  - apiVersion: image.toolkit.fluxcd.io/v1beta1
+    kind: ImageRepository
+    name: podinfo
+```
+
+#### Annotate objects by label
+
+To annotate Flux objects of a particular kind with specific labels:
+
+```yaml
+resources:
+  - apiVersion: image.toolkit.fluxcd.io/v1beta1
+    kind: ImageRepository
+    matchLabels:
+      app: podinfo
+```
 
 
 **Note:** Cross-namespace references [can be disabled for security

@@ -563,28 +563,7 @@ func Test_handlePayload(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			resources: []client.Object{
-				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "dummy-resource-2",
-					},
-				},
-				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "dummy-resource",
-					},
-				},
-			},
-			expectedResourcesAnnotated: 3, // it is 3 because we target receivers itself in this test and the receiver here is included with *
-			expectedResponseCode:       http.StatusOK,
+			expectedResponseCode: http.StatusBadRequest,
 		},
 		{
 			name: "resource matchLabels is ignored if name is not *",
