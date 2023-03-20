@@ -32,6 +32,7 @@ import (
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
+	"github.com/go-logr/logr"
 	"github.com/google/go-github/v41/github"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +46,7 @@ import (
 // defaultFluxAPIVersions is a map of Flux API kinds to their API versions.
 var defaultFluxAPIVersions = map[string]string{
 	"Bucket":          "source.toolkit.fluxcd.io/v1beta2",
+	"HelmChart":       "source.toolkit.fluxcd.io/v1beta2",
 	"HelmRepository":  "source.toolkit.fluxcd.io/v1beta2",
 	"GitRepository":   "source.toolkit.fluxcd.io/v1beta2",
 	"OCIRepository":   "source.toolkit.fluxcd.io/v1beta2",
@@ -94,13 +96,9 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 			}
 
 			for _, resource := range receiver.Spec.Resources {
-				if err := s.annotate(ctx, resource, receiver.Namespace); err != nil {
-					logger.Error(err, fmt.Sprintf("unable to annotate resource '%s/%s.%s'",
-						resource.Kind, resource.Name, resource.Namespace))
+				if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
+					logger.Error(err, "unable to process resource")
 					withErrors = true
-				} else {
-					logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
-						resource.Kind, resource.Name, resource.Namespace))
 				}
 			}
 		}
@@ -347,14 +345,11 @@ func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (st
 	return token, nil
 }
 
-func (s *ReceiverServer) annotate(ctx context.Context, resource apiv1.CrossNamespaceObjectReference, defaultNamespace string) error {
+// requestReconciliation requests reconciliation of all the resources matching the given CrossNamespaceObjectReference by annotating them accordingly.
+func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, defaultNamespace string) error {
 	namespace := defaultNamespace
 	if resource.Namespace != "" {
 		namespace = resource.Namespace
-	}
-	objectKey := client.ObjectKey{
-		Namespace: namespace,
-		Name:      resource.Name,
 	}
 
 	apiVersion := resource.APIVersion
@@ -367,6 +362,36 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource apiv1.CrossNames
 
 	group, version := getGroupVersion(apiVersion)
 
+	if resource.Name == "*" {
+		logger.Info(fmt.Sprintf("annotate resources by matchLabel for kind '%s' in '%s'",
+			resource.Kind, namespace), "matchLabels", resource.MatchLabels)
+
+		var resources metav1.PartialObjectMetadataList
+		resources.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   group,
+			Kind:    resource.Kind,
+			Version: version,
+		})
+
+		if err := s.kubeClient.List(ctx, &resources,
+			client.InNamespace(namespace),
+			client.MatchingLabels(resource.MatchLabels),
+		); err != nil {
+			return fmt.Errorf("failed listing resources in namespace %q by matching labels %q: %w", namespace, resource.MatchLabels, err)
+		}
+
+		for _, resource := range resources.Items {
+			if err := s.annotate(ctx, &resource); err != nil {
+				return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
+			} else {
+				logger.V(1).Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
+					resource.Kind, resource.Name, namespace))
+			}
+		}
+
+		return nil
+	}
+
 	u := &metav1.PartialObjectMetadata{}
 	u.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   group,
@@ -374,19 +399,42 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource apiv1.CrossNames
 		Version: version,
 	})
 
+	objectKey := client.ObjectKey{
+		Namespace: namespace,
+		Name:      resource.Name,
+	}
+
 	if err := s.kubeClient.Get(ctx, objectKey, u); err != nil {
 		return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, objectKey, err)
 	}
 
-	patch := client.MergeFrom(u.DeepCopy())
-	sourceAnnotations := u.GetAnnotations()
+	err := s.annotate(ctx, u)
+	if err != nil {
+		return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
+	} else {
+		logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
+			resource.Kind, resource.Name, namespace))
+	}
+
+	return nil
+}
+
+func (s *ReceiverServer) annotate(ctx context.Context, resource *metav1.PartialObjectMetadata) error {
+	patch := client.MergeFrom(resource.DeepCopy())
+	sourceAnnotations := resource.GetAnnotations()
+
 	if sourceAnnotations == nil {
 		sourceAnnotations = make(map[string]string)
 	}
+
 	sourceAnnotations[meta.ReconcileRequestAnnotation] = metav1.Now().String()
-	u.SetAnnotations(sourceAnnotations)
-	if err := s.kubeClient.Patch(ctx, u, patch); err != nil {
-		return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, objectKey, err)
+	resource.SetAnnotations(sourceAnnotations)
+
+	if err := s.kubeClient.Patch(ctx, resource, patch); err != nil {
+		return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, client.ObjectKey{
+			Namespace: resource.Namespace,
+			Name:      resource.Name,
+		}, err)
 	}
 
 	return nil
