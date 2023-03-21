@@ -660,6 +660,7 @@ To annotate Flux objects of a particular kind with specific labels:
 resources:
   - apiVersion: image.toolkit.fluxcd.io/v1beta1
     kind: ImageRepository
+    name: "*"
     matchLabels:
       app: podinfo
 ```
