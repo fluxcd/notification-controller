@@ -24,6 +24,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/fluxcd/pkg/apis/meta"
+
+	v1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
 const (
@@ -63,7 +65,7 @@ type ReceiverSpec struct {
 
 	// A list of resources to be notified about changes.
 	// +required
-	Resources []CrossNamespaceObjectReference `json:"resources"`
+	Resources []v1.CrossNamespaceObjectReference `json:"resources"`
 
 	// SecretRef specifies the Secret containing the token used
 	// to validate the payload authenticity.
@@ -128,9 +130,9 @@ func (in *Receiver) GetInterval() time.Duration {
 
 // +genclient
 // +genclient:Namespaced
-// +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion:warning="v1beta2 Receiver is deprecated, upgrade to v1"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status",description=""
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message",description=""

@@ -33,13 +33,14 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
+	apiv1beta2 "github.com/fluxcd/notification-controller/api/v1beta2"
 )
 
 func TestProviderReconciler_Reconcile(t *testing.T) {
 	g := NewWithT(t)
 	timeout := 5 * time.Second
-	resultP := &apiv1.Provider{}
+	resultP := &apiv1beta2.Provider{}
 	namespaceName := "provider-" + randStringRunes(5)
 	secretName := "secret-" + randStringRunes(5)
 
@@ -49,12 +50,12 @@ func TestProviderReconciler_Reconcile(t *testing.T) {
 		Name:      fmt.Sprintf("provider-%s", randStringRunes(5)),
 		Namespace: namespaceName,
 	}
-	provider := &apiv1.Provider{
+	provider := &apiv1beta2.Provider{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      providerKey.Name,
 			Namespace: providerKey.Namespace,
 		},
-		Spec: apiv1.ProviderSpec{
+		Spec: apiv1beta2.ProviderSpec{
 			Type:    "generic",
 			Address: "https://webhook.internal",
 		},

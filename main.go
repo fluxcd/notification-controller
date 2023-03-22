@@ -42,7 +42,8 @@ import (
 	"github.com/fluxcd/pkg/runtime/pprof"
 	"github.com/fluxcd/pkg/runtime/probes"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
+	apiv1b2 "github.com/fluxcd/notification-controller/api/v1beta2"
 	"github.com/fluxcd/notification-controller/controllers"
 	"github.com/fluxcd/notification-controller/internal/features"
 	"github.com/fluxcd/notification-controller/internal/server"
@@ -60,6 +61,7 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = apiv1.AddToScheme(scheme)
+	_ = apiv1b2.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -188,6 +190,10 @@ func main() {
 	store, err := memorystore.New(&memorystore.Config{
 		Interval: rateLimitInterval,
 	})
+	if err != nil {
+		setupLog.Error(err, "unable to create middleware store")
+		os.Exit(1)
+	}
 
 	setupLog.Info("starting event server", "addr", eventsAddr)
 	eventMdlw := middleware.New(middleware.Config{

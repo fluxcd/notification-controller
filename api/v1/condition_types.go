@@ -13,3 +13,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+package v1
+
+const NotificationFinalizer = "finalizers.fluxcd.io"
+
+const (
+	// InitializedReason represents the fact that a given resource has been initialized.
+	InitializedReason string = "Initialized"
+
+	// ValidationFailedReason represents the fact that some part of the spec of a given resource
+	// couldn't be validated.
+	ValidationFailedReason string = "ValidationFailed"
+
+	// TokenNotFoundReason represents the fact that receiver token can't be found.
+	TokenNotFoundReason string = "TokenNotFound"
+)

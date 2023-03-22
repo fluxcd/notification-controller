@@ -1,5 +1,7 @@
 # Events
 
+<!-- menuweight:20 -->
+
 The `Event` API defines the structure of the events issued by Flux controllers.
 
 Flux controllers use the [fluxcd/pkg/runtime/events](https://github.com/fluxcd/pkg/tree/main/runtime/events)

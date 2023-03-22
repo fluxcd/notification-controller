@@ -11,4 +11,4 @@ This is the v1beta2 API specification for defining events handling and dispatchi
 
 ## Go Client
 
-* [github.com/fluxcd/pkg/recorder](https://github.com/fluxcd/pkg/tree/main/recorder)
+* [github.com/fluxcd/pkg/runtime/events](https://pkg.go.dev/github.com/fluxcd/pkg/runtime/events)
