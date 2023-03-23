@@ -23,13 +23,16 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/google/go-github/v41/github"
+	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/fluxcd/pkg/apis/meta"
@@ -38,21 +41,23 @@ import (
 	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
 )
 
-func Test_validate(t *testing.T) {
+func Test_handlePayload(t *testing.T) {
 	type hashOpts struct {
 		calculate bool
 		header    string
 	}
 
 	tests := []struct {
-		name         string
-		hashOpts     hashOpts
-		headers      map[string]string
-		payload      map[string]interface{}
-		receiver     *apiv1.Receiver
-		receiverType string
-		secret       *corev1.Secret
-		expectedErr  bool
+		name                       string
+		hashOpts                   hashOpts
+		headers                    map[string]string
+		payload                    map[string]interface{}
+		receiver                   *apiv1.Receiver
+		receiverType               string
+		secret                     *corev1.Secret
+		resources                  []client.Object
+		expectedResourcesAnnotated int
+		expectedResponseCode       int
 	}{
 		{
 			name: "Generic receiver",
@@ -66,6 +71,10 @@ func Test_validate(t *testing.T) {
 						Name: "token",
 					},
 				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
 			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -75,7 +84,7 @@ func Test_validate(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expectedErr: false,
+			expectedResponseCode: http.StatusOK,
 		},
 		{
 			name: "gitlab receiver",
@@ -89,6 +98,10 @@ func Test_validate(t *testing.T) {
 						Name: "token",
 					},
 				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
 			},
 			headers: map[string]string{
 				"X-Gitlab-Token": "token",
@@ -101,7 +114,7 @@ func Test_validate(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expectedErr: false,
+			expectedResponseCode: http.StatusOK,
 		},
 		{
 			name: "github receiver",
@@ -114,6 +127,10 @@ func Test_validate(t *testing.T) {
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
 			hashOpts: hashOpts{
@@ -134,7 +151,7 @@ func Test_validate(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expectedErr: false,
+			expectedResponseCode: http.StatusOK,
 		},
 		{
 			name: "generic hmac receiver",
@@ -147,6 +164,10 @@ func Test_validate(t *testing.T) {
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
 			hashOpts: hashOpts{
@@ -164,7 +185,7 @@ func Test_validate(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expectedErr: false,
+			expectedResponseCode: http.StatusOK,
 		},
 		{
 			name: "bitbucket receiver",
@@ -178,6 +199,10 @@ func Test_validate(t *testing.T) {
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
 			hashOpts: hashOpts{
@@ -196,7 +221,7 @@ func Test_validate(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expectedErr: false,
+			expectedResponseCode: http.StatusOK,
 		},
 		{
 			name: "quay receiver",
@@ -209,6 +234,10 @@ func Test_validate(t *testing.T) {
 					SecretRef: meta.LocalObjectReference{
 						Name: "token",
 					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
 			secret: &corev1.Secret{
@@ -225,7 +254,7 @@ func Test_validate(t *testing.T) {
 					"v0.0.1",
 				},
 			},
-			expectedErr: false,
+			expectedResponseCode: http.StatusOK,
 		},
 		{
 			name: "harbor receiver",
@@ -239,6 +268,10 @@ func Test_validate(t *testing.T) {
 						Name: "token",
 					},
 				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
 			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -251,7 +284,7 @@ func Test_validate(t *testing.T) {
 			headers: map[string]string{
 				"Authorization": "token",
 			},
-			expectedErr: false,
+			expectedResponseCode: http.StatusOK,
 		},
 		{
 			name: "missing secret",
@@ -265,8 +298,330 @@ func Test_validate(t *testing.T) {
 						Name: "non-existing",
 					},
 				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
 			},
-			expectedErr: true,
+			expectedResponseCode: http.StatusBadRequest,
+		},
+		{
+			name:                 "no receiver configured",
+			expectedResponseCode: http.StatusNotFound,
+		},
+		{
+			name: "not ready receiver is ignored",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "notready-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.StalledCondition, Status: metav1.ConditionFalse}},
+				},
+			},
+			expectedResponseCode: http.StatusNotFound,
+		},
+		{
+			name: "suspended receiver ignored",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "suspended-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Suspend: true,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			expectedResponseCode: http.StatusNotFound,
+		},
+		{
+			name: "missing apiVersion in resource",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							Kind: apiv1.ReceiverKind,
+							MatchLabels: map[string]string{
+								"label": "match",
+							},
+						},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			expectedResponseCode: http.StatusBadRequest,
+		},
+		{
+			name: "resource by name not found",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "does-not-exists",
+						},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			expectedResponseCode: http.StatusBadRequest,
+		},
+		{
+			name: "annotating resources by label match",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "*",
+							MatchLabels: map[string]string{
+								"label": "match",
+							},
+						},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			resources: []client.Object{
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "dummy-resource-2",
+						Labels: map[string]string{
+							"label": "does-not-match",
+						},
+					},
+				},
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "dummy-resource",
+						Labels: map[string]string{
+							"label": "match",
+						},
+					},
+				},
+			},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
+		},
+		{
+			name: "annotating resource by name",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "dummy-resource",
+						},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			resources: []client.Object{
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "dummy-resource-2",
+					},
+				},
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "dummy-resource",
+					},
+				},
+			},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
+		},
+		{
+			name: "annotating all resources if name is *",
+			receiver: &apiv1.Receiver{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "*",
+						},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			expectedResponseCode: http.StatusBadRequest,
+		},
+		{
+			name: "resource matchLabels is ignored if name is not *",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "dummy-resource",
+							MatchLabels: map[string]string{
+								"label": "match",
+							},
+						},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			resources: []client.Object{
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "dummy-resource-2",
+					},
+				},
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "dummy-resource",
+					},
+				},
+			},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
 		},
 	}
 
@@ -276,10 +631,17 @@ func Test_validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := gomega.NewGomegaWithT(t)
 
 			builder := fake.NewClientBuilder()
 			builder.WithScheme(scheme)
-			builder.WithObjects(tt.receiver)
+
+			if tt.receiver != nil {
+				builder.WithObjects(tt.receiver)
+			}
+
+			builder.WithObjects(tt.resources...)
+
 			if tt.secret != nil {
 				builder.WithObjects(tt.secret)
 			}
@@ -295,7 +657,7 @@ func Test_validate(t *testing.T) {
 			if err != nil {
 				t.Errorf("error marshalling test payload: '%s'", err)
 			}
-			req := httptest.NewRequest("POST", "/", bytes.NewBuffer(data))
+			req := httptest.NewRequest("POST", "/hook/", bytes.NewBuffer(data))
 			for key, val := range tt.headers {
 				req.Header.Set(key, val)
 			}
@@ -308,14 +670,22 @@ func Test_validate(t *testing.T) {
 				req.Header.Set(tt.hashOpts.header, "sha256="+hex.EncodeToString(mac.Sum(nil)))
 			}
 
-			err = s.validate(context.Background(), *tt.receiver, req)
-			if tt.expectedErr && err == nil {
-				t.Errorf("expected error but got %s", err)
+			rr := httptest.NewRecorder()
+			handler := s.handlePayload()
+			handler(rr, req)
+			g.Expect(rr.Result().StatusCode).To(gomega.Equal(tt.expectedResponseCode))
+
+			var allReceivers apiv1.ReceiverList
+			err = client.List(context.TODO(), &allReceivers)
+
+			var annotatedResources int
+			for _, obj := range allReceivers.Items {
+				if _, ok := obj.GetAnnotations()[meta.ReconcileRequestAnnotation]; ok {
+					annotatedResources++
+				}
 			}
 
-			if !tt.expectedErr && err != nil {
-				t.Errorf("unexpected error: '%s'", err)
-			}
+			g.Expect(annotatedResources).To(gomega.Equal(tt.expectedResourcesAnnotated))
 		})
 	}
 }
