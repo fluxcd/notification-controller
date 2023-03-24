@@ -271,6 +271,11 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 					Name:      "*",
 					Namespace: "test",
 				},
+				{
+					Kind:      "Kustomization",
+					Name:      "testwildcardnamespace",
+					Namespace: "*",
+				},
 			},
 			ExclusionList: []string{
 				"doesnotoccur", // not intended to match
@@ -374,6 +379,17 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 				e.InvolvedObject.Kind = "Kustomization"
 				e.InvolvedObject.Name = "test"
 				e.InvolvedObject.Namespace = namespace
+				e.Message = "test"
+				return e
+			},
+			forwarded: true,
+		},
+		{
+			name: "forwards events when namespace wildcard is used",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
+				e.InvolvedObject.Kind = "Kustomization"
+				e.InvolvedObject.Name = "testwildcardnamespace"
+				e.InvolvedObject.Namespace = "test-" + randStringRunes(5)
 				e.Message = "test"
 				return e
 			},
