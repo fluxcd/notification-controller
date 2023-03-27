@@ -288,11 +288,10 @@ spec:
                         {key,value} in the matchLabels map is equivalent to an element
                         of matchExpressions, whose key field is "key", the operator
                         is "In", and the values array contains only "value". The requirements
-                        are ANDed. MatchLabels requires the name to be set to `*`.
+                        are ANDed.
                       type: object
                     name:
-                      description: Name of the referent. If multiple resources are
-                        targeted `*` may be set.
+                      description: Name of the referent.
                       maxLength: 53
                       minLength: 1
                       type: string

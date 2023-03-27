@@ -741,8 +741,7 @@ string
 </em>
 </td>
 <td>
-<p>Name of the referent.
-If multiple resources are targeted <code>*</code> may be set.</p>
+<p>Name of the referent.</p>
 </td>
 </tr>
 <tr>
@@ -768,8 +767,7 @@ map[string]string
 <em>(Optional)</em>
 <p>MatchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
 map is equivalent to an element of matchExpressions, whose key field is &ldquo;key&rdquo;, the
-operator is &ldquo;In&rdquo;, and the values array contains only &ldquo;value&rdquo;. The requirements are ANDed.
-MatchLabels requires the name to be set to <code>*</code>.</p>
+operator is &ldquo;In&rdquo;, and the values array contains only &ldquo;value&rdquo;. The requirements are ANDed.</p>
 </td>
 </tr>
 </tbody>
