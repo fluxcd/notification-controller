@@ -29,6 +29,7 @@ type CrossNamespaceObjectReference struct {
 	Kind string `json:"kind"`
 
 	// Name of the referent
+	// If multiple resources are targeted `*` may be set.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=53
 	// +required
@@ -44,6 +45,7 @@ type CrossNamespaceObjectReference struct {
 	// MatchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
 	// map is equivalent to an element of matchExpressions, whose key field is "key", the
 	// operator is "In", and the values array contains only "value". The requirements are ANDed.
+	// MatchLabels requires the name to be set to `*`.
 	// +optional
 	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 }
