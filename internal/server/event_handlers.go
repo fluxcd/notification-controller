@@ -288,7 +288,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *EventServer) eventMatchesAlert(ctx context.Context, event *eventv1.Event, source apiv1.CrossNamespaceObjectReference, severity string) bool {
-	if event.InvolvedObject.Namespace == source.Namespace && event.InvolvedObject.Kind == source.Kind || source.Namespace == "*" {
+	if (event.InvolvedObject.Namespace == source.Namespace || source.Namespace == "*") && event.InvolvedObject.Kind == source.Kind {
 		if event.Severity == severity || severity == eventv1.EventSeverityInfo {
 			labelMatch := true
 			if source.Name == "*" && source.MatchLabels != nil {
