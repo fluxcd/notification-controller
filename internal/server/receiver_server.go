@@ -27,7 +27,7 @@ import (
 	"github.com/slok/go-http-metrics/middleware/std"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
 // ReceiverServer handles webhook POST requests

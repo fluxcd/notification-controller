@@ -39,7 +39,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/conditions"
 	"github.com/fluxcd/pkg/ssa"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	"github.com/fluxcd/notification-controller/internal/server"
 )
 
@@ -102,6 +102,7 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 
 		g.Expect(conditions.Has(resultR, meta.ReconcilingCondition)).To(BeFalse())
 		g.Expect(controllerutil.ContainsFinalizer(resultR, apiv1.NotificationFinalizer)).To(BeTrue())
+		g.Expect(resultR.Spec.Interval.Duration).To(BeIdenticalTo(10 * time.Minute))
 	})
 
 	t.Run("fails with secret not found error", func(t *testing.T) {

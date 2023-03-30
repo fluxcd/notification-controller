@@ -19,6 +19,8 @@ package v1beta2
 import (
 	"github.com/fluxcd/pkg/apis/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/fluxcd/notification-controller/api/v1"
 )
 
 const (
@@ -41,7 +43,7 @@ type AlertSpec struct {
 	// EventSources specifies how to filter events based
 	// on the involved object kind, name and namespace.
 	// +required
-	EventSources []CrossNamespaceObjectReference `json:"eventSources"`
+	EventSources []v1.CrossNamespaceObjectReference `json:"eventSources"`
 
 	// ExclusionList specifies a list of Golang regular expressions
 	// to be used for excluding messages.

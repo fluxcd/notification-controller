@@ -12,11 +12,11 @@ require (
 	github.com/containrrr/shoutrrr v0.7.1
 	github.com/fluxcd/notification-controller/api v0.33.0
 	github.com/fluxcd/pkg/apis/event v0.4.1
-	github.com/fluxcd/pkg/apis/meta v0.19.1
+	github.com/fluxcd/pkg/apis/meta v1.0.0
 	github.com/fluxcd/pkg/git v0.11.0
 	github.com/fluxcd/pkg/masktoken v0.2.0
-	github.com/fluxcd/pkg/runtime v0.31.0
-	github.com/fluxcd/pkg/ssa v0.24.1
+	github.com/fluxcd/pkg/runtime v0.33.0
+	github.com/fluxcd/pkg/ssa v0.27.0
 	github.com/getsentry/sentry-go v0.19.0
 	github.com/go-logr/logr v1.2.3
 	github.com/google/go-github/v41 v41.0.0
@@ -31,9 +31,9 @@ require (
 	github.com/whilp/git-urls v1.0.0
 	github.com/xanzy/go-gitlab v0.80.3
 	golang.org/x/oauth2 v0.6.0
-	k8s.io/api v0.26.2
-	k8s.io/apimachinery v0.26.2
-	k8s.io/client-go v0.26.2
+	k8s.io/api v0.26.3
+	k8s.io/apimachinery v0.26.3
+	k8s.io/client-go v0.26.3
 	sigs.k8s.io/cli-utils v0.34.0
 	sigs.k8s.io/controller-runtime v0.14.5
 	sigs.k8s.io/yaml v1.3.0

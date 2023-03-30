@@ -2,7 +2,7 @@
 IMG ?= fluxcd/notification-controller:latest
 # Produce CRDs that work back to Kubernetes 1.16
 CRD_OPTIONS ?= crd:crdVersions=v1
-SOURCE_VER ?= v0.35.0
+SOURCE_VER ?= v1.0.0-rc.1
 
 # Repository root based on Git metadata
 REPOSITORY_ROOT := $(shell git rev-parse --show-toplevel)
@@ -87,7 +87,8 @@ manifests: controller-gen
 
 # Generate API reference documentation
 api-docs: gen-crd-api-reference-docs
-	$(GEN_CRD_API_REFERENCE_DOCS) -api-dir=./api/v1beta2 -config=./hack/api-docs/config.json -template-dir=./hack/api-docs/template -out-file=./docs/api/notification.md
+	$(GEN_CRD_API_REFERENCE_DOCS) -api-dir=./api/v1beta2 -config=./hack/api-docs/config.json -template-dir=./hack/api-docs/template -out-file=./docs/api/v1beta2/notification.md
+	$(GEN_CRD_API_REFERENCE_DOCS) -api-dir=./api/v1 -config=./hack/api-docs/config.json -template-dir=./hack/api-docs/template -out-file=./docs/api/v1/notification.md
 
 # Run go mod tidy
 tidy:

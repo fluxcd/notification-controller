@@ -1,5 +1,7 @@
 # Alerts
 
+<!-- menuweight:10 -->
+
 The `Alert` API defines how events are filtered by severity and involved object, and what provider to use for dispatching.
 
 ## Example

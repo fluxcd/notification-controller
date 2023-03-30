@@ -40,7 +40,8 @@ import (
 	"github.com/fluxcd/pkg/runtime/testenv"
 	"github.com/fluxcd/pkg/ssa"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
+	apiv1b2 "github.com/fluxcd/notification-controller/api/v1beta2"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -54,6 +55,7 @@ var (
 func TestMain(m *testing.M) {
 	var err error
 	utilruntime.Must(apiv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(apiv1b2.AddToScheme(scheme.Scheme))
 
 	testEnv = testenv.New(testenv.WithCRDPath(
 		filepath.Join("..", "config", "crd", "bases"),

@@ -38,7 +38,7 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/logger"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
 func Test_handlePayload(t *testing.T) {

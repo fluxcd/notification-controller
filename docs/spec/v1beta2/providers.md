@@ -1,5 +1,7 @@
 # Providers
 
+<!-- menuweight:40 -->
+
 The `Provider` API defines how events are encoded and where to send them.
 
 ## Example

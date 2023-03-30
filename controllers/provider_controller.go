@@ -43,7 +43,8 @@ import (
 	"github.com/fluxcd/pkg/runtime/patch"
 	"github.com/fluxcd/pkg/runtime/predicates"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
+	apiv1beta2 "github.com/fluxcd/notification-controller/api/v1beta2"
 	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
@@ -68,7 +69,7 @@ func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *ProviderReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts ProviderReconcilerOptions) error {
 	recoverPanic := true
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&apiv1.Provider{}, builder.WithPredicates(
+		For(&apiv1beta2.Provider{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
 		)).
 		WithOptions(controller.Options{
@@ -88,7 +89,7 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	reconcileStart := time.Now()
 	log := ctrl.LoggerFrom(ctx)
 
-	obj := &apiv1.Provider{}
+	obj := &apiv1beta2.Provider{}
 	if err := r.Get(ctx, req.NamespacedName, obj); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -150,7 +151,7 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	return r.reconcile(ctx, obj)
 }
 
-func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1.Provider) (ctrl.Result, error) {
+func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1beta2.Provider) (ctrl.Result, error) {
 	// Mark the resource as under reconciliation.
 	conditions.MarkReconciling(obj, meta.ProgressingReason, "Reconciliation in progress")
 	conditions.Delete(obj, meta.StalledCondition)
@@ -173,7 +174,7 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1.Provider)
 	return ctrl.Result{RequeueAfter: obj.GetInterval()}, nil
 }
 
-func (r *ProviderReconciler) validateURLs(provider *apiv1.Provider) error {
+func (r *ProviderReconciler) validateURLs(provider *apiv1beta2.Provider) error {
 	address := provider.Spec.Address
 	proxy := provider.Spec.Proxy
 
@@ -188,7 +189,7 @@ func (r *ProviderReconciler) validateURLs(provider *apiv1.Provider) error {
 	return nil
 }
 
-func (r *ProviderReconciler) validateCredentials(ctx context.Context, provider *apiv1.Provider) error {
+func (r *ProviderReconciler) validateCredentials(ctx context.Context, provider *apiv1beta2.Provider) error {
 	address := provider.Spec.Address
 	proxy := provider.Spec.Proxy
 	username := provider.Spec.Username
@@ -265,7 +266,7 @@ func (r *ProviderReconciler) validateCredentials(ctx context.Context, provider *
 }
 
 // patch updates the object status, conditions and finalizers.
-func (r *ProviderReconciler) patch(ctx context.Context, obj *apiv1.Provider, patcher *patch.SerialPatcher) (retErr error) {
+func (r *ProviderReconciler) patch(ctx context.Context, obj *apiv1beta2.Provider, patcher *patch.SerialPatcher) (retErr error) {
 	// Configure the runtime patcher.
 	patchOpts := []patch.Option{}
 	ownedConditions := []string{

@@ -43,36 +43,37 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
+	apiv1beta2 "github.com/fluxcd/notification-controller/api/v1beta2"
 	"github.com/fluxcd/notification-controller/internal/server"
 )
 
 func TestAlertReconciler_Reconcile(t *testing.T) {
 	g := NewWithT(t)
 	timeout := 5 * time.Second
-	resultA := &apiv1.Alert{}
+	resultA := &apiv1beta2.Alert{}
 	namespaceName := "alert-" + randStringRunes(5)
 	providerName := "provider-" + randStringRunes(5)
 
 	g.Expect(createNamespace(namespaceName)).NotTo(HaveOccurred(), "failed to create test namespace")
 
-	provider := &apiv1.Provider{
+	provider := &apiv1beta2.Provider{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      providerName,
 			Namespace: namespaceName,
 		},
-		Spec: apiv1.ProviderSpec{
+		Spec: apiv1beta2.ProviderSpec{
 			Type:    "generic",
 			Address: "https://webhook.internal",
 		},
 	}
 
-	alert := &apiv1.Alert{
+	alert := &apiv1beta2.Alert{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("alert-%s", randStringRunes(5)),
 			Namespace: namespaceName,
 		},
-		Spec: apiv1.AlertSpec{
+		Spec: apiv1beta2.AlertSpec{
 			ProviderRef: meta.LocalObjectReference{
 				Name: providerName,
 			},
@@ -164,7 +165,7 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 	var (
 		namespace = "events-" + randStringRunes(5)
 		req       *http.Request
-		provider  *apiv1.Provider
+		provider  *apiv1beta2.Provider
 	)
 	g.Expect(createNamespace(namespace)).NotTo(HaveOccurred(), "failed to create test namespace")
 
@@ -196,19 +197,19 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		Name:      fmt.Sprintf("provider-%s", randStringRunes(5)),
 		Namespace: namespace,
 	}
-	provider = &apiv1.Provider{
+	provider = &apiv1beta2.Provider{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      providerKey.Name,
 			Namespace: providerKey.Namespace,
 		},
-		Spec: apiv1.ProviderSpec{
+		Spec: apiv1beta2.ProviderSpec{
 			Type:    "generic",
 			Address: rcvServer.URL,
 		},
 	}
 	g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())
 	g.Eventually(func() bool {
-		var obj apiv1.Provider
+		var obj apiv1beta2.Provider
 		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), &obj))
 		return conditions.IsReady(&obj)
 	}, 30*time.Second, time.Second).Should(BeTrue())
@@ -234,12 +235,12 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		Namespace: namespace,
 	}
 
-	alert := &apiv1.Alert{
+	alert := &apiv1beta2.Alert{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      alertKey.Name,
 			Namespace: alertKey.Namespace,
 		},
-		Spec: apiv1.AlertSpec{
+		Spec: apiv1beta2.AlertSpec{
 			ProviderRef: meta.LocalObjectReference{
 				Name: providerKey.Name,
 			},
@@ -278,7 +279,7 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 
 	// wait for controller to mark the alert as ready
 	g.Eventually(func() bool {
-		var obj apiv1.Alert
+		var obj apiv1beta2.Alert
 		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), &obj))
 		return conditions.IsReady(&obj)
 	}, 30*time.Second, time.Second).Should(BeTrue())

@@ -40,7 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta2"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
 // defaultFluxAPIVersions is a map of Flux API kinds to their API versions.
@@ -48,7 +48,7 @@ var defaultFluxAPIVersions = map[string]string{
 	"Bucket":          "source.toolkit.fluxcd.io/v1beta2",
 	"HelmChart":       "source.toolkit.fluxcd.io/v1beta2",
 	"HelmRepository":  "source.toolkit.fluxcd.io/v1beta2",
-	"GitRepository":   "source.toolkit.fluxcd.io/v1beta2",
+	"GitRepository":   "source.toolkit.fluxcd.io/v1",
 	"OCIRepository":   "source.toolkit.fluxcd.io/v1beta2",
 	"ImageRepository": "image.toolkit.fluxcd.io/v1beta2",
 }

@@ -1,4 +1,4 @@
-<h1>Notification API reference</h1>
+<h1>Notification API reference v1beta2</h1>
 <p>Packages:</p>
 <ul class="simple">
 <li>
@@ -76,7 +76,7 @@ AlertSpec
 <td>
 <code>providerRef</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </a>
 </em>
@@ -102,8 +102,8 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 <td>
 <code>eventSources</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta2.CrossNamespaceObjectReference">
-[]CrossNamespaceObjectReference
+<a href="https://pkg.go.dev/github.com/fluxcd/notification-controller/api/v1#CrossNamespaceObjectReference">
+[]github.com/fluxcd/notification-controller/api/v1.CrossNamespaceObjectReference
 </a>
 </em>
 </td>
@@ -241,7 +241,7 @@ string
 <td>
 <code>interval</code><br>
 <em>
-<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -291,7 +291,7 @@ string
 <td>
 <code>timeout</code><br>
 <em>
-<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -317,7 +317,7 @@ string
 <td>
 <code>secretRef</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </a>
 </em>
@@ -332,7 +332,7 @@ credentials for this Provider.</p>
 <td>
 <code>certSecretRef</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </a>
 </em>
@@ -448,7 +448,7 @@ the validation procedure and payload deserialization.</p>
 <td>
 <code>interval</code><br>
 <em>
-<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -475,8 +475,8 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>resources</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta2.CrossNamespaceObjectReference">
-[]CrossNamespaceObjectReference
+<a href="https://pkg.go.dev/github.com/fluxcd/notification-controller/api/v1#CrossNamespaceObjectReference">
+[]github.com/fluxcd/notification-controller/api/v1.CrossNamespaceObjectReference
 </a>
 </em>
 </td>
@@ -488,7 +488,7 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>secretRef</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </a>
 </em>
@@ -551,7 +551,7 @@ ReceiverStatus
 <td>
 <code>providerRef</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </a>
 </em>
@@ -577,8 +577,8 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 <td>
 <code>eventSources</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta2.CrossNamespaceObjectReference">
-[]CrossNamespaceObjectReference
+<a href="https://pkg.go.dev/github.com/fluxcd/notification-controller/api/v1#CrossNamespaceObjectReference">
+[]github.com/fluxcd/notification-controller/api/v1.CrossNamespaceObjectReference
 </a>
 </em>
 </td>
@@ -650,7 +650,7 @@ events handling for this Alert.</p>
 <td>
 <code>ReconcileRequestStatus</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#ReconcileRequestStatus">
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#ReconcileRequestStatus">
 github.com/fluxcd/pkg/apis/meta.ReconcileRequestStatus
 </a>
 </em>
@@ -693,11 +693,6 @@ int64
 </div>
 <h3 id="notification.toolkit.fluxcd.io/v1beta2.CrossNamespaceObjectReference">CrossNamespaceObjectReference
 </h3>
-<p>
-(<em>Appears on:</em>
-<a href="#notification.toolkit.fluxcd.io/v1beta2.AlertSpec">AlertSpec</a>, 
-<a href="#notification.toolkit.fluxcd.io/v1beta2.ReceiverSpec">ReceiverSpec</a>)
-</p>
 <p>CrossNamespaceObjectReference contains enough information to let you locate the
 typed referenced object at cluster level</p>
 <div class="md-typeset__scrollwrap">
@@ -806,7 +801,7 @@ string
 <td>
 <code>interval</code><br>
 <em>
-<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -856,7 +851,7 @@ string
 <td>
 <code>timeout</code><br>
 <em>
-<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -882,7 +877,7 @@ string
 <td>
 <code>secretRef</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </a>
 </em>
@@ -897,7 +892,7 @@ credentials for this Provider.</p>
 <td>
 <code>certSecretRef</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </a>
 </em>
@@ -946,7 +941,7 @@ events handling for this Provider.</p>
 <td>
 <code>ReconcileRequestStatus</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#ReconcileRequestStatus">
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#ReconcileRequestStatus">
 github.com/fluxcd/pkg/apis/meta.ReconcileRequestStatus
 </a>
 </em>
@@ -1020,7 +1015,7 @@ the validation procedure and payload deserialization.</p>
 <td>
 <code>interval</code><br>
 <em>
-<a href="https://godoc.org/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
 Kubernetes meta/v1.Duration
 </a>
 </em>
@@ -1047,8 +1042,8 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>resources</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1beta2.CrossNamespaceObjectReference">
-[]CrossNamespaceObjectReference
+<a href="https://pkg.go.dev/github.com/fluxcd/notification-controller/api/v1#CrossNamespaceObjectReference">
+[]github.com/fluxcd/notification-controller/api/v1.CrossNamespaceObjectReference
 </a>
 </em>
 </td>
@@ -1060,7 +1055,7 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>secretRef</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
 github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </a>
 </em>
@@ -1108,7 +1103,7 @@ events handling for this receiver.</p>
 <td>
 <code>ReconcileRequestStatus</code><br>
 <em>
-<a href="https://godoc.org/github.com/fluxcd/pkg/apis/meta#ReconcileRequestStatus">
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#ReconcileRequestStatus">
 github.com/fluxcd/pkg/apis/meta.ReconcileRequestStatus
 </a>
 </em>

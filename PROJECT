@@ -2,6 +2,9 @@ domain: toolkit.fluxcd.io
 repo: github.com/fluxcd/notification-controller
 resources:
 - group: notification
+  kind: Receiver
+  version: v1
+- group: notification
   kind: Provider
   version: v1beta1
 - group: notification
