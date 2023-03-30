@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 	utilruntime.Must(apiv1b2.AddToScheme(scheme.Scheme))
 
 	testEnv = testenv.New(testenv.WithCRDPath(
-		filepath.Join("..", "config", "crd", "bases"),
+		filepath.Join("..", "..", "config", "crd", "bases"),
 	))
 
 	k8sClient, err = client.New(testEnv.Config, client.Options{Scheme: scheme.Scheme})
