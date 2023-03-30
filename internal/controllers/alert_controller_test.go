@@ -28,6 +28,7 @@ import (
 
 	"github.com/fluxcd/pkg/ssa"
 	. "github.com/onsi/gomega"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sethvargo/go-limiter/memorystore"
 	prommetrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
@@ -169,9 +170,12 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 	)
 	g.Expect(createNamespace(namespace)).NotTo(HaveOccurred(), "failed to create test namespace")
 
+	reg := prometheus.NewRegistry()
+
 	eventMdlw := middleware.New(middleware.Config{
 		Recorder: prommetrics.NewRecorder(prommetrics.Config{
-			Prefix: "gotk_event",
+			Prefix:   "gotk_event",
+			Registry: reg,
 		}),
 	})
 
@@ -435,9 +439,12 @@ func TestAlertReconciler_EventHandler_CrossNamespaceRefs(t *testing.T) {
 	)
 	g.Expect(createNamespace(namespace)).NotTo(HaveOccurred(), "failed to create test namespace")
 
+	reg := prometheus.NewRegistry()
+
 	eventMdlw := middleware.New(middleware.Config{
 		Recorder: prommetrics.NewRecorder(prommetrics.Config{
-			Prefix: "gotk_event",
+			Prefix:   "gotk_event",
+			Registry: reg,
 		}),
 	})
 

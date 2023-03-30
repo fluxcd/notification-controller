@@ -24,6 +24,7 @@ require (
 	github.com/ktrysmt/go-bitbucket v0.9.55
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
 	github.com/onsi/gomega v1.27.2
+	github.com/prometheus/client_golang v1.14.0
 	github.com/sethvargo/go-limiter v0.7.2
 	github.com/slok/go-http-metrics v0.10.0
 	github.com/spf13/pflag v1.0.5
@@ -110,7 +111,6 @@ require (
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_golang v1.14.0 // indirect
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
