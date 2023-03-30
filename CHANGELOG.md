@@ -2,6 +2,43 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.0-rc.1
+
+**Release date:** 2023-03-30
+
+This release candidate promotes the Receiver API from v1beta2 to v1. The Receiver v1 API now supports triggering the reconciliation of multiple 
+resources using match labels.
+
+### Highlights
+
+#### API changes
+
+The `Receiver` kind was promoted from v1beta2 to v1 (GA). All other kinds of the notification.toolkit.fluxcd.io group stay at version v1beta2.
+
+The receivers.notification.toolkit.fluxcd.io CRD contains the following versions:
+
+- v1 (storage version)
+- v1beta2 (deprecated)
+- v1beta1 (deprecated)
+
+#### Upgrade Procedure
+
+The `Receiver` v1 API is backwards compatible with v1beta2.
+
+To upgrade from v1beta2, after deploying the new CRD and controller, set `apiVersion: notification.toolkit.fluxcd.io/v1` in the YAML files that 
+contain `Receiver` definitions. Bumping the API version in manifests can be done gradually. It is advised to not delay this procedure as the beta 
+versions will be removed after 6 months.
+
+### Full Changelog
+
+Improvements:
+- GA: Promote Receiver API to notification.toolkit.fluxcd.io/v1
+  [#498](https://github.com/fluxcd/notification-controller/pull/498)
+- support multiple resources in Receivers by using match labels
+  [#482](https://github.com/fluxcd/notification-controller/pull/482)
+- docs: fixes to the Receiver documentation
+  [#495](https://github.com/fluxcd/notification-controller/pull/495)
+
 ## 0.33.0
 
 **Release date:** 2023-03-08
