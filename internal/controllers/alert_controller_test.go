@@ -267,11 +267,6 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 					Name:      "*",
 					Namespace: "test",
 				},
-				{
-					Kind:      "Kustomization",
-					Name:      "testwildcardnamespace",
-					Namespace: "*",
-				},
 			},
 			ExclusionList: []string{
 				"doesnotoccur", // not intended to match
@@ -381,17 +376,6 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 			forwarded: true,
 		},
 		{
-			name: "forwards events when namespace wildcard is used",
-			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
-				e.InvolvedObject.Kind = "Kustomization"
-				e.InvolvedObject.Name = "testwildcardnamespace"
-				e.InvolvedObject.Namespace = "test-" + randStringRunes(5)
-				e.Message = "test"
-				return e
-			},
-			forwarded: true,
-		},
-		{
 			name: "forwards events when the label matches",
 			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Kind = "GitRepository"
@@ -425,6 +409,280 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 				return e
 			},
 			forwarded: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event = tt.modifyEventFunc(event)
+			testSent()
+			if tt.forwarded {
+				testForwarded()
+			} else {
+				testFiltered()
+			}
+			req = nil
+		})
+	}
+}
+
+func TestAlertReconciler_EventHandler_CrossNamespaceRefs(t *testing.T) {
+	g := NewWithT(t)
+	var (
+		namespace = "events-" + randStringRunes(5)
+		req       *http.Request
+		provider  *apiv1.Provider
+	)
+	g.Expect(createNamespace(namespace)).NotTo(HaveOccurred(), "failed to create test namespace")
+
+	eventMdlw := middleware.New(middleware.Config{
+		Recorder: prommetrics.NewRecorder(prommetrics.Config{
+			Prefix: "gotk_event",
+		}),
+	})
+
+	store, err := memorystore.New(&memorystore.Config{
+		Interval: 5 * time.Minute,
+	})
+	if err != nil {
+		t.Fatalf("failed to create memory storage")
+	}
+
+	eventServer := server.NewEventServer("127.0.0.1:56789", logf.Log, k8sClient, false)
+	stopCh := make(chan struct{})
+	go eventServer.ListenAndServe(stopCh, eventMdlw, store)
+
+	rcvServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		req = r
+		w.WriteHeader(200)
+	}))
+	defer rcvServer.Close()
+	defer close(stopCh)
+
+	providerKey := types.NamespacedName{
+		Name:      fmt.Sprintf("provider-%s", randStringRunes(5)),
+		Namespace: namespace,
+	}
+	provider = &apiv1.Provider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      providerKey.Name,
+			Namespace: providerKey.Namespace,
+		},
+		Spec: apiv1.ProviderSpec{
+			Type:    "generic",
+			Address: rcvServer.URL,
+		},
+	}
+	g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())
+	g.Eventually(func() bool {
+		var obj apiv1.Provider
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), &obj))
+		return conditions.IsReady(&obj)
+	}, 30*time.Second, time.Second).Should(BeTrue())
+
+	repo, err := readManifest("./testdata/repo.yaml", namespace)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	secondRepo, err := readManifest("./testdata/gitrepo2.yaml", namespace)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	_, err = manager.Apply(context.Background(), repo, ssa.ApplyOptions{
+		Force: true,
+	})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	_, err = manager.Apply(context.Background(), secondRepo, ssa.ApplyOptions{
+		Force: true,
+	})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	alertKey := types.NamespacedName{
+		Name:      fmt.Sprintf("alert-%s", randStringRunes(5)),
+		Namespace: namespace,
+	}
+
+	alert := &apiv1.Alert{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      alertKey.Name,
+			Namespace: alertKey.Namespace,
+		},
+		Spec: apiv1.AlertSpec{
+			ProviderRef: meta.LocalObjectReference{
+				Name: providerKey.Name,
+			},
+			EventSeverity: "info",
+			EventSources: []apiv1.CrossNamespaceObjectReference{
+				{
+					Kind:      "Bucket",
+					Name:      "hyacinth",
+					Namespace: namespace,
+				},
+				{
+					Kind:      "Bucket",
+					Name:      "daffodil",
+					Namespace: "test",
+				},
+				{
+					Kind:      "Bucket",
+					Name:      "bluebells",
+					Namespace: "*",
+				},
+				{
+					Kind:      "Kustomization",
+					Name:      "*",
+					Namespace: namespace,
+				},
+				{
+					Kind:      "HelmRelease",
+					Name:      "*",
+					Namespace: "*",
+				},
+			},
+			ExclusionList: []string{
+				"doesnotoccur", // not intended to match
+				"excluded",
+			},
+		},
+	}
+
+	g.Expect(k8sClient.Create(context.Background(), alert)).To(Succeed())
+
+	// wait for controller to mark the alert as ready
+	g.Eventually(func() bool {
+		var obj apiv1.Alert
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), &obj))
+		return conditions.IsReady(&obj)
+	}, 30*time.Second, time.Second).Should(BeTrue())
+
+	event := eventv1.Event{
+		InvolvedObject: corev1.ObjectReference{
+			Kind:      "Bucket",
+			Name:      "hyacinth",
+			Namespace: namespace,
+		},
+		Severity:            "info",
+		Timestamp:           metav1.Now(),
+		Message:             "well that happened",
+		Reason:              "event-happened",
+		ReportingController: "source-controller",
+	}
+
+	testSent := func() {
+		buf := &bytes.Buffer{}
+		g.Expect(json.NewEncoder(buf).Encode(&event)).To(Succeed())
+		res, err := http.Post("http://localhost:56789/", "application/json", buf)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res.StatusCode).To(Equal(202)) // event_server responds with 202 Accepted
+	}
+
+	testForwarded := func() {
+		g.Eventually(func() bool {
+			return req == nil
+		}, "2s", "0.1s").Should(BeFalse())
+	}
+
+	testFiltered := func() {
+		// The event_server does forwarding in a goroutine, after
+		// responding to the POST of the event. This makes it
+		// difficult to know whether the provider has filtered the
+		// event, or just not run the goroutine yet. For now, I'll use
+		// a timeout (and Consistently so it can fail early)
+		g.Consistently(func() bool {
+			return req == nil
+		}, "1s", "0.1s").Should(BeTrue())
+	}
+
+	tests := []struct {
+		name            string
+		modifyEventFunc func(e eventv1.Event) eventv1.Event
+		forwarded       bool
+	}{
+		{
+			name:            "forwards when source is a match",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event { return e },
+			forwarded:       true,
+		},
+		{
+			name: "forward events for cross-namespace sources",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
+				e.InvolvedObject.Kind = "Bucket"
+				e.InvolvedObject.Name = "daffodil"
+				e.InvolvedObject.Namespace = "test"
+				return e
+			},
+			forwarded: true,
+		},
+		{
+			name: "forwards events when the namespace wildcard is used",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
+				e.InvolvedObject.Kind = "Bucket"
+				e.InvolvedObject.Name = "bluebells"
+				e.InvolvedObject.Namespace = "test-" + randStringRunes(5)
+				return e
+			},
+			forwarded: true,
+		},
+		{
+			name: "drops event when source Kind does not match",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
+				e.InvolvedObject.Kind = "GitRepository"
+				e.InvolvedObject.Namespace = namespace
+				return e
+			},
+			forwarded: false,
+		},
+		{
+			name: "drops event when source name does not match",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
+				e.InvolvedObject.Kind = "Bucket"
+				e.InvolvedObject.Name = "slop"
+				e.InvolvedObject.Namespace = namespace
+				return e
+			},
+			forwarded: false,
+		},
+		{
+			name: "drops event when source namespace does not match",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
+				e.InvolvedObject.Kind = "Bucket"
+				e.InvolvedObject.Name = "hyacinth"
+				e.InvolvedObject.Namespace = "all-buckets"
+				return e
+			},
+			forwarded: false,
+		},
+		{
+			name: "drops event that is matched by exclusion",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
+				e.InvolvedObject.Kind = "Bucket"
+				e.InvolvedObject.Name = "bluebells"
+				e.InvolvedObject.Namespace = "test-" + randStringRunes(5)
+				e.Message = "this is excluded"
+				return e
+			},
+			forwarded: false,
+		},
+		{
+			name: "forwards events when name wildcard is used",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
+				e.InvolvedObject.Kind = "Kustomization"
+				e.InvolvedObject.Name = "test"
+				e.InvolvedObject.Namespace = namespace
+				e.Message = "test"
+				return e
+			},
+			forwarded: true,
+		},
+		{
+			name: "forwards events when name and namespace wildcards is used",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
+				e.InvolvedObject.Kind = "HelmRelease"
+				e.InvolvedObject.Name = "test"
+				e.InvolvedObject.Namespace = "test-" + randStringRunes(5)
+				e.Message = "test"
+				return e
+			},
+			forwarded: true,
 		},
 	}
 
