@@ -41,6 +41,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/predicates"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
+	"github.com/fluxcd/notification-controller/internal/server"
 )
 
 // ReceiverReconciler reconciles a Receiver object
@@ -62,6 +63,12 @@ func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts ReceiverReconcilerOptions) error {
+	// This index is used to list Receivers by their webhook path after the receiver server
+	// gets a request.
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &apiv1.Receiver{},
+		server.WebhookPathIndexKey, server.IndexReceiverWebhookPath); err != nil {
+		return err
+	}
 	recoverPanic := true
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiv1.Receiver{}, builder.WithPredicates(

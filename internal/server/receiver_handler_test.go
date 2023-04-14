@@ -321,7 +321,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.StalledCondition, Status: metav1.ConditionFalse}},
 				},
 			},
-			expectedResponseCode: http.StatusNotFound,
+			expectedResponseCode: http.StatusServiceUnavailable,
 		},
 		{
 			name: "suspended receiver ignored",
@@ -337,7 +337,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			expectedResponseCode: http.StatusNotFound,
+			expectedResponseCode: http.StatusServiceUnavailable,
 		},
 		{
 			name: "missing apiVersion in resource",
@@ -372,7 +372,7 @@ func Test_handlePayload(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expectedResponseCode: http.StatusBadRequest,
+			expectedResponseCode: http.StatusInternalServerError,
 		},
 		{
 			name: "resource by name not found",
@@ -406,7 +406,7 @@ func Test_handlePayload(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expectedResponseCode: http.StatusBadRequest,
+			expectedResponseCode: http.StatusInternalServerError,
 		},
 		{
 			name: "annotating resources by label match",
@@ -563,7 +563,7 @@ func Test_handlePayload(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
-			expectedResponseCode: http.StatusBadRequest,
+			expectedResponseCode: http.StatusInternalServerError,
 		},
 		{
 			name: "resource matchLabels is ignored if name is not *",
@@ -641,6 +641,7 @@ func Test_handlePayload(t *testing.T) {
 			}
 
 			builder.WithObjects(tt.resources...)
+			builder.WithIndex(&apiv1.Receiver{}, WebhookPathIndexKey, IndexReceiverWebhookPath)
 
 			if tt.secret != nil {
 				builder.WithObjects(tt.secret)

@@ -198,7 +198,9 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 	timeout := 30 * time.Second
 	resultR := &apiv1.Receiver{}
 
-	receiverServer := server.NewReceiverServer("127.0.0.1:56788", logf.Log, k8sClient)
+	// Use the client from the manager as the server handler needs to list objects from the cache
+	// which the "live" k8s client does not have access to.
+	receiverServer := server.NewReceiverServer("127.0.0.1:56788", logf.Log, testEnv.GetClient())
 	receiverMdlw := middleware.New(middleware.Config{
 		Recorder: prommetrics.NewRecorder(prommetrics.Config{
 			Prefix: "gotk_receiver",
