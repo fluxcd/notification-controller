@@ -85,12 +85,6 @@ type ReceiverStatus struct {
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
-	// URL is the generated incoming webhook address in the format
-	// of '/hook/sha256sum(token+name+namespace)'.
-	// Deprecated: Replaced by WebhookPath.
-	// +optional
-	URL string `json:"url,omitempty"`
-
 	// WebhookPath is the generated incoming webhook address in the format
 	// of '/hook/sha256sum(token+name+namespace)'.
 	// +optional

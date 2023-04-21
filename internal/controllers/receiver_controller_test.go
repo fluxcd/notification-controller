@@ -277,7 +277,6 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 			return conditions.IsReady(resultR)
 		}, timeout, time.Second).Should(BeTrue())
 
-		g.Expect(resultR.Status.URL).To(BeIdenticalTo(address))
 		g.Expect(resultR.Status.WebhookPath).To(BeIdenticalTo(address))
 		g.Expect(conditions.GetMessage(resultR, meta.ReadyCondition)).To(ContainSubstring(address))
 	})
@@ -296,7 +295,6 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 		}, timeout, time.Second).Should(BeTrue())
 
 		g.Expect(conditions.IsReady(resultR))
-		g.Expect(resultR.Status.URL).To(BeIdenticalTo(address))
 		g.Expect(resultR.Status.WebhookPath).To(BeIdenticalTo(address))
 	})
 
