@@ -398,20 +398,6 @@ github.com/fluxcd/pkg/apis/meta.ReconcileRequestStatus
 </tr>
 <tr>
 <td>
-<code>url</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>URL is the generated incoming webhook address in the format
-of &lsquo;/hook/sha256sum(token+name+namespace)&rsquo;.
-Deprecated: Replaced by WebhookPath.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>webhookPath</code><br>
 <em>
 string

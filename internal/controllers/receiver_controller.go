@@ -156,7 +156,6 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 	token, err := r.token(ctx, obj)
 	if err != nil {
 		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.TokenNotFoundReason, err.Error())
-		obj.Status.URL = ""
 		obj.Status.WebhookPath = ""
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -168,7 +167,6 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, msg)
 
 	if obj.Status.WebhookPath != webhookPath {
-		obj.Status.URL = webhookPath
 		obj.Status.WebhookPath = webhookPath
 		ctrl.LoggerFrom(ctx).Info(msg)
 	}
