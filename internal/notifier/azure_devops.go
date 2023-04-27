@@ -33,12 +33,17 @@ import (
 
 const genre string = "fluxcd"
 
-// AzureDevOps is a Azure DevOps notifier.
+type azureDevOpsClient interface {
+	CreateCommitStatus(context.Context, git.CreateCommitStatusArgs) (*git.GitStatus, error)
+	GetStatuses(context.Context, git.GetStatusesArgs) (*[]git.GitStatus, error)
+}
+
+// AzureDevOps is an Azure DevOps notifier.
 type AzureDevOps struct {
 	Project     string
 	Repo        string
 	ProviderUID string
-	Client      git.Client
+	Client      azureDevOpsClient
 }
 
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
@@ -100,7 +105,8 @@ func (a AzureDevOps) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	// Check if the exact status is already set
-	g := genre
+	g := commitStatusGenre(event)
+
 	_, desc := formatNameAndDescription(event)
 	id := generateCommitStatusID(a.ProviderUID, event)
 	createArgs := git.CreateCommitStatusArgs{
@@ -123,8 +129,9 @@ func (a AzureDevOps) Post(ctx context.Context, event eventv1.Event) error {
 	}
 	statuses, err := a.Client.GetStatuses(ctx, getArgs)
 	if err != nil {
-		return fmt.Errorf("could not list commit statuses: %v", err)
+		return fmt.Errorf("could not list commit statuses: %w", err)
 	}
+
 	if duplicateAzureDevOpsStatus(statuses, createArgs.GitCommitStatusToCreate) {
 		return nil
 	}
@@ -132,7 +139,7 @@ func (a AzureDevOps) Post(ctx context.Context, event eventv1.Event) error {
 	// Create a new status
 	_, err = a.Client.CreateCommitStatus(ctx, createArgs)
 	if err != nil {
-		return fmt.Errorf("could not create commit status: %v", err)
+		return fmt.Errorf("could not create commit status: %w", err)
 	}
 	return nil
 }
@@ -171,4 +178,13 @@ func duplicateAzureDevOpsStatus(statuses *[]git.GitStatus, status *git.GitStatus
 	}
 
 	return false
+}
+
+func commitStatusGenre(event eventv1.Event) string {
+	summary, ok := event.Metadata["summary"]
+	if ok {
+		return fmt.Sprintf("%s:%s", genre, summary)
+	}
+
+	return genre
 }

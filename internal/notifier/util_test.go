@@ -150,3 +150,33 @@ func TestUtil_BasicAuth(t *testing.T) {
 	s := basicAuth(username, password)
 	require.Equal(t, "dXNlcjpwYXNzd29yZA==", s)
 }
+
+func TestUtil_GenerateCommitStatusID(t *testing.T) {
+	statusIDTests := []struct {
+		name        string
+		providerUID string
+		event       eventv1.Event
+		want        string
+	}{
+		{
+			name:        "simple event case",
+			providerUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			event: eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Reason: "ApplySucceeded",
+			},
+			want: "kustomization/gitops-system/0c9c2e41",
+		},
+	}
+
+	for _, tt := range statusIDTests {
+		t.Run(tt.name, func(t *testing.T) {
+			id := generateCommitStatusID(tt.providerUID, tt.event)
+
+			require.Equal(t, tt.want, id)
+		})
+	}
+}

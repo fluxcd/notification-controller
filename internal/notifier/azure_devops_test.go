@@ -17,10 +17,13 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"testing"
 
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 )
 
 func TestNewAzureDevOpsBasic(t *testing.T) {
@@ -60,6 +63,89 @@ func TestDuplicateAzureDevOpsStatus(t *testing.T) {
 	}
 }
 
+func TestAzureDevOps_Post(t *testing.T) {
+	strPtr := func(s string) *string {
+		return &s
+	}
+
+	postTests := []struct {
+		name  string
+		event eventv1.Event
+		want  git.CreateCommitStatusArgs
+	}{
+		{
+			name: "event with no summary",
+			event: eventv1.Event{
+				Severity: eventv1.EventSeverityInfo,
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Metadata: map[string]string{
+					eventv1.MetaRevisionKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
+				},
+				Reason: "ApplySucceeded",
+			},
+			want: git.CreateCommitStatusArgs{
+				CommitId:     strPtr("69b59063470310ebbd88a9156325322a124e55a3"),
+				Project:      strPtr("bar"),
+				RepositoryId: strPtr("baz"),
+				GitCommitStatusToCreate: &git.GitStatus{
+					Description: strPtr("apply succeeded"),
+					State:       &git.GitStatusStateValues.Succeeded,
+					Context: &git.GitStatusContext{
+						Genre: strPtr("fluxcd"),
+						Name:  strPtr("kustomization/gitops-system/0c9c2e41"),
+					},
+				},
+			},
+		},
+		{
+			name: "event with summary",
+			event: eventv1.Event{
+				Severity: eventv1.EventSeverityInfo,
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Metadata: map[string]string{
+					eventv1.MetaRevisionKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
+					"summary":               "test summary",
+				},
+				Reason: "ApplySucceeded",
+			},
+			want: git.CreateCommitStatusArgs{
+				CommitId:     strPtr("69b59063470310ebbd88a9156325322a124e55a3"),
+				Project:      strPtr("bar"),
+				RepositoryId: strPtr("baz"),
+				GitCommitStatusToCreate: &git.GitStatus{
+					Description: strPtr("apply succeeded"),
+					State:       &git.GitStatusStateValues.Succeeded,
+					Context: &git.GitStatusContext{
+						Genre: strPtr("fluxcd:test summary"),
+						Name:  strPtr("kustomization/gitops-system/0c9c2e41"),
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range postTests {
+		t.Run(tt.name, func(t *testing.T) {
+			a, err := NewAzureDevOps("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com/foo/bar/_git/baz", "foo", nil)
+			fakeClient := &fakeDevOpsClient{}
+			a.Client = fakeClient
+			assert.Nil(t, err)
+
+			err = a.Post(context.TODO(), tt.event)
+			assert.Nil(t, err)
+
+			want := []git.CreateCommitStatusArgs{tt.want}
+			assert.Equal(t, want, fakeClient.created)
+		})
+	}
+}
+
 func azStatus(state git.GitStatusState, context string, description string) *git.GitStatus {
 	genre := "fluxcd"
 	return &git.GitStatus{
@@ -70,4 +156,17 @@ func azStatus(state git.GitStatusState, context string, description string) *git
 		Description: &description,
 		State:       &state,
 	}
+}
+
+type fakeDevOpsClient struct {
+	created []git.CreateCommitStatusArgs
+}
+
+func (c *fakeDevOpsClient) CreateCommitStatus(ctx context.Context, args git.CreateCommitStatusArgs) (*git.GitStatus, error) {
+	c.created = append(c.created, args)
+	return nil, nil
+}
+
+func (c *fakeDevOpsClient) GetStatuses(context.Context, git.GetStatusesArgs) (*[]git.GitStatus, error) {
+	return nil, nil
 }
