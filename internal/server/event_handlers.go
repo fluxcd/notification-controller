@@ -85,15 +85,33 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 				continue each_alert
 			}
 
+			// skip alert if the message does not match any regex from the inclusion list
+			if len(alert.Spec.InclusionList) > 0 {
+				var include bool
+				for _, inclusionRegex := range alert.Spec.InclusionList {
+					if r, err := regexp.Compile(inclusionRegex); err == nil {
+						if r.Match([]byte(event.Message)) {
+							include = true
+							break
+						}
+					} else {
+						s.logger.Error(err, fmt.Sprintf("failed to compile inclusion regex: %s", inclusionRegex))
+					}
+				}
+				if !include {
+					continue each_alert
+				}
+			}
+
 			// skip alert if the message matches a regex from the exclusion list
 			if len(alert.Spec.ExclusionList) > 0 {
-				for _, exp := range alert.Spec.ExclusionList {
-					if r, err := regexp.Compile(exp); err == nil {
+				for _, exclusionRegex := range alert.Spec.ExclusionList {
+					if r, err := regexp.Compile(exclusionRegex); err == nil {
 						if r.Match([]byte(event.Message)) {
 							continue each_alert
 						}
 					} else {
-						s.logger.Error(err, fmt.Sprintf("failed to compile regex: %s", exp))
+						s.logger.Error(err, fmt.Sprintf("failed to compile exclusion regex: %s", exclusionRegex))
 					}
 				}
 			}

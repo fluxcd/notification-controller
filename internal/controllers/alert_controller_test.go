@@ -274,6 +274,8 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 			},
 		},
 	}
+	inclusionAlert := alert.DeepCopy()
+	inclusionAlert.Spec.InclusionList = []string{"^included"}
 
 	g.Expect(k8sClient.Create(context.Background(), alert)).To(Succeed())
 
@@ -406,6 +408,73 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 				e.InvolvedObject.Name = "test"
 				e.InvolvedObject.Namespace = "test"
 				e.Message = "test"
+				return e
+			},
+			forwarded: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event = tt.modifyEventFunc(event)
+			testSent()
+			if tt.forwarded {
+				testForwarded()
+			} else {
+				testFiltered()
+			}
+			req = nil
+		})
+	}
+
+	// update alert for testing inclusion list
+	var obj apiv1beta2.Alert
+	g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(alert), &obj)).To(Succeed())
+	inclusionAlert.ResourceVersion = obj.ResourceVersion
+	g.Expect(k8sClient.Update(context.Background(), inclusionAlert)).To(Succeed())
+
+	// wait for ready
+	g.Eventually(func() bool {
+		var obj apiv1beta2.Alert
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(inclusionAlert), &obj))
+		return conditions.IsReady(&obj)
+	}, 30*time.Second, time.Second).Should(BeTrue())
+
+	event = eventv1.Event{
+		InvolvedObject: corev1.ObjectReference{
+			Kind:      "Bucket",
+			Name:      "hyacinth",
+			Namespace: namespace,
+		},
+		Severity:            "info",
+		Timestamp:           metav1.Now(),
+		Message:             "included",
+		Reason:              "event-happened",
+		ReportingController: "source-controller",
+	}
+
+	tests = []struct {
+		name            string
+		modifyEventFunc func(e eventv1.Event) eventv1.Event
+		forwarded       bool
+	}{
+		{
+			name:            "forwards when message matches inclusion list",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event { return e },
+			forwarded:       true,
+		},
+		{
+			name: "drops when message does not match inclusion list",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
+				e.Message = "not included"
+				return e
+			},
+			forwarded: false,
+		},
+		{
+			name: "drops when message matches inclusion list and exclusion list",
+			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
+				e.Message = "included excluded"
 				return e
 			},
 			forwarded: false,

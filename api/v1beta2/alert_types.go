@@ -45,6 +45,11 @@ type AlertSpec struct {
 	// +required
 	EventSources []v1.CrossNamespaceObjectReference `json:"eventSources"`
 
+	// InclusionList specifies a list of Golang regular expressions
+	// to be used for including messages.
+	// +optional
+	InclusionList []string `json:"inclusionList,omitempty"`
+
 	// ExclusionList specifies a list of Golang regular expressions
 	// to be used for excluding messages.
 	// +optional
