@@ -62,7 +62,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		cleanupMetadata(event)
+		event.Metadata = cleanupMetadata(event)
 
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
@@ -325,7 +325,7 @@ func (s *EventServer) eventMatchesAlert(ctx context.Context, event *eventv1.Even
 }
 
 // cleanupMetadata removes metadata entries which are not used for alerting
-func cleanupMetadata(event *eventv1.Event) {
+func cleanupMetadata(event *eventv1.Event) map[string]string {
 	group := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group
 	excludeList := []string{
 		fmt.Sprintf("%s/%s", group, eventv1.MetaChecksumKey),
@@ -343,7 +343,7 @@ func cleanupMetadata(event *eventv1.Event) {
 		}
 	}
 
-	event.Metadata = meta
+	return meta
 }
 
 func inList(l []string, i string) bool {
