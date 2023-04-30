@@ -129,7 +129,9 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 			s.logger.V(1).Info("Discarding event, rate limiting duplicate events",
 				"reconciler kind", event.InvolvedObject.Kind,
 				"name", event.InvolvedObject.Name,
-				"namespace", event.InvolvedObject.Namespace)
+				"namespace", event.InvolvedObject.Namespace,
+				"event metadata", event.Metadata,
+				"rate limiting key", getEventKey(event))
 		}
 	})
 }
@@ -148,12 +150,16 @@ func eventKeyFunc(r *http.Request) (string, error) {
 
 	r.Body = io.NopCloser(bytes.NewBuffer(body))
 
+	key := getEventKey(event)
+	digest := sha256.Sum256([]byte(key))
+	return fmt.Sprintf("%x", digest), nil
+}
+
+func getEventKey(event *eventv1.Event) string {
 	comps := []string{"event", event.InvolvedObject.Name, event.InvolvedObject.Namespace, event.InvolvedObject.Kind, event.Message}
 	revString, ok := event.Metadata[eventv1.MetaRevisionKey]
 	if ok {
 		comps = append(comps, revString)
 	}
-	val := strings.Join(comps, "/")
-	digest := sha256.Sum256([]byte(val))
-	return fmt.Sprintf("%x", digest), nil
+	return strings.Join(comps, "/")
 }
