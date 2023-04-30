@@ -162,5 +162,9 @@ func getEventKey(event *eventv1.Event) string {
 	if ok {
 		comps = append(comps, revString)
 	}
+	configChecksum, ok := metadata[eventv1.MetaConfigChecksumKey]
+	if ok {
+		comps = append(comps, configChecksum)
+	}
 	return strings.Join(comps, "/")
 }
