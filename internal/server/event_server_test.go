@@ -18,6 +18,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -53,6 +54,7 @@ func TestEventKeyFunc(t *testing.T) {
 		severity       string
 		message        string
 		rateLimit      bool
+		metadata       map[string]string
 	}{
 		{
 			involvedObject: corev1.ObjectReference{
@@ -120,21 +122,66 @@ func TestEventKeyFunc(t *testing.T) {
 			message:   "Health check passed",
 			rateLimit: true,
 		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1beta1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaRevisionKey): "rev1",
+			},
+			rateLimit: false,
+		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1beta1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaRevisionKey): "rev1",
+			},
+			rateLimit: true,
+		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1beta1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaRevisionKey): "rev2",
+			},
+			rateLimit: false,
+		},
 	}
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
-			event := eventv1.Event{
+			event := &eventv1.Event{
 				InvolvedObject: tt.involvedObject,
 				Severity:       tt.severity,
 				Message:        tt.message,
+				Metadata:       tt.metadata,
 			}
+			cleanupMetadata(event)
 			eventData, err := json.Marshal(event)
 			g.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			req := httptest.NewRequest("POST", "/", bytes.NewBuffer(eventData))
-			g.Expect(err).ShouldNot(gomega.HaveOccurred())
 			res := httptest.NewRecorder()
-			handler.ServeHTTP(res, req)
+			req := httptest.NewRequest("POST", "/", bytes.NewBuffer(eventData))
+			ctxWithEvent := context.WithValue(req.Context(), eventContextKey{}, event)
+			reqWithEvent := req.WithContext(ctxWithEvent)
+			handler.ServeHTTP(res, reqWithEvent)
 
 			if tt.rateLimit {
 				g.Expect(res.Code).Should(gomega.Equal(429))
