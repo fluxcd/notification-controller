@@ -142,6 +142,19 @@ eventSources:
     namespace: apps
 ```
 
+#### Select objects from all namespaces
+
+The `*` wildcard can be used to select events issued by Flux objects from any `namespace`:
+
+```yaml
+eventSources:
+  - kind: HelmRelease
+    name: 'service1'
+    namespace: '*'
+```
+
+It requires to have cross-namespace references enabled for the controller.
+
 #### Select objects by label
 
 To select events issued by all Flux objects of a particular `kind` with specific `labels`:
