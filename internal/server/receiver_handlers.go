@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,6 +44,10 @@ import (
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
+var (
+	WebhookPathIndexKey = ".metadata.webhookPath"
+)
+
 // defaultFluxAPIVersions is a map of Flux API kinds to their API versions.
 var defaultFluxAPIVersions = map[string]string{
 	"Bucket":          "source.toolkit.fluxcd.io/v1beta2",
@@ -53,6 +58,16 @@ var defaultFluxAPIVersions = map[string]string{
 	"ImageRepository": "image.toolkit.fluxcd.io/v1beta2",
 }
 
+// IndexReceiverWebhookPath is a client.IndexerFunc that returns the Receiver's
+// webhook path, if present in its status.
+func IndexReceiverWebhookPath(o client.Object) []string {
+	receiver := o.(*apiv1.Receiver)
+	if receiver.Status.WebhookPath != "" {
+		return []string{receiver.Status.WebhookPath}
+	}
+	return nil
+}
+
 func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
@@ -61,50 +76,53 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 		s.logger.Info(fmt.Sprintf("handling request: %s", digest))
 
 		var allReceivers apiv1.ReceiverList
-		err := s.kubeClient.List(ctx, &allReceivers)
+		err := s.kubeClient.List(ctx, &allReceivers, client.MatchingFields{
+			WebhookPathIndexKey: r.RequestURI,
+		}, client.Limit(1))
 		if err != nil {
 			s.logger.Error(err, "unable to list receivers")
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		receivers := make([]apiv1.Receiver, 0)
-		for _, receiver := range allReceivers.Items {
-			if !receiver.Spec.Suspend &&
-				conditions.IsReady(&receiver) &&
-				receiver.Status.WebhookPath == fmt.Sprintf("%s%s", apiv1.ReceiverWebhookPath, digest) {
-				receivers = append(receivers, receiver)
-			}
-		}
-
-		if len(receivers) == 0 {
+		if len(allReceivers.Items) == 0 {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
-		withErrors := false
-		for _, receiver := range receivers {
-			logger := s.logger.WithValues(
-				"reconciler kind", apiv1.ReceiverKind,
-				"name", receiver.Name,
-				"namespace", receiver.Namespace)
+		receiver := allReceivers.Items[0]
+		logger := s.logger.WithValues(
+			"reconciler kind", apiv1.ReceiverKind,
+			"name", receiver.Name,
+			"namespace", receiver.Namespace)
 
-			if err := s.validate(ctx, receiver, r); err != nil {
-				logger.Error(err, "unable to validate payload")
-				withErrors = true
-				continue
+		if receiver.Spec.Suspend || !conditions.IsReady(&receiver) {
+			err := errors.New("unable to process request")
+			if receiver.Spec.Suspend {
+				logger.Error(err, "receiver is suspended")
+			} else {
+				logger.Error(err, "receiver is not ready")
 			}
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
 
-			for _, resource := range receiver.Spec.Resources {
-				if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
-					logger.Error(err, "unable to process resource")
-					withErrors = true
-				}
+		if err := s.validate(ctx, receiver, r); err != nil {
+			logger.Error(err, "unable to validate payload")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		var withErrors bool
+		for _, resource := range receiver.Spec.Resources {
+			if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
+				logger.Error(err, "unable to request reconciliation")
+				withErrors = true
 			}
 		}
 
 		if withErrors {
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusInternalServerError)
 		} else {
 			w.WriteHeader(http.StatusOK)
 		}
