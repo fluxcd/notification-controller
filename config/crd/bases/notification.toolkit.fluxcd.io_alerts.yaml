@@ -303,6 +303,12 @@ spec:
                 items:
                   type: string
                 type: array
+              inclusionList:
+                description: InclusionList specifies a list of Golang regular expressions
+                  to be used for including messages.
+                items:
+                  type: string
+                type: array
               providerRef:
                 description: ProviderRef specifies which Provider this Alert should
                   use.

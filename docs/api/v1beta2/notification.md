@@ -114,6 +114,19 @@ on the involved object kind, name and namespace.</p>
 </tr>
 <tr>
 <td>
+<code>inclusionList</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InclusionList specifies a list of Golang regular expressions
+to be used for including messages.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>exclusionList</code><br>
 <em>
 []string
@@ -585,6 +598,19 @@ If set to &lsquo;info&rsquo; no events will be filtered.</p>
 <td>
 <p>EventSources specifies how to filter events based
 on the involved object kind, name and namespace.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>inclusionList</code><br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InclusionList specifies a list of Golang regular expressions
+to be used for including messages.</p>
 </td>
 </tr>
 <tr>

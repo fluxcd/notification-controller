@@ -171,7 +171,8 @@ To receive alerts only on errors, set the field value to `error`.
 ### Event exclusion
 
 `.spec.exclusionList` is an optional field to specify a list of regex expressions to filter
-events based on message content.
+events based on message content. The event will be excluded if the message matches at least
+one of the expressions in the list.
 
 #### Example
 
@@ -197,6 +198,39 @@ The above definition will not send alerts for transient Git clone errors like:
 ```text
 unable to clone 'ssh://git@ssh.dev.azure.com/v3/...', error: SSH could not read data: Error waiting on socket
 ```
+
+### Event inclusion
+
+`.spec.inclusionList` is an optional field to specify a list of regex expressions to filter
+events based on message content. The event will be sent if the message matches at least one
+of the expressions in the list, and discarded otherwise. If the message matches one of the
+expressions in the inclusion list but also matches one of the expressions in the exclusion
+list, then the event is still discarded (exclusion is stronger than inclusion).
+
+#### Example
+
+Alert if the message matches a [Go regex](https://golang.org/pkg/regexp/syntax)
+from the inclusion list:
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Alert
+metadata:
+  name: <name>
+spec:
+  eventSources:
+    - kind: HelmRelease
+      name: '*'
+  inclusionList:
+    - ".*succeeded.*"
+  exclusionList:
+    - ".*uninstall.*"
+    - ".*test.*"
+```
+
+The above definition will send alerts for successful Helm installs, upgrades and rollbacks,
+but not uninstalls and tests.
 
 ### Suspend
 

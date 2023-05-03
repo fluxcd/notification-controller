@@ -98,6 +98,11 @@ func (in *AlertSpec) DeepCopyInto(out *AlertSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.InclusionList != nil {
+		in, out := &in.InclusionList, &out.InclusionList
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.ExclusionList != nil {
 		in, out := &in.ExclusionList, &out.ExclusionList
 		*out = make([]string, len(*in))
