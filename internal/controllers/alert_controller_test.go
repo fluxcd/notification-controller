@@ -286,7 +286,9 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		return conditions.IsReady(&obj)
 	}, 30*time.Second, time.Second).Should(BeTrue())
 
-	event := eventv1.Event{
+	// An event fixture to set the initial fixed state of an Event which is
+	// modified in the test cases.
+	eventFixture := eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Bucket",
 			Name:      "hyacinth",
@@ -298,6 +300,7 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		Reason:              "event-happened",
 		ReportingController: "source-controller",
 	}
+	event := *eventFixture.DeepCopy()
 
 	testSent := func(g *WithT) {
 		g.THelper()
@@ -420,6 +423,10 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			// Reset the common variables to their fixture value.
+			req = nil
+			event = *eventFixture.DeepCopy()
+
 			event = tt.modifyEventFunc(event)
 			testSent(g)
 			if tt.forwarded {
@@ -427,7 +434,6 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 			} else {
 				testFiltered(g)
 			}
-			req = nil
 		})
 	}
 
@@ -444,7 +450,9 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		return conditions.IsReady(&obj)
 	}, 30*time.Second, time.Second).Should(BeTrue())
 
-	event = eventv1.Event{
+	// An event fixture to set the initial fixed state of an Event which is
+	// modified in the test cases.
+	eventFixture2 := eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Bucket",
 			Name:      "hyacinth",
@@ -456,6 +464,7 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		Reason:              "event-happened",
 		ReportingController: "source-controller",
 	}
+	event = *eventFixture2.DeepCopy()
 
 	tests = []struct {
 		name            string
@@ -488,6 +497,10 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			// Reset the common variables to their fixture value.
+			req = nil
+			event = *eventFixture2.DeepCopy()
+
 			event = tt.modifyEventFunc(event)
 			testSent(g)
 			if tt.forwarded {
@@ -495,7 +508,6 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 			} else {
 				testFiltered(g)
 			}
-			req = nil
 		})
 	}
 }
