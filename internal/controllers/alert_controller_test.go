@@ -299,7 +299,8 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		ReportingController: "source-controller",
 	}
 
-	testSent := func() {
+	testSent := func(g *WithT) {
+		g.THelper()
 		buf := &bytes.Buffer{}
 		g.Expect(json.NewEncoder(buf).Encode(&event)).To(Succeed())
 		res, err := http.Post("http://localhost:56789/", "application/json", buf)
@@ -307,13 +308,15 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		g.Expect(res.StatusCode).To(Equal(202)) // event_server responds with 202 Accepted
 	}
 
-	testForwarded := func() {
+	testForwarded := func(g *WithT) {
+		g.THelper()
 		g.Eventually(func() bool {
 			return req == nil
 		}, "2s", "0.1s").Should(BeFalse())
 	}
 
-	testFiltered := func() {
+	testFiltered := func(g *WithT) {
+		g.THelper()
 		// The event_server does forwarding in a goroutine, after
 		// responding to the POST of the event. This makes it
 		// difficult to know whether the provider has filtered the
@@ -382,7 +385,7 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Kind = "GitRepository"
 				e.InvolvedObject.Name = "podinfo"
-				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1beta1"
+				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1"
 				e.InvolvedObject.Namespace = namespace
 				e.Message = "test"
 				return e
@@ -394,7 +397,7 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Kind = "GitRepository"
 				e.InvolvedObject.Name = "podinfo-two"
-				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1beta1"
+				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1"
 				e.InvolvedObject.Namespace = namespace
 				e.Message = "test"
 				return e
@@ -416,12 +419,13 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			event = tt.modifyEventFunc(event)
-			testSent()
+			testSent(g)
 			if tt.forwarded {
-				testForwarded()
+				testForwarded(g)
 			} else {
-				testFiltered()
+				testFiltered(g)
 			}
 			req = nil
 		})
@@ -483,12 +487,13 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			event = tt.modifyEventFunc(event)
-			testSent()
+			testSent(g)
 			if tt.forwarded {
-				testForwarded()
+				testForwarded(g)
 			} else {
-				testFiltered()
+				testFiltered(g)
 			}
 			req = nil
 		})
