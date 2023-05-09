@@ -286,7 +286,9 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		return conditions.IsReady(&obj)
 	}, 30*time.Second, time.Second).Should(BeTrue())
 
-	event := eventv1.Event{
+	// An event fixture to set the initial fixed state of an Event which is
+	// modified in the test cases.
+	eventFixture := eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Bucket",
 			Name:      "hyacinth",
@@ -298,8 +300,10 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		Reason:              "event-happened",
 		ReportingController: "source-controller",
 	}
+	event := *eventFixture.DeepCopy()
 
-	testSent := func() {
+	testSent := func(g *WithT) {
+		g.THelper()
 		buf := &bytes.Buffer{}
 		g.Expect(json.NewEncoder(buf).Encode(&event)).To(Succeed())
 		res, err := http.Post("http://localhost:56789/", "application/json", buf)
@@ -307,13 +311,15 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		g.Expect(res.StatusCode).To(Equal(202)) // event_server responds with 202 Accepted
 	}
 
-	testForwarded := func() {
+	testForwarded := func(g *WithT) {
+		g.THelper()
 		g.Eventually(func() bool {
 			return req == nil
 		}, "2s", "0.1s").Should(BeFalse())
 	}
 
-	testFiltered := func() {
+	testFiltered := func(g *WithT) {
+		g.THelper()
 		// The event_server does forwarding in a goroutine, after
 		// responding to the POST of the event. This makes it
 		// difficult to know whether the provider has filtered the
@@ -382,7 +388,7 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Kind = "GitRepository"
 				e.InvolvedObject.Name = "podinfo"
-				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1beta1"
+				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1"
 				e.InvolvedObject.Namespace = namespace
 				e.Message = "test"
 				return e
@@ -394,7 +400,7 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 			modifyEventFunc: func(e eventv1.Event) eventv1.Event {
 				e.InvolvedObject.Kind = "GitRepository"
 				e.InvolvedObject.Name = "podinfo-two"
-				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1beta1"
+				e.InvolvedObject.APIVersion = "source.toolkit.fluxcd.io/v1"
 				e.InvolvedObject.Namespace = namespace
 				e.Message = "test"
 				return e
@@ -416,14 +422,18 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			event = tt.modifyEventFunc(event)
-			testSent()
-			if tt.forwarded {
-				testForwarded()
-			} else {
-				testFiltered()
-			}
+			g := NewWithT(t)
+			// Reset the common variables to their fixture value.
 			req = nil
+			event = *eventFixture.DeepCopy()
+
+			event = tt.modifyEventFunc(event)
+			testSent(g)
+			if tt.forwarded {
+				testForwarded(g)
+			} else {
+				testFiltered(g)
+			}
 		})
 	}
 
@@ -440,7 +450,9 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		return conditions.IsReady(&obj)
 	}, 30*time.Second, time.Second).Should(BeTrue())
 
-	event = eventv1.Event{
+	// An event fixture to set the initial fixed state of an Event which is
+	// modified in the test cases.
+	eventFixture2 := eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Bucket",
 			Name:      "hyacinth",
@@ -452,6 +464,7 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		Reason:              "event-happened",
 		ReportingController: "source-controller",
 	}
+	event = *eventFixture2.DeepCopy()
 
 	tests = []struct {
 		name            string
@@ -483,14 +496,18 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			event = tt.modifyEventFunc(event)
-			testSent()
-			if tt.forwarded {
-				testForwarded()
-			} else {
-				testFiltered()
-			}
+			g := NewWithT(t)
+			// Reset the common variables to their fixture value.
 			req = nil
+			event = *eventFixture2.DeepCopy()
+
+			event = tt.modifyEventFunc(event)
+			testSent(g)
+			if tt.forwarded {
+				testForwarded(g)
+			} else {
+				testFiltered(g)
+			}
 		})
 	}
 }
