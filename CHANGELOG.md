@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.0-rc.2
+
+**Release date:** 2023-05-09
+
+This release candidate comes with performance improvements for Receivers
+and removes the deprecated `.status.url` field from the Receiver v1 API.
+
+A new filed was added to the Alert v1beta2 API named `.spec.inclusionList` for
+better control over events filtering.
+
+In addition, the controller dependencies have been updated to their latest
+versions.
+
+Improvements:
+- Index receivers using webhook path as key
+  [#506](https://github.com/fluxcd/notification-controller/pull/506)
+- Append the Alert summary to Azure DevOps genre field
+  [#514](https://github.com/fluxcd/notification-controller/pull/514)
+- Add InclusionList to Alert CRD
+  [#515](https://github.com/fluxcd/notification-controller/pull/515)
+- Update dependencies
+  [#520](https://github.com/fluxcd/notification-controller/pull/520)
+- Improve event handler tests
+  [#521](https://github.com/fluxcd/notification-controller/pull/521)
+- receiver/v1: Remove deprecated `.status.url` field
+  [#482](https://github.com/fluxcd/notification-controller/pull/482)
+
 ## 1.0.0-rc.1
 
 **Release date:** 2023-03-30
