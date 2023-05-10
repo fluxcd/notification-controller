@@ -162,6 +162,35 @@ starting the controller with the `--no-cross-namespace-refs=true` flag.
 When this flag is set, alerts can only refer to event sources in the same namespace as the alert object,
 preventing tenants from subscribing to another tenant's events.
 
+### Event metadata
+
+`.spec.eventMetadata` is an optional field for adding metadata to events emitted by the
+controller. Metadata fields added by the controller have priority over the fields
+added here, and the fields added here have priority over fields originally present
+in the event.
+
+#### Example
+
+Add metadata fields to successful `HelmRelease` events:
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Alert
+metadata:
+  name: <name>
+spec:
+  eventSources:
+    - kind: HelmRelease
+      name: '*'
+  inclusionList:
+    - ".*succeeded.*"
+  eventMetadata:
+    app.kubernetes.io/env: "production"
+    app.kubernetes.io/cluster: "my-cluster"
+    app.kubernetes.io/region: "us-east-1"
+```
+
 ### Event severity
 
 `.spec.eventSeverity` is an optional field to filter events based on severity. When not specified, or

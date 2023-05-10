@@ -273,14 +273,18 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			}
 
 			notification := *event.DeepCopy()
+			meta := notification.Metadata
+			if meta == nil {
+				meta = make(map[string]string)
+			}
+			for key, value := range alert.Spec.EventMetadata {
+				meta[key] = value
+			}
 			if alert.Spec.Summary != "" {
-				if notification.Metadata == nil {
-					notification.Metadata = map[string]string{
-						"summary": alert.Spec.Summary,
-					}
-				} else {
-					notification.Metadata["summary"] = alert.Spec.Summary
-				}
+				meta["summary"] = alert.Spec.Summary
+			}
+			if len(meta) > 0 {
+				notification.Metadata = meta
 			}
 
 			go func(n notifier.Interface, e eventv1.Event) {

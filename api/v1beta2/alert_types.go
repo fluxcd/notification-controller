@@ -50,6 +50,13 @@ type AlertSpec struct {
 	// +optional
 	InclusionList []string `json:"inclusionList,omitempty"`
 
+	// EventMetadata is an optional field for adding metadata to events emitted by the
+	// controller. Metadata fields added by the controller have priority over the fields
+	// added here, and the fields added here have priority over fields originally present
+	// in the event.
+	// +optional
+	EventMetadata map[string]string `json:"eventMetadata,omitempty"`
+
 	// ExclusionList specifies a list of Golang regular expressions
 	// to be used for excluding messages.
 	// +optional

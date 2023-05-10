@@ -127,6 +127,21 @@ to be used for including messages.</p>
 </tr>
 <tr>
 <td>
+<code>eventMetadata</code><br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EventMetadata is an optional field for adding metadata to events emitted by the
+controller. Metadata fields added by the controller have priority over the fields
+added here, and the fields added here have priority over fields originally present
+in the event.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>exclusionList</code><br>
 <em>
 []string
@@ -611,6 +626,21 @@ on the involved object kind, name and namespace.</p>
 <em>(Optional)</em>
 <p>InclusionList specifies a list of Golang regular expressions
 to be used for including messages.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>eventMetadata</code><br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EventMetadata is an optional field for adding metadata to events emitted by the
+controller. Metadata fields added by the controller have priority over the fields
+added here, and the fields added here have priority over fields originally present
+in the event.</p>
 </td>
 </tr>
 <tr>
