@@ -164,10 +164,12 @@ preventing tenants from subscribing to another tenant's events.
 
 ### Event metadata
 
-`.spec.eventMetadata` is an optional field for adding metadata to events emitted by the
-controller. Metadata fields added by the controller have priority over the fields
-added here, and the fields added here have priority over fields originally present
-in the event.
+`.spec.eventMetadata` is an optional field for adding metadata to events dispatched
+by the controller. The fields in this map have priority over the metadata
+originally present in the event, as issued by the emitter. The controller may
+still add specific fields to the final event that will be dispatched (for
+example, the "summary" field when present in the Alert spec), and these will
+have priority over everything else.
 
 #### Example
 
