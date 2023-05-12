@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.0-rc.3
+
+**Release date:** 2023-05-12
+
+This release candidate comes with support for
+adding [custom metadata](https://github.com/fluxcd/notification-controller/blob/v1.0.0-rc.3/docs/spec/v1beta2/alerts.md#event-metadata)
+to Flux events. A new field was added to the Alert v1beta2 API named
+`.spec.eventMetadata` that allows users to enrich the alerts with
+information about the cluster name, region, environment, etc.
+
+In addition, the controller dependencies have been updated to patch
+CVE-2023-1732 and the base image has been updated to Alpine 3.18.
+
+Improvements:
+- Add event metadata field to Alert spec
+  [#519](https://github.com/fluxcd/notification-controller/pull/506)
+- Update Alpine to 3.18
+  [#524](https://github.com/fluxcd/notification-controller/pull/524)
+- build(deps): bump github.com/cloudflare/circl from 1.3.2 to 1.3.3
+  [#525](https://github.com/fluxcd/notification-controller/pull/525)
+
 ## 1.0.0-rc.2
 
 **Release date:** 2023-05-09
@@ -9,7 +30,7 @@ All notable changes to this project are documented in this file.
 This release candidate comes with performance improvements for Receivers
 and removes the deprecated `.status.url` field from the Receiver v1 API.
 
-A new filed was added to the Alert v1beta2 API named `.spec.inclusionList` for
+A new field was added to the Alert v1beta2 API named `.spec.inclusionList` for
 better control over events filtering.
 
 In addition, the controller dependencies have been updated to their latest
