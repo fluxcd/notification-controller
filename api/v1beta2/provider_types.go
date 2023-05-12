@@ -48,12 +48,13 @@ const (
 	Matrix                 string = "matrix"
 	OpsgenieProvider       string = "opsgenie"
 	AlertManagerProvider   string = "alertmanager"
+	PagerDutyProvider      string = "pagerduty"
 )
 
 // ProviderSpec defines the desired state of the Provider.
 type ProviderSpec struct {
 	// Type specifies which Provider implementation to use.
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;pagerduty
 	// +required
 	Type string `json:"type"`
 
