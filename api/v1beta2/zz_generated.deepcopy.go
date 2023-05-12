@@ -103,6 +103,13 @@ func (in *AlertSpec) DeepCopyInto(out *AlertSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.EventMetadata != nil {
+		in, out := &in.EventMetadata, &out.EventMetadata
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.ExclusionList != nil {
 		in, out := &in.ExclusionList, &out.ExclusionList
 		*out = make([]string, len(*in))
