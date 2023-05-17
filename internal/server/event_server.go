@@ -38,6 +38,8 @@ import (
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
+type eventContextKey struct{}
+
 // EventServer handles event POST requests
 type EventServer struct {
 	port                 string
@@ -63,8 +65,16 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 		s.logger.Error(err, "Event server crashed")
 		os.Exit(1)
 	}
+	var handler http.Handler = http.HandlerFunc(s.handleEvent())
+	for _, middleware := range []func(http.Handler) http.Handler{
+		limitMiddleware.Handle,
+		s.logRateLimitMiddleware,
+		s.cleanupMetadataMiddleware,
+	} {
+		handler = middleware(handler)
+	}
 	mux := http.NewServeMux()
-	mux.Handle("/", s.logRateLimitMiddleware(limitMiddleware.Handle(http.HandlerFunc(s.handleEvent()))))
+	mux.Handle("/", handler)
 	h := std.Handler("", mdlw, mux)
 	srv := &http.Server{
 		Addr:    s.port,
@@ -90,6 +100,59 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 	}
 }
 
+// cleanupMetadataMiddleware cleans up the metadata using cleanupMetadata() and
+// adds the cleaned event in the request context which can then be queried and
+// used directly by the other http handlers.
+func (s *EventServer) cleanupMetadataMiddleware(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			s.logger.Error(err, "reading the request body failed")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		r.Body.Close()
+		r.Body = io.NopCloser(bytes.NewBuffer(body))
+
+		event := &eventv1.Event{}
+		err = json.Unmarshal(body, event)
+		if err != nil {
+			s.logger.Error(err, "decoding the request body failed")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		cleanupMetadata(event)
+
+		ctxWithEvent := context.WithValue(r.Context(), eventContextKey{}, event)
+		reqWithEvent := r.WithContext(ctxWithEvent)
+
+		h.ServeHTTP(w, reqWithEvent)
+	})
+}
+
+// cleanupMetadata removes metadata entries which are not used for alerting.
+func cleanupMetadata(event *eventv1.Event) {
+	group := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group
+	excludeList := []string{
+		fmt.Sprintf("%s/%s", group, eventv1.MetaChecksumKey),
+		fmt.Sprintf("%s/%s", group, eventv1.MetaDigestKey),
+	}
+
+	meta := make(map[string]string)
+	if event.Metadata != nil && len(event.Metadata) > 0 {
+		// Filter other meta based on group prefix, while filtering out excludes
+		for key, val := range event.Metadata {
+			if strings.HasPrefix(key, group) && !inList(excludeList, key) {
+				newKey := strings.TrimPrefix(key, fmt.Sprintf("%s/", group))
+				meta[newKey] = val
+			}
+		}
+	}
+
+	event.Metadata = meta
+}
+
 type statusRecorder struct {
 	http.ResponseWriter
 	Status int
@@ -109,23 +172,7 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 		h.ServeHTTP(recorder, r)
 
 		if recorder.Status == http.StatusTooManyRequests {
-			body, err := io.ReadAll(r.Body)
-			if err != nil {
-				s.logger.Error(err, "reading the request body failed")
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-
-			event := &eventv1.Event{}
-			err = json.Unmarshal(body, event)
-			if err != nil {
-				s.logger.Error(err, "decoding the request body failed")
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-
-			r.Body = io.NopCloser(bytes.NewBuffer(body))
-
+			event := r.Context().Value(eventContextKey{}).(*eventv1.Event)
 			s.logger.V(1).Info("Discarding event, rate limiting duplicate events",
 				"reconciler kind", event.InvolvedObject.Kind,
 				"name", event.InvolvedObject.Name,
@@ -135,24 +182,21 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 }
 
 func eventKeyFunc(r *http.Request) (string, error) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		return "", err
+	event := r.Context().Value(eventContextKey{}).(*eventv1.Event)
+
+	comps := []string{
+		"event",
+		event.InvolvedObject.Name,
+		event.InvolvedObject.Namespace,
+		event.InvolvedObject.Kind,
+		event.Message,
 	}
 
-	event := &eventv1.Event{}
-	err = json.Unmarshal(body, event)
-	if err != nil {
-		return "", err
-	}
-
-	r.Body = io.NopCloser(bytes.NewBuffer(body))
-
-	comps := []string{"event", event.InvolvedObject.Name, event.InvolvedObject.Namespace, event.InvolvedObject.Kind, event.Message}
 	revString, ok := event.Metadata[eventv1.MetaRevisionKey]
 	if ok {
 		comps = append(comps, revString)
 	}
+
 	val := strings.Join(comps, "/")
 	digest := sha256.Sum256([]byte(val))
 	return fmt.Sprintf("%x", digest), nil

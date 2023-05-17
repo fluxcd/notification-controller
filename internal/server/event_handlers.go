@@ -19,10 +19,8 @@ package server
 import (
 	"context"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -45,30 +43,13 @@ import (
 
 func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		r.Context()
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			s.logger.Error(err, "reading the request body failed")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		defer r.Body.Close()
-
-		event := &eventv1.Event{}
-		err = json.Unmarshal(body, event)
-		if err != nil {
-			s.logger.Error(err, "decoding the request body failed")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		cleanupMetadata(event)
+		event := r.Context().Value(eventContextKey{}).(*eventv1.Event)
 
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
 
 		var allAlerts apiv1beta2.AlertList
-		err = s.kubeClient.List(ctx, &allAlerts)
+		err := s.kubeClient.List(ctx, &allAlerts)
 		if err != nil {
 			s.logger.Error(err, "listing alerts failed")
 			w.WriteHeader(http.StatusBadRequest)
@@ -344,28 +325,6 @@ func (s *EventServer) eventMatchesAlert(ctx context.Context, event *eventv1.Even
 	}
 
 	return false
-}
-
-// cleanupMetadata removes metadata entries which are not used for alerting
-func cleanupMetadata(event *eventv1.Event) {
-	group := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group
-	excludeList := []string{
-		fmt.Sprintf("%s/%s", group, eventv1.MetaChecksumKey),
-		fmt.Sprintf("%s/%s", group, eventv1.MetaDigestKey),
-	}
-
-	meta := make(map[string]string)
-	if event.Metadata != nil && len(event.Metadata) > 0 {
-		// Filter other meta based on group prefix, while filtering out excludes
-		for key, val := range event.Metadata {
-			if strings.HasPrefix(key, group) && !inList(excludeList, key) {
-				newKey := strings.TrimPrefix(key, fmt.Sprintf("%s/", group))
-				meta[newKey] = val
-			}
-		}
-	}
-
-	event.Metadata = meta
 }
 
 func inList(l []string, i string) bool {
