@@ -164,6 +164,48 @@ func TestEventKeyFunc(t *testing.T) {
 			},
 			rateLimit: false,
 		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1beta1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaTokenKey): "token1",
+			},
+			rateLimit: false,
+		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1beta1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaTokenKey): "token1",
+			},
+			rateLimit: true,
+		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1beta1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaTokenKey): "token2",
+			},
+			rateLimit: false,
+		},
 	}
 	for i, tt := range tests {
 		t.Run(fmt.Sprintf("%v", i), func(t *testing.T) {
