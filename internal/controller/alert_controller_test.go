@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -186,12 +187,32 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 	stopCh := make(chan struct{})
 	go eventServer.ListenAndServe(stopCh, eventMdlw, store)
 
-	rcvServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Run a TLS server, since HTTP traffic is disabled for the ProviderReconciler.
+	rcvServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		req = r
 		w.WriteHeader(200)
 	}))
 	defer rcvServer.Close()
 	defer close(stopCh)
+
+	// Get the CA certificate from the server and create a secret to be referenced
+	// later in the Provider.
+	cert := rcvServer.Certificate().Raw
+	pemBlock := &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert,
+	}
+	pemBytes := pem.EncodeToMemory(pemBlock)
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "provider-ca",
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			"caFile": pemBytes,
+		},
+	}
+	g.Expect(k8sClient.Create(context.Background(), secret)).To(Succeed())
 
 	providerKey := types.NamespacedName{
 		Name:      fmt.Sprintf("provider-%s", randStringRunes(5)),
@@ -205,6 +226,9 @@ func TestAlertReconciler_EventHandler(t *testing.T) {
 		Spec: apiv1beta2.ProviderSpec{
 			Type:    "generic",
 			Address: rcvServer.URL,
+			CertSecretRef: &meta.LocalObjectReference{
+				Name: "provider-ca",
+			},
 		},
 	}
 	g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())

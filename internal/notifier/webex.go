@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"net/url"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -64,12 +63,6 @@ type WebexPayload struct {
 
 // NewWebex validates the Webex URL and returns a Webex object
 func NewWebex(hookURL, proxyURL string, certPool *x509.CertPool, channel string, token string) (*Webex, error) {
-
-	_, err := url.ParseRequestURI(hookURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid Webex hook URL %s: '%w'", hookURL, err)
-	}
-
 	return &Webex{
 		URL:      hookURL,
 		ProxyURL: proxyURL,

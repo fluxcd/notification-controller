@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -27,11 +26,6 @@ type MatrixPayload struct {
 }
 
 func NewMatrix(serverURL, token, roomId string, certPool *x509.CertPool) (*Matrix, error) {
-	_, err := url.ParseRequestURI(serverURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid Matrix homeserver URL %s: '%w'", serverURL, err)
-	}
-
 	return &Matrix{
 		URL:      serverURL,
 		RoomId:   roomId,

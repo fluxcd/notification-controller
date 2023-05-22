@@ -23,7 +23,6 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
-	"net/url"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 
@@ -45,10 +44,6 @@ type Forwarder struct {
 }
 
 func NewForwarder(hookURL string, proxyURL string, headers map[string]string, certPool *x509.CertPool, hmacKey []byte) (*Forwarder, error) {
-	if _, err := url.ParseRequestURI(hookURL); err != nil {
-		return nil, fmt.Errorf("invalid hook URL %s: %w", hookURL, err)
-	}
-
 	if hmacKey != nil && len(hmacKey) == 0 {
 		return nil, fmt.Errorf("HMAC key is empty")
 	}

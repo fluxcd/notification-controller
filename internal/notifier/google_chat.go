@@ -19,7 +19,6 @@ package notifier
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -74,11 +73,6 @@ type GoogleChatCardWidgetKeyValue struct {
 
 // NewGoogleChat validates the Google Chat URL and returns a GoogleChat object
 func NewGoogleChat(hookURL string, proxyURL string) (*GoogleChat, error) {
-	_, err := url.ParseRequestURI(hookURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid Google Chat hook URL %s", hookURL)
-	}
-
 	return &GoogleChat{
 		URL:      hookURL,
 		ProxyURL: proxyURL,

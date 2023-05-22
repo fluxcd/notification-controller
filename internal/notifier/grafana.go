@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"net/url"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -45,11 +44,6 @@ type GraphitePayload struct {
 
 // NewGrafana validates the Grafana URL and returns a Grafana object
 func NewGrafana(URL string, proxyURL string, token string, certPool *x509.CertPool, username string, password string) (*Grafana, error) {
-	_, err := url.ParseRequestURI(URL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid Grafana URL %s", URL)
-	}
-
 	return &Grafana{
 		URL:      URL,
 		ProxyURL: proxyURL,

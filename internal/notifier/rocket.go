@@ -21,7 +21,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -38,11 +37,6 @@ type Rocket struct {
 
 // NewRocket validates the Rocket URL and returns a Rocket object
 func NewRocket(hookURL string, proxyURL string, certPool *x509.CertPool, username string, channel string) (*Rocket, error) {
-	_, err := url.ParseRequestURI(hookURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid Rocket hook URL %s: '%w'", hookURL, err)
-	}
-
 	if username == "" {
 		return nil, errors.New("empty Rocket username")
 	}

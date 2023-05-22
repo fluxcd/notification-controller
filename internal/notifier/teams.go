@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"net/url"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -56,11 +55,6 @@ type MSTeamsField struct {
 
 // NewMSTeams validates the MS Teams URL and returns a MSTeams object
 func NewMSTeams(hookURL string, proxyURL string, certPool *x509.CertPool) (*MSTeams, error) {
-	_, err := url.ParseRequestURI(hookURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid MS Teams webhook URL %s: '%w'", hookURL, err)
-	}
-
 	return &MSTeams{
 		URL:      hookURL,
 		ProxyURL: proxyURL,

@@ -3,7 +3,6 @@ package notifier
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -51,11 +50,6 @@ type LarkText struct {
 }
 
 func NewLark(address string) (*Lark, error) {
-	_, err := url.ParseRequestURI(address)
-	if err != nil {
-		return nil, fmt.Errorf("invalid Slack hook URL %s", address)
-	}
-
 	return &Lark{
 		URL: address,
 	}, nil
