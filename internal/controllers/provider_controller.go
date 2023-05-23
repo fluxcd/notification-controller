@@ -58,8 +58,7 @@ type ProviderReconciler struct {
 }
 
 type ProviderReconcilerOptions struct {
-	MaxConcurrentReconciles int
-	RateLimiter             ratelimiter.RateLimiter
+	RateLimiter ratelimiter.RateLimiter
 }
 
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -67,15 +66,12 @@ func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *ProviderReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts ProviderReconcilerOptions) error {
-	recoverPanic := true
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiv1beta2.Provider{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
 		)).
 		WithOptions(controller.Options{
-			MaxConcurrentReconciles: opts.MaxConcurrentReconciles,
-			RateLimiter:             opts.RateLimiter,
-			RecoverPanic:            &recoverPanic,
+			RateLimiter: opts.RateLimiter,
 		}).
 		Complete(r)
 }

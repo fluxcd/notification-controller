@@ -54,8 +54,7 @@ type ReceiverReconciler struct {
 }
 
 type ReceiverReconcilerOptions struct {
-	MaxConcurrentReconciles int
-	RateLimiter             ratelimiter.RateLimiter
+	RateLimiter ratelimiter.RateLimiter
 }
 
 func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -69,15 +68,12 @@ func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts R
 		server.WebhookPathIndexKey, server.IndexReceiverWebhookPath); err != nil {
 		return err
 	}
-	recoverPanic := true
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiv1.Receiver{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
 		)).
 		WithOptions(controller.Options{
-			MaxConcurrentReconciles: opts.MaxConcurrentReconciles,
-			RateLimiter:             opts.RateLimiter,
-			RecoverPanic:            &recoverPanic,
+			RateLimiter: opts.RateLimiter,
 		}).
 		Complete(r)
 }
