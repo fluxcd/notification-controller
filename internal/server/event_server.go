@@ -190,28 +190,35 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 	})
 }
 
+// eventKeyFunc generates a unique key for an event based on the provided HTTP
+// request, which can be used to deduplicate events. The key is calculated by
+// concatenating specific event attributes and hashing them using SHA-256.
+// The key is then returned as a hex-encoded string.
+//
+// The event attributes are prefixed with an identifier to avoid collisions
+// between different event attributes.
 func eventKeyFunc(r *http.Request) (string, error) {
 	event := r.Context().Value(eventContextKey{}).(*eventv1.Event)
 
 	comps := []string{
 		"event",
-		event.InvolvedObject.Name,
-		event.InvolvedObject.Namespace,
-		event.InvolvedObject.Kind,
-		event.Message,
+		"name=" + event.InvolvedObject.Name,
+		"namespace=" + event.InvolvedObject.Namespace,
+		"kind=" + event.InvolvedObject.Kind,
+		"message=" + event.Message,
 	}
 
 	revision, ok := event.Metadata[eventv1.MetaRevisionKey]
 	if ok {
-		comps = append(comps, revision)
+		comps = append(comps, "revision="+revision)
 	}
 
 	token, ok := event.Metadata[eventv1.MetaTokenKey]
 	if ok {
-		comps = append(comps, token)
+		comps = append(comps, "token="+token)
 	}
 
-	val := strings.Join(comps, "/")
-	digest := sha256.Sum256([]byte(val))
+	key := strings.Join(comps, "/")
+	digest := sha256.Sum256([]byte(key))
 	return fmt.Sprintf("%x", digest), nil
 }
