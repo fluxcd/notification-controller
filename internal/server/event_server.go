@@ -192,9 +192,14 @@ func eventKeyFunc(r *http.Request) (string, error) {
 		event.Message,
 	}
 
-	revString, ok := event.Metadata[eventv1.MetaRevisionKey]
+	revision, ok := event.Metadata[eventv1.MetaRevisionKey]
 	if ok {
-		comps = append(comps, revString)
+		comps = append(comps, revision)
+	}
+
+	token, ok := event.Metadata[eventv1.MetaTokenKey]
+	if ok {
+		comps = append(comps, token)
 	}
 
 	val := strings.Join(comps, "/")
