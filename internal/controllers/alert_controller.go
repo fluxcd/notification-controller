@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/ratelimiter"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
@@ -61,8 +60,7 @@ type AlertReconciler struct {
 }
 
 type AlertReconcilerOptions struct {
-	MaxConcurrentReconciles int
-	RateLimiter             ratelimiter.RateLimiter
+	RateLimiter ratelimiter.RateLimiter
 }
 
 func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
@@ -80,20 +78,17 @@ func (r *AlertReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts Aler
 		return err
 	}
 
-	recoverPanic := true
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiv1beta2.Alert{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
 		)).
 		Watches(
-			&source.Kind{Type: &apiv1beta2.Provider{}},
+			&apiv1beta2.Provider{},
 			handler.EnqueueRequestsFromMapFunc(r.requestsForProviderChange),
 			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
 		).
 		WithOptions(controller.Options{
-			MaxConcurrentReconciles: opts.MaxConcurrentReconciles,
-			RateLimiter:             opts.RateLimiter,
-			RecoverPanic:            &recoverPanic,
+			RateLimiter: opts.RateLimiter,
 		}).
 		Complete(r)
 }
@@ -190,13 +185,15 @@ func (r *AlertReconciler) isProviderReady(ctx context.Context, alert *apiv1beta2
 	return nil
 }
 
-func (r *AlertReconciler) requestsForProviderChange(o client.Object) []reconcile.Request {
+func (r *AlertReconciler) requestsForProviderChange(ctx context.Context, o client.Object) []reconcile.Request {
+	log := ctrl.LoggerFrom(ctx)
 	provider, ok := o.(*apiv1beta2.Provider)
 	if !ok {
-		panic(fmt.Errorf("expected a provider, got %T", o))
+		log.Error(fmt.Errorf("expected a Provider object; got %T", o),
+			"failed to get reconcile requests for Provider change")
+		return nil
 	}
 
-	ctx := context.Background()
 	var list apiv1beta2.AlertList
 	if err := r.List(ctx, &list, client.MatchingFields{
 		ProviderIndexKey: client.ObjectKeyFromObject(provider).String(),

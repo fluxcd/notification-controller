@@ -34,8 +34,8 @@ import (
 	"sigs.k8s.io/cli-utils/pkg/kstatus/polling"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
+	runtimeclient "github.com/fluxcd/pkg/runtime/client"
 	"github.com/fluxcd/pkg/runtime/controller"
 	"github.com/fluxcd/pkg/runtime/testenv"
 	"github.com/fluxcd/pkg/ssa"
@@ -110,7 +110,7 @@ func TestMain(m *testing.M) {
 	}()
 	<-testEnv.Manager.Elected()
 
-	restMapper, err := apiutil.NewDynamicRESTMapper(testEnv.Config)
+	restMapper, err := runtimeclient.NewDynamicRESTMapper(testEnv.Config)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to create restmapper: %v", restMapper))
 	}

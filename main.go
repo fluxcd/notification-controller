@@ -29,8 +29,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	"github.com/fluxcd/pkg/runtime/acl"
@@ -127,16 +130,25 @@ func main() {
 		Scheme:                        scheme,
 		MetricsBindAddress:            metricsAddr,
 		HealthProbeBindAddress:        healthAddr,
-		Port:                          9443,
 		LeaderElection:                leaderElectionOptions.Enable,
 		LeaderElectionReleaseOnCancel: leaderElectionOptions.ReleaseOnCancel,
 		LeaseDuration:                 &leaderElectionOptions.LeaseDuration,
 		RenewDeadline:                 &leaderElectionOptions.RenewDeadline,
 		RetryPeriod:                   &leaderElectionOptions.RetryPeriod,
 		LeaderElectionID:              fmt.Sprintf("%s-leader-election", controllerName),
-		Namespace:                     watchNamespace,
 		Logger:                        ctrl.Log,
-		ClientDisableCacheFor:         disableCacheFor,
+		Controller: config.Controller{
+			RecoverPanic:            pointer.Bool(true),
+			MaxConcurrentReconciles: concurrent,
+		},
+		Client: ctrlclient.Options{
+			Cache: &ctrlclient.CacheOptions{
+				DisableFor: disableCacheFor,
+			},
+		},
+		Cache: ctrlcache.Options{
+			Namespaces: []string{watchNamespace},
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -154,8 +166,7 @@ func main() {
 		Metrics:        metricsH,
 		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
 	}).SetupWithManagerAndOptions(mgr, controllers.ProviderReconcilerOptions{
-		MaxConcurrentReconciles: concurrent,
-		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),
+		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Provider")
 		os.Exit(1)
@@ -166,8 +177,7 @@ func main() {
 		Metrics:        metricsH,
 		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
 	}).SetupWithManagerAndOptions(mgr, controllers.AlertReconcilerOptions{
-		MaxConcurrentReconciles: concurrent,
-		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),
+		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Alert")
 		os.Exit(1)
@@ -178,8 +188,7 @@ func main() {
 		Metrics:        metricsH,
 		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
 	}).SetupWithManagerAndOptions(mgr, controllers.ReceiverReconcilerOptions{
-		MaxConcurrentReconciles: concurrent,
-		RateLimiter:             helper.GetRateLimiter(rateLimiterOptions),
+		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Receiver")
 		os.Exit(1)
