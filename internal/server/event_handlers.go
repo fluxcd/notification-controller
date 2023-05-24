@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/fluxcd/pkg/runtime/conditions"
@@ -254,19 +253,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			}
 
 			notification := *event.DeepCopy()
-			meta := notification.Metadata
-			if meta == nil {
-				meta = make(map[string]string)
-			}
-			for key, value := range alert.Spec.EventMetadata {
-				meta[key] = value
-			}
-			if alert.Spec.Summary != "" {
-				meta["summary"] = alert.Spec.Summary
-			}
-			if len(meta) > 0 {
-				notification.Metadata = meta
-			}
+			s.enhanceEventWithAlertMetadata(&notification, alert)
 
 			go func(n notifier.Interface, e eventv1.Event) {
 				ctx, cancel := context.WithTimeout(context.Background(), provider.GetTimeout())
@@ -327,11 +314,29 @@ func (s *EventServer) eventMatchesAlert(ctx context.Context, event *eventv1.Even
 	return false
 }
 
-func inList(l []string, i string) bool {
-	for _, v := range l {
-		if strings.EqualFold(v, i) {
-			return true
+func (s *EventServer) enhanceEventWithAlertMetadata(event *eventv1.Event, alert apiv1beta2.Alert) {
+	meta := event.Metadata
+	if meta == nil {
+		meta = make(map[string]string)
+	}
+
+	for key, value := range alert.Spec.EventMetadata {
+		if _, alreadyPresent := meta[key]; !alreadyPresent {
+			meta[key] = value
+		} else {
+			s.logger.Info("metadata key found in the existing set of metadata",
+				"reconciler kind", apiv1beta2.AlertKind,
+				"name", alert.Name,
+				"namespace", alert.Namespace,
+				"key", key)
 		}
 	}
-	return false
+
+	if alert.Spec.Summary != "" {
+		meta["summary"] = alert.Spec.Summary
+	}
+
+	if len(meta) > 0 {
+		event.Metadata = meta
+	}
 }

@@ -153,6 +153,15 @@ func cleanupMetadata(event *eventv1.Event) {
 	event.Metadata = meta
 }
 
+func inList(l []string, i string) bool {
+	for _, v := range l {
+		if strings.EqualFold(v, i) {
+			return true
+		}
+	}
+	return false
+}
+
 type statusRecorder struct {
 	http.ResponseWriter
 	Status int
