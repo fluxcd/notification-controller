@@ -47,7 +47,7 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1b2 "github.com/fluxcd/notification-controller/api/v1beta2"
-	"github.com/fluxcd/notification-controller/internal/controllers"
+	"github.com/fluxcd/notification-controller/internal/controller"
 	"github.com/fluxcd/notification-controller/internal/features"
 	"github.com/fluxcd/notification-controller/internal/server"
 	// +kubebuilder:scaffold:imports
@@ -160,34 +160,34 @@ func main() {
 
 	metricsH := helper.MustMakeMetrics(mgr)
 
-	if err = (&controllers.ProviderReconciler{
+	if err = (&controller.ProviderReconciler{
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
 		Metrics:        metricsH,
 		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
-	}).SetupWithManagerAndOptions(mgr, controllers.ProviderReconcilerOptions{
+	}).SetupWithManagerAndOptions(mgr, controller.ProviderReconcilerOptions{
 		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Provider")
 		os.Exit(1)
 	}
-	if err = (&controllers.AlertReconciler{
+	if err = (&controller.AlertReconciler{
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
 		Metrics:        metricsH,
 		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
-	}).SetupWithManagerAndOptions(mgr, controllers.AlertReconcilerOptions{
+	}).SetupWithManagerAndOptions(mgr, controller.AlertReconcilerOptions{
 		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Alert")
 		os.Exit(1)
 	}
-	if err = (&controllers.ReceiverReconciler{
+	if err = (&controller.ReceiverReconciler{
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
 		Metrics:        metricsH,
 		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
-	}).SetupWithManagerAndOptions(mgr, controllers.ReceiverReconcilerOptions{
+	}).SetupWithManagerAndOptions(mgr, controller.ReceiverReconcilerOptions{
 		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Receiver")
