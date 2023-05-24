@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package controller
 
 import (
 	"context"
@@ -25,33 +25,27 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	kuberecorder "k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/ratelimiter"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 	helper "github.com/fluxcd/pkg/runtime/controller"
 	"github.com/fluxcd/pkg/runtime/patch"
 	"github.com/fluxcd/pkg/runtime/predicates"
-	kuberecorder "k8s.io/client-go/tools/record"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta2 "github.com/fluxcd/notification-controller/api/v1beta2"
+	"github.com/fluxcd/notification-controller/internal/server"
 )
 
-var (
-	ProviderIndexKey = ".metadata.provider"
-)
-
-// AlertReconciler reconciles a Alert object
-type AlertReconciler struct {
+// ReceiverReconciler reconciles a Receiver object
+type ReceiverReconciler struct {
 	client.Client
 	helper.Metrics
 	kuberecorder.EventRecorder
@@ -59,49 +53,51 @@ type AlertReconciler struct {
 	ControllerName string
 }
 
-type AlertReconcilerOptions struct {
+type ReceiverReconcilerOptions struct {
 	RateLimiter ratelimiter.RateLimiter
 }
 
-func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return r.SetupWithManagerAndOptions(mgr, AlertReconcilerOptions{})
+func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return r.SetupWithManagerAndOptions(mgr, ReceiverReconcilerOptions{})
 }
 
-func (r *AlertReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts AlertReconcilerOptions) error {
-	if err := mgr.GetFieldIndexer().IndexField(context.TODO(), &apiv1beta2.Alert{}, ProviderIndexKey,
-		func(o client.Object) []string {
-			alert := o.(*apiv1beta2.Alert)
-			return []string{
-				fmt.Sprintf("%s/%s", alert.GetNamespace(), alert.Spec.ProviderRef.Name),
-			}
-		}); err != nil {
+func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts ReceiverReconcilerOptions) error {
+	// This index is used to list Receivers by their webhook path after the receiver server
+	// gets a request.
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &apiv1.Receiver{},
+		server.WebhookPathIndexKey, server.IndexReceiverWebhookPath); err != nil {
 		return err
 	}
-
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&apiv1beta2.Alert{}, builder.WithPredicates(
+		For(&apiv1.Receiver{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
 		)).
-		Watches(
-			&apiv1beta2.Provider{},
-			handler.EnqueueRequestsFromMapFunc(r.requestsForProviderChange),
-			builder.WithPredicates(predicate.GenerationChangedPredicate{}),
-		).
 		WithOptions(controller.Options{
 			RateLimiter: opts.RateLimiter,
 		}).
 		Complete(r)
 }
 
-// +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=alerts,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=alerts/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=receivers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=receivers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=source.fluxcd.io,resources=buckets,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=source.fluxcd.io,resources=buckets/status,verbs=get
+// +kubebuilder:rbac:groups=source.fluxcd.io,resources=gitrepositories,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=source.fluxcd.io,resources=gitrepositories/status,verbs=get
+// +kubebuilder:rbac:groups=source.fluxcd.io,resources=ocirepositories,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=source.fluxcd.io,resources=ocirepositories/status,verbs=get
+// +kubebuilder:rbac:groups=source.fluxcd.io,resources=helmrepositories,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=source.fluxcd.io,resources=helmrepositories/status,verbs=get
+// +kubebuilder:rbac:groups=image.fluxcd.io,resources=imagerepositories,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=image.fluxcd.io,resources=imagerepositories/status,verbs=get
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
-func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, retErr error) {
+func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, retErr error) {
 	reconcileStart := time.Now()
 	log := ctrl.LoggerFrom(ctx)
 
-	obj := &apiv1beta2.Alert{}
+	obj := &apiv1.Receiver{}
 	if err := r.Get(ctx, req.NamespacedName, obj); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -127,7 +123,7 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 
 		// Log and emit success event.
 		if retErr == nil && conditions.IsReady(obj) {
-			msg := "Reconciliation finished"
+			msg := fmt.Sprintf("Reconciliation finished, next run in %s", obj.GetInterval().String())
 			log.Info(msg)
 			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
 		}
@@ -154,63 +150,35 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 	return r.reconcile(ctx, obj)
 }
 
-func (r *AlertReconciler) reconcile(ctx context.Context, alert *apiv1beta2.Alert) (ctrl.Result, error) {
+// reconcile steps through the actual reconciliation tasks for the object, it returns early on the first step that
+// produces an error.
+func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver) (ctrl.Result, error) {
 	// Mark the resource as under reconciliation.
-	conditions.MarkReconciling(alert, meta.ProgressingReason, "Reconciliation in progress")
+	conditions.MarkReconciling(obj, meta.ProgressingReason, "Reconciliation in progress")
 
-	// Check if the provider exist and is ready.
-	if err := r.isProviderReady(ctx, alert); err != nil {
-		conditions.MarkFalse(alert, meta.ReadyCondition, meta.FailedReason, err.Error())
-		return ctrl.Result{Requeue: true}, client.IgnoreNotFound(err)
+	token, err := r.token(ctx, obj)
+	if err != nil {
+		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.TokenNotFoundReason, err.Error())
+		obj.Status.WebhookPath = ""
+		return ctrl.Result{Requeue: true}, err
 	}
 
-	conditions.MarkTrue(alert, meta.ReadyCondition, meta.SucceededReason, apiv1.InitializedReason)
+	webhookPath := obj.GetWebhookPath(token)
+	msg := fmt.Sprintf("Receiver initialized for path: %s", webhookPath)
 
-	return ctrl.Result{}, nil
-}
+	// Mark the resource as ready and set the webhook path in status.
+	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, msg)
 
-func (r *AlertReconciler) isProviderReady(ctx context.Context, alert *apiv1beta2.Alert) error {
-	provider := &apiv1beta2.Provider{}
-	providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
-	if err := r.Get(ctx, providerName, provider); err != nil {
-		// log not found errors since they get filtered out
-		ctrl.LoggerFrom(ctx).Error(err, "failed to get provider %s", providerName.String())
-		return fmt.Errorf("failed to get provider '%s': %w", providerName.String(), err)
+	if obj.Status.WebhookPath != webhookPath {
+		obj.Status.WebhookPath = webhookPath
+		ctrl.LoggerFrom(ctx).Info(msg)
 	}
 
-	if !conditions.IsReady(provider) {
-		return fmt.Errorf("provider %s is not ready", providerName.String())
-	}
-
-	return nil
-}
-
-func (r *AlertReconciler) requestsForProviderChange(ctx context.Context, o client.Object) []reconcile.Request {
-	log := ctrl.LoggerFrom(ctx)
-	provider, ok := o.(*apiv1beta2.Provider)
-	if !ok {
-		log.Error(fmt.Errorf("expected a Provider object; got %T", o),
-			"failed to get reconcile requests for Provider change")
-		return nil
-	}
-
-	var list apiv1beta2.AlertList
-	if err := r.List(ctx, &list, client.MatchingFields{
-		ProviderIndexKey: client.ObjectKeyFromObject(provider).String(),
-	}); err != nil {
-		return nil
-	}
-
-	var reqs []reconcile.Request
-	for _, i := range list.Items {
-		reqs = append(reqs, reconcile.Request{NamespacedName: client.ObjectKeyFromObject(&i)})
-	}
-
-	return reqs
+	return ctrl.Result{RequeueAfter: obj.GetInterval()}, nil
 }
 
 // patch updates the object status, conditions and finalizers.
-func (r *AlertReconciler) patch(ctx context.Context, obj *apiv1beta2.Alert, patcher *patch.SerialPatcher) (retErr error) {
+func (r *ReceiverReconciler) patch(ctx context.Context, obj *apiv1.Receiver, patcher *patch.SerialPatcher) (retErr error) {
 	// Configure the runtime patcher.
 	patchOpts := []patch.Option{}
 	ownedConditions := []string{
@@ -257,4 +225,27 @@ func (r *AlertReconciler) patch(ctx context.Context, obj *apiv1beta2.Alert, patc
 	}
 
 	return nil
+}
+
+// token extract the token value from the secret object
+func (r *ReceiverReconciler) token(ctx context.Context, receiver *apiv1.Receiver) (string, error) {
+	token := ""
+	secretName := types.NamespacedName{
+		Namespace: receiver.GetNamespace(),
+		Name:      receiver.Spec.SecretRef.Name,
+	}
+
+	var secret corev1.Secret
+	err := r.Client.Get(ctx, secretName, &secret)
+	if err != nil {
+		return "", fmt.Errorf("unable to read token from secret '%s' error: %w", secretName, err)
+	}
+
+	if val, ok := secret.Data["token"]; ok {
+		token = string(val)
+	} else {
+		return "", fmt.Errorf("invalid '%s' secret data: required fields 'token'", secretName)
+	}
+
+	return token, nil
 }
