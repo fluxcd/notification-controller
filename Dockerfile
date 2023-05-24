@@ -32,12 +32,13 @@ RUN xx-go build -trimpath -a -o notification-controller main.go
 
 FROM alpine:3.18
 
-LABEL org.opencontainers.image.source="https://github.com/fluxcd/notification-controller"
+ARG TARGETPLATFORM
 
-RUN apk add --no-cache ca-certificates tini
+RUN apk --no-cache add ca-certificates \
+  && update-ca-certificates
 
 COPY --from=builder /workspace/notification-controller /usr/local/bin/
 
 USER 65534:65534
 
-ENTRYPOINT [ "/sbin/tini", "--", "notification-controller" ]
+ENTRYPOINT ["notification-controller" ]
