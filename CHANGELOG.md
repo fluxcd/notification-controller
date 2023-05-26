@@ -2,6 +2,50 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.0-rc.4
+
+**Release date:** 2023-05-26
+
+This release candidate comes with support for Kubernetes v1.27.
+
+The `Event` API has been modified to have a dedicated key for `metadata` called
+`token`. The value of the `token` key is meant to be defined on a per event
+emitter basis for uniquely identifying the contents of the event payload.
+This key if present, is included in calculating the unique key used for rate
+limiting events.
+Furthermore, the event attributes are prefixed with an identifier to avoid
+collisions between different event attributes.
+
+In addition, a bug in the event rate limiting key calculation logic which led
+to the inconsideration of the revision specified in `.metadata` of the event has
+been fixed.
+
+Lastly, the behavior of `.spec.eventMetadata` has been modified such that if a
+key present in the map already exists in the original event's `metadata`, then
+the key in the latter takes precedence and an error log is printed for visibility.
+
+Improvements:
+
+- Include eventv1.MetaTokenKey on event rate limiting key calculation
+  [#530](https://github.com/fluxcd/notification-controller/pull/530)
+- Update dependencies and Kubernetes to 1.27.2
+  [#532](https://github.com/fluxcd/notification-controller/pull/532)
+- Remove the tini supervisor
+  [#533](https://github.com/fluxcd/notification-controller/pull/533)
+- Prefix event key attributes with identifier
+  [#534](https://github.com/fluxcd/notification-controller/pull/534)
+- Update workflows and enable dependabot
+  [#535](https://github.com/fluxcd/notification-controller/pull/535)
+- build(deps): bump github/codeql-action from 2.3.3 to 2.3.4
+  [#536](https://github.com/fluxcd/notification-controller/pull/536)
+
+Fixes:
+
+- Fix revision discarded on event rate limiting key calculation
+  [#517](https://github.com/fluxcd/notification-controller/pull/517)
+- Fix Alert .spec.eventMetadata behavior
+  [#529](https://github.com/fluxcd/notification-controller/pull/529)
+
 ## 1.0.0-rc.3
 
 **Release date:** 2023-05-12
