@@ -40,41 +40,14 @@ rules:
   resources:
   - alerts
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - notification.toolkit.fluxcd.io
-  resources:
-  - alerts/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - notification.toolkit.fluxcd.io
   resources:
   - providers
   verbs:
-  - create
-  - delete
   - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - notification.toolkit.fluxcd.io
-  resources:
-  - providers/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - notification.toolkit.fluxcd.io
   resources:

@@ -70,28 +70,6 @@ func TestMain(m *testing.M) {
 	controllerName := "notification-controller"
 	testMetricsH := controller.NewMetrics(testEnv, metrics.MustMakeRecorder(), apiv1.NotificationFinalizer)
 
-	if err := (&AlertReconciler{
-		Client:         testEnv,
-		Metrics:        testMetricsH,
-		ControllerName: controllerName,
-		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
-	}).SetupWithManagerAndOptions(testEnv, AlertReconcilerOptions{
-		RateLimiter: controller.GetDefaultRateLimiter(),
-	}); err != nil {
-		panic(fmt.Sprintf("Failed to start AlerReconciler: %v", err))
-	}
-
-	if err := (&ProviderReconciler{
-		Client:         testEnv,
-		Metrics:        testMetricsH,
-		ControllerName: controllerName,
-		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
-	}).SetupWithManagerAndOptions(testEnv, ProviderReconcilerOptions{
-		RateLimiter: controller.GetDefaultRateLimiter(),
-	}); err != nil {
-		panic(fmt.Sprintf("Failed to start ProviderReconciler: %v", err))
-	}
-
 	if err := (&ReceiverReconciler{
 		Client:         testEnv,
 		Metrics:        testMetricsH,

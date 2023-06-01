@@ -173,28 +173,6 @@ func main() {
 
 	metricsH := helper.NewMetrics(mgr, metrics.MustMakeRecorder(), apiv1.NotificationFinalizer)
 
-	if err = (&controller.ProviderReconciler{
-		Client:         mgr.GetClient(),
-		ControllerName: controllerName,
-		Metrics:        metricsH,
-		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
-	}).SetupWithManagerAndOptions(mgr, controller.ProviderReconcilerOptions{
-		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
-	}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Provider")
-		os.Exit(1)
-	}
-	if err = (&controller.AlertReconciler{
-		Client:         mgr.GetClient(),
-		ControllerName: controllerName,
-		Metrics:        metricsH,
-		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
-	}).SetupWithManagerAndOptions(mgr, controller.AlertReconcilerOptions{
-		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
-	}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Alert")
-		os.Exit(1)
-	}
 	if err = (&controller.ReceiverReconciler{
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
