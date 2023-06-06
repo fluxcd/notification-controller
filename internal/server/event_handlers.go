@@ -42,6 +42,14 @@ import (
 	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
+func involvedObjectString(o corev1.ObjectReference) string {
+	return fmt.Sprintf("%s/%s/%s", o.Kind, o.Namespace, o.Name)
+}
+
+func crossNSObjectRefString(o apiv1.CrossNamespaceObjectReference) string {
+	return fmt.Sprintf("%s/%s/%s", o.Kind, o.Namespace, o.Name)
+}
+
 func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		event := r.Context().Value(eventContextKey{}).(*eventv1.Event)
@@ -68,8 +76,10 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			alert := &alerts[i]
 			alertLogger := eventLogger.WithValues(alert.Kind, client.ObjectKeyFromObject(alert))
 			ctx := log.IntoContext(ctx, alertLogger)
-			if err := s.dispatchNotification(ctx, event, *alert); err != nil {
+			if err := s.dispatchNotification(ctx, event, alert); err != nil {
 				alertLogger.Error(err, "failed to dispatch notification")
+				s.Eventf(alert, corev1.EventTypeWarning, "NotificationDispatchFailed",
+					"failed to dispatch notification for %s: %s", involvedObjectString(event.InvolvedObject), err)
 			}
 		}
 
@@ -105,17 +115,17 @@ func (s *EventServer) filterAlertsForEvent(ctx context.Context, alerts []apiv1be
 		ctx := log.IntoContext(ctx, alertLogger)
 
 		// Check if the event matches any of the alert sources.
-		if !s.eventMatchesAlertSources(ctx, event, *alert) {
+		if !s.eventMatchesAlertSources(ctx, event, alert) {
 			continue
 		}
 		// Check if the event message is allowed for the alert based on the
 		// inclusion list.
-		if !s.messageIsIncluded(ctx, event.Message, alert.Spec.InclusionList) {
+		if !s.messageIsIncluded(ctx, event.Message, alert) {
 			continue
 		}
 		// Check if the event message is allowed for the alert based on the
 		// exclusion list.
-		if s.messageIsExcluded(ctx, event.Message, alert.Spec.ExclusionList) {
+		if s.messageIsExcluded(ctx, event.Message, alert) {
 			continue
 		}
 		results = append(results, *alert)
@@ -125,53 +135,55 @@ func (s *EventServer) filterAlertsForEvent(ctx context.Context, alerts []apiv1be
 
 // eventMatchesAlertSources returns if a given event matches with any of the
 // alert sources.
-func (s *EventServer) eventMatchesAlertSources(ctx context.Context, event *eventv1.Event, alert apiv1beta3.Alert) bool {
+func (s *EventServer) eventMatchesAlertSources(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) bool {
 	for _, source := range alert.Spec.EventSources {
 		if source.Namespace == "" {
 			source.Namespace = alert.Namespace
 		}
-		if s.eventMatchesAlert(ctx, event, source, alert.Spec.EventSeverity) {
+		if s.eventMatchesAlertSource(ctx, event, alert, source) {
 			return true
 		}
 	}
 	return false
 }
 
-// messageIsIncluded returns if the given message matches with the inclusion
-// rules.
-func (s *EventServer) messageIsIncluded(ctx context.Context, msg string, inclusionList []string) bool {
-	if len(inclusionList) == 0 {
+// messageIsIncluded returns if the given message matches with the given alert's
+// inclusion rules.
+func (s *EventServer) messageIsIncluded(ctx context.Context, msg string, alert *apiv1beta3.Alert) bool {
+	if len(alert.Spec.InclusionList) == 0 {
 		return true
 	}
 
-	for _, exp := range inclusionList {
+	for _, exp := range alert.Spec.InclusionList {
 		if r, err := regexp.Compile(exp); err == nil {
 			if r.Match([]byte(msg)) {
 				return true
 			}
 		} else {
-			// TODO: Record event on the respective Alert object.
 			log.FromContext(ctx).Error(err, fmt.Sprintf("failed to compile inclusion regex: %s", exp))
+			s.Eventf(alert, corev1.EventTypeWarning,
+				"InvalidConfig", "failed to compile inclusion regex: %s", exp)
 		}
 	}
 	return false
 }
 
-// messageIsExcluded returns if the given message matches with the exclusion
-// rules.
-func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, exclusionList []string) bool {
-	if len(exclusionList) == 0 {
+// messageIsExcluded returns if the given message matches with the given alert's
+// exclusion rules.
+func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, alert *apiv1beta3.Alert) bool {
+	if len(alert.Spec.ExclusionList) == 0 {
 		return false
 	}
 
-	for _, exp := range exclusionList {
+	for _, exp := range alert.Spec.ExclusionList {
 		if r, err := regexp.Compile(exp); err == nil {
 			if r.Match([]byte(msg)) {
 				return true
 			}
 		} else {
-			// TODO: Record event on the respective Alert object.
 			log.FromContext(ctx).Error(err, fmt.Sprintf("failed to compile exclusion regex: %s", exp))
+			s.Eventf(alert, corev1.EventTypeWarning, "InvalidConfig",
+				"failed to compile exclusion regex: %s", exp)
 		}
 	}
 	return false
@@ -179,7 +191,7 @@ func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, exclusi
 
 // dispatchNotification constructs and sends notification from the given event
 // and alert data.
-func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.Event, alert apiv1beta3.Alert) error {
+func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) error {
 	sender, notification, token, timeout, err := s.getNotificationParams(ctx, event, alert)
 	if err != nil {
 		return err
@@ -199,8 +211,9 @@ func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.E
 			} else {
 				err = errors.New(maskedErrStr)
 			}
-			// TODO: Record failed event on the associated Alert object.
 			log.FromContext(ctx).Error(err, "failed to send notification")
+			s.Eventf(alert, corev1.EventTypeWarning, "NotificationDispatchFailed",
+				"failed to send notification for %s: %s", involvedObjectString(event.InvolvedObject), err)
 		}
 	}(sender, *notification)
 
@@ -211,12 +224,12 @@ func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.E
 // event and alert, and returns a notifier, event, token and timeout for sending
 // the notification. The returned event is a mutated form of the input event
 // based on the alert configuration.
-func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.Event, alert apiv1beta3.Alert) (notifier.Interface, *eventv1.Event, string, time.Duration, error) {
+func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) (notifier.Interface, *eventv1.Event, string, time.Duration, error) {
 	// Check if event comes from a different namespace.
 	if s.noCrossNamespaceRefs && event.InvolvedObject.Namespace != alert.Namespace {
 		accessDenied := fmt.Errorf(
-			"alert '%s/%s' can't process event from '%s/%s/%s', cross-namespace references have been blocked",
-			alert.Namespace, alert.Name, event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name)
+			"alert '%s/%s' can't process event from '%s', cross-namespace references have been blocked",
+			alert.Namespace, alert.Name, involvedObjectString(event.InvolvedObject))
 		return nil, nil, "", 0, fmt.Errorf("discarding event, access denied to cross-namespace sources: %w", accessDenied)
 	}
 
@@ -317,7 +330,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 
 		caFile, ok := secret.Data["ca.crt"]
 		if !ok {
-			// TODO: Drop support for old field in new API version.
+			// TODO: Drop support for "caFile" field in v1 Provider API.
 			caFile, ok = secret.Data["caFile"]
 			if !ok {
 				return nil, "", fmt.Errorf("no 'ca.crt' key found in Secret '%s'", secret.Name)
@@ -344,9 +357,9 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 	return sender, token, nil
 }
 
-// eventMatchesAlert returns if a given event matches with the given alert
+// eventMatchesAlertSource returns if a given event matches with the given alert
 // source configuration and severity.
-func (s *EventServer) eventMatchesAlert(ctx context.Context, event *eventv1.Event, source apiv1.CrossNamespaceObjectReference, severity string) bool {
+func (s *EventServer) eventMatchesAlertSource(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert, source apiv1.CrossNamespaceObjectReference) bool {
 	logger := log.FromContext(ctx)
 
 	// No match if the event and source don't have the same namespace and kind.
@@ -357,6 +370,7 @@ func (s *EventServer) eventMatchesAlert(ctx context.Context, event *eventv1.Even
 
 	// No match if the alert severity doesn't match the event severity and
 	// the alert severity isn't info.
+	severity := alert.Spec.EventSeverity
 	if event.Severity != severity && severity != eventv1.EventSeverityInfo {
 		return false
 	}
@@ -383,20 +397,26 @@ func (s *EventServer) eventMatchesAlert(ctx context.Context, event *eventv1.Even
 		Name:      event.InvolvedObject.Name,
 	}, &obj); err != nil {
 		logger.Error(err, "error getting the involved object")
+		s.Eventf(alert, corev1.EventTypeWarning, "SourceFetchFailed",
+			"error getting source object %s", involvedObjectString(event.InvolvedObject))
+		return false
 	}
 
 	sel, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
 		MatchLabels: source.MatchLabels,
 	})
 	if err != nil {
-		logger.Error(err, fmt.Sprintf("error using matchLabels from event source '%s'", source.Name))
+		logger.Error(err, fmt.Sprintf("error using matchLabels from event source %s", crossNSObjectRefString(source)))
+		s.Eventf(alert, corev1.EventTypeWarning, "InvalidConfig",
+			"error using matchLabels from event source %s", crossNSObjectRefString(source))
+		return false
 	}
 
 	return sel.Matches(labels.Set(obj.GetLabels()))
 }
 
 // enhanceEventWithAlertMetadata enhances the event with Alert metadata.
-func (s *EventServer) enhanceEventWithAlertMetadata(ctx context.Context, event *eventv1.Event, alert apiv1beta3.Alert) {
+func (s *EventServer) enhanceEventWithAlertMetadata(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) {
 	meta := event.Metadata
 	if meta == nil {
 		meta = make(map[string]string)
@@ -408,6 +428,8 @@ func (s *EventServer) enhanceEventWithAlertMetadata(ctx context.Context, event *
 		} else {
 			log.FromContext(ctx).
 				Info("metadata key found in the existing set of metadata", "key", key)
+			s.Eventf(alert, corev1.EventTypeWarning, "MetadataAppendFailed",
+				"metadata key found in the existing set of metadata for '%s' in %s", key, involvedObjectString(event.InvolvedObject))
 		}
 	}
 

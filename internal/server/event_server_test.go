@@ -40,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	yamlutil "k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/tools/record"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	log "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -135,8 +136,8 @@ func TestEventServer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create memory storage")
 	}
-	// eventServer := NewEventServer("127.0.0.1:"+eventServerPort, log.Log, builder.Build(), true)
-	eventServer := NewEventServer("127.0.0.1:"+eventServerPort, log.Log, kclient, true)
+	eventServer := NewEventServer("127.0.0.1:"+eventServerPort,
+		log.Log, kclient, record.NewFakeRecorder(32), true)
 	stopCh := make(chan struct{})
 	go eventServer.ListenAndServe(stopCh, eventMdlw, store)
 	defer close(stopCh)

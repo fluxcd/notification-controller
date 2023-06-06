@@ -33,6 +33,7 @@ import (
 	"github.com/sethvargo/go-limiter/httplimit"
 	"github.com/slok/go-http-metrics/middleware"
 	"github.com/slok/go-http-metrics/middleware/std"
+	kuberecorder "k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -51,14 +52,16 @@ type EventServer struct {
 	logger               logr.Logger
 	kubeClient           client.Client
 	noCrossNamespaceRefs bool
+	kuberecorder.EventRecorder
 }
 
 // NewEventServer returns an HTTP server that handles events
-func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, noCrossNamespaceRefs bool) *EventServer {
+func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, eventRecorder kuberecorder.EventRecorder, noCrossNamespaceRefs bool) *EventServer {
 	return &EventServer{
 		port:                 port,
 		logger:               logger.WithName("event-server"),
 		kubeClient:           kubeClient,
+		EventRecorder:        eventRecorder,
 		noCrossNamespaceRefs: noCrossNamespaceRefs,
 	}
 }

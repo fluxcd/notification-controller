@@ -27,6 +27,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/tools/record"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	log "sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -273,8 +274,9 @@ func TestFilterAlertsForEvent(t *testing.T) {
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 			builder.WithObjects(testProvider)
 			eventServer := EventServer{
-				kubeClient: builder.Build(),
-				logger:     log.Log,
+				kubeClient:    builder.Build(),
+				logger:        log.Log,
+				EventRecorder: record.NewFakeRecorder(32),
 			}
 
 			result := eventServer.filterAlertsForEvent(context.TODO(), alerts, testEvent)
@@ -356,11 +358,12 @@ func TestDispatchNotification(t *testing.T) {
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 			builder.WithObjects(provider)
 			eventServer := EventServer{
-				kubeClient: builder.Build(),
-				logger:     log.Log,
+				kubeClient:    builder.Build(),
+				logger:        log.Log,
+				EventRecorder: record.NewFakeRecorder(32),
 			}
 
-			err := eventServer.dispatchNotification(context.TODO(), testEvent, *alert)
+			err := eventServer.dispatchNotification(context.TODO(), testEvent, alert)
 			g.Expect(err != nil).To(Equal(tt.wantErr))
 		})
 	}
@@ -501,9 +504,10 @@ func TestGetNotificationParams(t *testing.T) {
 				kubeClient:           builder.Build(),
 				logger:               log.Log,
 				noCrossNamespaceRefs: tt.noCrossNSRefs,
+				EventRecorder:        record.NewFakeRecorder(32),
 			}
 
-			_, n, _, _, err := eventServer.getNotificationParams(context.TODO(), event, *alert)
+			_, n, _, _, err := eventServer.getNotificationParams(context.TODO(), event, alert)
 			g.Expect(err != nil).To(Equal(tt.wantErr))
 			if tt.alertSummary != "" {
 				g.Expect(n.Metadata["summary"]).To(Equal(tt.alertSummary))
@@ -940,18 +944,31 @@ func TestEventMatchesAlert(t *testing.T) {
 			}
 
 			eventServer := EventServer{
-				kubeClient: builder.Build(),
-				logger:     log.Log,
+				kubeClient:    builder.Build(),
+				logger:        log.Log,
+				EventRecorder: record.NewFakeRecorder(32),
+			}
+			alert := &apiv1beta3.Alert{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-alert",
+					Namespace: "test-ns",
+				},
+				Spec: apiv1beta3.AlertSpec{
+					EventSeverity: tt.severity,
+				},
 			}
 
-			result := eventServer.eventMatchesAlert(context.TODO(), tt.event, tt.source, tt.severity)
+			result := eventServer.eventMatchesAlertSource(context.TODO(), tt.event, alert, tt.source)
 			g.Expect(result).To(Equal(tt.wantResult))
 		})
 	}
 }
 
 func TestEnhanceEventWithAlertMetadata(t *testing.T) {
-	s := &EventServer{logger: log.Log}
+	s := &EventServer{
+		logger:        log.Log,
+		EventRecorder: record.NewFakeRecorder(32),
+	}
 
 	for name, tt := range map[string]struct {
 		event            eventv1.Event
@@ -1023,7 +1040,7 @@ func TestEnhanceEventWithAlertMetadata(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			g := NewGomegaWithT(t)
 
-			s.enhanceEventWithAlertMetadata(context.Background(), &tt.event, tt.alert)
+			s.enhanceEventWithAlertMetadata(context.Background(), &tt.event, &tt.alert)
 			g.Expect(tt.event.Metadata).To(BeEquivalentTo(tt.expectedMetadata))
 		})
 	}
