@@ -91,6 +91,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewAzureDevOps(f.ProviderUID, f.URL, f.Token, f.CertPool)
 	case apiv1.GoogleChatProvider:
 		n, err = NewGoogleChat(f.URL, f.ProxyURL)
+	case apiv1.GooglePubSubProvider:
+		n, err = NewGooglePubSub(f.URL, f.Channel, f.Token, f.Headers)
 	case apiv1.WebexProvider:
 		n, err = NewWebex(f.URL, f.ProxyURL, f.CertPool, f.Channel, f.Token)
 	case apiv1.SentryProvider:

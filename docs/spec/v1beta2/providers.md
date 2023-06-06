@@ -112,6 +112,7 @@ The supported alerting providers are:
 | [Discord](#discord)                                     | `discord`        |
 | [GitHub dispatch](#github-dispatch)                     | `githubdispatch` |
 | [Google Chat](#google-chat)                             | `googlechat`     |
+| [Google Pub/Sub](#google-pubsub)                        | `googlepubsub`   |
 | [Grafana](#grafana)                                     | `grafana`        |
 | [Lark](#lark)                                           | `lark`           |
 | [Matrix](#matrix)                                       | `matrix`         |
@@ -671,6 +672,65 @@ stringData:
   address: https://chat.googleapis.com/v1/spaces/...
 ```
 
+##### Google Pub/Sub
+
+When `.spec.type` is set to `googlepubsub`, the controller will publish the payload of
+an [Event](events.md#event-structure) on the Google Pub/Sub Topic ID provided in the
+[Channel](#channel) field, which must exist in the GCP Project ID provided in the
+[Address](#address) field.
+
+This Provider type can optionally use the [Secret reference](#secret-reference) to
+authenticate on the Google Pub/Sub API by using [JSON credentials](https://cloud.google.com/iam/docs/service-account-creds#key-types).
+The credentials must be specified on [the `token`](#token-example) field of the Secret.
+
+If no JSON credentials are specified, then the automatic authentication methods of
+the Google libraries will take place, and therefore methods like Workload Identity
+will be automatically attempted.
+
+The Google identity effectively used for publishing messages must have
+[the required permissions](https://cloud.google.com/iam/docs/understanding-roles#pubsub.publisher)
+on the Pub/Sub Topic.
+
+You can optionally add [attributes](https://cloud.google.com/pubsub/docs/samples/pubsub-publish-custom-attributes#pubsub_publish_custom_attributes-go)
+to the Pub/Sub message using a [`headers` key in the referenced Secret](#http-headers-example).
+
+This Provider type does not support the configuration of a [proxy URL](#https-proxy)
+or [TLS certificates](#tls-certificates).
+
+###### Google Pub/Sub with JSON Credentials and Custom Headers Example
+
+To configure a Provider for Google Pub/Sub authenticating with JSON credentials and
+custom headers, create a Secret with [the `token`](#token-example) set to the
+necessary JSON credentials, [the `headers`](#http-headers-example) field set to a
+YAML string-to-string dictionary, and a `googlepubsub` Provider with the associated
+[Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: googlepubsub-provider
+  namespace: desired-namespace
+spec:
+  type: googlepubsub
+  address: <GCP Project ID>
+  channel: <Pub/Sub Topic ID>
+  secretRef:
+    name: googlepubsub-provider-creds
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: googlepubsub-provider-creds
+  namespace: desired-namespace
+stringData:
+  token: <GCP JSON credentials>
+  headers: |
+    attr1-name: attr1-value
+    attr2-name: attr2-value
+```
+
 ##### Opsgenie
 
 When `.spec.type` is set to `opsgenie`, the controller will send a payload for
@@ -892,8 +952,8 @@ metadata:
   namespace: default
 stringData:
   headers: |
-     Authorization: my-api-token
-     X-Forwarded-Proto: https
+    Authorization: my-api-token
+    X-Forwarded-Proto: https
 ```
 
 #### Proxy auth example
