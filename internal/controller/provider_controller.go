@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -48,13 +49,18 @@ import (
 	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
+// insecureHTTPError occurs when insecure HTTP communication is tried
+// and such behaviour is blocked.
+var insecureHTTPError = errors.New("use of insecure plain HTTP connections is blocked")
+
 // ProviderReconciler reconciles a Provider object
 type ProviderReconciler struct {
 	client.Client
 	helper.Metrics
 	kuberecorder.EventRecorder
 
-	ControllerName string
+	ControllerName    string
+	BlockInsecureHTTP bool
 }
 
 type ProviderReconcilerOptions struct {
@@ -154,19 +160,33 @@ func (r *ProviderReconciler) reconcile(ctx context.Context, obj *apiv1beta2.Prov
 
 	// Mark the reconciliation as stalled if the inline URL and/or proxy are invalid.
 	if err := r.validateURLs(obj); err != nil {
-		conditions.MarkFalse(obj, meta.ReadyCondition, meta.InvalidURLReason, err.Error())
-		conditions.MarkTrue(obj, meta.StalledCondition, meta.InvalidURLReason, err.Error())
+		var reason string
+		if errors.Is(err, insecureHTTPError) {
+			reason = meta.InsecureConnectionsDisallowedReason
+		} else {
+			reason = meta.InvalidURLReason
+		}
+		conditions.MarkFalse(obj, meta.ReadyCondition, reason, err.Error())
+		conditions.MarkTrue(obj, meta.StalledCondition, reason, err.Error())
 		return ctrl.Result{Requeue: true}, err
 	}
 
 	// Validate the provider credentials.
 	if err := r.validateCredentials(ctx, obj); err != nil {
-		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.ValidationFailedReason, err.Error())
+		var reason string
+		var urlErr *url.Error
+		if errors.Is(err, insecureHTTPError) {
+			reason = meta.InsecureConnectionsDisallowedReason
+		} else if errors.As(err, &urlErr) {
+			reason = meta.InvalidURLReason
+		} else {
+			reason = apiv1.ValidationFailedReason
+		}
+		conditions.MarkFalse(obj, meta.ReadyCondition, reason, err.Error())
 		return ctrl.Result{Requeue: true}, err
 	}
 
 	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, apiv1.InitializedReason)
-
 	return ctrl.Result{RequeueAfter: obj.GetInterval()}, nil
 }
 
@@ -175,12 +195,7 @@ func (r *ProviderReconciler) validateURLs(provider *apiv1beta2.Provider) error {
 	proxy := provider.Spec.Proxy
 
 	if provider.Spec.SecretRef == nil {
-		if _, err := url.ParseRequestURI(address); err != nil {
-			return fmt.Errorf("invalid address %s: %w", address, err)
-		}
-		if _, err := url.ParseRequestURI(proxy); proxy != "" && err != nil {
-			return fmt.Errorf("invalid proxy %s: %w", proxy, err)
-		}
+		return parseURLs(address, proxy, r.BlockInsecureHTTP)
 	}
 	return nil
 }
@@ -193,6 +208,11 @@ func (r *ProviderReconciler) validateCredentials(ctx context.Context, provider *
 	token := ""
 	headers := make(map[string]string)
 	if provider.Spec.SecretRef != nil {
+		// since a secret ref is provided, the object is not stalled even if spec.address
+		// or spec.proxy are invalid, as the secret can change any time independently.
+		if conditions.IsStalled(provider) {
+			conditions.Delete(provider, meta.StalledCondition)
+		}
 		var secret corev1.Secret
 		secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.SecretRef.Name}
 
@@ -251,6 +271,10 @@ func (r *ProviderReconciler) validateCredentials(ctx context.Context, provider *
 		if !ok {
 			return fmt.Errorf("could not append to cert pool: invalid CA found in %s", provider.Spec.CertSecretRef.Name)
 		}
+	}
+
+	if err := parseURLs(address, proxy, r.BlockInsecureHTTP); err != nil {
+		return err
 	}
 
 	factory := notifier.NewFactory(address, proxy, username, provider.Spec.Channel, token, headers, certPool, password, string(provider.UID))
@@ -314,5 +338,27 @@ func (r *ProviderReconciler) patch(ctx context.Context, obj *apiv1beta2.Provider
 		}
 	}
 
+	return nil
+}
+
+// parseURLs parses the provided URL strings and returns any error that
+// might occur when doing so. It raises an `insecureHTTPError` error when the
+// scheme of either URL is "http" and `blockHTTP` is set to true.
+func parseURLs(address, proxy string, blockHTTP bool) error {
+	addrURL, err := url.ParseRequestURI(address)
+	if err != nil {
+		return fmt.Errorf("invalid address %s: %w", address, err)
+	}
+	proxyURL, err := url.ParseRequestURI(proxy)
+	if proxy != "" && err != nil {
+		return fmt.Errorf("invalid proxy %s: %w", proxy, err)
+	}
+
+	if proxyURL != nil && proxyURL.Scheme == "http" && blockHTTP {
+		return fmt.Errorf("consider changing proxy to use HTTPS: %w", insecureHTTPError)
+	}
+	if addrURL != nil && addrURL.Scheme == "http" && blockHTTP {
+		return fmt.Errorf("consider changing address to use HTTPS: %w", insecureHTTPError)
+	}
 	return nil
 }

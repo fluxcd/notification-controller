@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"net/url"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -39,11 +38,6 @@ type AlertManagerAlert struct {
 }
 
 func NewAlertmanager(hookURL string, proxyURL string, certPool *x509.CertPool) (*Alertmanager, error) {
-	_, err := url.ParseRequestURI(hookURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid Alertmanager URL %s: '%w'", hookURL, err)
-	}
-
 	return &Alertmanager{
 		URL:      hookURL,
 		ProxyURL: proxyURL,

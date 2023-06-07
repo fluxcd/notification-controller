@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
-	"net/url"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -64,11 +63,6 @@ type SlackField struct {
 
 // NewSlack validates the Slack URL and returns a Slack object
 func NewSlack(hookURL string, proxyURL string, token string, certPool *x509.CertPool, username string, channel string) (*Slack, error) {
-	_, err := url.ParseRequestURI(hookURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid Slack hook URL %s: '%w'", hookURL, err)
-	}
-
 	return &Slack{
 		Channel:  channel,
 		Username: username,

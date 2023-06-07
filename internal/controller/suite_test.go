@@ -81,10 +81,11 @@ func TestMain(m *testing.M) {
 	}
 
 	if err := (&ProviderReconciler{
-		Client:         testEnv,
-		Metrics:        testMetricsH,
-		ControllerName: controllerName,
-		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
+		Client:            testEnv,
+		Metrics:           testMetricsH,
+		ControllerName:    controllerName,
+		EventRecorder:     testEnv.GetEventRecorderFor(controllerName),
+		BlockInsecureHTTP: true,
 	}).SetupWithManagerAndOptions(testEnv, ProviderReconcilerOptions{
 		RateLimiter: controller.GetDefaultRateLimiter(),
 	}); err != nil {

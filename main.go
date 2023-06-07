@@ -77,6 +77,7 @@ func main() {
 		concurrent            int
 		watchAllNamespaces    bool
 		rateLimitInterval     time.Duration
+		insecureAllowHTTP     bool
 		clientOptions         client.Options
 		logOptions            logger.Options
 		leaderElectionOptions leaderelection.Options
@@ -93,6 +94,7 @@ func main() {
 	flag.BoolVar(&watchAllNamespaces, "watch-all-namespaces", true,
 		"Watch for custom resources in all namespaces, if set to false it will only watch the runtime namespace.")
 	flag.DurationVar(&rateLimitInterval, "rate-limit-interval", 5*time.Minute, "Interval in which rate limit has effect.")
+	flag.BoolVar(&insecureAllowHTTP, "insecure-allow-http", true, "Allow the controller to forward events using plain HTTP connections.")
 
 	clientOptions.BindFlags(flag.CommandLine)
 	logOptions.BindFlags(flag.CommandLine)
@@ -161,10 +163,11 @@ func main() {
 	metricsH := helper.MustMakeMetrics(mgr)
 
 	if err = (&controller.ProviderReconciler{
-		Client:         mgr.GetClient(),
-		ControllerName: controllerName,
-		Metrics:        metricsH,
-		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
+		Client:            mgr.GetClient(),
+		ControllerName:    controllerName,
+		Metrics:           metricsH,
+		EventRecorder:     mgr.GetEventRecorderFor(controllerName),
+		BlockInsecureHTTP: !insecureAllowHTTP,
 	}).SetupWithManagerAndOptions(mgr, controller.ProviderReconcilerOptions{
 		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
 	}); err != nil {

@@ -21,7 +21,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"net/url"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/hashicorp/go-retryablehttp"
@@ -41,11 +40,6 @@ type OpsgenieAlert struct {
 }
 
 func NewOpsgenie(hookURL string, proxyURL string, certPool *x509.CertPool, token string) (*Opsgenie, error) {
-	_, err := url.ParseRequestURI(hookURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid Opsgenie hook URL %s: '%w'", hookURL, err)
-	}
-
 	if token == "" {
 		return nil, errors.New("empty Opsgenie apikey/token")
 	}
