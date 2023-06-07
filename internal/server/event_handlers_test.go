@@ -17,6 +17,7 @@ limitations under the License.
 package server
 
 import (
+	"context"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -99,7 +100,7 @@ func TestEnhanceEventWithAlertMetadata(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			g := NewGomegaWithT(t)
 
-			s.enhanceEventWithAlertMetadata(&tt.event, tt.alert)
+			s.enhanceEventWithAlertMetadata(context.Background(), &tt.event, tt.alert)
 			g.Expect(tt.event.Metadata).To(BeEquivalentTo(tt.expectedMetadata))
 		})
 	}

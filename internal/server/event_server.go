@@ -34,6 +34,7 @@ import (
 	"github.com/slok/go-http-metrics/middleware"
 	"github.com/slok/go-http-metrics/middleware/std"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
@@ -68,8 +69,8 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 	var handler http.Handler = http.HandlerFunc(s.handleEvent())
 	for _, middleware := range []func(http.Handler) http.Handler{
 		limitMiddleware.Handle,
-		s.logRateLimitMiddleware,
-		s.cleanupMetadataMiddleware,
+		logRateLimitMiddleware,
+		s.eventMiddleware,
 	} {
 		handler = middleware(handler)
 	}
@@ -100,10 +101,12 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 	}
 }
 
-// cleanupMetadataMiddleware cleans up the metadata using cleanupMetadata() and
+// eventMiddleware cleans up the event metadata using cleanupMetadata() and
 // adds the cleaned event in the request context which can then be queried and
-// used directly by the other http handlers.
-func (s *EventServer) cleanupMetadataMiddleware(h http.Handler) http.Handler {
+// used directly by the other http handlers. This middleware also adds a
+// logger with the event's involved object's reference information to the
+// request context.
+func (s *EventServer) eventMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -124,10 +127,13 @@ func (s *EventServer) cleanupMetadataMiddleware(h http.Handler) http.Handler {
 
 		cleanupMetadata(event)
 
-		ctxWithEvent := context.WithValue(r.Context(), eventContextKey{}, event)
-		reqWithEvent := r.WithContext(ctxWithEvent)
+		eventLogger := s.logger.WithValues("eventInvolvedObject", event.InvolvedObject)
 
-		h.ServeHTTP(w, reqWithEvent)
+		enhancedCtx := context.WithValue(r.Context(), eventContextKey{}, event)
+		enhancedCtx = log.IntoContext(enhancedCtx, eventLogger)
+		enhancedReq := r.WithContext(enhancedCtx)
+
+		h.ServeHTTP(w, enhancedReq)
 	})
 }
 
@@ -172,7 +178,7 @@ func (r *statusRecorder) WriteHeader(status int) {
 	r.ResponseWriter.WriteHeader(status)
 }
 
-func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
+func logRateLimitMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		recorder := &statusRecorder{
 			ResponseWriter: w,
@@ -181,11 +187,8 @@ func (s *EventServer) logRateLimitMiddleware(h http.Handler) http.Handler {
 		h.ServeHTTP(recorder, r)
 
 		if recorder.Status == http.StatusTooManyRequests {
-			event := r.Context().Value(eventContextKey{}).(*eventv1.Event)
-			s.logger.V(1).Info("Discarding event, rate limiting duplicate events",
-				"reconciler kind", event.InvolvedObject.Kind,
-				"name", event.InvolvedObject.Name,
-				"namespace", event.InvolvedObject.Namespace)
+			log.FromContext(r.Context()).V(1).
+				Info("Discarding event, rate limiting duplicate events")
 		}
 	})
 }
