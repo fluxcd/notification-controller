@@ -43,6 +43,7 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1b2 "github.com/fluxcd/notification-controller/api/v1beta2"
+	apiv1b3 "github.com/fluxcd/notification-controller/api/v1beta3"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -57,6 +58,7 @@ func TestMain(m *testing.M) {
 	var err error
 	utilruntime.Must(apiv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(apiv1b2.AddToScheme(scheme.Scheme))
+	utilruntime.Must(apiv1b3.AddToScheme(scheme.Scheme))
 
 	testEnv = testenv.New(testenv.WithCRDPath(
 		filepath.Join("..", "..", "config", "crd", "bases"),
@@ -69,6 +71,22 @@ func TestMain(m *testing.M) {
 
 	controllerName := "notification-controller"
 	testMetricsH := controller.NewMetrics(testEnv, metrics.MustMakeRecorder(), apiv1.NotificationFinalizer)
+
+	if err := (&AlertReconciler{
+		Client:         testEnv,
+		ControllerName: controllerName,
+		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
+	}).SetupWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Failed to start AlertReconciler: %v", err))
+	}
+
+	if err := (&ProviderReconciler{
+		Client:         testEnv,
+		ControllerName: controllerName,
+		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
+	}).SetupWithManager(testEnv); err != nil {
+		panic(fmt.Sprintf("Failed to start ProviderReconciler: %v", err))
+	}
 
 	if err := (&ReceiverReconciler{
 		Client:         testEnv,
