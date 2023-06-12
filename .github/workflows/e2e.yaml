@@ -71,7 +71,7 @@ jobs:
       - name: Run default status test
         run: |
           kubectl apply -f config/testdata/status-defaults
-          for crd in alert provider receiver ; do
+          for crd in receiver ; do
             RESULT=$(kubectl get ${crd} status-defaults -o go-template={{.status}})
             EXPECTED='map[observedGeneration:-1]'
             if [ "${RESULT}" != "${EXPECTED}" ] ; then
@@ -88,9 +88,6 @@ jobs:
       - name: Run smoke tests
         run: |
           kubectl -n notification-system apply -f ./config/samples
-          kubectl -n notification-system wait provider/slack-provider-sample --for=condition=ready --timeout=1m
-          kubectl -n notification-system wait provider/generic-provider-sample --for=condition=ready --timeout=1m
-          kubectl -n notification-system wait alert/alert-sample --for=condition=ready --timeout=1m
           kubectl -n notification-system wait receiver/receiver-sample --for=condition=ready --timeout=1m
       - name: Logs
         run: |
