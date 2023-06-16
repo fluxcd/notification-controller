@@ -32,6 +32,7 @@ import (
 
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
+	"github.com/fluxcd/pkg/runtime/patch"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1beta2 "github.com/fluxcd/notification-controller/api/v1beta2"
@@ -185,8 +186,10 @@ func TestProviderReconciler_Reconcile(t *testing.T) {
 
 		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), resultP)).To(Succeed())
 
+		patchHelper, err := patch.NewHelper(resultP, k8sClient)
+		g.Expect(err).ToNot(HaveOccurred())
 		resultP.Spec.Suspend = true
-		g.Expect(k8sClient.Update(context.Background(), resultP)).To(Succeed())
+		g.Expect(patchHelper.Patch(context.Background(), resultP)).ToNot(HaveOccurred())
 
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), resultP)
