@@ -39,6 +39,7 @@ const (
 	BitbucketProvider      string = "bitbucket"
 	AzureDevOpsProvider    string = "azuredevops"
 	GoogleChatProvider     string = "googlechat"
+	GooglePubSubProvider   string = "googlepubsub"
 	WebexProvider          string = "webex"
 	SentryProvider         string = "sentry"
 	AzureEventHubProvider  string = "azureeventhub"
@@ -52,7 +53,7 @@ const (
 // ProviderSpec defines the desired state of the Provider.
 type ProviderSpec struct {
 	// Type specifies which Provider implementation to use.
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;bitbucket;azuredevops;googlechat;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;
 	// +required
 	Type string `json:"type"`
 
