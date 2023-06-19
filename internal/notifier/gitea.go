@@ -52,11 +52,11 @@ func NewGitea(providerUID string, addr string, token string, certPool *x509.Cert
 
 	host, id, err := parseGitAddress(addr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed parsing Git URL: %w", err)
 	}
 
 	if _, err := url.Parse(host); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed parsing host: %w", err)
 	}
 
 	idComponents := strings.Split(id, "/")
@@ -66,7 +66,7 @@ func NewGitea(providerUID string, addr string, token string, certPool *x509.Cert
 
 	client, err := gitea.NewClient(host, gitea.SetToken(token))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed creating Gitea client: %w", err)
 	}
 
 	if certPool != nil {
@@ -86,7 +86,7 @@ func NewGitea(providerUID string, addr string, token string, certPool *x509.Cert
 		ProviderUID: providerUID,
 		Client:      client,
 		Debug:       os.Getenv("NOTIFIER_GITEA_DEBUG") == "true",
-	}, err
+	}, nil
 }
 
 func (g *Gitea) Post(ctx context.Context, event eventv1.Event) error {
