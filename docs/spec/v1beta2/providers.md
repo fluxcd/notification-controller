@@ -235,7 +235,7 @@ func verifySignature(signature string, payload, key []byte) error {
 	case "sha512":
 		newF = sha512.New
 	default:
-		return fmt.Errorf("unsupported signature algorithm %q", sigHdr[0])
+		return fmt.Errorf("unsupported signature algorithm %q", sig[0])
 	}
 
 	mac := hmac.New(newF, key)
@@ -244,22 +244,22 @@ func verifySignature(signature string, payload, key []byte) error {
 	}
 
 	sum := fmt.Sprintf("%x", mac.Sum(nil))
-	if sum != sig[0] {
-		return fmt.Errorf("HMACs do not match: %#v != %#v", sum, sigHdr[0])
+	if sum != sig[1] {
+		return fmt.Errorf("HMACs do not match: %#v != %#v", sum, sig[1])
 	}
 	return nil
 }
 
 func handleRequest(w http.ResponseWriter, r *http.Request) {
 	// Require a X-Signature header
-	if len(r.Header["X-Signature"])) == 0 {
+	if len(r.Header["X-Signature"]) == 0 {
 		http.Error(w, "missing X-Signature header", http.StatusBadRequest)
 		return
 	}
 
 	// Read the request body with a limit of 1MB
 	lr := io.LimitReader(r.Body, 1<<20)
-	body, err := ioutil.ReadAll(lr)
+	body, err := io.ReadAll(lr)
 	if err != nil {
 		http.Error(w, "failed to read request body", http.StatusBadRequest)
 		return
@@ -269,7 +269,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	// Provider
 	key := "<token>"
 	if err := verifySignature(r.Header.Get("X-Signature"), body, key); err != nil {
-		http.Error(w, fmt.Sprintf("failed to verify HMAC signature: %s", err.String()), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("failed to verify HMAC signature: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
