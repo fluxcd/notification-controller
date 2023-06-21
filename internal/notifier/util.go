@@ -33,7 +33,7 @@ import (
 func parseGitAddress(s string) (string, string, error) {
 	u, err := giturls.Parse(s)
 	if err != nil {
-		return "", "", nil
+		return "", "", fmt.Errorf("failed parsing URL %q: %w", s, err)
 	}
 
 	scheme := u.Scheme
