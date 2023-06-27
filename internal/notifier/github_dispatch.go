@@ -29,7 +29,7 @@ import (
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v53/github"
 	"golang.org/x/oauth2"
 )
 

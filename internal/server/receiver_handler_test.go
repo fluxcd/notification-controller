@@ -27,7 +27,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v53/github"
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
