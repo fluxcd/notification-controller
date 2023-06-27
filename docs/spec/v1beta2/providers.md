@@ -698,7 +698,6 @@ This Provider type does not support the configuration of a [proxy URL](#https-pr
 or [TLS certificates](#tls-certificates).
 
 ```yaml
-```yaml
 ---
 apiVersion: notification.toolkit.fluxcd.io/v1beta2
 kind: Provider
