@@ -118,6 +118,7 @@ The supported alerting providers are:
 | [Matrix](#matrix)                                       | `matrix`         |
 | [Microsoft Teams](#microsoft-teams)                     | `msteams`        |
 | [Opsgenie](#opsgenie)                                   | `opsgenie`       |
+| [PagerDuty](#pagerduty)                                 | `pagerduty`      |
 | [Prometheus Alertmanager](#prometheus-alertmanager)     | `alertmanager`   |
 | [Rocket](#rocket)                                       | `rocket`         |
 | [Sentry](#sentry)                                       | `sentry`         |
@@ -770,6 +771,64 @@ metadata:
   namespace: default
 stringData:
     token: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+##### PagerDuty
+
+When `.spec.type` is set to `pagerduty`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided PagerDuty [Address](#address).
+
+The Event will be formatted into an [Event API v2](https://developer.pagerduty.com/api-reference/368ae3d938c9e-send-an-event-to-pager-duty) payload,
+triggering or resolving an incident depending on the event's `Severity`.
+
+The provider will also send [Change Events](https://developer.pagerduty.com/api-reference/95db350959c37-send-change-events-to-the-pager-duty-events-api)
+for `info` level `Severity`, which will be displayed in the PagerDuty service's timeline to track changes.
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and [TLS certificates](#tls-certificates).
+
+The [Channel](#channel) is used to set the routing key to send the event to the appropriate integration.
+
+###### PagerDuty example
+
+To configure a Provider for Pagerduty, create a `pagerduty` Provider,
+set `address` to the integration URL and `channel` set to
+the integration key (also known as a routing key) for your [service](https://support.pagerduty.com/docs/services-and-integrations#create-a-generic-events-api-integration)
+or [event orchestration](https://support.pagerduty.com/docs/event-orchestration).
+
+When adding an integration for a service on PagerDuty, it is recommended to use `Events API v2` integration.
+
+**Note**: PagerDuty does not support Change Events when sent to global integrations, such as event orchestration.
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: pagerduty
+  namespace: default
+spec:
+  type: pagerduty
+  address: https://events.pagerduty.com
+  channel: <integrationKey>
+```
+If you are sending to a service integration, it is recommended to set your Alert to filter to
+only those sources you want to trigger an incident for that service. For example:
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Alert
+metadata:
+  name: my-service-pagerduty
+  namespace: default
+spec:
+  providerRef:
+    name: pagerduty
+  eventSources:
+    - kind: HelmRelease
+      name: my-service
+      namespace: default
 ```
 
 ##### Prometheus Alertmanager

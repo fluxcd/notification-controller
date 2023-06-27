@@ -111,6 +111,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewAlertmanager(f.URL, f.ProxyURL, f.CertPool)
 	case apiv1.GrafanaProvider:
 		n, err = NewGrafana(f.URL, f.ProxyURL, f.Token, f.CertPool, f.Username, f.Password)
+	case apiv1.PagerDutyProvider:
+		n, err = NewPagerDuty(f.URL, f.ProxyURL, f.CertPool, f.Channel)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
