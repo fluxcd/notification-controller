@@ -74,8 +74,10 @@ type ProviderSpec struct {
 	// +optional
 	Username string `json:"username,omitempty"`
 
-	// Address specifies the HTTP/S incoming webhook address of this Provider.
-	// +kubebuilder:validation:Pattern="^(http|https)://.*$"
+	// Address specifies the endpoint, in a generic sense, to where alerts are sent.
+	// What kind of endpoint depends on the specific Provider type being used.
+	// For the generic Provider, for example, this is an HTTP/S address.
+	// For other Provider types this could be a project ID or a namespace.
 	// +kubebuilder:validation:MaxLength:=2048
 	// +kubebuilder:validation:Optional
 	// +optional
