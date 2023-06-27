@@ -677,7 +677,7 @@ stringData:
 When `.spec.type` is set to `googlepubsub`, the controller will publish the payload of
 an [Event](events.md#event-structure) on the Google Pub/Sub Topic ID provided in the
 [Channel](#channel) field, which must exist in the GCP Project ID provided in the
-[Address](#address) field.
+[Address](#address) field of the secret referenced in the provider.
 
 This Provider type can optionally use the [Secret reference](#secret-reference) to
 authenticate on the Google Pub/Sub API by using [JSON credentials](https://cloud.google.com/iam/docs/service-account-creds#key-types).
@@ -697,6 +697,29 @@ to the Pub/Sub message using a [`headers` key in the referenced Secret](#http-he
 This Provider type does not support the configuration of a [proxy URL](#https-proxy)
 or [TLS certificates](#tls-certificates).
 
+```yaml
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: googlepubsub-provider
+  namespace: desired-namespace
+spec:
+  type: googlepubsub
+  channel: <Pub/Sub Topic ID>
+  secretRef:
+    name: googlepubsub-provider-creds
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: googlepubsub-provider-creds
+  namespace: desired-namespace
+stringData:
+  address: <GCP Project ID>
+```
+
 ###### Google Pub/Sub with JSON Credentials and Custom Headers Example
 
 To configure a Provider for Google Pub/Sub authenticating with JSON credentials and
@@ -714,7 +737,6 @@ metadata:
   namespace: desired-namespace
 spec:
   type: googlepubsub
-  address: <GCP Project ID>
   channel: <Pub/Sub Topic ID>
   secretRef:
     name: googlepubsub-provider-creds
@@ -726,6 +748,7 @@ metadata:
   namespace: desired-namespace
 stringData:
   token: <GCP JSON credentials>
+  address: <GCP Project ID>
   headers: |
     attr1-name: attr1-value
     attr2-name: attr2-value
