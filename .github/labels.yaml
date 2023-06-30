@@ -1,0 +1,12 @@
+# Configuration file to declaratively configure labels
+# Ref: https://github.com/EndBug/label-sync#Config-files
+
+- name: area/alerting
+  description: Alerting related issues and PRs
+  color: '#93edcf'
+- name: area/receiver
+  description: Webhook receiver related issues and PRs
+  color: '#c5def5'
+- name: backport:release/v1.0.x
+  description: To be backported to release/v1.0.x
+  color: '#ffd700'
