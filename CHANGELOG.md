@@ -2,6 +2,53 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.0.0
+
+**Release date:** 2023-07-04
+
+This is the first stable release of the controller. From now on, this controller
+follows the [Flux 2 release cadence and support pledge](https://fluxcd.io/flux/releases/).
+
+Starting with this version, the build, release and provenance portions of the
+Flux project supply chain [provisionally meet SLSA Build Level 3](https://fluxcd.io/flux/security/slsa-assessment/).
+
+This release comes with support for sending alerts
+to [PagerDuty](https://github.com/fluxcd/notification-controller/blob/v1.0.0/docs/spec/v1beta2/providers.md#pagerduty)
+and [Google Pub/Sub](https://github.com/fluxcd/notification-controller/blob/v1.0.0/docs/spec/v1beta2/providers.md#google-pubsub).
+
+In addition, dependencies have been updated
+to their latest version, including an update of Kubernetes to v1.27.3.
+
+For a comprehensive list of changes since `v0.33.x`, please refer to the
+changelog for [v1.0.0-rc.1](#100-rc1), [v1.0.0-rc.2](#100-rc2),
+[v1.0.0-rc.3](#100-rc3) and [`v1.0.0-rc.4](#100-rc4).
+
+Improvements:
+
+- Add support for PagerDuty
+  [#527](https://github.com/fluxcd/notification-controller/pull/527)
+- Add support for Google Pub/Sub
+  [#543](https://github.com/fluxcd/notification-controller/pull/543)
+- Lift HTTP/S validation from Provider spec.address
+  [#565](https://github.com/fluxcd/notification-controller/pull/565)
+- Improve error messages in Gitea notifier
+  [#556](https://github.com/fluxcd/notification-controller/pull/556)
+- Make Gitea tests independent of 3rd-party service
+  [#558](https://github.com/fluxcd/notification-controller/pull/558)
+- Align go.mod version with Kubernetes (Go 1.20)
+  [#558](https://github.com/fluxcd/notification-controller/pull/558)
+- Update dependencies
+  [#563](https://github.com/fluxcd/notification-controller/pull/563)
+- Update GCP dependencies
+  [#569](https://github.com/fluxcd/notification-controller/pull/569)
+
+Fixes:
+
+- Fix Alert `.spec.eventMetadata` documentation
+  [#541](https://github.com/fluxcd/notification-controller/pull/541)
+- Fix `TestProviderReconciler_Reconcile/finalizes_suspended_object` to use patch instead of update
+  [#550](https://github.com/fluxcd/notification-controller/pull/550)
+
 ## 1.0.0-rc.4
 
 **Release date:** 2023-05-26
