@@ -6,4 +6,4 @@ resources:
 images:
   - name: fluxcd/notification-controller
     newName: fluxcd/notification-controller
-    newTag: v1.0.0-rc.4
+    newTag: v1.0.0
