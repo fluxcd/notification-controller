@@ -936,7 +936,10 @@ stringData:
 
 ### Address
 
-`.spec.address` is an optional field that specifies the URL where the events are posted.
+`.spec.address` is an optional field that specifies the endpoint where the events are posted.
+The meaning of endpoint here depends on the specific Provider type being used.
+For the `generic` Provider for example this is an HTTP/S address.
+For other Provider types this could be a project ID or a namespace.
 
 If the address contains sensitive information such as tokens or passwords, it is 
 recommended to store the address in the Kubernetes secret referenced by `.spec.secretRef.name`.
