@@ -281,7 +281,7 @@ type](#github) compatible [webhook event payloads](https://docs.gitea.io/en-us/w
 
 **Note:** While the payloads are compatible with the GitHub type, the number of
 available events may be limited and/or different from the ones available in
-GitHub. Refer to the [Gitea source code](https://github.com/go-gitea/gitea/blob/main/models/webhook/hooktask.go#L28)
+GitHub. Refer to the [Gitea source code](https://github.com/go-gitea/gitea/blob/v1.19.4/modules/webhook/type.go#L10)
 to see the list of available [events](#events).
 
 #### GitLab
