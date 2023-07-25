@@ -31,6 +31,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -42,6 +44,43 @@ import (
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	"github.com/fluxcd/notification-controller/internal/server"
 )
+
+func TestReceiverReconciler_deleteBeforeFinalizer(t *testing.T) {
+	g := NewWithT(t)
+
+	namespaceName := "receiver-" + randStringRunes(5)
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: namespaceName},
+	}
+	g.Expect(k8sClient.Create(ctx, namespace)).ToNot(HaveOccurred())
+	t.Cleanup(func() {
+		g.Expect(k8sClient.Delete(ctx, namespace)).NotTo(HaveOccurred())
+	})
+
+	receiver := &apiv1.Receiver{}
+	receiver.Name = "test-receiver"
+	receiver.Namespace = namespaceName
+	receiver.Spec = apiv1.ReceiverSpec{
+		Type: "github",
+		Resources: []apiv1.CrossNamespaceObjectReference{
+			{Kind: "Bucket", Name: "Foo"},
+		},
+		SecretRef: meta.LocalObjectReference{Name: "foo-secret"},
+	}
+	// Add a test finalizer to prevent the object from getting deleted.
+	receiver.SetFinalizers([]string{"test-finalizer"})
+	g.Expect(k8sClient.Create(ctx, receiver)).NotTo(HaveOccurred())
+	// Add deletion timestamp by deleting the object.
+	g.Expect(k8sClient.Delete(ctx, receiver)).NotTo(HaveOccurred())
+
+	r := &ReceiverReconciler{
+		Client:        k8sClient,
+		EventRecorder: record.NewFakeRecorder(32),
+	}
+	// NOTE: Only a real API server responds with an error in this scenario.
+	_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(receiver)})
+	g.Expect(err).NotTo(HaveOccurred())
+}
 
 func TestReceiverReconciler_Reconcile(t *testing.T) {
 	g := NewWithT(t)
