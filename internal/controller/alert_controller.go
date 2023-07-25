@@ -133,15 +133,19 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 		}
 	}()
 
-	if !controllerutil.ContainsFinalizer(obj, apiv1.NotificationFinalizer) {
-		controllerutil.AddFinalizer(obj, apiv1.NotificationFinalizer)
-		result = ctrl.Result{Requeue: true}
-		return
-	}
-
 	if !obj.ObjectMeta.DeletionTimestamp.IsZero() {
 		controllerutil.RemoveFinalizer(obj, apiv1.NotificationFinalizer)
 		result = ctrl.Result{}
+		return
+	}
+
+	// Add finalizer first if not exist to avoid the race condition between init
+	// and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp
+	// is not set.
+	if !controllerutil.ContainsFinalizer(obj, apiv1.NotificationFinalizer) {
+		controllerutil.AddFinalizer(obj, apiv1.NotificationFinalizer)
+		result = ctrl.Result{Requeue: true}
 		return
 	}
 
