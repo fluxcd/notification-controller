@@ -268,7 +268,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Verify signature using the same token as the Secret referenced in
 	// Provider
-	key := "<token>"
+	key := []byte("<token>")
 	if err := verifySignature(r.Header.Get("X-Signature"), body, key); err != nil {
 		http.Error(w, fmt.Sprintf("failed to verify HMAC signature: %s", err.Error()), http.StatusBadRequest)
 		return
