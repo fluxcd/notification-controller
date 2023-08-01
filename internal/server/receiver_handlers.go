@@ -71,7 +71,7 @@ func IndexReceiverWebhookPath(o client.Object) []string {
 func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.Background()
-		digest := url.PathEscape(strings.TrimLeft(r.RequestURI, apiv1.ReceiverWebhookPath))
+		digest := url.PathEscape(strings.TrimPrefix(r.RequestURI, apiv1.ReceiverWebhookPath))
 
 		s.logger.Info(fmt.Sprintf("handling request: %s", digest))
 
