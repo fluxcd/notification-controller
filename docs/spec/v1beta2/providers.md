@@ -1421,7 +1421,13 @@ kubectl create secret generic gitlab-token --from-literal=token=<GITLAB-TOKEN>
 When `.spec.type` is set to `gitea`, the referenced secret must contain a key called `token` with the value set to a
 [Gitea token](https://docs.gitea.io/en-us/api-usage/#generating-and-listing-api-tokens).
 
-The token owner must have permissions to update the commit status for the Gitea repository specified in `.spec.address`.
+The token must have at least the `write:repository` permission for the provider to 
+update the commit status for the Gitea repository specified in `.spec.address`.
+
+{{% alert color="info" title="Gitea 1.20.0 & 1.20.1" %}}
+Due to a bug in Gitea 1.20.0 and 1.20.1, these versions require the additional 
+`read:misc` scope to be applied to the token.
+{{% /alert %}}
 
 You can create the secret with `kubectl` like this:
 
