@@ -372,7 +372,9 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 <td>
 <em>(Optional)</em>
 <p>CertSecretRef specifies the Secret containing
-a PEM-encoded CA certificate (<code>caFile</code>).</p>
+a PEM-encoded CA certificate (in the <code>ca.crt</code> key).</p>
+<p>Note: Support for the <code>caFile</code> key has
+been deprecated.</p>
 </td>
 </tr>
 <tr>
@@ -964,7 +966,9 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 <td>
 <em>(Optional)</em>
 <p>CertSecretRef specifies the Secret containing
-a PEM-encoded CA certificate (<code>caFile</code>).</p>
+a PEM-encoded CA certificate (in the <code>ca.crt</code> key).</p>
+<p>Note: Support for the <code>caFile</code> key has
+been deprecated.</p>
 </td>
 </tr>
 <tr>

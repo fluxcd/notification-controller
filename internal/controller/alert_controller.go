@@ -178,7 +178,7 @@ func (r *AlertReconciler) isProviderReady(ctx context.Context, alert *apiv1beta2
 	providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
 	if err := r.Get(ctx, providerName, provider); err != nil {
 		// log not found errors since they get filtered out
-		ctrl.LoggerFrom(ctx).Error(err, "failed to get provider %s", providerName.String())
+		ctrl.LoggerFrom(ctx).Error(err, "failed to get provider", "provider", providerName.String())
 		return fmt.Errorf("failed to get provider '%s': %w", providerName.String(), err)
 	}
 

@@ -205,16 +205,28 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 					continue
 				}
 
-				caFile, ok := secret.Data["caFile"]
-				if !ok {
-					alertLogger.Error(err, "failed to read secret key caFile")
+				switch secret.Type {
+				case corev1.SecretTypeOpaque, corev1.SecretTypeTLS, "":
+				default:
+					alertLogger.Error(nil, "cannot use secret '%s' to get TLS certificate: invalid secret type: '%s'",
+						secret.Name, secret.Type)
 					continue
+				}
+
+				caFile, ok := secret.Data["ca.crt"]
+				if !ok {
+					caFile, ok = secret.Data["caFile"]
+					if !ok {
+						alertLogger.Error(nil, "no 'ca.crt' key found in secret '%s'", provider.Spec.CertSecretRef.Name)
+						continue
+					}
+					alertLogger.Info("warning: specifying CA cert via 'caFile' is deprecated, please use 'ca.crt' instead")
 				}
 
 				certPool = x509.NewCertPool()
 				ok = certPool.AppendCertsFromPEM(caFile)
 				if !ok {
-					alertLogger.Error(err, "could not append to cert pool")
+					alertLogger.Error(nil, "could not append to cert pool")
 					continue
 				}
 			}
