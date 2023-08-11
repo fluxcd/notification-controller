@@ -37,6 +37,7 @@ import (
 
 	runtimeclient "github.com/fluxcd/pkg/runtime/client"
 	"github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/metrics"
 	"github.com/fluxcd/pkg/runtime/testenv"
 	"github.com/fluxcd/pkg/ssa"
 
@@ -67,7 +68,7 @@ func TestMain(m *testing.M) {
 	}
 
 	controllerName := "notification-controller"
-	testMetricsH := controller.MustMakeMetrics(testEnv)
+	testMetricsH := controller.NewMetrics(testEnv, metrics.MustMakeRecorder(), apiv1.NotificationFinalizer)
 
 	if err := (&AlertReconciler{
 		Client:         testEnv,
