@@ -42,6 +42,7 @@ import (
 	feathelper "github.com/fluxcd/pkg/runtime/features"
 	"github.com/fluxcd/pkg/runtime/leaderelection"
 	"github.com/fluxcd/pkg/runtime/logger"
+	"github.com/fluxcd/pkg/runtime/metrics"
 	"github.com/fluxcd/pkg/runtime/pprof"
 	"github.com/fluxcd/pkg/runtime/probes"
 
@@ -158,7 +159,7 @@ func main() {
 	probes.SetupChecks(mgr, setupLog)
 	pprof.SetupHandlers(mgr, setupLog)
 
-	metricsH := helper.MustMakeMetrics(mgr)
+	metricsH := helper.NewMetrics(mgr, metrics.MustMakeRecorder(), apiv1.NotificationFinalizer)
 
 	if err = (&controller.ProviderReconciler{
 		Client:         mgr.GetClient(),
