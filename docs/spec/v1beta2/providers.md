@@ -109,6 +109,7 @@ The supported alerting providers are:
 | [Generic webhook](#generic-webhook)                     | `generic`        |
 | [Generic webhook with HMAC](#generic-webhook-with-hmac) | `generic-hmac`   |
 | [Azure Event Hub](#azure-event-hub)                     | `azureeventhub`  |
+| [DataDog](#datadog)                                     | `datadog`        |
 | [Discord](#discord)                                     | `discord`        |
 | [GitHub dispatch](#github-dispatch)                     | `githubdispatch` |
 | [Google Chat](#google-chat)                             | `googlechat`     |
@@ -403,6 +404,62 @@ metadata:
   namespace: default
 stringData:
     address: "https://xxx.webhook.office.com/..."
+```
+
+##### DataDog
+
+When `.spec.type` is set to `datadog`, the controller will send a payload for
+an [Event](events.md#event-structure) to the provided DataDog API [Address](#address).
+
+The Event will be formatted into a [DataDog Event](https://docs.datadoghq.com/api/latest/events/#post-an-event) and sent to the
+API endpoint of the provided DataDog [Address](#address).
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [TLS certificates](#tls-certificates).
+
+The metadata of the Event is included in the DataDog event as extra tags.
+
+###### DataDog example
+
+To configure a Provider for DataDog, create a Secret with [the `token`](#token-example)
+set to a [DataDog API key](https://docs.datadoghq.com/account_management/api-app-keys/#api-keys)
+(not an application key!) and a `datadog` Provider with a [Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
+kind: Provider
+metadata:
+  name: datadog
+  namespace: default
+spec:
+  type: datadog
+  address: https://api.datadoghq.com # DataDog Site US1
+  secretRef:
+    name: datadog-secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: datadog-secret
+  namespace: default
+stringData:
+  token: <DataDog API Key>
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta1
+kind: Alert
+metadata:
+  name: datadog-info
+  namespace: default
+spec:
+  eventSeverity: info
+  eventSources:
+    - kind: HelmRelease
+      name: "*"
+  providerRef:
+    name: datadog
+  eventMetadata:
+    env: my-k8s-cluster # example of adding a custom `env` tag to the event
 ```
 
 ##### Discord
