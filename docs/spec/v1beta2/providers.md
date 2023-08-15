@@ -144,7 +144,7 @@ The supported providers for [Git commit status updates](#git-commit-status-updat
 When `.spec.type` is set to `generic`, the controller will send an HTTP POST
 request to the provided [Address](#address).
 
-The body of the request is a [JSON `Event` object](events.md#event-structure),
+The body of the request is a [JSON `Event` object](event.md#event-structure),
 for example:
 
 ```json
@@ -191,7 +191,7 @@ referenced Secret](#http-headers-example).
 ##### Generic webhook with HMAC
 
 When `.spec.type` is set to `generic-hmac`, the controller will send an HTTP
-POST request to the provided [Address](#address) for an [Event](events.md#event-structure),
+POST request to the provided [Address](#address) for an [Event](event.md#event-structure),
 while including an `X-Signature` HTTP header carrying the HMAC of the request
 body. The inclusion of the header allows the receiver to verify the
 authenticity and integrity of the request.
@@ -210,7 +210,7 @@ HMAC of the request body, encoded as a hexadecimal string.
 
 while `<hash>` is the hex-encoded HMAC value.
 
-The body of the request is a [JSON `Event` object](events.md#event-structure),
+The body of the request is a [JSON `Event` object](event.md#event-structure),
 as described in the [Generic webhook](#generic-webhook) section.
 
 ###### HMAC verification example
@@ -283,7 +283,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 ##### Slack
 
 When `.spec.type` is set to `slack`, the controller will send a message for an
-[Event](events.md#event-structure) to the provided Slack API [Address](#address). 
+[Event](event.md#event-structure) to the provided Slack API [Address](#address).
 
 The Event will be formatted into a Slack message using an [Attachment](https://api.slack.com/reference/messaging/attachments),
 with the metadata attached as fields, and the involved object as author.
@@ -367,7 +367,7 @@ stringData:
 ##### Microsoft Teams
 
 When `.spec.type` is set to `msteams`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Microsoft Teams [Address](#address).
+an [Event](event.md#event-structure) to the provided Microsoft Teams [Address](#address).
 
 The Event will be formatted into a Microsoft Teams
 [connector message](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/connectors-using#example-of-connector-message),
@@ -409,7 +409,7 @@ stringData:
 ##### DataDog
 
 When `.spec.type` is set to `datadog`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided DataDog API [Address](#address).
+an [Event](event.md#event-structure) to the provided DataDog API [Address](#address).
 
 The Event will be formatted into a [DataDog Event](https://docs.datadoghq.com/api/latest/events/#post-an-event) and sent to the
 API endpoint of the provided DataDog [Address](#address).
@@ -465,7 +465,7 @@ spec:
 ##### Discord
 
 When `.spec.type` is set to `discord`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Discord [Address](#address).
+an [Event](event.md#event-structure) to the provided Discord [Address](#address).
 
 The Event will be formatted into a [Slack message](#slack) and send to the
 `/slack` endpoint of the provided Discord [Address](#address).
@@ -506,7 +506,7 @@ stringData:
 ##### Sentry
 
 When `.spec.type` is set to `sentry`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Sentry [Address](#address).
+an [Event](event.md#event-structure) to the provided Sentry [Address](#address).
 
 Depending on the `severity` of the Event, the controller will capture a [Sentry
 Event](https://develop.sentry.dev/sdk/event-payloads/)for `error`, or [Sentry
@@ -556,7 +556,7 @@ stringData:
 ##### Telegram
 
 When `.spec.type` is set to `telegram`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Telegram [Address](#address).
+an [Event](event.md#event-structure) to the provided Telegram [Address](#address).
 
 The Event will be formatted into a message string, with the metadata attached
 as a list of key-value pairs.
@@ -593,7 +593,7 @@ spec:
 ##### Matrix
 
 When `.spec.type` is set to `matrix`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Matrix [Address](#address).
+an [Event](event.md#event-structure) to the provided Matrix [Address](#address).
 
 The Event will be formatted into a message string, with the metadata attached 
 as a list of key-value pairs, and send as a [`m.room.message` text event](https://spec.matrix.org/v1.3/client-server-api/#mroommessage)
@@ -628,7 +628,7 @@ spec:
 ##### Lark
 
 When `.spec.type` is set to `lark`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Lark [Address](#address).
+an [Event](event.md#event-structure) to the provided Lark [Address](#address).
 
 The Event will be formatted into a [Lark Message card](https://open.larksuite.com/document/ukTMukTMukTM/uczM3QjL3MzN04yNzcDN),
 with the metadata written to the message string.
@@ -665,7 +665,7 @@ stringData:
 ##### Rocket
 
 When `.spec.type` is set to `rocket`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Rocket [Address](#address).
+an [Event](event.md#event-structure) to the provided Rocket [Address](#address).
 
 The Event will be formatted into a [Slack message](#slack) and send as a
 payload the provided Rocket [Address](#address).
@@ -695,7 +695,7 @@ spec:
 ##### Google Chat
 
 When `.spec.type` is set to `googlechat`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Google Chat [Address](#address).
+an [Event](event.md#event-structure) to the provided Google Chat [Address](#address).
 
 The Event will be formatted into a [Google Chat card message](https://developers.google.com/chat/api/reference/rest/v1/cards-v1),
 with the metadata added as a list of [key-value pairs](https://developers.google.com/chat/api/reference/rest/v1/cards-v1#keyvalue)
@@ -733,7 +733,7 @@ stringData:
 ##### Google Pub/Sub
 
 When `.spec.type` is set to `googlepubsub`, the controller will publish the payload of
-an [Event](events.md#event-structure) on the Google Pub/Sub Topic ID provided in the
+an [Event](event.md#event-structure) on the Google Pub/Sub Topic ID provided in the
 [Channel](#channel) field, which must exist in the GCP Project ID provided in the
 [Address](#address) field.
 
@@ -792,7 +792,7 @@ stringData:
 ##### Opsgenie
 
 When `.spec.type` is set to `opsgenie`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Opsgenie [Address](#address).
+an [Event](event.md#event-structure) to the provided Opsgenie [Address](#address).
 
 The Event will be formatted into a [Opsgenie alert](https://docs.opsgenie.com/docs/alert-api#section-create-alert-request),
 with the metadata added to the [`details` field](https://docs.opsgenie.com/docs/alert-api#create-alert)
@@ -833,7 +833,7 @@ stringData:
 ##### PagerDuty
 
 When `.spec.type` is set to `pagerduty`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided PagerDuty [Address](#address).
+an [Event](event.md#event-structure) to the provided PagerDuty [Address](#address).
 
 The Event will be formatted into an [Event API v2](https://developer.pagerduty.com/api-reference/368ae3d938c9e-send-an-event-to-pager-duty) payload,
 triggering or resolving an incident depending on the event's `Severity`.
@@ -891,7 +891,7 @@ spec:
 ##### Prometheus Alertmanager
 
 When `.spec.type` is set to `alertmanager`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Prometheus Alertmanager
+an [Event](event.md#event-structure) to the provided Prometheus Alertmanager
 [Address](#address).
 
 The Event will be formatted into a `firing` [Prometheus Alertmanager
@@ -946,7 +946,7 @@ stringData:
 ##### Webex
 
 When `.spec.type` is set to `webex`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Webex [Address](#address).
+an [Event](event.md#event-structure) to the provided Webex [Address](#address).
 
 The Event will be formatted into a message string, with the metadata attached
 as a list of key-value pairs, and send as a [Webex message](https://developer.webex.com/docs/api/v1/messages/create-a-message).
@@ -1195,7 +1195,7 @@ for the selected repository. The `repository_dispatch` events can be used to tri
 The request includes the `event_type` and `client_payload` fields:
 
 - `event_type` is generated from the involved object in the format `{Kind}/{Name}.{Namespace}`.
-- `client_payload` contains the [Flux event](events.md).
+- `client_payload` contains the [Flux event](event.md).
 
 ### Setting up the GitHub dispatch provider
 
