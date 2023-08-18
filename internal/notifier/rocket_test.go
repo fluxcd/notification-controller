@@ -46,3 +46,23 @@ func TestRocket_Post(t *testing.T) {
 	err = rocket.Post(context.TODO(), testEvent())
 	require.NoError(t, err)
 }
+
+func TestRocket_PostWithoutChannelOrUser(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var payload = SlackPayload{}
+		err = json.Unmarshal(b, &payload)
+		require.NoError(t, err)
+		require.Equal(t, "gitrepository/webapp.gitops-system", payload.Attachments[0].AuthorName)
+		require.Equal(t, "metadata", payload.Attachments[0].Fields[0].Value)
+	}))
+	defer ts.Close()
+
+	rocket, err := NewRocket(ts.URL, "", nil, "", "")
+	require.NoError(t, err)
+
+	err = rocket.Post(context.TODO(), testEvent())
+	require.NoError(t, err)
+}
