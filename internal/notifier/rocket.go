@@ -19,7 +19,6 @@ package notifier
 import (
 	"context"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -41,14 +40,6 @@ func NewRocket(hookURL string, proxyURL string, certPool *x509.CertPool, usernam
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Rocket hook URL %s: '%w'", hookURL, err)
-	}
-
-	if username == "" {
-		return nil, errors.New("empty Rocket username")
-	}
-
-	if channel == "" {
-		return nil, errors.New("empty Rocket channel")
 	}
 
 	return &Rocket{
