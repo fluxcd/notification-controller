@@ -190,6 +190,8 @@ func (r *ProviderReconciler) validateURLs(provider *apiv1beta2.Provider) error {
 }
 
 func (r *ProviderReconciler) validateCredentials(ctx context.Context, provider *apiv1beta2.Provider) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	address := provider.Spec.Address
 	proxy := provider.Spec.Proxy
 	username := provider.Spec.Username
@@ -245,9 +247,19 @@ func (r *ProviderReconciler) validateCredentials(ctx context.Context, provider *
 			return fmt.Errorf("failed to read secret, error: %w", err)
 		}
 
-		caFile, ok := secret.Data["caFile"]
+		switch secret.Type {
+		case corev1.SecretTypeOpaque, corev1.SecretTypeTLS, "":
+		default:
+			return fmt.Errorf("cannot use secret '%s' to get TLS certificate: invalid secret type: '%s'", secret.Name, secret.Type)
+		}
+
+		caFile, ok := secret.Data["ca.crt"]
 		if !ok {
-			return fmt.Errorf("no caFile found in secret %s", provider.Spec.CertSecretRef.Name)
+			caFile, ok = secret.Data["caFile"]
+			if !ok {
+				return fmt.Errorf("no 'ca.crt' key found in secret '%s'", provider.Spec.CertSecretRef.Name)
+			}
+			log.Info("warning: specifying CA cert via 'caFile' is deprecated, please use 'ca.crt' instead")
 		}
 
 		certPool = x509.NewCertPool()

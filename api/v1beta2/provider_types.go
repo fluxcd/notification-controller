@@ -103,8 +103,11 @@ type ProviderSpec struct {
 	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
 
 	// CertSecretRef specifies the Secret containing
-	// a PEM-encoded CA certificate (`caFile`).
+	// a PEM-encoded CA certificate (in the `ca.crt` key).
 	// +optional
+	//
+	// Note: Support for the `caFile` key has
+	// been deprecated.
 	CertSecretRef *meta.LocalObjectReference `json:"certSecretRef,omitempty"`
 
 	// Suspend tells the controller to suspend subsequent

@@ -1095,11 +1095,12 @@ stringData:
 
 `.spec.certSecretRef` is an optional field to specify a name reference to a
 Secret in the same namespace as the Provider, containing the TLS CA certificate.
+The secret must be of type `kubernetes.io/tls` or `Opaque`.
 
 #### Example
 
 To enable notification-controller to communicate with a provider API over HTTPS
-using a self-signed TLS certificate, set the `caFile` like so:
+using a self-signed TLS certificate, set the `ca.crt` like so:
 
 ```yaml
 ---
@@ -1119,10 +1120,15 @@ kind: Secret
 metadata:
   name: my-ca-crt
   namespace: default
+type: kubernetes.io/tls # or Opaque
 stringData:
-  caFile: |
+  ca.crt: |
     <--- CA Key --->
 ```
+
+**Warning:** Support for the `caFile` key has been
+deprecated. If you have any Secrets using this key,
+the controller will log a deprecation warning.
 
 ### HTTP/S proxy
 

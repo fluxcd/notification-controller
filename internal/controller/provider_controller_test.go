@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -235,5 +236,101 @@ func TestProviderReconciler_Reconcile(t *testing.T) {
 			err := k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), resultP)
 			return apierrors.IsNotFound(err)
 		}, timeout, time.Second).Should(BeTrue())
+	})
+}
+
+func TestProviderReconciler_Reconcile_cacert(t *testing.T) {
+	g := NewWithT(t)
+	namespaceName := "provider-" + randStringRunes(5)
+	secretName := "ca-secret-" + randStringRunes(5)
+
+	caCrt, err := os.ReadFile("./testdata/certs/ca.pem")
+	g.Expect(err).To(Not(HaveOccurred()))
+
+	g.Expect(createNamespace(namespaceName)).NotTo(HaveOccurred(), "failed to create test namespace")
+
+	providerKey := types.NamespacedName{
+		Name:      fmt.Sprintf("provider-%s", randStringRunes(5)),
+		Namespace: namespaceName,
+	}
+
+	provider := &apiv1beta2.Provider{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      providerKey.Name,
+			Namespace: providerKey.Namespace,
+		},
+		Spec: apiv1beta2.ProviderSpec{
+			Type:          "generic",
+			Address:       "https://webhook.internal",
+			CertSecretRef: &meta.LocalObjectReference{Name: secretName},
+		},
+	}
+	g.Expect(k8sClient.Create(context.Background(), provider)).To(Succeed())
+
+	certSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: providerKey.Namespace,
+		},
+		Data: map[string][]byte{
+			"caFile": []byte("invalid byte"),
+			"ca.crt": caCrt,
+		},
+	}
+	g.Expect(k8sClient.Create(context.Background(), certSecret)).To(Succeed())
+
+	r := &ProviderReconciler{
+		Client:        k8sClient,
+		EventRecorder: record.NewFakeRecorder(32),
+	}
+
+	t.Run("uses `ca.crt` instead of deprecated `caFile`", func(t *testing.T) {
+		g := NewWithT(t)
+		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(provider)})
+		g.Expect(err).NotTo(HaveOccurred())
+	})
+
+	t.Run("works if only deprecated `caFile` is specified", func(t *testing.T) {
+		g := NewWithT(t)
+
+		clusterCertSecret := &corev1.Secret{}
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(certSecret), clusterCertSecret)).To(Succeed())
+
+		patchHelper, err := patch.NewHelper(clusterCertSecret, k8sClient)
+		g.Expect(err).ToNot(HaveOccurred())
+		clusterCertSecret.Data = map[string][]byte{
+			"caFile": caCrt,
+		}
+		g.Expect(patchHelper.Patch(context.Background(), clusterCertSecret)).ToNot(HaveOccurred())
+
+		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(provider)})
+		g.Expect(err).NotTo(HaveOccurred())
+	})
+
+	t.Run("returns error with certSecretRef of the wrong type", func(t *testing.T) {
+		g := NewWithT(t)
+
+		dockerSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "docker-secret",
+				Namespace: providerKey.Namespace,
+			},
+			Type: corev1.DockerConfigJsonKey,
+		}
+		g.Expect(k8sClient.Create(context.Background(), dockerSecret)).To(Succeed())
+
+		clusterProvider := &apiv1beta2.Provider{}
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(provider), clusterProvider)).To(Succeed())
+
+		patchHelper, err := patch.NewHelper(clusterProvider, k8sClient)
+		g.Expect(err).ToNot(HaveOccurred())
+		clusterProvider.Spec.CertSecretRef = &meta.LocalObjectReference{
+			Name: dockerSecret.Name,
+		}
+		g.Expect(patchHelper.Patch(context.Background(), clusterProvider)).ToNot(HaveOccurred())
+
+		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(provider)})
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("invalid secret type"))
 	})
 }
