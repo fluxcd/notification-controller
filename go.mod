@@ -7,19 +7,19 @@ replace github.com/fluxcd/notification-controller/api => ./api
 require (
 	cloud.google.com/go/pubsub v1.33.0
 	code.gitea.io/sdk/gitea v0.15.1
-	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230106234847-43070de90fa1
+	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24
 	github.com/Azure/azure-amqp-common-go/v4 v4.2.0
 	github.com/Azure/azure-event-hubs-go/v3 v3.6.1
 	github.com/DataDog/datadog-api-client-go/v2 v2.15.0
 	github.com/PagerDuty/go-pagerduty v1.7.0
-	github.com/containrrr/shoutrrr v0.7.1
+	github.com/containrrr/shoutrrr v0.8.0
 	github.com/fluxcd/notification-controller/api v1.0.0
 	github.com/fluxcd/pkg/apis/event v0.5.2
 	github.com/fluxcd/pkg/apis/meta v1.1.2
-	github.com/fluxcd/pkg/git v0.12.4
+	github.com/fluxcd/pkg/git v0.13.0
 	github.com/fluxcd/pkg/masktoken v0.2.0
 	github.com/fluxcd/pkg/runtime v0.42.0
-	github.com/fluxcd/pkg/ssa v0.30.0
+	github.com/fluxcd/pkg/ssa v0.32.0
 	github.com/getsentry/sentry-go v0.23.0
 	github.com/go-logr/logr v1.2.4
 	github.com/google/go-github/v53 v53.2.0
@@ -34,7 +34,7 @@ require (
 	github.com/whilp/git-urls v1.0.0
 	github.com/xanzy/go-gitlab v0.90.0
 	golang.org/x/oauth2 v0.11.0
-	google.golang.org/api v0.136.0
+	google.golang.org/api v0.138.0
 	k8s.io/api v0.27.4
 	k8s.io/apimachinery v0.27.4
 	k8s.io/client-go v0.27.4
@@ -95,7 +95,7 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/s2a-go v0.1.4 // indirect
+	github.com/google/s2a-go v0.1.5 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.2.5 // indirect
