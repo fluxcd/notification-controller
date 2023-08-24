@@ -2,6 +2,46 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.1.0
+
+**Release date:** 2023-08-23
+
+This minor release comes with support for sending alerts
+to [PagerDuty](https://github.com/fluxcd/notification-controller/blob/v1.1.0/docs/spec/v1beta2/providers.md#datadog).
+
+In addition, this version deprecates the usage of the `caFile` key in favor of `ca.crt`
+for the `.spec.certSecretRef` secret in the Provider v1beta2 API.
+
+Starting with this version, the controller now stops exporting an object's
+metrics as soon as the object has been deleted.
+
+Improvements:
+
+- Add support for Datadog
+  [#592](https://github.com/fluxcd/notification-controller/pull/592)
+- Adopt Kubernetes style TLS Secret
+  [#597](https://github.com/fluxcd/notification-controller/pull/597)
+- Remove checks for empty user and channel parameters in Rocket notifier
+  [#603](https://github.com/fluxcd/notification-controller/pull/603)
+- Clarify permission requirements for Gitea provider token
+  [#583](https://github.com/fluxcd/notification-controller/pull/583)
+- Align docs structure with other controllers
+  [#582](https://github.com/fluxcd/notification-controller/pull/582)
+- Update dependencies
+  [#600](https://github.com/fluxcd/notification-controller/pull/600)
+  [#606](https://github.com/fluxcd/notification-controller/pull/606)
+
+Fixes:
+
+- Use TrimPrefix instead of TrimLeft
+  [#590](https://github.com/fluxcd/notification-controller/pull/590)
+- Handle delete before adding finalizer
+  [#584](https://github.com/fluxcd/notification-controller/pull/584)
+- Delete stale metrics on object delete
+  [#599](https://github.com/fluxcd/notification-controller/pull/599)
+- docs: change key type to `[]byte` in provider spec
+  [#585](https://github.com/fluxcd/notification-controller/pull/585)
+
 ## 1.0.0
 
 **Release date:** 2023-07-04

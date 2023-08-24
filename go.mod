@@ -13,7 +13,7 @@ require (
 	github.com/DataDog/datadog-api-client-go/v2 v2.15.0
 	github.com/PagerDuty/go-pagerduty v1.7.0
 	github.com/containrrr/shoutrrr v0.8.0
-	github.com/fluxcd/notification-controller/api v1.0.0
+	github.com/fluxcd/notification-controller/api v1.1.0
 	github.com/fluxcd/pkg/apis/event v0.5.2
 	github.com/fluxcd/pkg/apis/meta v1.1.2
 	github.com/fluxcd/pkg/git v0.13.0
