@@ -482,12 +482,12 @@ func authenticateGCRRequest(c *http.Client, bearer string, tokenIndex int) (err 
 
 	resp, err := c.Get(url)
 	if err != nil {
-		return fmt.Errorf("Cannot verify authenticity of payload: %w", err)
+		return fmt.Errorf("cannot verify authenticity of payload: %w", err)
 	}
 
 	var p auth
 	if err := json.NewDecoder(resp.Body).Decode(&p); err != nil {
-		return fmt.Errorf("Cannot decode auth payload: %w", err)
+		return fmt.Errorf("cannot decode auth payload: %w", err)
 	}
 
 	return nil
