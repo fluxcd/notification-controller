@@ -677,7 +677,7 @@ func Test_handlePayload(t *testing.T) {
 			g.Expect(rr.Result().StatusCode).To(gomega.Equal(tt.expectedResponseCode))
 
 			var allReceivers apiv1.ReceiverList
-			err = client.List(context.TODO(), &allReceivers)
+			g.Expect(client.List(context.TODO(), &allReceivers)).To(gomega.Succeed())
 
 			var annotatedResources int
 			for _, obj := range allReceivers.Items {
