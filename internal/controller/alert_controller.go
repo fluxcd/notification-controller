@@ -206,8 +206,8 @@ func (r *AlertReconciler) requestsForProviderChange(ctx context.Context, o clien
 	}
 
 	var reqs []reconcile.Request
-	for _, i := range list.Items {
-		reqs = append(reqs, reconcile.Request{NamespacedName: client.ObjectKeyFromObject(&i)})
+	for i := range list.Items {
+		reqs = append(reqs, reconcile.Request{NamespacedName: client.ObjectKeyFromObject(&list.Items[i])})
 	}
 
 	return reqs

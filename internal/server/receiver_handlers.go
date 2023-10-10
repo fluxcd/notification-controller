@@ -408,8 +408,8 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 			return nil
 		}
 
-		for _, resource := range resources.Items {
-			if err := s.annotate(ctx, &resource); err != nil {
+		for i, resource := range resources.Items {
+			if err := s.annotate(ctx, &resources.Items[i]); err != nil {
 				return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
 			} else {
 				logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
