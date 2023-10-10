@@ -164,7 +164,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		if len(receiver.Spec.Events) > 0 {
 			allowed := false
 			for _, e := range receiver.Spec.Events {
-				if strings.ToLower(event) == strings.ToLower(e) {
+				if strings.EqualFold(event, e) {
 					allowed = true
 					break
 				}
@@ -185,7 +185,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		if len(receiver.Spec.Events) > 0 {
 			allowed := false
 			for _, e := range receiver.Spec.Events {
-				if strings.ToLower(event) == strings.ToLower(e) {
+				if strings.EqualFold(event, e) {
 					allowed = true
 					break
 				}
@@ -207,7 +207,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		if len(receiver.Spec.Events) > 0 {
 			allowed := false
 			for _, e := range receiver.Spec.Events {
-				if strings.ToLower(event) == strings.ToLower(e) {
+				if strings.EqualFold(event, e) {
 					allowed = true
 					break
 				}
