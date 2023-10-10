@@ -21,7 +21,9 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/url"
-	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
@@ -70,7 +72,7 @@ func (s *Alertmanager) Post(ctx context.Context, event eventv1.Event) error {
 	if event.Metadata != nil {
 		labels = event.Metadata
 	}
-	labels["alertname"] = "Flux" + event.InvolvedObject.Kind + strings.Title(event.Reason)
+	labels["alertname"] = "Flux" + event.InvolvedObject.Kind + cases.Title(language.Und).String(event.Reason)
 	labels["severity"] = event.Severity
 	labels["reason"] = event.Reason
 	labels["timestamp"] = event.Timestamp.String()

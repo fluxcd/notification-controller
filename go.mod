@@ -34,6 +34,7 @@ require (
 	github.com/whilp/git-urls v1.0.0
 	github.com/xanzy/go-gitlab v0.90.0
 	golang.org/x/oauth2 v0.11.0
+	golang.org/x/text v0.12.0
 	google.golang.org/api v0.138.0
 	k8s.io/api v0.27.4
 	k8s.io/apimachinery v0.27.4
@@ -140,7 +141,6 @@ require (
 	golang.org/x/sync v0.3.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/term v0.11.0 // indirect
-	golang.org/x/text v0.12.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
