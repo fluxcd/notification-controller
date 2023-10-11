@@ -65,11 +65,9 @@ func (s *Sentry) Post(ctx context.Context, event eventv1.Event) error {
 	case eventv1.EventSeverityInfo:
 		// Info is sent as a trace
 		sev = eventToSpan(event)
-		break
 	case eventv1.EventSeverityError:
 		// Errors are sent as normal events
 		sev = toSentryEvent(event)
-		break
 	}
 	s.Client.CaptureEvent(sev, nil, nil)
 

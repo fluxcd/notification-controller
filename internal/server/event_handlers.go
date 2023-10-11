@@ -61,12 +61,12 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		// find matching alerts
 		alerts := make([]apiv1beta2.Alert, 0)
 	each_alert:
-		for _, alert := range allAlerts.Items {
-			alertLogger := eventLogger.WithValues("alert", client.ObjectKeyFromObject(&alert))
+		for i, alert := range allAlerts.Items {
+			alertLogger := eventLogger.WithValues("alert", client.ObjectKeyFromObject(&allAlerts.Items[i]))
 			ctx := log.IntoContext(ctx, alertLogger)
 
 			// skip suspended and not ready alerts
-			isReady := conditions.IsReady(&alert)
+			isReady := conditions.IsReady(&allAlerts.Items[i])
 			if alert.Spec.Suspend || !isReady {
 				continue each_alert
 			}
@@ -123,8 +123,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		eventLogger.Info(fmt.Sprintf("Dispatching event: %s", event.Message))
 
 		// dispatch notifications
-		for _, alert := range alerts {
-			alertLogger := eventLogger.WithValues("alert", client.ObjectKeyFromObject(&alert))
+		for i, alert := range alerts {
+			alertLogger := eventLogger.WithValues("alert", client.ObjectKeyFromObject(&alerts[i]))
 			ctx := log.IntoContext(ctx, alertLogger)
 
 			// verify if event comes from a different namespace

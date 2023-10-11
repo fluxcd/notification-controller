@@ -114,7 +114,11 @@ func (s *EventServer) eventMiddleware(h http.Handler) http.Handler {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		r.Body.Close()
+		if err := r.Body.Close(); err != nil {
+			s.logger.Error(err, "closing the request body failed")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 		r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 		event := &eventv1.Event{}

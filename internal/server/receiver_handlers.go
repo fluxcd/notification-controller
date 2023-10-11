@@ -164,7 +164,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		if len(receiver.Spec.Events) > 0 {
 			allowed := false
 			for _, e := range receiver.Spec.Events {
-				if strings.ToLower(event) == strings.ToLower(e) {
+				if strings.EqualFold(event, e) {
 					allowed = true
 					break
 				}
@@ -185,7 +185,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		if len(receiver.Spec.Events) > 0 {
 			allowed := false
 			for _, e := range receiver.Spec.Events {
-				if strings.ToLower(event) == strings.ToLower(e) {
+				if strings.EqualFold(event, e) {
 					allowed = true
 					break
 				}
@@ -207,7 +207,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		if len(receiver.Spec.Events) > 0 {
 			allowed := false
 			for _, e := range receiver.Spec.Events {
-				if strings.ToLower(event) == strings.ToLower(e) {
+				if strings.EqualFold(event, e) {
 					allowed = true
 					break
 				}
@@ -408,8 +408,8 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 			return nil
 		}
 
-		for _, resource := range resources.Items {
-			if err := s.annotate(ctx, &resource); err != nil {
+		for i, resource := range resources.Items {
+			if err := s.annotate(ctx, &resources.Items[i]); err != nil {
 				return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
 			} else {
 				logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
@@ -482,12 +482,12 @@ func authenticateGCRRequest(c *http.Client, bearer string, tokenIndex int) (err 
 
 	resp, err := c.Get(url)
 	if err != nil {
-		return fmt.Errorf("Cannot verify authenticity of payload: %w", err)
+		return fmt.Errorf("cannot verify authenticity of payload: %w", err)
 	}
 
 	var p auth
 	if err := json.NewDecoder(resp.Body).Decode(&p); err != nil {
-		return fmt.Errorf("Cannot decode auth payload: %w", err)
+		return fmt.Errorf("cannot decode auth payload: %w", err)
 	}
 
 	return nil

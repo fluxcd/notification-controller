@@ -60,17 +60,17 @@ func (e *AzureEventHub) Post(ctx context.Context, event eventv1.Event) error {
 
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
-		return fmt.Errorf("Unable to marshall event: %w", err)
+		return fmt.Errorf("unable to marshall event: %w", err)
 	}
 
 	err = e.Hub.Send(ctx, eventhub.NewEvent(eventBytes))
 	if err != nil {
-		return fmt.Errorf("Failed to send msg: %w", err)
+		return fmt.Errorf("failed to send msg: %w", err)
 	}
 
 	err = e.Hub.Close(ctx)
 	if err != nil {
-		return fmt.Errorf("Unable to close connection: %w", err)
+		return fmt.Errorf("unable to close connection: %w", err)
 	}
 	return nil
 }
