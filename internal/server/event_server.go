@@ -39,6 +39,10 @@ import (
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
+// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=alerts,verbs=get;list
+// +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=providers,verbs=get
+
 type eventContextKey struct{}
 
 // EventServer handles event POST requests
