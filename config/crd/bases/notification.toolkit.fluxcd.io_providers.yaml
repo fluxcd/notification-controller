@@ -24,6 +24,8 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].message
       name: Status
       type: string
+    deprecated: true
+    deprecationWarning: v1beta1 Provider is deprecated, upgrade to v1beta3
     name: v1beta1
     schema:
       openAPIV3Schema:
@@ -207,6 +209,8 @@ spec:
     - jsonPath: .status.conditions[?(@.type=="Ready")].message
       name: Status
       type: string
+    deprecated: true
+    deprecationWarning: v1beta2 Provider is deprecated, upgrade to v1beta3
     name: v1beta2
     schema:
       openAPIV3Schema:
