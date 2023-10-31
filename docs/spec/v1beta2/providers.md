@@ -129,13 +129,14 @@ The supported alerting providers are:
 
 The supported providers for [Git commit status updates](#git-commit-status-updates) are:
 
-| Provider                      | Type          |
-|-------------------------------|---------------|
-| [Azure DevOps](#azure-devops) | `azuredevops` |
-| [Bitbucket](#bitbucket)       | `bitbucket`   |
-| [GitHub](#github)             | `github`      |
-| [GitLab](#gitlab)             | `gitlab`      |
-| [Gitea](#gitea)               | `gitea`       |
+| Provider                                        | Type              |
+| ------------------------------------------------| ----------------- |
+| [Azure DevOps](#azure-devops)                   | `azuredevops`     |
+| [Bitbucket](#bitbucket)                         | `bitbucket`       |
+| [BitbucketServer](#bitbucket-serverdata-center) | `bitbucketserver` |
+| [GitHub](#github)                               | `github`          |
+| [GitLab](#gitlab)                               | `gitlab`          |
+| [Gitea](#gitea)                                 | `gitea`           |
 
 #### Alerting
 
@@ -1513,6 +1514,30 @@ You can create the secret with `kubectl` like this:
 ```shell
 kubectl create secret generic bitbucket-token --from-literal=token=<username>:<app-password>
 ```
+
+#### BitBucket Server/Data Center
+
+When `.spec.type` is set to `bitbucketserver`, the following auth methods are available:
+
+- Basic Authentication (username/password)
+- [HTTP access tokens](https://confluence.atlassian.com/bitbucketserver/http-access-tokens-939515499.html)
+
+For Basic Authentication, the referenced secret must contain a `password` field. The `username` field can either come from the [`.spec.username` field of the Provider](https://fluxcd.io/flux/components/notification/providers/#username) or can be defined in the referenced secret.
+
+You can create the secret with `kubectl` like this:
+
+```shell
+kubectl create secret generic bb-server-username-password --from-literal=username=<username> --from-literal=password=<password>
+```
+
+For HTTP access tokens, the secret can be created with `kubectl` like this:
+
+```shell
+kubectl create secret generic bb-server-token --from-literal=token=<token>
+```
+
+The HTTP access token must have `Repositories (Read/Write)` permission for
+the repository specified in `.spec.address`.
 
 #### Azure DevOps
 

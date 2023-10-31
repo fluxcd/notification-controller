@@ -24,38 +24,39 @@ import (
 )
 
 const (
-	ProviderKind           string = "Provider"
-	GenericProvider        string = "generic"
-	GenericHMACProvider    string = "generic-hmac"
-	SlackProvider          string = "slack"
-	GrafanaProvider        string = "grafana"
-	DiscordProvider        string = "discord"
-	MSTeamsProvider        string = "msteams"
-	RocketProvider         string = "rocket"
-	GitHubDispatchProvider string = "githubdispatch"
-	GitHubProvider         string = "github"
-	GitLabProvider         string = "gitlab"
-	GiteaProvider          string = "gitea"
-	BitbucketProvider      string = "bitbucket"
-	AzureDevOpsProvider    string = "azuredevops"
-	GoogleChatProvider     string = "googlechat"
-	GooglePubSubProvider   string = "googlepubsub"
-	WebexProvider          string = "webex"
-	SentryProvider         string = "sentry"
-	AzureEventHubProvider  string = "azureeventhub"
-	TelegramProvider       string = "telegram"
-	LarkProvider           string = "lark"
-	Matrix                 string = "matrix"
-	OpsgenieProvider       string = "opsgenie"
-	AlertManagerProvider   string = "alertmanager"
-	PagerDutyProvider      string = "pagerduty"
-	DataDogProvider        string = "datadog"
+	ProviderKind            string = "Provider"
+	GenericProvider         string = "generic"
+	GenericHMACProvider     string = "generic-hmac"
+	SlackProvider           string = "slack"
+	GrafanaProvider         string = "grafana"
+	DiscordProvider         string = "discord"
+	MSTeamsProvider         string = "msteams"
+	RocketProvider          string = "rocket"
+	GitHubDispatchProvider  string = "githubdispatch"
+	GitHubProvider          string = "github"
+	GitLabProvider          string = "gitlab"
+	GiteaProvider           string = "gitea"
+	BitbucketServerProvider string = "bitbucketserver"
+	BitbucketProvider       string = "bitbucket"
+	AzureDevOpsProvider     string = "azuredevops"
+	GoogleChatProvider      string = "googlechat"
+	GooglePubSubProvider    string = "googlepubsub"
+	WebexProvider           string = "webex"
+	SentryProvider          string = "sentry"
+	AzureEventHubProvider   string = "azureeventhub"
+	TelegramProvider        string = "telegram"
+	LarkProvider            string = "lark"
+	Matrix                  string = "matrix"
+	OpsgenieProvider        string = "opsgenie"
+	AlertManagerProvider    string = "alertmanager"
+	PagerDutyProvider       string = "pagerduty"
+	DataDogProvider         string = "datadog"
 )
 
 // ProviderSpec defines the desired state of the Provider.
 type ProviderSpec struct {
 	// Type specifies which Provider implementation to use.
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;pagerduty;datadog
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;bitbucketserver;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;pagerduty;datadog
 	// +required
 	Type string `json:"type"`
 
