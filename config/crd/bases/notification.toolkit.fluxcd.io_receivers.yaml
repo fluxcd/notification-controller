@@ -144,6 +144,7 @@ spec:
                 - gcr
                 - nexus
                 - acr
+                - cdevents
                 type: string
             required:
             - resources

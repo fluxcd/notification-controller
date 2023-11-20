@@ -40,13 +40,14 @@ const (
 	GCRReceiver         string = "gcr"
 	NexusReceiver       string = "nexus"
 	ACRReceiver         string = "acr"
+	CDEventsReceiver    string = "cdevents"
 )
 
 // ReceiverSpec defines the desired state of the Receiver.
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
-	// +kubebuilder:validation:Enum=generic;generic-hmac;github;gitlab;bitbucket;harbor;dockerhub;quay;gcr;nexus;acr
+	// +kubebuilder:validation:Enum=generic;generic-hmac;github;gitlab;bitbucket;harbor;dockerhub;quay;gcr;nexus;acr;cdevents
 	// +required
 	Type string `json:"type"`
 

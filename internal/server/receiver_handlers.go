@@ -31,6 +31,7 @@ import (
 	"strings"
 	"time"
 
+	cdevents "github.com/cdevents/sdk-go/pkg/api"
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 	"github.com/go-logr/logr"
@@ -196,6 +197,38 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		}
 
 		logger.Info(fmt.Sprintf("handling GitLab event: %s", event))
+		return nil
+	case apiv1.CDEventsReceiver:
+		event := r.Header.Get("Ce-Type")
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("unable to read CDEvent request body: %s", err)
+		}
+
+		cdevent, err := cdevents.NewFromJsonBytes(b)
+		if err != nil {
+			return fmt.Errorf("unable to validate CDEvent event: %s", err)
+		}
+
+		err = cdevents.Validate(cdevent)
+		if err != nil {
+			return fmt.Errorf("unable to validate CDEvent event: %s", err)
+		}
+
+		if len(receiver.Spec.Events) > 0 {
+			allowed := false
+			for _, e := range receiver.Spec.Events {
+				if strings.EqualFold(event, e) {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				return fmt.Errorf("the CDEvent '%s' is not authorised", event)
+			}
+		}
+
+		logger.Info(fmt.Sprintf("handling CDEvent: %s", event))
 		return nil
 	case apiv1.BitbucketReceiver:
 		_, err := github.ValidatePayload(r, []byte(token))
