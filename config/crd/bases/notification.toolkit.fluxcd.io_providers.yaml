@@ -291,6 +291,7 @@ spec:
                 - github
                 - gitlab
                 - gitea
+                - bitbucketserver
                 - bitbucket
                 - azuredevops
                 - googlechat
