@@ -35,6 +35,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
 	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/fluxcd/pkg/runtime/acl"
 	"github.com/fluxcd/pkg/runtime/client"
@@ -127,9 +128,8 @@ func main() {
 	}
 
 	restConfig := client.GetConfigOrDie(clientOptions)
-	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
+	mgrConfig := ctrl.Options{
 		Scheme:                        scheme,
-		MetricsBindAddress:            metricsAddr,
 		HealthProbeBindAddress:        healthAddr,
 		LeaderElection:                leaderElectionOptions.Enable,
 		LeaderElectionReleaseOnCancel: leaderElectionOptions.ReleaseOnCancel,
@@ -147,17 +147,27 @@ func main() {
 				DisableFor: disableCacheFor,
 			},
 		},
-		Cache: ctrlcache.Options{
-			Namespaces: []string{watchNamespace},
+		Metrics: metricsserver.Options{
+			BindAddress:   metricsAddr,
+			ExtraHandlers: pprof.GetHandlers(),
 		},
-	})
+	}
+
+	if watchNamespace != "" {
+		mgrConfig.Cache = ctrlcache.Options{
+			DefaultNamespaces: map[string]ctrlcache.Config{
+				watchNamespace: ctrlcache.Config{},
+			},
+		}
+	}
+
+	mgr, err := ctrl.NewManager(restConfig, mgrConfig)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
 	probes.SetupChecks(mgr, setupLog)
-	pprof.SetupHandlers(mgr, setupLog)
 
 	metricsH := helper.NewMetrics(mgr, metrics.MustMakeRecorder(), apiv1.NotificationFinalizer)
 
