@@ -49,6 +49,7 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1b2 "github.com/fluxcd/notification-controller/api/v1beta2"
+	apiv1b3 "github.com/fluxcd/notification-controller/api/v1beta3"
 	"github.com/fluxcd/notification-controller/internal/controller"
 	"github.com/fluxcd/notification-controller/internal/features"
 	"github.com/fluxcd/notification-controller/internal/server"
@@ -67,6 +68,7 @@ func init() {
 
 	_ = apiv1.AddToScheme(scheme)
 	_ = apiv1b2.AddToScheme(scheme)
+	_ = apiv1b3.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -174,25 +176,21 @@ func main() {
 	if err = (&controller.ProviderReconciler{
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
-		Metrics:        metricsH,
 		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
-	}).SetupWithManagerAndOptions(mgr, controller.ProviderReconcilerOptions{
-		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
-	}); err != nil {
+	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Provider")
 		os.Exit(1)
 	}
+
 	if err = (&controller.AlertReconciler{
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
-		Metrics:        metricsH,
 		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
-	}).SetupWithManagerAndOptions(mgr, controller.AlertReconcilerOptions{
-		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
-	}); err != nil {
+	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Alert")
 		os.Exit(1)
 	}
+
 	if err = (&controller.ReceiverReconciler{
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
@@ -222,7 +220,7 @@ func main() {
 			Registry: crtlmetrics.Registry,
 		}),
 	})
-	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), aclOptions.NoCrossNamespaceRefs)
+	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), mgr.GetEventRecorderFor(controllerName), aclOptions.NoCrossNamespaceRefs)
 	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)

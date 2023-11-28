@@ -1,0 +1,10 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: foo
+  namespace: "%[1]s"
+  labels:
+    app: podinfo
+spec:
+  interval: 1m

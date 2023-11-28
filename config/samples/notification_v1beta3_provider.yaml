@@ -1,0 +1,34 @@
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: slack-provider-sample
+spec:
+  type: slack
+  channel: general
+  secretRef:
+    name: slack-url
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: slack-url
+data:
+  address: aHR0cHM6Ly9ob29rcy5zbGFjay5jb20vc2VydmljZXMv
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: generic-provider-sample
+spec:
+  type: generic
+  address: https://api.github.com/repos/fluxcd/notification-controller/dispatches
+  secretRef:
+    name: generic-secret
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: generic-secret
+stringData:
+  headers: |
+    Authorization: token
