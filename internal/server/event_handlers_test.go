@@ -18,9 +18,11 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -746,6 +748,28 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 				Address: "https://example.com",
 			},
 			wantErr: true,
+		},
+		{
+			name: "address in secret too long",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				Type:      "msteams",
+				SecretRef: &meta.LocalObjectReference{Name: secretName},
+			},
+			secretData: map[string][]byte{
+				"address": []byte(fmt.Sprintf("https://example.org/%s", strings.Repeat("a", 2029))),
+			},
+			wantErr: true,
+		},
+		{
+			name: "address in secret exactly as long as possible",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				Type:      "msteams",
+				SecretRef: &meta.LocalObjectReference{Name: secretName},
+			},
+			secretData: map[string][]byte{
+				"address": []byte(fmt.Sprintf("https://example.org/%s", strings.Repeat("a", 2028))),
+			},
+			wantErr: false,
 		},
 	}
 
