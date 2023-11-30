@@ -509,6 +509,7 @@ spec:
                 - githubdispatch
                 - pagerduty
                 - datadog
+                - nats
                 type: string
               username:
                 description: Username specifies the name under which events are posted.

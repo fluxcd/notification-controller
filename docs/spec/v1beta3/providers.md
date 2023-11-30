@@ -107,6 +107,7 @@ The supported alerting providers are:
 | [Slack](#slack)                                         | `slack`          |
 | [Telegram](#telegram)                                   | `telegram`       |
 | [WebEx](#webex)                                         | `webex`          |
+| [NATS](#nats)                                           | `nats`           |
 
 The supported providers for [Git commit status updates](#git-commit-status-updates) are:
 
@@ -971,6 +972,50 @@ metadata:
   namespace: default
 stringData:
   token: <bot-token>
+```
+
+##### NATS
+
+When `.spec.type` is set to `nats`, the controller will publish the payload of
+an [Event](events.md#event-structure) on the NATS Subject provided in the
+[Channel](#channel) field, using the server specified in the [Address](#address) field.
+
+This Provider type can optionally use the [Secret reference](#secret-reference) to
+authenticate to the NATS server using [Username/Password](https://docs.nats.io/using-nats/developer/connecting/userpass).
+The credentials must be specified in [the `username`](#username-example) and `password` fields of the Secret.
+Alternatively, NATS also supports passing the credentials with [the server URL](https://docs.nats.io/using-nats/developer/connecting/userpass#connecting-with-a-user-password-in-the-url). In this case the `address` should be provided through a 
+Secret reference.
+
+Additionally if using credentials, the User must have [authorization](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization) to publish on the Subject provided.
+
+###### NATS with Username/Password Credentials Example
+
+To configure a Provider for NATS authenticating with Username/Password, create a Secret with the
+`username` and `password` fields set, and add a `nats` Provider with the associated
+[Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: nats-provider
+  namespace: desired-namespace
+spec:
+  type: nats
+  address: <NATS Server URL>
+  channel: <Subject>
+  secretRef:
+    name: nats-provider-creds
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nats-provider-creds
+  namespace: desired-namespace
+stringData:
+  username: <NATS Username>
+  password: <NATS Password>
 ```
 
 ### Address
