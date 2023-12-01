@@ -977,7 +977,7 @@ stringData:
 ##### NATS
 
 When `.spec.type` is set to `nats`, the controller will publish the payload of
-an [Event](events.md#event-structure) on the NATS Subject provided in the
+an [Event](events.md#event-structure) on the [NATS Subject](https://docs.nats.io/nats-concepts/subjects) provided in the
 [Channel](#channel) field, using the server specified in the [Address](#address) field.
 
 This Provider type can optionally use the [Secret reference](#secret-reference) to
