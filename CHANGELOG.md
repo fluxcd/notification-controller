@@ -2,6 +2,77 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.2.0
+
+**Release date:** 2023-12-05
+
+This minor release graduates the notification `Alert` and `Provider` APIs to
+`v1beta3`. In addition, this version comes with alert Provider support for
+[BitBucket
+Server](https://github.com/fluxcd/notification-controller/blob/api/v1.2.0/docs/spec/v1beta3/providers.md#bitbucket-serverdata-center)
+and
+[NATS](https://github.com/fluxcd/notification-controller/blob/api/v1.2.0/docs/spec/v1beta3/providers.md#nats).
+
+### `notification.toolkit.fluxcd.io/v1beta3`
+
+After upgrading the controller to v1.2.0, please update the notification Custom
+Resources for `Alert` and `Provider` in Git by replacing
+`notification.toolkit.fluxcd.io/v1beta2` with
+`notification.toolkit.fluxcd.io/v1beta3` in all the YAML manifests.
+
+#### Static Alerts and Providers
+
+The notification Alert and Provider API resources will become static objects
+with configurations that will be used by the event handlers for processing the
+respective incoming events. They will no longer be reconciled by a reconciler
+and will not advertise any status. Once `Alerts` and `Providers` are created,
+they can be considered ready. Users of
+[kstatus](https://github.com/kubernetes-sigs/cli-utils/blob/master/pkg/kstatus/README.md)
+shouldn't see any difference. Existing `Alerts` and `Providers` objects in
+`v1beta2` API will undergo a one-time automatic migration to be converted into
+static objects without any status.
+
+#### Enhanced Alert events
+
+The event handler will emit Kubernetes native events on the respective Alert
+object for any relevant information, including failures due to any
+misconfiguration.
+
+Improvements:
+- Add Provider for NATS Subject
+  [#651](https://github.com/fluxcd/notification-controller/pull/651)
+- Cap provider address at 2048 bytes
+  [#654](https://github.com/fluxcd/notification-controller/pull/654)
+- Refactor events and introduce v1beta3 API for Alert and Provider
+  [#540](https://github.com/fluxcd/notification-controller/pull/540)
+- Add Bitbucket server/Bitbucket Data Center provider for git commit status
+  [#639](https://github.com/fluxcd/notification-controller/pull/639)
+- Address miscellaneous issues throughout code base
+  [#627](https://github.com/fluxcd/notification-controller/pull/627)
+- Update dependencies
+  [#609](https://github.com/fluxcd/notification-controller/pull/609)
+  [#612](https://github.com/fluxcd/notification-controller/pull/612)
+  [#613](https://github.com/fluxcd/notification-controller/pull/613)
+  [#617](https://github.com/fluxcd/notification-controller/pull/617)
+  [#621](https://github.com/fluxcd/notification-controller/pull/621)
+  [#623](https://github.com/fluxcd/notification-controller/pull/623)
+  [#628](https://github.com/fluxcd/notification-controller/pull/628)
+  [#629](https://github.com/fluxcd/notification-controller/pull/629)
+  [#632](https://github.com/fluxcd/notification-controller/pull/632)
+  [#635](https://github.com/fluxcd/notification-controller/pull/635)
+  [#637](https://github.com/fluxcd/notification-controller/pull/637)
+  [#641](https://github.com/fluxcd/notification-controller/pull/641)
+  [#643](https://github.com/fluxcd/notification-controller/pull/643)
+  [#646](https://github.com/fluxcd/notification-controller/pull/646)
+  [#648](https://github.com/fluxcd/notification-controller/pull/648)
+  [#652](https://github.com/fluxcd/notification-controller/pull/652)
+  [#656](https://github.com/fluxcd/notification-controller/pull/656)
+  [#657](https://github.com/fluxcd/notification-controller/pull/657)
+
+Fixes:
+- Fix README.md links to notification APIs
+  [#619](https://github.com/fluxcd/notification-controller/pull/619)
+
 ## 1.1.0
 
 **Release date:** 2023-08-23
