@@ -14,7 +14,7 @@ require (
 	github.com/PagerDuty/go-pagerduty v1.7.0
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/fluxcd/cli-utils v0.36.0-flux.1
-	github.com/fluxcd/notification-controller/api v1.1.0
+	github.com/fluxcd/notification-controller/api v1.2.0
 	github.com/fluxcd/pkg/apis/event v0.6.0
 	github.com/fluxcd/pkg/apis/meta v1.2.0
 	github.com/fluxcd/pkg/git v0.16.0
