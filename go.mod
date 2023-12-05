@@ -12,6 +12,7 @@ require (
 	github.com/Azure/azure-event-hubs-go/v3 v3.6.1
 	github.com/DataDog/datadog-api-client-go/v2 v2.19.0
 	github.com/PagerDuty/go-pagerduty v1.7.0
+	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/fluxcd/cli-utils v0.36.0-flux.1
 	github.com/fluxcd/notification-controller/api v1.2.0
@@ -33,7 +34,6 @@ require (
 	github.com/slok/go-http-metrics v0.11.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
-	github.com/whilp/git-urls v1.0.0
 	github.com/xanzy/go-gitlab v0.94.0
 	golang.org/x/oauth2 v0.15.0
 	golang.org/x/text v0.14.0
