@@ -26,7 +26,7 @@ require (
 	github.com/go-logr/logr v1.3.0
 	github.com/google/go-github/v53 v53.2.0
 	github.com/hashicorp/go-retryablehttp v0.7.5
-	github.com/ktrysmt/go-bitbucket v0.9.72
+	github.com/ktrysmt/go-bitbucket v0.9.73
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
 	github.com/nats-io/nats.go v1.31.0
 	github.com/onsi/gomega v1.30.0
@@ -37,7 +37,7 @@ require (
 	github.com/xanzy/go-gitlab v0.94.0
 	golang.org/x/oauth2 v0.15.0
 	golang.org/x/text v0.14.0
-	google.golang.org/api v0.152.0
+	google.golang.org/api v0.153.0
 	k8s.io/api v0.28.4
 	k8s.io/apimachinery v0.28.4
 	k8s.io/client-go v0.28.4
