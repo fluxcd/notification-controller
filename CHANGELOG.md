@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.2.1
+
+**Release date:** 2023-12-08
+
+This patch release updates the Go version the controller is built with to
+`1.21.x`, while mitigating recently published security vulnerabilities in the
+`net/http` package.
+
+In addition, it ensures static analyzers no longer detect a vulnerability in the
+`whilp/git-urls` module by using `chainguard-dev/git-urls`. For which the
+(potential) issue itself got already addressed internally in the [previous
+v1.2.0 release](#120).
+
+Lastly, a small number of dependencies got updated to their latest versions.
+
+Improvements:
+- Update Go to 1.21.x
+  [#666](https://github.com/fluxcd/notification-controller/pull/666)
+- Replace whilp/git-urls module by chainguard-dev/git-urls
+  [#667](https://github.com/fluxcd/notification-controller/pull/667)
+- Update dependencies
+  [#669](https://github.com/fluxcd/notification-controller/pull/669)
+
 ## 1.2.0
 
 **Release date:** 2023-12-05
