@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.2.2
+
+**Release date:** 2023-12-11
+
+This patch releases updates a variety of dependencies, including an update of
+the container base image to Alpine v3.19.
+
+Improvements:
+- build: update Alpine to 3.19
+  [#675](https://github.com/fluxcd/notification-controller/pull/675)
+- Update dependencies
+  [#677](https://github.com/fluxcd/notification-controller/pull/677)
+
 ## 1.2.1
 
 **Release date:** 2023-12-08
