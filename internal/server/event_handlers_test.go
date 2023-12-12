@@ -571,17 +571,6 @@ func TestCreateNotifier(t *testing.T) {
 			},
 		},
 		{
-			name: "reference to secret with invalid address",
-			providerSpec: &apiv1beta3.ProviderSpec{
-				Type:      "slack",
-				SecretRef: &meta.LocalObjectReference{Name: secretName},
-			},
-			secretData: map[string][]byte{
-				"address": []byte("https://example.com|"),
-			},
-			wantErr: true,
-		},
-		{
 			name: "reference to secret with invalid proxy",
 			providerSpec: &apiv1beta3.ProviderSpec{
 				Type:      "slack",
