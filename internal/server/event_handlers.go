@@ -281,10 +281,6 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 				return nil, "", fmt.Errorf("invalid address in secret: address exceeds maximum length of %d bytes", 2048)
 			}
 			webhook = string(address)
-			_, err := url.Parse(webhook)
-			if err != nil {
-				return nil, "", fmt.Errorf("invalid address in secret '%s': %w", webhook, err)
-			}
 		}
 
 		if p, ok := secret.Data["password"]; ok {
