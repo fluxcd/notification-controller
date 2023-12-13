@@ -457,6 +457,11 @@ spec:
                   should be posted.
                 maxLength: 2048
                 type: string
+              interval:
+                description: Interval at which to reconcile the Provider with its
+                  Secret references. Deprecated and not used in v1beta3.
+                pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
+                type: string
               proxy:
                 description: Proxy the HTTP/S address of the proxy server.
                 maxLength: 2048

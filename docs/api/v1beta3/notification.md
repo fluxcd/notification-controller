@@ -254,6 +254,21 @@ string
 </tr>
 <tr>
 <td>
+<code>interval</code><br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Interval at which to reconcile the Provider with its Secret references.
+Deprecated and not used in v1beta3.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>channel</code><br>
 <em>
 string
@@ -523,6 +538,21 @@ string
 </td>
 <td>
 <p>Type specifies which Provider implementation to use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>interval</code><br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Interval at which to reconcile the Provider with its Secret references.
+Deprecated and not used in v1beta3.</p>
 </td>
 </tr>
 <tr>
