@@ -1058,3 +1058,35 @@ func TestEnhanceEventWithAlertMetadata(t *testing.T) {
 		})
 	}
 }
+
+func Test_excludeInternalMetadata(t *testing.T) {
+	tests := []struct {
+		name         string
+		event        eventv1.Event
+		wantMetadata map[string]string
+	}{
+		{
+			name: "no metadata",
+		},
+		{
+			name: "internal metadata",
+			event: eventv1.Event{
+				Metadata: map[string]string{
+					eventv1.MetaTokenKey:    "aaaa",
+					eventv1.MetaRevisionKey: "bbbb",
+				},
+			},
+			wantMetadata: map[string]string{
+				eventv1.MetaRevisionKey: "bbbb",
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			excludeInternalMetadata(&tt.event)
+			g.Expect(tt.event.Metadata).To(BeEquivalentTo(tt.wantMetadata))
+		})
+	}
+}
