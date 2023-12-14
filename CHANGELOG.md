@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.2.3
+
+**Release date:** 2023-12-14
+
+This patch release fixes various issues, most notably, the Provider v1beta3 API
+backwards compatibility issue when `.spec.interval` was explicitly set in a
+v1beta2 version of Provider.
+
+Fixes:
+- Exclude eventv1.MetaTokenKey from event metadata
+  [#686](https://github.com/fluxcd/notification-controller/pull/686)
+- Add .spec.interval in v1beta3 Provider
+  [#683](https://github.com/fluxcd/notification-controller/pull/683)
+- Remove URL syntax validation for provider address entirely
+  [#682](https://github.com/fluxcd/notification-controller/pull/682)
+
 ## 1.2.2
 
 **Release date:** 2023-12-11
