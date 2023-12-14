@@ -58,6 +58,9 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 		defer cancel()
 
+		// Remove any internal metadata before further processing the event.
+		excludeInternalMetadata(event)
+
 		alerts, err := s.getAllAlertsForEvent(ctx, event)
 		if err != nil {
 			eventLogger.Error(err, "failed to get alerts for the event")
@@ -438,5 +441,16 @@ func (s *EventServer) enhanceEventWithAlertMetadata(ctx context.Context, event *
 
 	if len(meta) > 0 {
 		event.Metadata = meta
+	}
+}
+
+// excludeInternalMetadata removes any internal metadata from the given event.
+func excludeInternalMetadata(event *eventv1.Event) {
+	if len(event.Metadata) == 0 {
+		return
+	}
+	excludeList := []string{eventv1.MetaTokenKey}
+	for _, key := range excludeList {
+		delete(event.Metadata, key)
 	}
 }
