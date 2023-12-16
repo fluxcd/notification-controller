@@ -119,6 +119,8 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewDataDog(f.URL, f.ProxyURL, f.CertPool, f.Token)
 	case apiv1.NATSProvider:
 		n, err = NewNATS(f.URL, f.Channel, f.Username, f.Password)
+	case apiv1.NtfyProvider:
+		n, err = NewNtfy(f.URL, f.Channel, f.Token, f.Username, f.Password)
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
