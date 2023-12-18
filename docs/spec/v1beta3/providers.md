@@ -11,7 +11,7 @@ install or upgrade [Flagger](https://github.com/fluxcd/flagger).
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: slack-bot
@@ -23,7 +23,7 @@ spec:
   secretRef:
     name: slack-bot-token
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Alert
 metadata:
   name: slack
@@ -133,7 +133,7 @@ for example:
 ```json
 {
   "involvedObject": {
-    "apiVersion": "kustomize.toolkit.fluxcd.io/v1beta2",
+    "apiVersion": "kustomize.toolkit.fluxcd.io/v1",
     "kind": "Kustomization",
     "name": "webapp",
     "namespace": "apps",
@@ -299,7 +299,7 @@ by adding the integration to each channel.
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: slack
@@ -328,7 +328,7 @@ and a `slack` Provider with a [Secret reference](#address-example).
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: slack
@@ -370,7 +370,7 @@ and a `msteams` Provider with a [Secret reference](#address-example).
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: msteams
@@ -410,7 +410,7 @@ set to a [DataDog API key](https://docs.datadoghq.com/account_management/api-app
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: datadog
@@ -429,7 +429,7 @@ metadata:
 stringData:
   token: <DataDog API Key>
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta1
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Alert
 metadata:
   name: datadog-info
@@ -466,7 +466,7 @@ and a `discord` Provider with a [Secret reference](#secret-reference).
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: discord
@@ -512,7 +512,7 @@ and a `sentry` Provider with a [Secret reference](#secret-reference).
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: sentry
@@ -560,7 +560,7 @@ and a `telegram` Provider with a [Secret reference](#secret-reference), and the
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: telegram
@@ -595,7 +595,7 @@ obtained from [the Matrix endpoint](https://matrix.org/docs/guides/client-server
 and a `matrix` Provider with a [Secret reference](#secret-reference).
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: matrix
@@ -626,7 +626,7 @@ obtained from [adding a bot to a group](https://open.larksuite.com/document/uAjL
 and a `lark` Provider with a [Secret reference](#secret-reference).
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: lark
@@ -664,7 +664,7 @@ and a `rocket` Provider with a [Secret reference](#secret-reference).
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: rocket
@@ -694,7 +694,7 @@ and a `googlechat` Provider with a [Secret reference](#secret-reference).
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: google
@@ -748,7 +748,7 @@ YAML string-to-string dictionary, and a `googlepubsub` Provider with the associa
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: googlepubsub-provider
@@ -793,7 +793,7 @@ and a `opsgenie` Provider with a [Secret reference](#secret-reference) and the
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: opsgenie
@@ -842,7 +842,7 @@ When adding an integration for a service on PagerDuty, it is recommended to use 
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: pagerduty
@@ -857,7 +857,7 @@ only those sources you want to trigger an incident for that service. For example
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Alert
 metadata:
   name: my-service-pagerduty
@@ -907,7 +907,7 @@ reference](#secret-reference).
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: alertmanager
@@ -953,7 +953,7 @@ controller.
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: webex
@@ -1131,7 +1131,7 @@ using a self-signed TLS certificate, set the `ca.crt` like so:
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: my-webhook
@@ -1201,7 +1201,7 @@ kubectl create secret generic grafana-token \
 Create a provider of type `grafana` and reference the `grafana-token` secret:
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: grafana
@@ -1228,7 +1228,7 @@ The request includes the `event_type` and `client_payload` fields:
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: github-dispatch
@@ -1293,7 +1293,7 @@ You can then create a flux kustomization resource for the app to have unique `ev
 The kustomization manifest for app1/staging:
 
 ```yaml
-apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta3
 kind: Kustomization
 metadata:
   name: app1
@@ -1306,7 +1306,7 @@ You would also like to know from the notification which cluster is being used fo
 You can add the `spec.summary` field to the Flux alert configuration to mention the relevant cluster:
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Alert
 metadata:
   name: github-dispatch
@@ -1354,7 +1354,7 @@ We perform the following translation to match we the data we need to communicate
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: azure
@@ -1403,7 +1403,7 @@ When using SAS auth, we only use the `address` field in the secret.
 
 ```yaml
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: azure
@@ -1450,7 +1450,7 @@ The following is an example of how to update the Git commit status for the GitHu
 Flux was bootstrapped with `flux bootstrap github --owner=my-gh-org --repository=my-gh-repo`.
 
 ```yaml
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Provider
 metadata:
   name: github-status
@@ -1461,7 +1461,7 @@ spec:
   secretRef:
     name: github-token
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta2
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
 kind: Alert
 metadata:
   name: github-status
