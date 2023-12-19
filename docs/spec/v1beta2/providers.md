@@ -447,7 +447,7 @@ metadata:
 stringData:
   token: <DataDog API Key>
 ---
-apiVersion: notification.toolkit.fluxcd.io/v1beta1
+apiVersion: notification.toolkit.fluxcd.io/v1beta2
 kind: Alert
 metadata:
   name: datadog-info
