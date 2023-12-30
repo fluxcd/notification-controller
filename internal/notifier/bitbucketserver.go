@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/hashicorp/go-retryablehttp"
@@ -128,10 +129,6 @@ func NewBitbucketServer(providerUID string, addr string, token string, certPool 
 
 // Post Bitbucket Server build status
 func (b BitbucketServer) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip progressing events
-	if event.HasReason(meta.ProgressingReason) {
-		return nil
-	}
 	revString, ok := event.Metadata[eventv1.MetaRevisionKey]
 	if !ok {
 		return errors.New("missing revision metadata")
@@ -140,7 +137,7 @@ func (b BitbucketServer) Post(ctx context.Context, event eventv1.Event) error {
 	if err != nil {
 		return fmt.Errorf("could not parse revision: %w", err)
 	}
-	state, err := b.state(event.Severity)
+	state, err := b.state(event)
 	if err != nil {
 		return fmt.Errorf("couldn't convert to bitbucket server state: %w", err)
 	}
@@ -167,15 +164,20 @@ func (b BitbucketServer) Post(ctx context.Context, event eventv1.Event) error {
 	return nil
 }
 
-func (b BitbucketServer) state(severity string) (string, error) {
-	switch severity {
-	case eventv1.EventSeverityInfo:
-		return "SUCCESSFUL", nil
-	case eventv1.EventSeverityError:
+func (b BitbucketServer) state(event eventv1.Event) (string, error) {
+	if event.Severity == eventv1.EventSeverityError || event.Reason == kustomizev1.PruneFailedReason || event.Reason == kustomizev1.ArtifactFailedReason || event.Reason == kustomizev1.BuildFailedReason || event.Reason == kustomizev1.HealthCheckFailedReason || event.Reason == kustomizev1.ReconciliationFailedReason {
 		return "FAILED", nil
-	default:
-		return "", errors.New("bitbucket server state generated on info or error events only")
 	}
+	if event.Reason == kustomizev1.DependencyNotReadyReason {
+		return "UNKNOWN", nil
+	}
+	if event.Reason == meta.ProgressingReason {
+		return "INPROGRESS", nil
+	}
+	if event.Severity == eventv1.EventSeverityInfo {
+		return "SUCCESSFUL", nil
+	}
+	return "", errors.New("bitbucket server state could not be generated for this event")
 }
 
 func (b BitbucketServer) duplicateBitbucketServerStatus(ctx context.Context, rev, state, name, desc, id, key, u string) (bool, error) {
@@ -192,10 +194,10 @@ func (b BitbucketServer) duplicateBitbucketServerStatus(ctx context.Context, rev
 
 	// Make a GET call
 	d, err := b.Client.Do(req)
-	if err != nil && d.StatusCode != http.StatusNotFound {
+	if err != nil {
 		return false, fmt.Errorf("failed api call to check duplicate commit status: %w", err)
 	}
-	if isError(d) && d.StatusCode != http.StatusNotFound {
+	if d != nil && isError(d) && d.StatusCode != http.StatusNotFound {
 		defer d.Body.Close()
 		return false, fmt.Errorf("failed api call to check duplicate commit status: %d - %s", d.StatusCode, http.StatusText(d.StatusCode))
 	}

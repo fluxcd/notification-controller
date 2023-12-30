@@ -26,7 +26,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -63,9 +65,11 @@ func TestPostBitbucketServerMissingRevision(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Validate missing revision
-	err = b.Post(context.TODO(), generateTestEventKustomization("info", map[string]string{
+	err = b.Post(context.TODO(), generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
 		"dummybadrevision": "bad",
-	}))
+	},
+		kustomizev1.ReconciliationSucceededReason,
+	))
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "missing revision metadata")
 }
@@ -75,9 +79,11 @@ func TestPostBitbucketServerBadCommitHash(t *testing.T) {
 	assert.Nil(t, err)
 
 	//Validate extract commit hash
-	err = b.Post(context.TODO(), generateTestEventKustomization("info", map[string]string{
+	err = b.Post(context.TODO(), generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
 		eventv1.MetaRevisionKey: "badhash",
-	}))
+	},
+		kustomizev1.ReconciliationSucceededReason,
+	))
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "could not parse revision: failed to extract commit hash from 'badhash' revision")
 
@@ -90,13 +96,15 @@ func TestPostBitbucketServerBadBitbucketState(t *testing.T) {
 	//Validate conversion to bitbucket state
 	err = b.Post(context.TODO(), generateTestEventKustomization("badserveritystate", map[string]string{
 		eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-	}))
+	},
+		kustomizev1.ReconciliationSucceededReason,
+	))
 	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), "couldn't convert to bitbucket server state: bitbucket server state generated on info or error events only")
+	assert.Equal(t, err.Error(), "couldn't convert to bitbucket server state: bitbucket server state could not be generated for this event")
 
 }
 
-func generateTestEventKustomization(severity string, metadata map[string]string) eventv1.Event {
+func generateTestEventKustomization(severity string, metadata map[string]string, reason string) eventv1.Event {
 	return eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "Kustomization",
@@ -106,7 +114,7 @@ func generateTestEventKustomization(severity string, metadata map[string]string)
 		Severity:            severity,
 		Timestamp:           metav1.Now(),
 		Message:             "message",
-		Reason:              "reason",
+		Reason:              reason,
 		Metadata:            metadata,
 		ReportingController: "kustomize-controller",
 		ReportingInstance:   "kustomize-controller-xyz",
@@ -135,12 +143,15 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				"x-atlassian-token": "no-check",
 				"x-requested-with":  "XMLHttpRequest",
 			},
-			event: generateTestEventKustomization("info", map[string]string{
+			event: generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("info", map[string]string{
+			},
+				kustomizev1.ReconciliationSucceededReason),
+			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			},
+				kustomizev1.ReconciliationSucceededReason,
+			))),
 		},
 		{
 			name:        "Validate Basic Auth and Post State=Successful",
@@ -152,12 +163,16 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				"x-atlassian-token": "no-check",
 				"x-requested-with":  "XMLHttpRequest",
 			},
-			event: generateTestEventKustomization("info", map[string]string{
+			event: generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("info", map[string]string{
+			},
+				kustomizev1.ReconciliationSucceededReason,
+			),
+			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			},
+				kustomizev1.ReconciliationSucceededReason,
+			))),
 		},
 		{
 			name:        "Validate Post State=Failed",
@@ -169,12 +184,15 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				"x-atlassian-token": "no-check",
 				"x-requested-with":  "XMLHttpRequest",
 			},
-			event: generateTestEventKustomization("error", map[string]string{
+			event: generateTestEventKustomization(eventv1.EventSeverityError, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
+			},
+				kustomizev1.ReconciliationFailedReason),
+			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization(eventv1.EventSeverityError, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			},
+				kustomizev1.ReconciliationFailedReason,
+			))),
 		},
 		{
 			name:           "Fail if bad json response in existing commit status",
@@ -188,12 +206,16 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				"x-atlassian-token": "no-check",
 				"x-requested-with":  "XMLHttpRequest",
 			},
-			event: generateTestEventKustomization("error", map[string]string{
+			event: generateTestEventKustomization(eventv1.EventSeverityError, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
+			},
+				kustomizev1.ReconciliationFailedReason,
+			),
+			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization(eventv1.EventSeverityError, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			},
+				kustomizev1.ReconciliationFailedReason,
+			))),
 		},
 		{
 			name:           "Fail if status code is non-200 in existing commit status",
@@ -207,12 +229,16 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				"x-atlassian-token": "no-check",
 				"x-requested-with":  "XMLHttpRequest",
 			},
-			event: generateTestEventKustomization("error", map[string]string{
+			event: generateTestEventKustomization(eventv1.EventSeverityError, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
+			},
+				kustomizev1.ReconciliationFailedReason,
+			),
+			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization(eventv1.EventSeverityError, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			},
+				kustomizev1.ReconciliationFailedReason,
+			))),
 		},
 		{
 			name:           "Bad post- Unauthorized",
@@ -226,12 +252,16 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				"x-atlassian-token": "no-check",
 				"x-requested-with":  "XMLHttpRequest",
 			},
-			event: generateTestEventKustomization("error", map[string]string{
+			event: generateTestEventKustomization(eventv1.EventSeverityError, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}),
+			},
+				kustomizev1.ReconciliationFailedReason,
+			),
 			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			},
+				kustomizev1.ReconciliationFailedReason,
+			))),
 		},
 		{
 			name:        "Validate duplicate commit status successful match",
@@ -243,12 +273,58 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				"x-atlassian-token": "no-check",
 				"x-requested-with":  "XMLHttpRequest",
 			},
-			event: generateTestEventKustomization("info", map[string]string{
+			event: generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("info", map[string]string{
+			},
+				kustomizev1.ReconciliationSucceededReason,
+			),
+			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			},
+				kustomizev1.ReconciliationSucceededReason,
+			))),
+		},
+		{
+			name:        "Validate payload state INPROGRESS - for 'reconciliation in progress' builds",
+			username:    "hello",
+			password:    "password",
+			provideruid: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			headers: map[string]string{
+				"Authorization":     "Basic " + base64.StdEncoding.EncodeToString([]byte("hello"+":"+"password")),
+				"x-atlassian-token": "no-check",
+				"x-requested-with":  "XMLHttpRequest",
+			},
+			event: generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
+				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
+			},
+				meta.ProgressingReason,
+			),
+			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
+				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
+			},
+				meta.ProgressingReason,
+			))),
+		},
+		{
+			name:        "Validate payload state UNKNOWN - for 'dependency not ready' builds",
+			username:    "hello",
+			password:    "password",
+			provideruid: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			headers: map[string]string{
+				"Authorization":     "Basic " + base64.StdEncoding.EncodeToString([]byte("hello"+":"+"password")),
+				"x-atlassian-token": "no-check",
+				"x-requested-with":  "XMLHttpRequest",
+			},
+			event: generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
+				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
+			},
+				kustomizev1.DependencyNotReadyReason,
+			),
+			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization(eventv1.EventSeverityInfo, map[string]string{
+				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
+			},
+				kustomizev1.DependencyNotReadyReason,
+			))),
 		},
 	}
 
@@ -329,23 +405,42 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 					// Validate Key
 					require.Equal(t, payload.Key, tt.key)
 
-					// Validate that state can be only SUCCESSFUL or FAILED
-					if payload.State != "SUCCESSFUL" && payload.State != "FAILED" {
+					// Validate that state can be only SUCCESSFUL, FAILED, INPROGRESS, UNKNOWN
+					if payload.State != "SUCCESSFUL" && payload.State != "FAILED" && payload.State != "INPROGRESS" && payload.State != "UNKNOWN" {
 						require.Fail(t, "Invalid state")
 					}
+					stateChecked := 0
 
-					// If severity of event is info, state should be SUCCESSFUL
-					if tt.event.Severity == "info" {
-						require.Equal(t, "SUCCESSFUL", payload.State)
-					}
-
-					// If severity of event is error, state should be FAILED
-					if tt.event.Severity == "error" {
+					if stateChecked == 0 && (tt.event.Severity == eventv1.EventSeverityError || tt.event.Reason == kustomizev1.PruneFailedReason || tt.event.Reason == kustomizev1.ArtifactFailedReason || tt.event.Reason == kustomizev1.BuildFailedReason || tt.event.Reason == kustomizev1.HealthCheckFailedReason || tt.event.Reason == kustomizev1.ReconciliationFailedReason) {
 						require.Equal(t, "FAILED", payload.State)
+						require.Equal(t, "reconciliation failed", payload.Description)
+						stateChecked = 1
 					}
+
+					if stateChecked == 0 && tt.event.Reason == kustomizev1.DependencyNotReadyReason {
+						require.Equal(t, "UNKNOWN", payload.State)
+						require.Equal(t, "dependency not ready", payload.Description)
+						stateChecked = 1
+					}
+
+					if stateChecked == 0 && tt.event.Reason == meta.ProgressingReason {
+						require.Equal(t, "INPROGRESS", payload.State)
+						require.Equal(t, "progressing", payload.Description)
+						stateChecked = 1
+					}
+
+					if stateChecked == 0 && tt.event.Severity == "info" {
+						require.Equal(t, "SUCCESSFUL", payload.State)
+						require.Equal(t, "reconciliation succeeded", payload.Description)
+					}
+
+					//if tt.event.Severity == "error" {
+					//	require.Equal(t, "FAILED", payload.State)
+					//	require.Equal(t, "reconciliation failed", payload.Description)
+					//}
 
 					// Validate description
-					require.Equal(t, "reason", payload.Description)
+					//require.Equal(t, "abc", payload.Description)
 
 					// Validate name(with description appended)
 					require.Equal(t, "kustomization/hello-world"+" ["+payload.Description+"]", payload.Name)
