@@ -71,7 +71,9 @@ func (g *Grafana) Post(ctx context.Context, event eventv1.Event) error {
 	// add tag to filter on grafana
 	sfields = append(sfields, "flux", event.ReportingController)
 	for k, v := range event.Metadata {
-		sfields = append(sfields, fmt.Sprintf("%s: %s", k, v))
+		key := strings.ReplaceAll(k, ":", "|")
+		value := strings.ReplaceAll(v, ":", "|")
+		sfields = append(sfields, fmt.Sprintf("%s: %s", key, value))
 	}
 	payload := GraphitePayload{
 		When: event.Timestamp.Unix(),
