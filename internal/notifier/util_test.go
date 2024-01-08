@@ -170,6 +170,38 @@ func TestUtil_GenerateCommitStatusID(t *testing.T) {
 			},
 			want: "kustomization/gitops-system/0c9c2e41",
 		},
+		{
+			name:        "test with non related metadata event case",
+			providerUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			event: eventv1.Event{
+				Metadata: map[string]string{
+					"foobar/batz": "test",
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Reason: "ApplySucceeded",
+			},
+			want: "kustomization/gitops-system/0c9c2e41",
+		},
+		{
+			name:        "test with related metadata event case",
+			providerUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			event: eventv1.Event{
+				Metadata: map[string]string{
+					"app.kubernetes.io/cluster": "testcluster",
+					"app.kubernetes.io/env":     "test",
+					"app.kubernetes.io/region":  "europe-west4",
+				},
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Reason: "ApplySucceeded",
+			},
+			want: "kustomization/gitops-system/0c9c2e41/testcluster/test/europe-west4",
+		},
 	}
 
 	for _, tt := range statusIDTests {

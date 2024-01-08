@@ -1474,6 +1474,34 @@ spec:
       name: flux-system
 ```
 
+##### Construction of Git Commit Status ID
+
+The commit status ID is constructed through the `eventSources.kind`, `eventSources.name` and the 
+[`UID`](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids) of the `Provider`.
+
+To generate a speakable prefix, instead of relying on the `UID` of the `Provider`, `eventMetadata` can be set.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Alert
+metadata:
+  name: github-status
+  namespace: flux-system
+spec:
+  providerRef:
+    name: github-status
+  eventMetadata:
+    app.kubernetes.io/env: "production"
+    app.kubernetes.io/cluster: "my-cluster"
+    app.kubernetes.io/region: "us-east-1"
+  eventSources:
+    - kind: Kustomization
+      name: flux-system
+```
+
+In this case the Git Commit Status ID will be extended by a suffix which is a combination of `app.kubernetes.io/`
+string sorted labels. The example above constructs a suffix as follows: "/my-cluster/production/us-east-1".
+
 #### GitHub
 
 When `.spec.type` is set to `github`, the referenced secret must contain a key called `token` with the value set to a
