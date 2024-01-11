@@ -1479,7 +1479,7 @@ spec:
 By default the commit status ID is constructed through the `eventSources.kind`, `eventSources.name` and the 
 [`UID`](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids) of the `Provider`.
 
-To generate a speakable prefix, instead of relying on the `UID` of the `Provider`, `eventMetadata` can be set.
+To generate a descriptive prefix, instead of relying on the `UID` of the `Provider`, `eventMetadata` can be set.
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta3
