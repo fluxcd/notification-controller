@@ -40,6 +40,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/metrics"
 	"github.com/fluxcd/pkg/runtime/testenv"
 	"github.com/fluxcd/pkg/ssa"
+	ssautil "github.com/fluxcd/pkg/ssa/utils"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1b2 "github.com/fluxcd/notification-controller/api/v1beta2"
@@ -155,7 +156,7 @@ func readManifest(manifest, namespace string) (*unstructured.Unstructured, error
 	}
 	yml := fmt.Sprintf(string(data), namespace)
 
-	object, err := ssa.ReadObject(strings.NewReader(yml))
+	object, err := ssautil.ReadObject(strings.NewReader(yml))
 	if err != nil {
 		return nil, err
 	}
