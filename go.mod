@@ -37,7 +37,7 @@ require (
 	github.com/xanzy/go-gitlab v0.96.0
 	golang.org/x/oauth2 v0.16.0
 	golang.org/x/text v0.14.0
-	google.golang.org/api v0.159.0
+	google.golang.org/api v0.160.0
 	k8s.io/api v0.28.6
 	k8s.io/apimachinery v0.28.6
 	k8s.io/client-go v0.28.6
