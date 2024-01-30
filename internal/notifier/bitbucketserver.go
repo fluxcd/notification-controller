@@ -192,10 +192,10 @@ func (b BitbucketServer) duplicateBitbucketServerStatus(ctx context.Context, rev
 
 	// Make a GET call
 	d, err := b.Client.Do(req)
-	if err != nil && d.StatusCode != http.StatusNotFound {
+	if err != nil {
 		return false, fmt.Errorf("failed api call to check duplicate commit status: %w", err)
 	}
-	if isError(d) && d.StatusCode != http.StatusNotFound {
+	if d != nil && isError(d) && d.StatusCode != http.StatusNotFound {
 		defer d.Body.Close()
 		return false, fmt.Errorf("failed api call to check duplicate commit status: %d - %s", d.StatusCode, http.StatusText(d.StatusCode))
 	}
