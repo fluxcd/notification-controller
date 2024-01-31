@@ -5,7 +5,7 @@ go 1.21
 replace github.com/fluxcd/notification-controller/api => ./api
 
 require (
-	cloud.google.com/go/pubsub v1.36.0
+	cloud.google.com/go/pubsub v1.36.1
 	code.gitea.io/sdk/gitea v0.17.1
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24
 	github.com/Azure/azure-amqp-common-go/v4 v4.2.0
@@ -37,7 +37,7 @@ require (
 	github.com/xanzy/go-gitlab v0.96.0
 	golang.org/x/oauth2 v0.16.0
 	golang.org/x/text v0.14.0
-	google.golang.org/api v0.160.0
+	google.golang.org/api v0.161.0
 	k8s.io/api v0.28.6
 	k8s.io/apimachinery v0.28.6
 	k8s.io/client-go v0.28.6
@@ -159,9 +159,9 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto v0.0.0-20240116215550-a9fa1716bcac // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240122161410-6c6643bf1457 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240125205218-1f4bbc51befe // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240116215550-a9fa1716bcac // indirect
-	google.golang.org/grpc v1.60.1 // indirect
+	google.golang.org/grpc v1.61.0 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/evanphx/json-patch.v5 v5.7.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
