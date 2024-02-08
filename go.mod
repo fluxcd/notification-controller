@@ -10,7 +10,7 @@ require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20230811130428-ced1acdcaa24
 	github.com/Azure/azure-amqp-common-go/v4 v4.2.0
 	github.com/Azure/azure-event-hubs-go/v3 v3.6.2
-	github.com/DataDog/datadog-api-client-go/v2 v2.21.0
+	github.com/DataDog/datadog-api-client-go/v2 v2.22.0
 	github.com/PagerDuty/go-pagerduty v1.8.0
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/containrrr/shoutrrr v0.8.0
@@ -20,13 +20,13 @@ require (
 	github.com/fluxcd/pkg/apis/meta v1.3.0
 	github.com/fluxcd/pkg/git v0.17.0
 	github.com/fluxcd/pkg/masktoken v0.2.0
-	github.com/fluxcd/pkg/runtime v0.44.0
+	github.com/fluxcd/pkg/runtime v0.44.1
 	github.com/fluxcd/pkg/ssa v0.36.0
-	github.com/getsentry/sentry-go v0.26.0
+	github.com/getsentry/sentry-go v0.27.0
 	github.com/go-logr/logr v1.4.1
 	github.com/google/go-github/v53 v53.2.0
 	github.com/hashicorp/go-retryablehttp v0.7.5
-	github.com/ktrysmt/go-bitbucket v0.9.74
+	github.com/ktrysmt/go-bitbucket v0.9.75
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
 	github.com/nats-io/nats.go v1.32.0
 	github.com/onsi/gomega v1.31.1
@@ -34,10 +34,10 @@ require (
 	github.com/slok/go-http-metrics v0.11.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.4
-	github.com/xanzy/go-gitlab v0.96.0
+	github.com/xanzy/go-gitlab v0.97.0
 	golang.org/x/oauth2 v0.16.0
 	golang.org/x/text v0.14.0
-	google.golang.org/api v0.161.0
+	google.golang.org/api v0.162.0
 	k8s.io/api v0.28.6
 	k8s.io/apimachinery v0.28.6
 	k8s.io/client-go v0.28.6
@@ -103,7 +103,7 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/s2a-go v0.1.7 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/google/uuid v1.5.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
@@ -160,7 +160,7 @@ require (
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto v0.0.0-20240116215550-a9fa1716bcac // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240125205218-1f4bbc51befe // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240116215550-a9fa1716bcac // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240125205218-1f4bbc51befe // indirect
 	google.golang.org/grpc v1.61.0 // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/evanphx/json-patch.v5 v5.7.0 // indirect
