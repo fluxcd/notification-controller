@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta3
+package v1beta4
 
 import (
 	"time"
@@ -62,7 +62,7 @@ type ProviderSpec struct {
 	Type string `json:"type"`
 
 	// Interval at which to reconcile the Provider with its Secret references.
-	// Deprecated and not used in v1beta3.
+	// Deprecated and not used in v1beta4.
 	//
 	// +kubebuilder:validation:Type=string
 	// +kubebuilder:validation:Pattern="^([0-9]+(\\.[0-9]+)?(ms|s|m|h))+$"
@@ -119,13 +119,16 @@ type ProviderSpec struct {
 	// events handling for this Provider.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
+
+	//CrossNamespace allows this provider to be made available to Alerts in other namespaces
+	// +optional
+	CrossNamespace bool `json:"crossNamespace,omitempty"`
 }
 
 // +genclient
 // +genclient:Namespaced
+// +kubebuilder:storageversion
 // +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
-// +kubebuilder:deprecatedversion:warning="v1beta3 Provider is deprecated, upgrade to v1beta4"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 
 // Provider is the Schema for the providers API

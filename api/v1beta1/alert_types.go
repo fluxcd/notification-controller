@@ -70,7 +70,7 @@ type AlertStatus struct {
 // +genclient:Namespaced
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:deprecatedversion:warning="v1beta1 Alert is deprecated, upgrade to v1beta3"
+// +kubebuilder:deprecatedversion:warning="v1beta1 Alert is deprecated, upgrade to v1beta4"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status",description=""
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message",description=""

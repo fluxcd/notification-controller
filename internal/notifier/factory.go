@@ -20,7 +20,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta4"
 )
 
 type Factory struct {

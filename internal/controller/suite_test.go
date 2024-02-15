@@ -44,7 +44,7 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1b2 "github.com/fluxcd/notification-controller/api/v1beta2"
-	apiv1b3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1b3 "github.com/fluxcd/notification-controller/api/v1beta4"
 	// +kubebuilder:scaffold:imports
 )
 

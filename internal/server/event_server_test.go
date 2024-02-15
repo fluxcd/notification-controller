@@ -48,7 +48,7 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1beta4 "github.com/fluxcd/notification-controller/api/v1beta4"
 )
 
 func TestEventServer(t *testing.T) {
@@ -64,19 +64,19 @@ func TestEventServer(t *testing.T) {
 	}))
 	defer rcvServer.Close()
 
-	provider := &apiv1beta3.Provider{}
+	provider := &apiv1beta4.Provider{}
 	provider.Name = "provider-foo"
 	provider.Namespace = testNamespace
-	provider.Spec = apiv1beta3.ProviderSpec{
+	provider.Spec = apiv1beta4.ProviderSpec{
 		Type:    "generic",
 		Address: rcvServer.URL,
 	}
 
-	testAlert := &apiv1beta3.Alert{}
+	testAlert := &apiv1beta4.Alert{}
 	testAlert.Name = "alert-foo"
 	testAlert.Namespace = testNamespace
-	testAlert.Spec = apiv1beta3.AlertSpec{
-		ProviderRef:   meta.LocalObjectReference{Name: provider.Name},
+	testAlert.Spec = apiv1beta4.AlertSpec{
+		ProviderRef:   meta.NamespacedObjectReference{Name: provider.Name},
 		EventSeverity: "info",
 		EventSources: []apiv1.CrossNamespaceObjectReference{
 			{
@@ -110,7 +110,7 @@ func TestEventServer(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	scheme := runtime.NewScheme()
-	g.Expect(apiv1beta3.AddToScheme(scheme)).ToNot(HaveOccurred())
+	g.Expect(apiv1beta4.AddToScheme(scheme)).ToNot(HaveOccurred())
 	g.Expect(corev1.AddToScheme(scheme)).ToNot(HaveOccurred())
 
 	// Create a fake kube client with the above objects.

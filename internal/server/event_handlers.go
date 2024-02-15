@@ -38,7 +38,7 @@ import (
 	"github.com/fluxcd/pkg/masktoken"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1beta4 "github.com/fluxcd/notification-controller/api/v1beta4"
 	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
@@ -90,8 +90,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (s *EventServer) getAllAlertsForEvent(ctx context.Context, event *eventv1.Event) ([]apiv1beta3.Alert, error) {
-	var allAlerts apiv1beta3.AlertList
+func (s *EventServer) getAllAlertsForEvent(ctx context.Context, event *eventv1.Event) ([]apiv1beta4.Alert, error) {
+	var allAlerts apiv1beta4.AlertList
 	err := s.kubeClient.List(ctx, &allAlerts)
 	if err != nil {
 		return nil, fmt.Errorf("failed listing alerts: %w", err)
@@ -103,10 +103,10 @@ func (s *EventServer) getAllAlertsForEvent(ctx context.Context, event *eventv1.E
 // filterAlertsForEvent filters a given set of alerts against a given event,
 // checking if the event matches with any of the alert event sources and is
 // allowed by the exclusion list.
-func (s *EventServer) filterAlertsForEvent(ctx context.Context, alerts []apiv1beta3.Alert, event *eventv1.Event) []apiv1beta3.Alert {
+func (s *EventServer) filterAlertsForEvent(ctx context.Context, alerts []apiv1beta4.Alert, event *eventv1.Event) []apiv1beta4.Alert {
 	logger := log.FromContext(ctx)
 
-	results := make([]apiv1beta3.Alert, 0)
+	results := make([]apiv1beta4.Alert, 0)
 	for i := range alerts {
 		alert := &alerts[i]
 		// Skip suspended alert.
@@ -138,7 +138,7 @@ func (s *EventServer) filterAlertsForEvent(ctx context.Context, alerts []apiv1be
 
 // eventMatchesAlertSources returns if a given event matches with any of the
 // alert sources.
-func (s *EventServer) eventMatchesAlertSources(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) bool {
+func (s *EventServer) eventMatchesAlertSources(ctx context.Context, event *eventv1.Event, alert *apiv1beta4.Alert) bool {
 	for _, source := range alert.Spec.EventSources {
 		if source.Namespace == "" {
 			source.Namespace = alert.Namespace
@@ -152,7 +152,7 @@ func (s *EventServer) eventMatchesAlertSources(ctx context.Context, event *event
 
 // messageIsIncluded returns if the given message matches with the given alert's
 // inclusion rules.
-func (s *EventServer) messageIsIncluded(ctx context.Context, msg string, alert *apiv1beta3.Alert) bool {
+func (s *EventServer) messageIsIncluded(ctx context.Context, msg string, alert *apiv1beta4.Alert) bool {
 	if len(alert.Spec.InclusionList) == 0 {
 		return true
 	}
@@ -173,7 +173,7 @@ func (s *EventServer) messageIsIncluded(ctx context.Context, msg string, alert *
 
 // messageIsExcluded returns if the given message matches with the given alert's
 // exclusion rules.
-func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, alert *apiv1beta3.Alert) bool {
+func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, alert *apiv1beta4.Alert) bool {
 	if len(alert.Spec.ExclusionList) == 0 {
 		return false
 	}
@@ -194,7 +194,7 @@ func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, alert *
 
 // dispatchNotification constructs and sends notification from the given event
 // and alert data.
-func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) error {
+func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.Event, alert *apiv1beta4.Alert) error {
 	sender, notification, token, timeout, err := s.getNotificationParams(ctx, event, alert)
 	if err != nil {
 		return err
@@ -227,7 +227,7 @@ func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.E
 // event and alert, and returns a notifier, event, token and timeout for sending
 // the notification. The returned event is a mutated form of the input event
 // based on the alert configuration.
-func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) (notifier.Interface, *eventv1.Event, string, time.Duration, error) {
+func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.Event, alert *apiv1beta4.Alert) (notifier.Interface, *eventv1.Event, string, time.Duration, error) {
 	// Check if event comes from a different namespace.
 	if s.noCrossNamespaceRefs && event.InvolvedObject.Namespace != alert.Namespace {
 		accessDenied := fmt.Errorf(
@@ -236,8 +236,16 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, nil, "", 0, fmt.Errorf("discarding event, access denied to cross-namespace sources: %w", accessDenied)
 	}
 
-	var provider apiv1beta3.Provider
-	providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
+	var provider apiv1beta4.Provider
+	var providerNamespace string
+
+	// If there's a namespace reference, use the provider's namespace, otherwise use the alert's namespace
+	if len(alert.Spec.ProviderRef.Namespace) > 0 {
+		providerNamespace = alert.Spec.ProviderRef.Namespace
+	} else {
+		providerNamespace = alert.Namespace
+	}
+	providerName := types.NamespacedName{Namespace: providerNamespace, Name: alert.Spec.ProviderRef.Name}
 
 	err := s.kubeClient.Get(ctx, providerName, &provider)
 	if err != nil {
@@ -247,6 +255,17 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 	// Skip if the provider is suspended.
 	if provider.Spec.Suspend {
 		return nil, nil, "", 0, nil
+	}
+
+	// Skip if accessing a provider across namespaces, but the provider doesn't allow it
+	if providerNamespace != alert.Namespace && !provider.Spec.CrossNamespace {
+		return nil, nil, "", 0, nil
+	}
+
+	// If the alert provides an override for the Channel, use it, otherwise use the provider's default channel
+	if len(alert.Spec.Channel) > 0 {
+		s.logger.Info("overriding provider's channel", "defaultChannel", provider.Spec.Channel, "alertChannel", alert.Spec.Channel)
+		provider.Spec.Channel = alert.Spec.Channel
 	}
 
 	sender, token, err := createNotifier(ctx, s.kubeClient, provider)
@@ -261,7 +280,7 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 }
 
 // createNotifier returns a notifier.Interface for the given Provider.
-func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv1beta3.Provider) (notifier.Interface, string, error) {
+func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv1beta4.Provider) (notifier.Interface, string, error) {
 	logger := log.FromContext(ctx)
 
 	webhook := provider.Spec.Address
@@ -361,7 +380,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 
 // eventMatchesAlertSource returns if a given event matches with the given alert
 // source configuration and severity.
-func (s *EventServer) eventMatchesAlertSource(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert, source apiv1.CrossNamespaceObjectReference) bool {
+func (s *EventServer) eventMatchesAlertSource(ctx context.Context, event *eventv1.Event, alert *apiv1beta4.Alert, source apiv1.CrossNamespaceObjectReference) bool {
 	logger := log.FromContext(ctx)
 
 	// No match if the event and source don't have the same namespace and kind.
@@ -418,7 +437,7 @@ func (s *EventServer) eventMatchesAlertSource(ctx context.Context, event *eventv
 }
 
 // enhanceEventWithAlertMetadata enhances the event with Alert metadata.
-func (s *EventServer) enhanceEventWithAlertMetadata(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) {
+func (s *EventServer) enhanceEventWithAlertMetadata(ctx context.Context, event *eventv1.Event, alert *apiv1beta4.Alert) {
 	meta := event.Metadata
 	if meta == nil {
 		meta = make(map[string]string)

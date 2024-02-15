@@ -76,8 +76,9 @@ type AlertSpec struct {
 
 // +genclient
 // +genclient:Namespaced
-// +kubebuilder:storageversion
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion:warning="v1beta3 Alert is deprecated, upgrade to v1beta4"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 
 // Alert is the Schema for the alerts API
