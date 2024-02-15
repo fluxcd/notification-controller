@@ -52,12 +52,13 @@ const (
 	PagerDutyProvider       string = "pagerduty"
 	DataDogProvider         string = "datadog"
 	NATSProvider            string = "nats"
+	NtfyProvider            string = "ntfy"
 )
 
 // ProviderSpec defines the desired state of the Provider.
 type ProviderSpec struct {
 	// Type specifies which Provider implementation to use.
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;bitbucketserver;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;pagerduty;datadog;nats
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;bitbucketserver;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;pagerduty;datadog;nats;ntfy
 	// +required
 	Type string `json:"type"`
 

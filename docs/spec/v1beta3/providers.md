@@ -108,6 +108,7 @@ The supported alerting providers are:
 | [Telegram](#telegram)                                   | `telegram`       |
 | [WebEx](#webex)                                         | `webex`          |
 | [NATS](#nats)                                           | `nats`           |
+| [Ntfy](#ntfy)                                           | `ntfy`           |
 
 The supported providers for [Git commit status updates](#git-commit-status-updates) are:
 
@@ -1016,6 +1017,47 @@ metadata:
 stringData:
   username: <NATS Username>
   password: <NATS Password>
+```
+
+##### Ntfy
+
+When `.spec.type` is set to `ntfy`, the controller will publish the payload of
+an [Event](events.md#event-structure) to an [Ntfy topic](https://ntfy.sh/) provided in the
+[Channel](#channel) field, using the server specified in the [Address](#address) field.
+
+This Provider type can optionally use the [Secret reference](#secret-reference) to authenticate to the Ntfy server using [Username/Password](https://docs.ntfy.sh/publish/?h=username#username-password).
+The credentials must be specified in [the `username`](#username-example) and `password` fields of the Secret.
+Alternatively, you can also an [Access Token](https://docs.ntfy.sh/publish/?h=username#access-tokens) In this case the `token` should be provided through a
+Secret reference.
+
+###### Ntfy with Username/Password Credentials Example
+
+To configure a Provider for Ntfy authenticating with Username/Password, create a Secret with the
+`username` and `password` fields set, and add a `ntfy` Provider with the associated
+[Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: ntfy-provider
+  namespace: desired-namespace
+spec:
+  type: ntfy
+  address: <Ntfy Server URL>
+  channel: <Ntfy topic>
+  secretRef:
+    name: ntfy-provider-creds
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ntfy-provider-creds
+  namespace: desired-namespace
+stringData:
+  username: <Ntfy Username>
+  password: <Ntfy Password>
 ```
 
 ### Address
