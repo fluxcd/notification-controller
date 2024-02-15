@@ -25,11 +25,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1beta4 "github.com/fluxcd/notification-controller/api/v1beta4"
 )
 
-func getAlertWithFinalizers(finalizers []string) *apiv1beta3.Alert {
-	return &apiv1beta3.Alert{
+func getAlertWithFinalizers(finalizers []string) *apiv1beta4.Alert {
+	return &apiv1beta4.Alert{
 		ObjectMeta: metav1.ObjectMeta{
 			Finalizers: finalizers,
 		},

@@ -37,16 +37,16 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1beta4 "github.com/fluxcd/notification-controller/api/v1beta4"
 )
 
 func TestFilterAlertsForEvent(t *testing.T) {
 	testNamespace := "foo-ns"
 
-	testProvider := &apiv1beta3.Provider{}
+	testProvider := &apiv1beta4.Provider{}
 	testProvider.Name = "provider-foo"
 	testProvider.Namespace = testNamespace
-	testProvider.Spec = apiv1beta3.ProviderSpec{
+	testProvider.Spec = apiv1beta4.ProviderSpec{
 		Type:    "generic",
 		Address: "https://example.com",
 	}
@@ -65,12 +65,12 @@ func TestFilterAlertsForEvent(t *testing.T) {
 
 	tests := []struct {
 		name             string
-		alertSpecs       []apiv1beta3.AlertSpec
+		alertSpecs       []apiv1beta4.AlertSpec
 		resultAlertCount int
 	}{
 		{
 			name: "all match",
-			alertSpecs: []apiv1beta3.AlertSpec{
+			alertSpecs: []apiv1beta4.AlertSpec{
 				{
 					EventSources: []apiv1.CrossNamespaceObjectReference{
 						{
@@ -92,7 +92,7 @@ func TestFilterAlertsForEvent(t *testing.T) {
 		},
 		{
 			name: "some suspended alerts",
-			alertSpecs: []apiv1beta3.AlertSpec{
+			alertSpecs: []apiv1beta4.AlertSpec{
 				{
 					EventSources: []apiv1.CrossNamespaceObjectReference{
 						{
@@ -115,7 +115,7 @@ func TestFilterAlertsForEvent(t *testing.T) {
 		},
 		{
 			name: "alerts with inclusion list unmatch",
-			alertSpecs: []apiv1beta3.AlertSpec{
+			alertSpecs: []apiv1beta4.AlertSpec{
 				{
 					EventSources: []apiv1.CrossNamespaceObjectReference{
 						{
@@ -130,7 +130,7 @@ func TestFilterAlertsForEvent(t *testing.T) {
 		},
 		{
 			name: "alerts with inclusion list match",
-			alertSpecs: []apiv1beta3.AlertSpec{
+			alertSpecs: []apiv1beta4.AlertSpec{
 				{
 					EventSources: []apiv1.CrossNamespaceObjectReference{
 						{
@@ -154,7 +154,7 @@ func TestFilterAlertsForEvent(t *testing.T) {
 		},
 		{
 			name: "alerts with invalid inclusion rule",
-			alertSpecs: []apiv1beta3.AlertSpec{
+			alertSpecs: []apiv1beta4.AlertSpec{
 				{
 					EventSources: []apiv1.CrossNamespaceObjectReference{
 						{
@@ -169,7 +169,7 @@ func TestFilterAlertsForEvent(t *testing.T) {
 		},
 		{
 			name: "alerts with exclusion list match",
-			alertSpecs: []apiv1beta3.AlertSpec{
+			alertSpecs: []apiv1beta4.AlertSpec{
 				{
 					EventSources: []apiv1.CrossNamespaceObjectReference{
 						{
@@ -192,7 +192,7 @@ func TestFilterAlertsForEvent(t *testing.T) {
 		},
 		{
 			name: "alerts with invalid exclusion rule",
-			alertSpecs: []apiv1beta3.AlertSpec{
+			alertSpecs: []apiv1beta4.AlertSpec{
 				{
 					EventSources: []apiv1.CrossNamespaceObjectReference{
 						{
@@ -215,7 +215,7 @@ func TestFilterAlertsForEvent(t *testing.T) {
 		},
 		{
 			name: "alerts with inclusion and exclusion list match",
-			alertSpecs: []apiv1beta3.AlertSpec{
+			alertSpecs: []apiv1beta4.AlertSpec{
 				{
 					EventSources: []apiv1.CrossNamespaceObjectReference{
 						{
@@ -239,7 +239,7 @@ func TestFilterAlertsForEvent(t *testing.T) {
 		},
 		{
 			name: "event source NS is not overwritten by alert NS",
-			alertSpecs: []apiv1beta3.AlertSpec{
+			alertSpecs: []apiv1beta4.AlertSpec{
 				{
 					EventSources: []apiv1.CrossNamespaceObjectReference{
 						{
@@ -258,12 +258,12 @@ func TestFilterAlertsForEvent(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			alerts := []apiv1beta3.Alert{}
+			alerts := []apiv1beta4.Alert{}
 			for i, alertSpec := range tt.alertSpecs {
 				// Add the default provider ref for this test.
-				alertSpec.ProviderRef = meta.LocalObjectReference{Name: testProvider.Name}
+				alertSpec.ProviderRef = meta.NamespacedObjectReference{Name: testProvider.Name}
 				// Create new Alert with the spec.
-				alert := apiv1beta3.Alert{}
+				alert := apiv1beta4.Alert{}
 				alert.Name = "test-alert-" + strconv.Itoa(i)
 				alert.Namespace = testNamespace
 				alert.Spec = alertSpec
@@ -272,7 +272,7 @@ func TestFilterAlertsForEvent(t *testing.T) {
 
 			// Create fake objects and event server.
 			scheme := runtime.NewScheme()
-			g.Expect(apiv1beta3.AddToScheme(scheme)).ToNot(HaveOccurred())
+			g.Expect(apiv1beta4.AddToScheme(scheme)).ToNot(HaveOccurred())
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 			builder.WithObjects(testProvider)
 			eventServer := EventServer{
@@ -296,19 +296,19 @@ func TestDispatchNotification(t *testing.T) {
 	}))
 	defer rcvServer.Close()
 
-	testProvider := &apiv1beta3.Provider{}
+	testProvider := &apiv1beta4.Provider{}
 	testProvider.Name = "provider-foo"
 	testProvider.Namespace = testNamespace
-	testProvider.Spec = apiv1beta3.ProviderSpec{
+	testProvider.Spec = apiv1beta4.ProviderSpec{
 		Type:    "generic",
 		Address: rcvServer.URL,
 	}
 
-	testAlert := &apiv1beta3.Alert{}
+	testAlert := &apiv1beta4.Alert{}
 	testAlert.Name = "alert-foo"
 	testAlert.Namespace = testNamespace
-	testAlert.Spec = apiv1beta3.AlertSpec{
-		ProviderRef: meta.LocalObjectReference{Name: testProvider.Name},
+	testAlert.Spec = apiv1beta4.AlertSpec{
+		ProviderRef: meta.NamespacedObjectReference{Name: testProvider.Name},
 	}
 
 	// Event involved object.
@@ -355,7 +355,7 @@ func TestDispatchNotification(t *testing.T) {
 
 			// Create fake objects and event server.
 			scheme := runtime.NewScheme()
-			g.Expect(apiv1beta3.AddToScheme(scheme)).ToNot(HaveOccurred())
+			g.Expect(apiv1beta4.AddToScheme(scheme)).ToNot(HaveOccurred())
 			g.Expect(corev1.AddToScheme(scheme)).ToNot(HaveOccurred())
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 			builder.WithObjects(provider)
@@ -379,20 +379,20 @@ func TestGetNotificationParams(t *testing.T) {
 	testSecret.Name = "secret-foo"
 	testSecret.Namespace = testNamespace
 
-	testProvider := &apiv1beta3.Provider{}
+	testProvider := &apiv1beta4.Provider{}
 	testProvider.Name = "provider-foo"
 	testProvider.Namespace = testNamespace
-	testProvider.Spec = apiv1beta3.ProviderSpec{
+	testProvider.Spec = apiv1beta4.ProviderSpec{
 		Type:      "generic",
 		Address:   "https://example.com",
 		SecretRef: &meta.LocalObjectReference{Name: testSecret.Name},
 	}
 
-	testAlert := &apiv1beta3.Alert{}
+	testAlert := &apiv1beta4.Alert{}
 	testAlert.Name = "alert-foo"
 	testAlert.Namespace = testNamespace
-	testAlert.Spec = apiv1beta3.AlertSpec{
-		ProviderRef: meta.LocalObjectReference{Name: testProvider.Name},
+	testAlert.Spec = apiv1beta4.AlertSpec{
+		ProviderRef: meta.NamespacedObjectReference{Name: testProvider.Name},
 	}
 
 	// Event involved object.
@@ -498,7 +498,7 @@ func TestGetNotificationParams(t *testing.T) {
 
 			// Create fake objects and event server.
 			scheme := runtime.NewScheme()
-			g.Expect(apiv1beta3.AddToScheme(scheme)).ToNot(HaveOccurred())
+			g.Expect(apiv1beta4.AddToScheme(scheme)).ToNot(HaveOccurred())
 			g.Expect(corev1.AddToScheme(scheme)).ToNot(HaveOccurred())
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 			builder.WithObjects(provider, secret)
@@ -530,7 +530,7 @@ func TestCreateNotifier(t *testing.T) {
 	certSecretName := "cert-secret"
 	tests := []struct {
 		name           string
-		providerSpec   *apiv1beta3.ProviderSpec
+		providerSpec   *apiv1beta4.ProviderSpec
 		secretType     corev1.SecretType
 		secretData     map[string][]byte
 		certSecretData map[string][]byte
@@ -538,21 +538,21 @@ func TestCreateNotifier(t *testing.T) {
 	}{
 		{
 			name: "no address, no secret ref",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type: "slack",
 			},
 			wantErr: true,
 		},
 		{
 			name: "valid address, no secret ref",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:    "slack",
 				Address: "https://example.com",
 			},
 		},
 		{
 			name: "reference to non-existing secret ref",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:      "slack",
 				SecretRef: &meta.LocalObjectReference{Name: "foo"},
 			},
@@ -560,7 +560,7 @@ func TestCreateNotifier(t *testing.T) {
 		},
 		{
 			name: "reference to secret with valid address, proxy, headers",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:      "slack",
 				SecretRef: &meta.LocalObjectReference{Name: secretName},
 			},
@@ -572,7 +572,7 @@ func TestCreateNotifier(t *testing.T) {
 		},
 		{
 			name: "reference to secret with invalid proxy",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:      "slack",
 				SecretRef: &meta.LocalObjectReference{Name: secretName},
 			},
@@ -584,7 +584,7 @@ func TestCreateNotifier(t *testing.T) {
 		},
 		{
 			name: "invalid headers in secret reference",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:      "slack",
 				SecretRef: &meta.LocalObjectReference{Name: secretName},
 			},
@@ -596,7 +596,7 @@ func TestCreateNotifier(t *testing.T) {
 		},
 		{
 			name: "invalid spec address overridden by valid secret ref address",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:      "slack",
 				SecretRef: &meta.LocalObjectReference{Name: secretName},
 				Address:   "https://example.com|",
@@ -607,7 +607,7 @@ func TestCreateNotifier(t *testing.T) {
 		},
 		{
 			name: "invalid spec proxy overridden by valid secret ref proxy",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:      "slack",
 				SecretRef: &meta.LocalObjectReference{Name: secretName},
 				Proxy:     "https://example.com|",
@@ -619,7 +619,7 @@ func TestCreateNotifier(t *testing.T) {
 		},
 		{
 			name: "reference to unsupported cert secret type",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:          "slack",
 				Address:       "https://example.com",
 				CertSecretRef: &meta.LocalObjectReference{Name: certSecretName},
@@ -632,7 +632,7 @@ func TestCreateNotifier(t *testing.T) {
 		},
 		{
 			name: "reference to non-existing cert secret",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:          "slack",
 				Address:       "https://example.com",
 				CertSecretRef: &meta.LocalObjectReference{Name: "some-secret"},
@@ -641,7 +641,7 @@ func TestCreateNotifier(t *testing.T) {
 		},
 		{
 			name: "reference to cert secret without cert data",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:          "slack",
 				Address:       "https://example.com",
 				CertSecretRef: &meta.LocalObjectReference{Name: certSecretName},
@@ -653,7 +653,7 @@ func TestCreateNotifier(t *testing.T) {
 		},
 		{
 			name: "cert secret reference in ca.crt with valid CA",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:          "slack",
 				Address:       "https://example.com",
 				CertSecretRef: &meta.LocalObjectReference{Name: certSecretName},
@@ -675,7 +675,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 		},
 		{
 			name: "cert secret reference in caFile with valid CA",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:          "slack",
 				Address:       "https://example.com",
 				CertSecretRef: &meta.LocalObjectReference{Name: certSecretName},
@@ -697,7 +697,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 		},
 		{
 			name: "cert secret reference in both ca.crt and caFile",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:          "slack",
 				Address:       "https://example.com",
 				CertSecretRef: &meta.LocalObjectReference{Name: certSecretName},
@@ -720,7 +720,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 		},
 		{
 			name: "cert secret reference with invalid CA",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:          "slack",
 				Address:       "https://example.com",
 				CertSecretRef: &meta.LocalObjectReference{Name: certSecretName},
@@ -732,7 +732,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 		},
 		{
 			name: "unsupported provider",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:    "foo",
 				Address: "https://example.com",
 			},
@@ -740,7 +740,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 		},
 		{
 			name: "address in secret too long",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:      "msteams",
 				SecretRef: &meta.LocalObjectReference{Name: secretName},
 			},
@@ -751,7 +751,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 		},
 		{
 			name: "address in secret exactly as long as possible",
-			providerSpec: &apiv1beta3.ProviderSpec{
+			providerSpec: &apiv1beta4.ProviderSpec{
 				Type:      "msteams",
 				SecretRef: &meta.LocalObjectReference{Name: secretName},
 			},
@@ -768,7 +768,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 
 			// Create fake objects and event server.
 			scheme := runtime.NewScheme()
-			g.Expect(apiv1beta3.AddToScheme(scheme)).ToNot(HaveOccurred())
+			g.Expect(apiv1beta4.AddToScheme(scheme)).ToNot(HaveOccurred())
 			g.Expect(corev1.AddToScheme(scheme)).ToNot(HaveOccurred())
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 			if tt.secretData != nil {
@@ -786,7 +786,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 				}
 				builder.WithObjects(secret)
 			}
-			provider := apiv1beta3.Provider{Spec: *tt.providerSpec}
+			provider := apiv1beta4.Provider{Spec: *tt.providerSpec}
 
 			_, _, err := createNotifier(context.TODO(), builder.Build(), provider)
 			g.Expect(err != nil).To(Equal(tt.wantErr))
@@ -945,7 +945,7 @@ func TestEventMatchesAlert(t *testing.T) {
 			g := NewWithT(t)
 
 			scheme := runtime.NewScheme()
-			g.Expect(apiv1beta3.AddToScheme(scheme)).ToNot(HaveOccurred())
+			g.Expect(apiv1beta4.AddToScheme(scheme)).ToNot(HaveOccurred())
 
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 
@@ -961,12 +961,12 @@ func TestEventMatchesAlert(t *testing.T) {
 				logger:        log.Log,
 				EventRecorder: record.NewFakeRecorder(32),
 			}
-			alert := &apiv1beta3.Alert{
+			alert := &apiv1beta4.Alert{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-alert",
 					Namespace: "test-ns",
 				},
-				Spec: apiv1beta3.AlertSpec{
+				Spec: apiv1beta4.AlertSpec{
 					EventSeverity: tt.severity,
 				},
 			}
@@ -985,18 +985,18 @@ func TestEnhanceEventWithAlertMetadata(t *testing.T) {
 
 	for name, tt := range map[string]struct {
 		event            eventv1.Event
-		alert            apiv1beta3.Alert
+		alert            apiv1beta4.Alert
 		expectedMetadata map[string]string
 	}{
 		"empty metadata": {
 			event:            eventv1.Event{},
-			alert:            apiv1beta3.Alert{},
+			alert:            apiv1beta4.Alert{},
 			expectedMetadata: nil,
 		},
 		"enhanced with summary": {
 			event: eventv1.Event{},
-			alert: apiv1beta3.Alert{
-				Spec: apiv1beta3.AlertSpec{
+			alert: apiv1beta4.Alert{
+				Spec: apiv1beta4.AlertSpec{
 					Summary: "summary",
 				},
 			},
@@ -1010,8 +1010,8 @@ func TestEnhanceEventWithAlertMetadata(t *testing.T) {
 					"summary": "original summary",
 				},
 			},
-			alert: apiv1beta3.Alert{
-				Spec: apiv1beta3.AlertSpec{
+			alert: apiv1beta4.Alert{
+				Spec: apiv1beta4.AlertSpec{
 					Summary: "summary",
 				},
 			},
@@ -1021,8 +1021,8 @@ func TestEnhanceEventWithAlertMetadata(t *testing.T) {
 		},
 		"enhanced with metadata": {
 			event: eventv1.Event{},
-			alert: apiv1beta3.Alert{
-				Spec: apiv1beta3.AlertSpec{
+			alert: apiv1beta4.Alert{
+				Spec: apiv1beta4.AlertSpec{
 					EventMetadata: map[string]string{
 						"foo": "bar",
 					},
@@ -1038,8 +1038,8 @@ func TestEnhanceEventWithAlertMetadata(t *testing.T) {
 					"foo": "baz",
 				},
 			},
-			alert: apiv1beta3.Alert{
-				Spec: apiv1beta3.AlertSpec{
+			alert: apiv1beta4.Alert{
+				Spec: apiv1beta4.AlertSpec{
 					EventMetadata: map[string]string{
 						"foo": "bar",
 					},

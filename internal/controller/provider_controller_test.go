@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1beta4 "github.com/fluxcd/notification-controller/api/v1beta4"
 )
 
 func TestProviderReconciler(t *testing.T) {
@@ -44,7 +44,7 @@ func TestProviderReconciler(t *testing.T) {
 		g.Expect(testEnv.Cleanup(ctx, testns)).ToNot(HaveOccurred())
 	})
 
-	provider := &apiv1beta3.Provider{
+	provider := &apiv1beta4.Provider{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("provider-%s", randStringRunes(5)),
 			Namespace: testns.Name,
@@ -55,7 +55,7 @@ func TestProviderReconciler(t *testing.T) {
 	// Remove finalizer at create.
 
 	provider.ObjectMeta.Finalizers = append(provider.ObjectMeta.Finalizers, "foo.bar", apiv1.NotificationFinalizer)
-	provider.Spec = apiv1beta3.ProviderSpec{
+	provider.Spec = apiv1beta4.ProviderSpec{
 		Type: "slack",
 	}
 	g.Expect(testEnv.Create(ctx, provider)).ToNot(HaveOccurred())
