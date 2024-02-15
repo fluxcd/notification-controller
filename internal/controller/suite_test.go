@@ -44,7 +44,8 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1b2 "github.com/fluxcd/notification-controller/api/v1beta2"
-	apiv1b3 "github.com/fluxcd/notification-controller/api/v1beta4"
+	apiv1b3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1b4 "github.com/fluxcd/notification-controller/api/v1beta4"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -60,6 +61,7 @@ func TestMain(m *testing.M) {
 	utilruntime.Must(apiv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(apiv1b2.AddToScheme(scheme.Scheme))
 	utilruntime.Must(apiv1b3.AddToScheme(scheme.Scheme))
+	utilruntime.Must(apiv1b4.AddToScheme(scheme.Scheme))
 
 	testEnv = testenv.New(testenv.WithCRDPath(
 		filepath.Join("..", "..", "config", "crd", "bases"),
