@@ -1321,7 +1321,7 @@ spec:
       name: 'podinfo'
 ```
 
-Now you can the trigger tests in the GitHub workflow for app1 in a staging cluster when
+Now you can trigger the tests in the GitHub workflow for app1 in a staging cluster when
 the app1 resources defined in `./app1/staging/` are reconciled by Flux:
 
 ```yaml

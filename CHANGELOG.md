@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.2.4
+
+**Release date:** 2024-02-01
+
+This patch release fixes various issues, updates the Kubernetes dependencies
+to v1.28.6 and various other dependencies to their latest version to patch
+upstream CVEs.
+
+Improvements:
+- Various dependency updates
+  [#727](https://github.com/fluxcd/notification-controller/pull/727)
+  [#726](https://github.com/fluxcd/notification-controller/pull/726)
+  [#721](https://github.com/fluxcd/notification-controller/pull/721)
+  [#718](https://github.com/fluxcd/notification-controller/pull/718)
+  [#707](https://github.com/fluxcd/notification-controller/pull/707)
+  [#695](https://github.com/fluxcd/notification-controller/pull/695)
+
+Fixes:
+- Fix BitBucket status update panic
+  [#722](https://github.com/fluxcd/notification-controller/pull/722)
+- fix typo in docs/spec/v1beta3/providers.md
+  [#699](https://github.com/fluxcd/notification-controller/pull/699)
+- fix(grafana-provider): replace ":" character in eventMetadata
+  [#703](https://github.com/fluxcd/notification-controller/pull/703)
+- Remove old/incorrect API version usage
+  [#693](https://github.com/fluxcd/notification-controller/pull/693)
+
 ## 1.2.3
 
 **Release date:** 2023-12-14
