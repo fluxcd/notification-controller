@@ -122,7 +122,6 @@ func (in *Receiver) GetInterval() time.Duration {
 }
 
 // +genclient
-// +genclient:Namespaced
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status

@@ -110,7 +110,6 @@ type ProviderStatus struct {
 }
 
 // +genclient
-// +genclient:Namespaced
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:deprecatedversion:warning="v1beta1 Provider is deprecated, upgrade to v1beta3"
