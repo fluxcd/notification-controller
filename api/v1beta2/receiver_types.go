@@ -129,7 +129,6 @@ func (in *Receiver) GetInterval() time.Duration {
 }
 
 // +genclient
-// +genclient:Namespaced
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:deprecatedversion:warning="v1beta2 Receiver is deprecated, upgrade to v1"
