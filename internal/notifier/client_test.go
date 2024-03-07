@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -46,6 +47,17 @@ func Test_postMessage(t *testing.T) {
 	defer ts.Close()
 	err := postMessage(context.Background(), ts.URL, "", nil, map[string]string{"status": "success"})
 	require.NoError(t, err)
+}
+
+func Test_postMessage_timeout(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		time.Sleep(2 * time.Second)
+	}))
+	defer ts.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	err := postMessage(ctx, ts.URL, "", nil, map[string]string{"status": "success"})
+	require.Error(t, err, "context deadline exceeded")
 }
 
 func Test_postSelfSignedCert(t *testing.T) {
