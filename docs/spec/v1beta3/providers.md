@@ -1165,6 +1165,14 @@ If the proxy address contains sensitive information such as basic auth credentia
 recommended to store the proxy in the Kubernetes secret referenced by `.spec.secretRef.name`.
 When the referenced Secret contains a `proxy` key, the `.spec.proxy` value is ignored.
 
+### Timeout
+
+`.spec.timeout` is an optional field to specify the timeout for the
+HTTP/S request sent to the provider endpoint.
+The value must be in a
+[Go recognized duration string format](https://pkg.go.dev/time#ParseDuration),
+e.g. `5m30s` for a timeout of five minutes and thirty seconds.
+
 ### Suspend
 
 `.spec.suspend` is an optional field to suspend the provider.
