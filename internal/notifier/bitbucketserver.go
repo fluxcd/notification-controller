@@ -42,6 +42,7 @@ type BitbucketServer struct {
 	ProviderUID     string
 	ProviderAddress string
 	Host            string
+	ContextPath     string
 	Username        string
 	Password        string
 	Token           string
@@ -49,7 +50,7 @@ type BitbucketServer struct {
 }
 
 const (
-	bbServerEndPointTmpl              = "/rest/api/latest/projects/%[1]s/repos/%[2]s/commits/%[3]s/builds"
+	bbServerEndPointTmpl              = "%[1]s/rest/api/latest/projects/%[2]s/repos/%[3]s/commits/%[4]s/builds"
 	bbServerGetBuildStatusQueryString = "key"
 )
 
@@ -82,7 +83,7 @@ type bbServerBuildStatusSetRequest struct {
 
 // NewBitbucketServer creates and returns a new BitbucketServer notifier.
 func NewBitbucketServer(providerUID string, addr string, token string, certPool *x509.CertPool, username string, password string) (*BitbucketServer, error) {
-	hst, id, err := parseBitbucketServerGitAddress(addr)
+	hst, cntxtPath, id, err := parseBitbucketServerGitAddress(addr)
 	if err != nil {
 		return nil, err
 	}
@@ -119,6 +120,7 @@ func NewBitbucketServer(providerUID string, addr string, token string, certPool 
 		ProviderUID:     providerUID,
 		Host:            hst,
 		ProviderAddress: addr,
+		ContextPath:     cntxtPath,
 		Token:           token,
 		Username:        username,
 		Password:        password,
@@ -152,13 +154,13 @@ func (b BitbucketServer) Post(ctx context.Context, event eventv1.Event) error {
 	key := sha1String(id)
 
 	u := b.Host + b.createApiPath(rev)
-	dupe, err := b.duplicateBitbucketServerStatus(ctx, rev, state, name, desc, id, key, u)
+	dupe, err := b.duplicateBitbucketServerStatus(ctx, state, name, desc, key, u)
 	if err != nil {
 		return fmt.Errorf("could not get existing commit status: %w", err)
 	}
 
 	if !dupe {
-		_, err = b.postBuildStatus(ctx, rev, state, name, desc, id, key, u)
+		_, err = b.postBuildStatus(ctx, state, name, desc, key, u)
 		if err != nil {
 			return fmt.Errorf("could not post build status: %w", err)
 		}
@@ -178,9 +180,9 @@ func (b BitbucketServer) state(severity string) (string, error) {
 	}
 }
 
-func (b BitbucketServer) duplicateBitbucketServerStatus(ctx context.Context, rev, state, name, desc, id, key, u string) (bool, error) {
+func (b BitbucketServer) duplicateBitbucketServerStatus(ctx context.Context, state, name, desc, key, u string) (bool, error) {
 	// Prepare request object
-	req, err := b.prepareCommonRequest(ctx, u, nil, http.MethodGet, key, rev)
+	req, err := b.prepareCommonRequest(ctx, u, nil, http.MethodGet)
 	if err != nil {
 		return false, fmt.Errorf("could not check duplicate commit status: %w", err)
 	}
@@ -219,7 +221,7 @@ func (b BitbucketServer) duplicateBitbucketServerStatus(ctx context.Context, rev
 	return false, nil
 }
 
-func (b BitbucketServer) postBuildStatus(ctx context.Context, rev, state, name, desc, id, key, url string) (*http.Response, error) {
+func (b BitbucketServer) postBuildStatus(ctx context.Context, state, name, desc, key, url string) (*http.Response, error) {
 	//Prepare json body
 	j := &bbServerBuildStatusSetRequest{
 		Key:         key,
@@ -235,7 +237,7 @@ func (b BitbucketServer) postBuildStatus(ctx context.Context, rev, state, name, 
 	}
 
 	//Prepare request
-	req, err := b.prepareCommonRequest(ctx, url, p, http.MethodPost, key, rev)
+	req, err := b.prepareCommonRequest(ctx, url, p, http.MethodPost)
 	if err != nil {
 		return nil, fmt.Errorf("failed preparing request for post build commit status: %w", err)
 	}
@@ -258,20 +260,37 @@ func (b BitbucketServer) postBuildStatus(ctx context.Context, rev, state, name, 
 }
 
 func (b BitbucketServer) createApiPath(rev string) string {
-	return fmt.Sprintf(bbServerEndPointTmpl, b.ProjectKey, b.RepositorySlug, rev)
+	return fmt.Sprintf(bbServerEndPointTmpl, b.ContextPath, b.ProjectKey, b.RepositorySlug, rev)
 }
 
-func parseBitbucketServerGitAddress(s string) (string, string, error) {
-	host, id, err := parseGitAddress(s)
-	if err != nil {
-		return "", "", fmt.Errorf("could not parse git address: %w", err)
+func parseBitbucketServerGitAddress(s string) (string, string, string, error) {
+	scheme := strings.Split(s, ":")[0]
+	if scheme != "http" && scheme != "https" {
+		return "", "", "", fmt.Errorf("could not parse git address: unsupported scheme type in address: %s. Must be http or https", scheme)
 	}
-	//Remove "scm/" --> https://community.atlassian.com/t5/Bitbucket-questions/remote-url-in-Bitbucket-server-what-does-scm-represent-is-it/qaq-p/2060987
-	id = strings.TrimPrefix(id, "scm/")
-	return host, id, nil
+
+	host, idWithContext, err := parseGitAddress(s)
+	if err != nil {
+		return "", "", "", fmt.Errorf("could not parse git address: %w", err)
+	}
+
+	idWithContext = "/" + idWithContext
+
+	// /scm/ is always part of http/https clone urls : https://community.atlassian.com/t5/Bitbucket-questions/remote-url-in-Bitbucket-server-what-does-scm-represent-is-it/qaq-p/2060987
+	lastIndex := strings.LastIndex(idWithContext, "/scm/")
+	if lastIndex < 0 {
+		return "", "", "", fmt.Errorf("could not parse git address: supplied provider address is not http(s) git clone url")
+	}
+
+	// Handle context scenarios --> https://confluence.atlassian.com/bitbucketserver/change-bitbucket-s-context-path-776640153.html
+	cntxtPath := idWithContext[:lastIndex] // Context path is anything that comes before last /scm/
+
+	id := idWithContext[lastIndex+5:] // Remove last `/scm/` from id as it's is not used in API calls
+
+	return host, cntxtPath, id, nil
 }
 
-func (b BitbucketServer) prepareCommonRequest(ctx context.Context, path string, body io.Reader, method string, key, rev string) (*retryablehttp.Request, error) {
+func (b BitbucketServer) prepareCommonRequest(ctx context.Context, path string, body io.Reader, method string) (*retryablehttp.Request, error) {
 	req, err := retryablehttp.NewRequestWithContext(ctx, method, path, body)
 	if err != nil {
 		return nil, fmt.Errorf("could not prepare request: %w", err)
