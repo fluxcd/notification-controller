@@ -117,6 +117,143 @@ func Test_handlePayload(t *testing.T) {
 			expectedResponseCode: http.StatusOK,
 		},
 		{
+			name: "cdevents receiver",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cdevents-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type:   apiv1.CDEventsReceiver,
+					Events: []string{"cd.change.merged.v1"},
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			headers: map[string]string{
+				"Ce-Type": "cd.change.merged.v1",
+			},
+			payload: map[string]interface{}{
+				"context": map[string]string{
+					"gitRepository": "adamkenihan/notification-controller",
+					"gitRevision":   "5555",
+					"version":       "0.3.0",
+					"id":            "5555",
+					"source":        "github",
+					"timestamp":     "2023-12-07T14:51:29.908479495Z",
+					"type":          "dev.cdevents.change.merged.0.1.2",
+				},
+				"subject": map[string]string{
+					"type": "change",
+					"id":   "5555",
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			expectedResponseCode: http.StatusOK,
+		},
+		{
+			name: "cdevents receiver wrong event type",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cdevents-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type:   apiv1.CDEventsReceiver,
+					Events: []string{"cd.environment.modified.v1"},
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			headers: map[string]string{
+				"Ce-Type": "cd.change.merged.v1",
+			},
+			payload: map[string]interface{}{
+				"context": map[string]string{
+					"gitRepository": "adamkenihan/notification-controller",
+					"gitRevision":   "5555",
+					"version":       "0.3.0",
+					"id":            "5555",
+					"source":        "github",
+					"timestamp":     "2023-12-07T14:51:29.908479495Z",
+					"type":          "dev.cdevents.change.merged.0.1.2",
+				},
+				"subject": map[string]string{
+					"type": "change",
+					"id":   "5555",
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			expectedResponseCode: http.StatusBadRequest,
+		},
+		{
+			name: "cdevents receiver no event type specified",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cdevents-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.CDEventsReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			headers: map[string]string{
+				"Ce-Type": "cd.change.merged.v1",
+			},
+			payload: map[string]interface{}{
+				"context": map[string]string{
+					"gitRepository": "adamkenihan/notification-controller",
+					"gitRevision":   "5555",
+					"version":       "0.3.0",
+					"id":            "5555",
+					"source":        "github",
+					"timestamp":     "2023-12-07T14:51:29.908479495Z",
+					"type":          "dev.cdevents.change.merged.0.1.2",
+				},
+				"subject": map[string]string{
+					"type": "change",
+					"id":   "5555",
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			expectedResponseCode: http.StatusOK,
+		},
+		{
 			name: "github receiver",
 			receiver: &apiv1.Receiver{
 				ObjectMeta: metav1.ObjectMeta{
