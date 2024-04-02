@@ -2,7 +2,7 @@
 IMG ?= fluxcd/notification-controller:latest
 # Produce CRDs that work back to Kubernetes 1.16
 CRD_OPTIONS ?= crd:crdVersions=v1
-SOURCE_VER ?= v1.1.2
+SOURCE_VER ?= v1.2.4
 
 # Repository root based on Git metadata
 REPOSITORY_ROOT := $(shell git rev-parse --show-toplevel)
@@ -93,8 +93,8 @@ api-docs: gen-crd-api-reference-docs
 
 # Run go mod tidy
 tidy:
-	cd api; rm -f go.sum; go mod tidy -compat=1.20
-	rm -f go.sum; go mod tidy -compat=1.21
+	cd api; rm -f go.sum; go mod tidy -compat=1.22
+	rm -f go.sum; go mod tidy -compat=1.22
 
 # Run go fmt against code
 fmt:
