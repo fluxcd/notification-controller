@@ -52,7 +52,7 @@ func (t *Telegram) Post(ctx context.Context, event eventv1.Event) error {
 // The telegram API requires that some special characters are escaped
 // in the message string. Docs: https://core.telegram.org/bots/api#formatting-options.
 func escapeString(str string) string {
-	chars := "\\.-_[]()~>`#+=|{}!"
+	chars := "\\.-_[]()~>`#+=|{}!*"
 	for _, char := range chars {
 		start := 0
 		idx := 0

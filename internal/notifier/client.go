@@ -70,7 +70,10 @@ func postMessage(ctx context.Context, address, proxy string, certPool *x509.Cert
 		}
 	}
 
-	httpClient.HTTPClient.Timeout = 15 * time.Second
+	// Disable the timeout for the HTTP client,
+	// as we set the provider timeout on the context.
+	httpClient.HTTPClient.Timeout = 0
+
 	httpClient.RetryWaitMin = 2 * time.Second
 	httpClient.RetryWaitMax = 30 * time.Second
 	httpClient.RetryMax = 4

@@ -134,6 +134,7 @@ handle the incoming webhook request.
 | [Nexus](#nexus)                            | `nexus`        | ❌                                          |
 | [Azure Container Registry](#acr)           | `acr`          | ❌                                          |
 | [Google Container Registry](#gcr)          | `gcr`          | ❌                                          |
+| [CDEvents](#cdevents)                      | `cdevents`     | ✅                                          |
 
 #### Generic
 
@@ -611,6 +612,37 @@ spec:
   resources:
     - kind: ImageRepository
       name: webapp
+```
+
+#### CDEvents
+
+When a Receiver's `.spec.type` is set to `cdevents`, the controller will respond to
+a [CDEvent Event Payload](https://cdevents.dev/docs/). It will verify the CDEvent
+using the [CDEvent Go-SDK](https://github.com/cdevents/sdk-go). 
+
+This type of receiver supports filtering using [Events](#events) by comparing the
+`type` header to the list of events. 
+
+##### CDEvents example
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Receiver
+metadata:
+  name: cdevents-receiver
+  namespace: flux-system
+spec:
+  type: cdevents
+  events:
+    - "dev.cdevents.change.merged"
+  secretRef:
+    name: receiver-token
+  resources:
+    - kind: GitRespository 
+      apiVersion: source.toolkit.fluxcd.io/v1
+      name: webapp
+      namespace: flux-system
 ```
 
 ### Events

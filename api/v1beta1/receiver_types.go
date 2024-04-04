@@ -97,7 +97,6 @@ func (in *Receiver) SetConditions(conditions []metav1.Condition) {
 }
 
 // +genclient
-// +genclient:Namespaced
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:deprecatedversion:warning="v1beta1 Receiver is deprecated, upgrade to v1"

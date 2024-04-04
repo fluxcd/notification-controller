@@ -122,7 +122,6 @@ type ProviderSpec struct {
 }
 
 // +genclient
-// +genclient:Namespaced
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
