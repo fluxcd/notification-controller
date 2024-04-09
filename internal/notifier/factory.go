@@ -77,20 +77,6 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewRocket(f.URL, f.ProxyURL, f.CertPool, f.Username, f.Channel)
 	case apiv1.MSTeamsProvider:
 		n, err = NewMSTeams(f.URL, f.ProxyURL, f.CertPool)
-	case apiv1.GitHubProvider:
-		n, err = NewGitHub(f.ProviderUID, f.URL, f.Token, f.CertPool)
-	case apiv1.GitHubDispatchProvider:
-		n, err = NewGitHubDispatch(f.URL, f.Token, f.CertPool)
-	case apiv1.GitLabProvider:
-		n, err = NewGitLab(f.ProviderUID, f.URL, f.Token, f.CertPool)
-	case apiv1.GiteaProvider:
-		n, err = NewGitea(f.ProviderUID, f.URL, f.Token, f.CertPool)
-	case apiv1.BitbucketServerProvider:
-		n, err = NewBitbucketServer(f.ProviderUID, f.URL, f.Token, f.CertPool, f.Username, f.Password)
-	case apiv1.BitbucketProvider:
-		n, err = NewBitbucket(f.ProviderUID, f.URL, f.Token, f.CertPool)
-	case apiv1.AzureDevOpsProvider:
-		n, err = NewAzureDevOps(f.ProviderUID, f.URL, f.Token, f.CertPool)
 	case apiv1.GoogleChatProvider:
 		n, err = NewGoogleChat(f.URL, f.ProxyURL)
 	case apiv1.GooglePubSubProvider:
@@ -119,6 +105,35 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n, err = NewDataDog(f.URL, f.ProxyURL, f.CertPool, f.Token)
 	case apiv1.NATSProvider:
 		n, err = NewNATS(f.URL, f.Channel, f.Username, f.Password)
+
+	// Git providers (for some providers, the password field is used as token)
+	case apiv1.GitHubProvider:
+		if f.Token == "" && f.Password != "" {
+			f.Token = f.Password
+		}
+		n, err = NewGitHub(f.ProviderUID, f.URL, f.Token, f.CertPool)
+	case apiv1.GitHubDispatchProvider:
+		if f.Token == "" && f.Password != "" {
+			f.Token = f.Password
+		}
+		n, err = NewGitHubDispatch(f.URL, f.Token, f.CertPool)
+	case apiv1.GitLabProvider:
+		if f.Token == "" && f.Password != "" {
+			f.Token = f.Password
+		}
+		n, err = NewGitLab(f.ProviderUID, f.URL, f.Token, f.CertPool)
+	case apiv1.GiteaProvider:
+		if f.Token == "" && f.Password != "" {
+			f.Token = f.Password
+		}
+		n, err = NewGitea(f.ProviderUID, f.URL, f.Token, f.CertPool)
+	case apiv1.BitbucketServerProvider:
+		n, err = NewBitbucketServer(f.ProviderUID, f.URL, f.Token, f.CertPool, f.Username, f.Password)
+	case apiv1.BitbucketProvider:
+		n, err = NewBitbucket(f.ProviderUID, f.URL, f.Token, f.CertPool)
+	case apiv1.AzureDevOpsProvider:
+		n, err = NewAzureDevOps(f.ProviderUID, f.URL, f.Token, f.CertPool)
+
 	default:
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
