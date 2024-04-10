@@ -23,7 +23,47 @@ import (
 	apiv1 "github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
-type Factory struct {
+var (
+	// notifiers is a map of notifier names to factory functions.
+	notifiers = notifierMap{
+		// GenericProvider is the default notifier
+		apiv1.GenericProvider:         genericNotifierFunc,
+		apiv1.GenericHMACProvider:     genericHMACNotifierFunc,
+		apiv1.SlackProvider:           slackNotifierFunc,
+		apiv1.DiscordProvider:         discordNotifierFunc,
+		apiv1.RocketProvider:          rocketNotifierFunc,
+		apiv1.MSTeamsProvider:         msteamsNotifierFunc,
+		apiv1.GoogleChatProvider:      googleChatNotifierFunc,
+		apiv1.GooglePubSubProvider:    googlePubSubNotifierFunc,
+		apiv1.WebexProvider:           webexNotifierFunc,
+		apiv1.SentryProvider:          sentryNotifierFunc,
+		apiv1.AzureEventHubProvider:   azureEventHubNotifierFunc,
+		apiv1.TelegramProvider:        telegramNotifierFunc,
+		apiv1.LarkProvider:            larkNotifierFunc,
+		apiv1.Matrix:                  matrixNotifierFunc,
+		apiv1.OpsgenieProvider:        opsgenieNotifierFunc,
+		apiv1.AlertManagerProvider:    alertmanagerNotifierFunc,
+		apiv1.GrafanaProvider:         grafanaNotifierFunc,
+		apiv1.PagerDutyProvider:       pagerDutyNotifierFunc,
+		apiv1.DataDogProvider:         dataDogNotifierFunc,
+		apiv1.NATSProvider:            natsNotifierFunc,
+		apiv1.GitHubProvider:          gitHubNotifierFunc,
+		apiv1.GitHubDispatchProvider:  gitHubDispatchNotifierFunc,
+		apiv1.GitLabProvider:          gitLabNotifierFunc,
+		apiv1.GiteaProvider:           giteaNotifierFunc,
+		apiv1.BitbucketServerProvider: bitbucketServerNotifierFunc,
+		apiv1.BitbucketProvider:       bitbucketNotifierFunc,
+		apiv1.AzureDevOpsProvider:     azureDevOpsNotifierFunc,
+	}
+)
+
+// notifierMap is a map of provider names to notifier factory functions
+type notifierMap map[string]factoryFunc
+
+// factoryFunc is a factory function that creates a new notifier
+type factoryFunc func(opts notifierOptions) (Interface, error)
+
+type notifierOptions struct {
 	URL         string
 	ProxyURL    string
 	Username    string
@@ -33,6 +73,10 @@ type Factory struct {
 	CertPool    *x509.CertPool
 	Password    string
 	ProviderUID string
+}
+
+type Factory struct {
+	notifierOptions
 }
 
 func NewFactory(url string,
@@ -45,15 +89,17 @@ func NewFactory(url string,
 	password string,
 	providerUID string) *Factory {
 	return &Factory{
-		URL:         url,
-		ProxyURL:    proxy,
-		Channel:     channel,
-		Username:    username,
-		Token:       token,
-		Headers:     headers,
-		CertPool:    certPool,
-		Password:    password,
-		ProviderUID: providerUID,
+		notifierOptions: notifierOptions{
+			URL:         url,
+			ProxyURL:    proxy,
+			Username:    username,
+			Channel:     channel,
+			Token:       token,
+			Headers:     headers,
+			CertPool:    certPool,
+			Password:    password,
+			ProviderUID: providerUID,
+		},
 	}
 }
 
@@ -62,64 +108,13 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		return &NopNotifier{}, nil
 	}
 
-	var n Interface
-	var err error
-	switch provider {
-	case apiv1.GenericProvider:
-		n, err = NewForwarder(f.URL, f.ProxyURL, f.Headers, f.CertPool, nil)
-	case apiv1.GenericHMACProvider:
-		n, err = NewForwarder(f.URL, f.ProxyURL, f.Headers, f.CertPool, []byte(f.Token))
-	case apiv1.SlackProvider:
-		n, err = NewSlack(f.URL, f.ProxyURL, f.Token, f.CertPool, f.Username, f.Channel)
-	case apiv1.DiscordProvider:
-		n, err = NewDiscord(f.URL, f.ProxyURL, f.Username, f.Channel)
-	case apiv1.RocketProvider:
-		n, err = NewRocket(f.URL, f.ProxyURL, f.CertPool, f.Username, f.Channel)
-	case apiv1.MSTeamsProvider:
-		n, err = NewMSTeams(f.URL, f.ProxyURL, f.CertPool)
-	case apiv1.GitHubProvider:
-		n, err = NewGitHub(f.ProviderUID, f.URL, f.Token, f.CertPool)
-	case apiv1.GitHubDispatchProvider:
-		n, err = NewGitHubDispatch(f.URL, f.Token, f.CertPool)
-	case apiv1.GitLabProvider:
-		n, err = NewGitLab(f.ProviderUID, f.URL, f.Token, f.CertPool)
-	case apiv1.GiteaProvider:
-		n, err = NewGitea(f.ProviderUID, f.URL, f.Token, f.CertPool)
-	case apiv1.BitbucketServerProvider:
-		n, err = NewBitbucketServer(f.ProviderUID, f.URL, f.Token, f.CertPool, f.Username, f.Password)
-	case apiv1.BitbucketProvider:
-		n, err = NewBitbucket(f.ProviderUID, f.URL, f.Token, f.CertPool)
-	case apiv1.AzureDevOpsProvider:
-		n, err = NewAzureDevOps(f.ProviderUID, f.URL, f.Token, f.CertPool)
-	case apiv1.GoogleChatProvider:
-		n, err = NewGoogleChat(f.URL, f.ProxyURL)
-	case apiv1.GooglePubSubProvider:
-		n, err = NewGooglePubSub(f.URL, f.Channel, f.Token, f.Headers)
-	case apiv1.WebexProvider:
-		n, err = NewWebex(f.URL, f.ProxyURL, f.CertPool, f.Channel, f.Token)
-	case apiv1.SentryProvider:
-		n, err = NewSentry(f.CertPool, f.URL, f.Channel)
-	case apiv1.AzureEventHubProvider:
-		n, err = NewAzureEventHub(f.URL, f.Token, f.Channel)
-	case apiv1.TelegramProvider:
-		n, err = NewTelegram(f.Channel, f.Token)
-	case apiv1.LarkProvider:
-		n, err = NewLark(f.URL)
-	case apiv1.Matrix:
-		n, err = NewMatrix(f.URL, f.Token, f.Channel, f.CertPool)
-	case apiv1.OpsgenieProvider:
-		n, err = NewOpsgenie(f.URL, f.ProxyURL, f.CertPool, f.Token)
-	case apiv1.AlertManagerProvider:
-		n, err = NewAlertmanager(f.URL, f.ProxyURL, f.CertPool)
-	case apiv1.GrafanaProvider:
-		n, err = NewGrafana(f.URL, f.ProxyURL, f.Token, f.CertPool, f.Username, f.Password)
-	case apiv1.PagerDutyProvider:
-		n, err = NewPagerDuty(f.URL, f.ProxyURL, f.CertPool, f.Channel)
-	case apiv1.DataDogProvider:
-		n, err = NewDataDog(f.URL, f.ProxyURL, f.CertPool, f.Token)
-	case apiv1.NATSProvider:
-		n, err = NewNATS(f.URL, f.Channel, f.Username, f.Password)
-	default:
+	var (
+		n   Interface
+		err error
+	)
+	if notifier, ok := notifiers[provider]; ok {
+		n, err = notifier(f.notifierOptions)
+	} else {
 		err = fmt.Errorf("provider %s not supported", provider)
 	}
 
@@ -127,4 +122,124 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 		n = &NopNotifier{}
 	}
 	return n, err
+}
+
+func genericNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewForwarder(opts.URL, opts.ProxyURL, opts.Headers, opts.CertPool, nil)
+}
+
+func genericHMACNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewForwarder(opts.URL, opts.ProxyURL, opts.Headers, opts.CertPool, []byte(opts.Token))
+}
+
+func slackNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewSlack(opts.URL, opts.ProxyURL, opts.Token, opts.CertPool, opts.Username, opts.Channel)
+}
+
+func discordNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewDiscord(opts.URL, opts.ProxyURL, opts.Username, opts.Channel)
+}
+
+func rocketNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewRocket(opts.URL, opts.ProxyURL, opts.CertPool, opts.Username, opts.Channel)
+}
+
+func msteamsNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewMSTeams(opts.URL, opts.ProxyURL, opts.CertPool)
+}
+
+func googleChatNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewGoogleChat(opts.URL, opts.ProxyURL)
+}
+
+func googlePubSubNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewGooglePubSub(opts.URL, opts.Channel, opts.Token, opts.Headers)
+}
+
+func webexNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewWebex(opts.URL, opts.ProxyURL, opts.CertPool, opts.Channel, opts.Token)
+}
+
+func sentryNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewSentry(opts.CertPool, opts.URL, opts.Channel)
+}
+
+func azureEventHubNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewAzureEventHub(opts.URL, opts.Token, opts.Channel)
+}
+
+func telegramNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewTelegram(opts.Channel, opts.Token)
+}
+
+func larkNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewLark(opts.URL)
+}
+
+func matrixNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewMatrix(opts.URL, opts.Token, opts.Channel, opts.CertPool)
+}
+
+func opsgenieNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewOpsgenie(opts.URL, opts.ProxyURL, opts.CertPool, opts.Token)
+}
+
+func alertmanagerNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewAlertmanager(opts.URL, opts.ProxyURL, opts.CertPool)
+}
+
+func grafanaNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewGrafana(opts.URL, opts.ProxyURL, opts.Token, opts.CertPool, opts.Username, opts.Password)
+}
+
+func pagerDutyNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewPagerDuty(opts.URL, opts.ProxyURL, opts.CertPool, opts.Channel)
+}
+
+func dataDogNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewDataDog(opts.URL, opts.ProxyURL, opts.CertPool, opts.Token)
+}
+
+func natsNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewNATS(opts.URL, opts.Channel, opts.Username, opts.Password)
+}
+
+func gitHubNotifierFunc(opts notifierOptions) (Interface, error) {
+	if opts.Token == "" && opts.Password != "" {
+		opts.Token = opts.Password
+	}
+	return NewGitHub(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool)
+}
+
+func gitHubDispatchNotifierFunc(opts notifierOptions) (Interface, error) {
+	if opts.Token == "" && opts.Password != "" {
+		opts.Token = opts.Password
+	}
+	return NewGitHubDispatch(opts.URL, opts.Token, opts.CertPool)
+}
+
+func gitLabNotifierFunc(opts notifierOptions) (Interface, error) {
+	if opts.Token == "" && opts.Password != "" {
+		opts.Token = opts.Password
+	}
+	return NewGitLab(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool)
+}
+
+func giteaNotifierFunc(opts notifierOptions) (Interface, error) {
+	if opts.Token == "" && opts.Password != "" {
+		opts.Token = opts.Password
+	}
+	return NewGitea(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool)
+}
+
+func bitbucketServerNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewBitbucketServer(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool, opts.Username, opts.Password)
+}
+
+func bitbucketNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewBitbucket(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool)
+}
+
+func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewAzureDevOps(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool)
 }
