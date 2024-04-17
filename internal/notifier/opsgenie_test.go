@@ -24,6 +24,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/stretchr/testify/require"
 )
 
@@ -38,9 +39,32 @@ func TestOpsgenie_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	opsgenie, err := NewOpsgenie(ts.URL, "", nil, "token")
-	require.NoError(t, err)
+	tests := []struct {
+		name  string
+		event func() v1beta1.Event
+	}{
+		{
+			name:  "test event",
+			event: testEvent,
+		},
+		{
+			name: "test event with empty metadata",
+			event: func() v1beta1.Event {
+				events := testEvent()
+				events.Metadata = nil
+				return events
+			},
+		},
+	}
 
-	err = opsgenie.Post(context.TODO(), testEvent())
-	require.NoError(t, err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			opsgenie, err := NewOpsgenie(ts.URL, "", nil, "token")
+			require.NoError(t, err)
+
+			err = opsgenie.Post(context.TODO(), tt.event())
+			require.NoError(t, err)
+		})
+	}
 }
