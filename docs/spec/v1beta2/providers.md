@@ -1539,6 +1539,8 @@ kubectl create secret generic bb-server-token --from-literal=token=<token>
 The HTTP access token must have `Repositories (Read/Write)` permission for
 the repository specified in `.spec.address`.
 
+**NOTE:** Please provide HTTPS clone URL in the `address` field of this provider. SSH URLs are not supported by this provider type.
+
 #### Azure DevOps
 
 When `.spec.type` is set to `azuredevops`, the referenced secret must contain a key called `token` with the value set to a
