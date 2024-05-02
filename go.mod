@@ -21,8 +21,8 @@ require (
 	github.com/fluxcd/pkg/apis/meta v1.5.0
 	github.com/fluxcd/pkg/git v0.19.0
 	github.com/fluxcd/pkg/masktoken v0.4.0
-	github.com/fluxcd/pkg/runtime v0.47.0
-	github.com/fluxcd/pkg/ssa v0.39.0
+	github.com/fluxcd/pkg/runtime v0.47.1
+	github.com/fluxcd/pkg/ssa v0.39.1
 	github.com/getsentry/sentry-go v0.27.0
 	github.com/go-logr/logr v1.4.1
 	github.com/google/go-github/v53 v53.2.0
@@ -43,7 +43,7 @@ require (
 	k8s.io/apimachinery v0.30.0
 	k8s.io/client-go v0.30.0
 	k8s.io/utils v0.0.0-20240310230437-4693a0247e57
-	sigs.k8s.io/controller-runtime v0.18.0
+	sigs.k8s.io/controller-runtime v0.18.1
 	sigs.k8s.io/yaml v1.4.0
 )
 

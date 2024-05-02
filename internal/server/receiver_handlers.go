@@ -52,8 +52,8 @@ var (
 // defaultFluxAPIVersions is a map of Flux API kinds to their API versions.
 var defaultFluxAPIVersions = map[string]string{
 	"Bucket":          "source.toolkit.fluxcd.io/v1beta2",
-	"HelmChart":       "source.toolkit.fluxcd.io/v1beta2",
-	"HelmRepository":  "source.toolkit.fluxcd.io/v1beta2",
+	"HelmChart":       "source.toolkit.fluxcd.io/v1",
+	"HelmRepository":  "source.toolkit.fluxcd.io/v1",
 	"GitRepository":   "source.toolkit.fluxcd.io/v1",
 	"OCIRepository":   "source.toolkit.fluxcd.io/v1beta2",
 	"ImageRepository": "image.toolkit.fluxcd.io/v1beta2",
