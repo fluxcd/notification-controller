@@ -5,7 +5,7 @@ go 1.22.0
 require (
 	github.com/fluxcd/pkg/apis/meta v1.5.0
 	k8s.io/apimachinery v0.30.0
-	sigs.k8s.io/controller-runtime v0.18.0
+	sigs.k8s.io/controller-runtime v0.18.1
 )
 
 // Fix CVE-2022-28948

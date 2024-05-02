@@ -776,10 +776,10 @@ github.com/fluxcd/pkg/git v0.19.0 h1:zIv+GAT0ieIUpnGBVi3Bhax/qq4Rr28BW7Jv4DTt6zE
 github.com/fluxcd/pkg/git v0.19.0/go.mod h1:wkqUOSrTjtsVVk/gC6/7RxVpi9GcqAA+7O5HVJF5S14=
 github.com/fluxcd/pkg/masktoken v0.4.0 h1:pRItymXzW8dhT9Fd4XfnbrgKeySPeeLCrr6W1pgrUbM=
 github.com/fluxcd/pkg/masktoken v0.4.0/go.mod h1:MP1nCsr2tJbH8hnhZP4+7TfTR0ggrKOJgi9Bo7Mj/6M=
-github.com/fluxcd/pkg/runtime v0.47.0 h1:m3BEgwTYJslIF0lqhZMw6ZcKD6bD+4Ut+Xd/8X86SZA=
-github.com/fluxcd/pkg/runtime v0.47.0/go.mod h1:UgHy8DTkU2MFHDe2q3b+OP4mBYTsopGhSzWb8rHJa9Q=
-github.com/fluxcd/pkg/ssa v0.39.0 h1:MdsTjwmF7mxTuZRt1XcLp5SzDI0PcRDR8bnbGH4nvHo=
-github.com/fluxcd/pkg/ssa v0.39.0/go.mod h1:bS/QGx2YjAiyzPl1CGb8w+6ETmoIhpeViTcEnTpv+t4=
+github.com/fluxcd/pkg/runtime v0.47.1 h1:Q1tAFsp92uurWyoEe52AmMC4k+6DYTPBrUQDs+nz/9c=
+github.com/fluxcd/pkg/runtime v0.47.1/go.mod h1:97a+PqpWMgQsoqh91uH3EQz+/DC7Uxc8xcu/rDHFC5c=
+github.com/fluxcd/pkg/ssa v0.39.1 h1:xPYRKqgqB5p+5jgz2xBkXCE/7i1FIOa+nA3Wr7Gu2Ek=
+github.com/fluxcd/pkg/ssa v0.39.1/go.mod h1:AkhMoFxipMf3WoO3lkXjj2nHNIz6sA5yQ50aBodtxnk=
 github.com/fogleman/gg v1.2.1-0.20190220221249-0403632d5b90/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/fogleman/gg v1.3.0/go.mod h1:R/bRT+9gY/C5z7JzPU0zXsXHKM4/ayA+zqcVNZzPa1k=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
@@ -1973,8 +1973,8 @@ rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8
 rsc.io/pdf v0.1.1/go.mod h1:n8OzWcQ6Sp37PL01nO98y4iUCRdTGarVfzxY20ICaU4=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
-sigs.k8s.io/controller-runtime v0.18.0 h1:Z7jKuX784TQSUL1TIyeuF7j8KXZ4RtSX0YgtjKcSTME=
-sigs.k8s.io/controller-runtime v0.18.0/go.mod h1:tuAt1+wbVsXIT8lPtk5RURxqAnq7xkpv2Mhttslg7Hw=
+sigs.k8s.io/controller-runtime v0.18.1 h1:RpWbigmuiylbxOCLy0tGnq1cU1qWPwNIQzoJk+QeJx4=
+sigs.k8s.io/controller-runtime v0.18.1/go.mod h1:tuAt1+wbVsXIT8lPtk5RURxqAnq7xkpv2Mhttslg7Hw=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd h1:EDPBXCAspyGV4jQlpZSudPeMmr1bNJefnuqLsRAsHZo=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd/go.mod h1:B8JuhiUyNFVKdsE8h686QcCxMaH6HrOAZj4vswFpcB0=
 sigs.k8s.io/kustomize/api v0.17.1 h1:MYJBOP/yQ3/5tp4/sf6HiiMfNNyO97LmtnirH9SLNr4=
