@@ -41,7 +41,7 @@ func (t *Telegram) Post(ctx context.Context, event eventv1.Event) error {
 		event.InvolvedObject.Name, event.InvolvedObject.Namespace)
 	var metadata string
 	for k, v := range event.Metadata {
-		metadata = metadata + fmt.Sprintf("\\- *%s*: %s\n", k, escapeString(v))
+		metadata = metadata + fmt.Sprintf("\\- *%s*: %s\n", escapeString(k), escapeString(v))
 	}
 	message := fmt.Sprintf("*%s*\n%s\n%s", escapeString(heading), escapeString(event.Message), metadata)
 	url := fmt.Sprintf("telegram://%s@telegram?channels=%s&parseMode=markDownv2", t.Token, t.Channel)
