@@ -52,17 +52,19 @@ type EventServer struct {
 	logger               logr.Logger
 	kubeClient           client.Client
 	noCrossNamespaceRefs bool
+	detailedMetrics      bool
 	kuberecorder.EventRecorder
 }
 
 // NewEventServer returns an HTTP server that handles events
-func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, eventRecorder kuberecorder.EventRecorder, noCrossNamespaceRefs bool) *EventServer {
+func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, eventRecorder kuberecorder.EventRecorder, noCrossNamespaceRefs bool, detailedMetrics bool) *EventServer {
 	return &EventServer{
 		port:                 port,
 		logger:               logger.WithName("event-server"),
 		kubeClient:           kubeClient,
 		EventRecorder:        eventRecorder,
 		noCrossNamespaceRefs: noCrossNamespaceRefs,
+		detailedMetrics:      detailedMetrics,
 	}
 }
 
@@ -82,8 +84,13 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 		handler = middleware(handler)
 	}
 	mux := http.NewServeMux()
-	mux.Handle("/", handler)
-	h := std.Handler("", mdlw, mux)
+	path := "/"
+	mux.Handle(path, handler)
+	middlewarePath := ""
+	if !s.detailedMetrics {
+		middlewarePath = path
+	}
+	h := std.Handler(middlewarePath, mdlw, mux)
 	srv := &http.Server{
 		Addr:    s.port,
 		Handler: h,
