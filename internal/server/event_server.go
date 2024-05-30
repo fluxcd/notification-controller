@@ -48,23 +48,23 @@ type eventContextKey struct{}
 
 // EventServer handles event POST requests
 type EventServer struct {
-	port                 string
-	logger               logr.Logger
-	kubeClient           client.Client
-	noCrossNamespaceRefs bool
-	detailedMetrics      bool
+	port                  string
+	logger                logr.Logger
+	kubeClient            client.Client
+	noCrossNamespaceRefs  bool
+	exportHTTPPathMetrics bool
 	kuberecorder.EventRecorder
 }
 
 // NewEventServer returns an HTTP server that handles events
-func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, eventRecorder kuberecorder.EventRecorder, noCrossNamespaceRefs bool, detailedMetrics bool) *EventServer {
+func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, eventRecorder kuberecorder.EventRecorder, noCrossNamespaceRefs bool, exportHTTPPathMetrics bool) *EventServer {
 	return &EventServer{
-		port:                 port,
-		logger:               logger.WithName("event-server"),
-		kubeClient:           kubeClient,
-		EventRecorder:        eventRecorder,
-		noCrossNamespaceRefs: noCrossNamespaceRefs,
-		detailedMetrics:      detailedMetrics,
+		port:                  port,
+		logger:                logger.WithName("event-server"),
+		kubeClient:            kubeClient,
+		EventRecorder:         eventRecorder,
+		noCrossNamespaceRefs:  noCrossNamespaceRefs,
+		exportHTTPPathMetrics: exportHTTPPathMetrics,
 	}
 }
 
@@ -86,11 +86,11 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 	mux := http.NewServeMux()
 	path := "/"
 	mux.Handle(path, handler)
-	middlewarePath := ""
-	if !s.detailedMetrics {
-		middlewarePath = path
+	handlerID := path
+	if s.exportHTTPPathMetrics {
+		handlerID = ""
 	}
-	h := std.Handler(middlewarePath, mdlw, mux)
+	h := std.Handler(handlerID, mdlw, mux)
 	srv := &http.Server{
 		Addr:    s.port,
 		Handler: h,
