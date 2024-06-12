@@ -2,6 +2,57 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.3.0
+
+**Release date:** 2024-05-06
+
+This minor release comes with new features, improvements and bug fixes.
+
+The `Receiver` API has been extended to support CDEvents,
+for more information, please see the
+[CDEvents Receiver API documentation](https://github.com/fluxcd/notification-controller/blob/release/v1.3.x/docs/spec/v1/receivers.md#cdevents).
+
+Starting with this version, the controller allows grouping alerts for Alertmanager
+by setting the `startsAt` label instead of `timestamp`. When sending alerts to
+OpsGenie, the controller now sets the `severity` field to the alert's details.
+
+In addition, the controller dependencies have been updated to Kubernetes v1.30
+and controller-runtime v0.18. Various other dependencies have also been updated to
+their latest version to patch upstream CVEs.
+
+Lastly, the controller is now built with Go 1.22.
+
+Improvements:
+- Add CDEvent Receiver Support
+  [#772](https://github.com/fluxcd/notification-controller/pull/772)
+- Add severity to opsgenie alerts
+  [#796](https://github.com/fluxcd/notification-controller/pull/796)
+- Alertmanager: Change timestamp label to .StartsAt
+  [#795](https://github.com/fluxcd/notification-controller/pull/795)
+- Use `password` as fallback for the Git provider `token` auth
+  [#790](https://github.com/fluxcd/notification-controller/pull/790)
+- Add support for Bitbucket Context path
+  [#747](https://github.com/fluxcd/notification-controller/pull/747)
+- Various dependency updates
+  [#816](https://github.com/fluxcd/notification-controller/pull/816)
+  [#814](https://github.com/fluxcd/notification-controller/pull/814)
+  [#813](https://github.com/fluxcd/notification-controller/pull/813)
+  [#810](https://github.com/fluxcd/notification-controller/pull/810)
+  [#809](https://github.com/fluxcd/notification-controller/pull/809)
+  [#787](https://github.com/fluxcd/notification-controller/pull/787)
+  [#783](https://github.com/fluxcd/notification-controller/pull/783)
+  [#763](https://github.com/fluxcd/notification-controller/pull/763)
+
+Fixes:
+- Sanitize provider data loaded from secret
+  [#789](https://github.com/fluxcd/notification-controller/pull/789)
+- Fix timeout propagation for alerts
+  [#757](https://github.com/fluxcd/notification-controller/pull/757)
+- Fix Telegram MarkdownV2 escaping
+  [#776](https://github.com/fluxcd/notification-controller/pull/776)
+- Remove `genclient:Namespaced` tag
+  [#749](https://github.com/fluxcd/notification-controller/pull/749)
+
 ## 1.2.4
 
 **Release date:** 2024-02-01

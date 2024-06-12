@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -279,31 +280,31 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 			return nil, "", fmt.Errorf("failed to read secret: %w", err)
 		}
 
-		if address, ok := secret.Data["address"]; ok {
-			if len(address) > 2048 {
+		if val, ok := secret.Data["address"]; ok {
+			if len(val) > 2048 {
 				return nil, "", fmt.Errorf("invalid address in secret: address exceeds maximum length of %d bytes", 2048)
 			}
-			webhook = string(address)
+			webhook = strings.TrimSpace(string(val))
 		}
 
-		if p, ok := secret.Data["password"]; ok {
-			password = string(p)
+		if val, ok := secret.Data["password"]; ok {
+			password = strings.TrimSpace(string(val))
 		}
 
-		if p, ok := secret.Data["proxy"]; ok {
-			proxy = string(p)
+		if val, ok := secret.Data["proxy"]; ok {
+			proxy = strings.TrimSpace(string(val))
 			_, err := url.Parse(proxy)
 			if err != nil {
 				return nil, "", fmt.Errorf("invalid proxy in secret '%s': %w", proxy, err)
 			}
 		}
 
-		if t, ok := secret.Data["token"]; ok {
-			token = string(t)
+		if val, ok := secret.Data["token"]; ok {
+			token = strings.TrimSpace(string(val))
 		}
 
-		if u, ok := secret.Data["username"]; ok {
-			username = string(u)
+		if val, ok := secret.Data["username"]; ok {
+			username = strings.TrimSpace(string(val))
 		}
 
 		if h, ok := secret.Data["headers"]; ok {

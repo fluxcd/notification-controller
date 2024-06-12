@@ -65,10 +65,17 @@ func (s *Opsgenie) Post(ctx context.Context, event eventv1.Event) error {
 		return nil
 	}
 
+	var details = make(map[string]string)
+
+	if event.Metadata != nil {
+		details = event.Metadata
+	}
+	details["severity"] = event.Severity
+
 	payload := OpsgenieAlert{
 		Message:     event.InvolvedObject.Kind + "/" + event.InvolvedObject.Name,
 		Description: event.Message,
-		Details:     event.Metadata,
+		Details:     details,
 	}
 
 	err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload, func(req *retryablehttp.Request) {

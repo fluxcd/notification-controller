@@ -878,9 +878,10 @@ an [Event](events.md#event-structure) to the provided Prometheus Alertmanager
 [Address](#address).
 
 The Event will be formatted into a `firing` [Prometheus Alertmanager
-alert](https://prometheus.io/docs/alerting/latest/notifications/#alert),
-with the metadata added to the `labels` fields, and the `message` (and optional
-`.metadata.summary`) added as annotations.
+alert](https://prometheus.io/docs/alerting/latest/notifications/#alert), with
+the metadata added to the `labels` fields, and the `message` (and optional
+`.metadata.summary`) added as annotations. Event timestamp will be used to set
+alert start time (`.StartsAt`).
 
 In addition to the metadata from the Event, the following labels will be added:
 
@@ -888,11 +889,25 @@ In addition to the metadata from the Event, the following labels will be added:
 |-----------|------------------------------------------------------------------------------------------------------|
 | alertname | The string Flux followed by the Kind and the reason for the event e.g `FluxKustomizationProgressing` |
 | severity  | The severity of the event (`error` or `info`)                                                        |
-| timestamp | The timestamp of the event                                                                           |
 | reason    | The machine readable reason for the objects transition into the current status                       |
 | kind      | The kind of the involved object associated with the event                                            |
 | name      | The name of the involved object associated with the event                                            |
 | namespace | The namespace of the involved object associated with the event                                       |
+
+Note that due to the way other Flux controllers currently emit events, there's
+no way for notification-controller to figure out the time the event ends to set
+`.EndsAt` (a reasonable estimate being double the reconciliation interval of the
+resource involved) that doesn't involve a Kubernetes API roundtrip. A
+possible workaround could be setting
+[`global.resolve_timeout`][am_config_global] to an interval large enough for
+events to reoccur:
+
+[am_config_global]: https://prometheus.io/docs/alerting/latest/configuration/#file-layout-and-global-settings
+
+```yaml
+global:
+  resolve_timeout: 1h
+```
 
 This Provider type does support the configuration of a [proxy URL](#https-proxy)
 and [TLS certificates](#tls-certificates).
@@ -1594,6 +1609,8 @@ kubectl create secret generic bb-server-token --from-literal=token=<token>
 
 The HTTP access token must have `Repositories (Read/Write)` permission for
 the repository specified in `.spec.address`.
+
+**NOTE:** Please provide HTTPS clone URL in the `address` field of this provider. SSH URLs are not supported by this provider type.
 
 #### Azure DevOps
 
