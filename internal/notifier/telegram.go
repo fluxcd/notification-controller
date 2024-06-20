@@ -13,6 +13,7 @@ import (
 type Telegram struct {
 	Channel string
 	Token   string
+	send    func(url string, message string) error // this allows the send function to be overridden for testing
 }
 
 func NewTelegram(channel, token string) (*Telegram, error) {
@@ -23,6 +24,7 @@ func NewTelegram(channel, token string) (*Telegram, error) {
 	return &Telegram{
 		Channel: channel,
 		Token:   token,
+		send:    shoutrrr.Send,
 	}, nil
 }
 
@@ -45,7 +47,7 @@ func (t *Telegram) Post(ctx context.Context, event eventv1.Event) error {
 	}
 	message := fmt.Sprintf("*%s*\n%s\n%s", escapeString(heading), escapeString(event.Message), metadata)
 	url := fmt.Sprintf("telegram://%s@telegram?channels=%s&parseMode=markDownv2", t.Token, t.Channel)
-	err := shoutrrr.Send(url, message)
+	err := t.send(url, message)
 	return err
 }
 
