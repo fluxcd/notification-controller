@@ -87,6 +87,7 @@ func main() {
 		aclOptions            acl.Options
 		rateLimiterOptions    helper.RateLimiterOptions
 		featureGates          feathelper.FeatureGates
+		exportHTTPPathMetrics bool
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -97,6 +98,7 @@ func main() {
 	flag.BoolVar(&watchAllNamespaces, "watch-all-namespaces", true,
 		"Watch for custom resources in all namespaces, if set to false it will only watch the runtime namespace.")
 	flag.DurationVar(&rateLimitInterval, "rate-limit-interval", 5*time.Minute, "Interval in which rate limit has effect.")
+	flag.BoolVar(&exportHTTPPathMetrics, "export-http-path-metrics", false, "When enabled, the requests full path is included in the HTTP server metrics (risk as high cardinality")
 
 	clientOptions.BindFlags(flag.CommandLine)
 	logOptions.BindFlags(flag.CommandLine)
@@ -220,11 +222,11 @@ func main() {
 			Registry: crtlmetrics.Registry,
 		}),
 	})
-	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), mgr.GetEventRecorderFor(controllerName), aclOptions.NoCrossNamespaceRefs)
+	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), mgr.GetEventRecorderFor(controllerName), aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics)
 	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)
-	receiverServer := server.NewReceiverServer(receiverAddr, ctrl.Log, mgr.GetClient())
+	receiverServer := server.NewReceiverServer(receiverAddr, ctrl.Log, mgr.GetClient(), exportHTTPPathMetrics)
 	receiverMdlw := middleware.New(middleware.Config{
 		Recorder: prommetrics.NewRecorder(prommetrics.Config{
 			Prefix:   "gotk_receiver",
