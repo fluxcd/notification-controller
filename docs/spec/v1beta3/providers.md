@@ -1278,7 +1278,7 @@ kind: Secret
 metadata:
   name: api-token
   namespace: default
-data:
+stringData:
   token: <personal-access-tokens>
 ```
 
