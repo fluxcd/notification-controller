@@ -162,7 +162,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 
 	token, err := r.token(ctx, obj)
 	if err != nil {
-		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.TokenNotFoundReason, err.Error())
+		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.TokenNotFoundReason, "%s", err)
 		obj.Status.WebhookPath = ""
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -171,7 +171,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 	msg := fmt.Sprintf("Receiver initialized for path: %s", webhookPath)
 
 	// Mark the resource as ready and set the webhook path in status.
-	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, msg)
+	conditions.MarkTrue(obj, meta.ReadyCondition, meta.SucceededReason, "%s", msg)
 
 	if obj.Status.WebhookPath != webhookPath {
 		obj.Status.WebhookPath = webhookPath
