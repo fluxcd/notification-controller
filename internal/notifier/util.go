@@ -20,6 +20,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
+	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -59,8 +60,35 @@ func formatNameAndDescription(event eventv1.Event) (string, string) {
 // involved object kind and name.
 func generateCommitStatusID(providerUID string, event eventv1.Event) string {
 	uidParts := strings.Split(providerUID, "-")
-	id := fmt.Sprintf("%s/%s/%s", event.InvolvedObject.Kind, event.InvolvedObject.Name, uidParts[0])
+	metadataLabelsSuffix := createMetadataLabelsSuffix(event)
+	id := fmt.Sprintf("%s/%s/%s%s", event.InvolvedObject.Kind, event.InvolvedObject.Name, uidParts[0], metadataLabelsSuffix)
 	return strings.ToLower(id)
+}
+
+// createMetadataLabelsSuffix returns a concated string depending on app.kubernetes.io/,
+// prefixed common labels https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
+func createMetadataLabelsSuffix(event eventv1.Event) string {
+	metadataKeys := make([]string, 0, len(event.Metadata))
+	metadataLabels := make([]string, 0)
+	prefixedMetadataLabelsSuffix := ""
+
+	// order Metadata keys
+	for labelKey := range event.Metadata {
+		metadataKeys = append(metadataKeys, labelKey)
+	}
+	sort.Strings(metadataKeys)
+	// iteratore over ordered Metadata keys
+	for _, key := range metadataKeys {
+		if strings.Contains(key, "app.kubernetes.io/") {
+			metadataLabels = append(metadataLabels, event.Metadata[key])
+		}
+	}
+	metadataLabelsSuffix := strings.Join(metadataLabels, "/")
+	if len(metadataLabelsSuffix) > 0 {
+		prefixedMetadataLabelsSuffix = fmt.Sprintf("/%s", metadataLabelsSuffix)
+	}
+
+	return strings.ToLower(prefixedMetadataLabelsSuffix)
 }
 
 func splitCamelcase(src string) (entries []string) {
