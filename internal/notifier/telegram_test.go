@@ -22,6 +22,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -43,7 +45,18 @@ func TestTelegram_Post(t *testing.T) {
 
 	telegram.send = func(url, message string) error {
 		require.Equal(t, "telegram://token@telegram?channels=channel&parseMode=markDownv2", url)
-		require.Equal(t, "*💫 gitrepository/webapp/gitops\\-system*\nmessage\n\\- *test*: metadata\n\\- *kubernetes\\.io/somekey*: some\\.value\n", message)
+
+		lines := strings.Split(message, "\n")
+		require.Len(t, lines, 5)
+		slices.Sort(lines[2:4])
+		require.Equal(t, "*💫 gitrepository/webapp/gitops\\-system*", lines[0])
+		require.Equal(t, "message", lines[1])
+		require.Equal(t, []string{
+			"\\- *kubernetes\\.io/somekey*: some\\.value",
+			"\\- *test*: metadata",
+			"",
+		}, lines[2:])
+
 		return nil
 	}
 
