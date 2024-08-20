@@ -5,14 +5,14 @@ go 1.22.0
 replace github.com/fluxcd/notification-controller/api => ./api
 
 require (
-	cloud.google.com/go/pubsub v1.41.0
+	cloud.google.com/go/pubsub v1.42.0
 	code.gitea.io/sdk/gitea v0.19.0
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
 	github.com/Azure/azure-amqp-common-go/v4 v4.2.0
 	github.com/Azure/azure-event-hubs-go/v3 v3.6.2
 	github.com/DataDog/datadog-api-client-go/v2 v2.29.0
 	github.com/PagerDuty/go-pagerduty v1.8.0
-	github.com/cdevents/sdk-go v0.3.2
+	github.com/cdevents/sdk-go v0.4.1
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/fluxcd/cli-utils v0.36.0-flux.9
@@ -149,7 +149,7 @@ require (
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/santhosh-tekuri/jsonschema/v5 v5.0.0 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.1 // indirect
 	github.com/spf13/cobra v1.8.1 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
