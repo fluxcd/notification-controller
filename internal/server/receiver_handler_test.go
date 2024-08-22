@@ -760,6 +760,213 @@ func Test_handlePayload(t *testing.T) {
 			expectedResourcesAnnotated: 1,
 			expectedResponseCode:       http.StatusOK,
 		},
+		{
+			name: "resources filtered with CEL expressions",
+			headers: map[string]string{
+				"Content-Type": "application/json; charset=utf-8",
+			},
+			payload: map[string]interface{}{
+				"action": "INSERT",
+				"digest": "us-east1-docker.pkg.dev/my-project/my-repo/hello-world@sha256:6ec128e26cd5...",
+				"tag":    "us-east1-docker.pkg.dev/my-project/my-repo/hello-world:1.1",
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "*",
+							MatchLabels: map[string]string{
+								"label": "production",
+							},
+						},
+					},
+					ResourceFilter: `has(resource.metadata.annotations) && request.tag.split('/').last().split(":").first() == resource.metadata.annotations['update-image']`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			resources: []client.Object{
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-resource-1",
+						Annotations: map[string]string{
+							"update-image": "hello-world",
+						},
+						Labels: map[string]string{
+							"label": "production",
+						},
+					},
+				},
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-resource-2",
+						Namespace: "tested",
+						Labels: map[string]string{
+							"label": "production",
+						},
+						Annotations: map[string]string{
+							"update-image": "other-image",
+						},
+					},
+				},
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-resource-3",
+						Labels: map[string]string{
+							"label": "production",
+						},
+					},
+				},
+			},
+			expectedResourcesAnnotated: 1, // TODO: This should really check more than just the count.
+			expectedResponseCode:       http.StatusOK,
+		},
+		{
+			name: "filtering out a single named resource with CEL",
+			headers: map[string]string{
+				"Content-Type": "application/json; charset=utf-8",
+			},
+			payload: map[string]interface{}{
+				"action": "INSERT",
+				"digest": "us-east1-docker.pkg.dev/my-project/my-repo/hello-world@sha256:6ec128e26cd5...",
+				"tag":    "us-east1-docker.pkg.dev/my-project/my-repo/hello-world:1.1",
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+					ResourceFilter: `has(resource.metadata.annotations) && request.tag.split('/').last().split(":").first() == resource.metadata.annotations['update-image']`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			resources: []client.Object{
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-resource",
+						Annotations: map[string]string{
+							"update-image": "not-hello-world",
+						},
+					},
+				},
+			},
+			expectedResourcesAnnotated: 0,
+			expectedResponseCode:       http.StatusOK,
+		},
+
+		{
+			name: "handling errors when parsing the CEL expression results",
+			headers: map[string]string{
+				"Content-Type": "application/json; charset=utf-8",
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "*",
+							MatchLabels: map[string]string{
+								"label": "production",
+							},
+						},
+					},
+					ResourceFilter: `resource.name == "test-resource-1"`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			resources: []client.Object{
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-resource-1",
+						Labels: map[string]string{
+							"label": "production",
+						},
+					},
+				},
+			},
+			expectedResourcesAnnotated: 0, // TODO: This should really check more than just the count.
+			expectedResponseCode:       http.StatusInternalServerError,
+		},
 	}
 
 	scheme := runtime.NewScheme()
@@ -809,8 +1016,7 @@ func Test_handlePayload(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			handler := s.handlePayload()
-			handler(rr, req)
+			s.handlePayload(rr, req)
 			g.Expect(rr.Result().StatusCode).To(gomega.Equal(tt.expectedResponseCode))
 
 			var allReceivers apiv1.ReceiverList
@@ -826,4 +1032,15 @@ func Test_handlePayload(t *testing.T) {
 			g.Expect(annotatedResources).To(gomega.Equal(tt.expectedResourcesAnnotated))
 		})
 	}
+}
+
+func buildTestClient(objs ...client.Object) client.Client {
+	scheme := runtime.NewScheme()
+	apiv1.AddToScheme(scheme)
+	corev1.AddToScheme(scheme)
+
+	return fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(objs...).
+		WithIndex(&apiv1.Receiver{}, WebhookPathIndexKey, IndexReceiverWebhookPath).Build()
 }

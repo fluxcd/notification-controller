@@ -67,6 +67,11 @@ type ReceiverSpec struct {
 	// +required
 	Resources []CrossNamespaceObjectReference `json:"resources"`
 
+	// ResourceFilter is an expression that is applied to each Resource
+	// referenced in the Resources. If the expression returns false then the
+	// Resource is discarded and will not be notified.
+	ResourceFilter string `json:"resourceFilter,omitempty"`
+
 	// SecretRef specifies the Secret containing the token used
 	// to validate the payload authenticity.
 	// +required

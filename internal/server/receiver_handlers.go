@@ -70,64 +70,71 @@ func IndexReceiverWebhookPath(o client.Object) []string {
 	return nil
 }
 
-func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.Background()
-		digest := url.PathEscape(strings.TrimPrefix(r.RequestURI, apiv1.ReceiverWebhookPath))
+func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	digest := url.PathEscape(strings.TrimPrefix(r.RequestURI, apiv1.ReceiverWebhookPath))
 
-		s.logger.Info(fmt.Sprintf("handling request: %s", digest))
+	s.logger.Info(fmt.Sprintf("handling request: %s", digest))
 
-		var allReceivers apiv1.ReceiverList
-		err := s.kubeClient.List(ctx, &allReceivers, client.MatchingFields{
-			WebhookPathIndexKey: r.RequestURI,
-		}, client.Limit(1))
-		if err != nil {
-			s.logger.Error(err, "unable to list receivers")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	var allReceivers apiv1.ReceiverList
+	err := s.kubeClient.List(ctx, &allReceivers, client.MatchingFields{
+		WebhookPathIndexKey: r.RequestURI,
+	}, client.Limit(1))
+	if err != nil {
+		s.logger.Error(err, "unable to list receivers")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-		if len(allReceivers.Items) == 0 {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+	if len(allReceivers.Items) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
-		receiver := allReceivers.Items[0]
-		logger := s.logger.WithValues(
-			"reconciler kind", apiv1.ReceiverKind,
-			"name", receiver.Name,
-			"namespace", receiver.Namespace)
+	receiver := allReceivers.Items[0]
+	logger := s.logger.WithValues(
+		"reconciler kind", apiv1.ReceiverKind,
+		"name", receiver.Name,
+		"namespace", receiver.Namespace)
 
-		if receiver.Spec.Suspend || !conditions.IsReady(&receiver) {
-			err := errors.New("unable to process request")
-			if receiver.Spec.Suspend {
-				logger.Error(err, "receiver is suspended")
-			} else {
-				logger.Error(err, "receiver is not ready")
-			}
-			w.WriteHeader(http.StatusServiceUnavailable)
-			return
-		}
-
-		if err := s.validate(ctx, receiver, r); err != nil {
-			logger.Error(err, "unable to validate payload")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		var withErrors bool
-		for _, resource := range receiver.Spec.Resources {
-			if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
-				logger.Error(err, "unable to request reconciliation")
-				withErrors = true
-			}
-		}
-
-		if withErrors {
-			w.WriteHeader(http.StatusInternalServerError)
+	if receiver.Spec.Suspend || !conditions.IsReady(&receiver) {
+		err := errors.New("unable to process request")
+		if receiver.Spec.Suspend {
+			logger.Error(err, "receiver is suspended")
 		} else {
-			w.WriteHeader(http.StatusOK)
+			logger.Error(err, "receiver is not ready")
 		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
+	if err := s.validate(ctx, receiver, r); err != nil {
+		logger.Error(err, "unable to validate payload")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var evaluator func(client.Object) (*bool, error)
+	if receiver.Spec.ResourceFilter != "" {
+		evaluator, err = newCELEvaluator(receiver.Spec.ResourceFilter, r)
+		if err != nil {
+			logger.Error(err, "unable to create CEL evaluator")
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	}
+
+	var withErrors bool
+	for _, resource := range receiver.Spec.Resources {
+		if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace, evaluator); err != nil {
+			logger.Error(err, "unable to request reconciliation")
+			withErrors = true
+		}
+	}
+
+	if withErrors {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -397,8 +404,10 @@ func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (st
 	return token, nil
 }
 
+type resourcePredicate func(client.Object) (*bool, error)
+
 // requestReconciliation requests reconciliation of all the resources matching the given CrossNamespaceObjectReference by annotating them accordingly.
-func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, defaultNamespace string) error {
+func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, defaultNamespace string, resourcePredicate resourcePredicate) error {
 	namespace := defaultNamespace
 	if resource.Namespace != "" {
 		namespace = resource.Namespace
@@ -443,6 +452,17 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 		}
 
 		for i, resource := range resources.Items {
+			if resourcePredicate != nil {
+				accept, err := resourcePredicate(&resource)
+				if err != nil {
+					return err
+				}
+				if !*accept {
+					logger.Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, namespace))
+					continue
+				}
+			}
+
 			if err := s.annotate(ctx, &resources.Items[i]); err != nil {
 				return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
 			} else {
@@ -470,6 +490,16 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 		return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, objectKey, err)
 	}
 
+	if resourcePredicate != nil {
+		accept, err := resourcePredicate(u)
+		if err != nil {
+			return err
+		}
+		if !*accept {
+			logger.Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, namespace))
+			return nil
+		}
+	}
 	err := s.annotate(ctx, u)
 	if err != nil {
 		return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
