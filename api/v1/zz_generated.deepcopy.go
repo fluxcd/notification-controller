@@ -126,6 +126,11 @@ func (in *ReceiverSpec) DeepCopyInto(out *ReceiverSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.ResourceExpressions != nil {
+		in, out := &in.ResourceExpressions, &out.ResourceExpressions
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	out.SecretRef = in.SecretRef
 }
 

@@ -26,8 +26,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
+	"reflect"
 	"strings"
 	"time"
 
@@ -36,7 +38,12 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 	"github.com/go-logr/logr"
+	"github.com/google/cel-go/cel"
+	"github.com/google/cel-go/checker/decls"
+	"github.com/google/cel-go/common/types/traits"
+	celext "github.com/google/cel-go/ext"
 	"github.com/google/go-github/v64/github"
+	"google.golang.org/protobuf/types/known/structpb"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -117,6 +124,20 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 
 		var withErrors bool
 		for _, resource := range receiver.Spec.Resources {
+			if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
+				logger.Error(err, "unable to request reconciliation")
+				withErrors = true
+			}
+		}
+
+		evaluatedResources, err := s.evaluateResourceExpressions(r, receiver)
+		if err != nil {
+			logger.Error(err, "unable to evaluate resource expressions")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		for _, resource := range evaluatedResources {
 			if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
 				logger.Error(err, "unable to request reconciliation")
 				withErrors = true
@@ -544,4 +565,136 @@ func getGroupVersion(s string) (string, string) {
 	}
 
 	return slice[0], slice[1]
+}
+
+func (s *ReceiverServer) evaluateResourceExpressions(r *http.Request, receiver apiv1.Receiver) ([]apiv1.CrossNamespaceObjectReference, error) {
+	if len(receiver.Spec.ResourceExpressions) == 0 {
+		return nil, nil
+	}
+
+	body := map[string]any{}
+	// Only decodes the body for the expression if the body is JSON.
+	// Technically you could generate several resources without any body.
+	if isJSONContent(r) {
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			return nil, fmt.Errorf("failed to parse request body as JSON: %s", err)
+		}
+	}
+
+	env, err := makeCELEnv()
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup CEL environment: %s", err)
+	}
+
+	var combinedResources []apiv1.CrossNamespaceObjectReference
+
+	var returnErr error
+	for _, expr := range receiver.Spec.ResourceExpressions {
+		evaluated, evalErr := evaluate(expr, env, map[string]interface{}{
+			"body": body,
+		})
+		if evalErr != nil {
+			returnErr = errors.Join(returnErr, evalErr)
+			continue
+		}
+		combinedResources = append(combinedResources, evaluated...)
+	}
+
+	return combinedResources, returnErr
+}
+
+func evaluate(expr string, env *cel.Env, data map[string]any) ([]apiv1.CrossNamespaceObjectReference, error) {
+	parsed, issues := env.Parse(expr)
+	if issues != nil && issues.Err() != nil {
+		return nil, fmt.Errorf("failed to parse expression %v: %w", expr, issues.Err())
+	}
+
+	checked, issues := env.Check(parsed)
+	if issues != nil && issues.Err() != nil {
+		return nil, fmt.Errorf("expression %v check failed: %w", expr, issues.Err())
+	}
+
+	prg, err := env.Program(checked, cel.EvalOptions(cel.OptOptimize))
+	if err != nil {
+		return nil, fmt.Errorf("expression %v failed to create a Program: %w", expr, err)
+	}
+
+	out, _, err := prg.Eval(data)
+	if err != nil {
+		return nil, fmt.Errorf("expression %v failed to evaluate: %w", expr, err)
+	}
+
+	switch v := out.(type) {
+	case traits.Lister:
+		return parseList(v)
+	case traits.Mapper:
+		ref, err := mapperToReference(v)
+		if err != nil {
+			return nil, err
+		}
+		return []apiv1.CrossNamespaceObjectReference{*ref}, nil
+		// TODO Log out other types?
+	}
+
+	return nil, nil
+}
+
+func parseList(l traits.Lister) ([]apiv1.CrossNamespaceObjectReference, error) {
+	var resources []apiv1.CrossNamespaceObjectReference
+	it := l.Iterator()
+	for it.HasNext().Value() == true {
+		switch element := it.Next().(type) {
+		case traits.Mapper:
+			cno, err := mapperToReference(element)
+			if err != nil {
+				return nil, err
+			}
+			resources = append(resources, *cno)
+		}
+	}
+
+	return resources, nil
+}
+
+func mapperToReference(v traits.Mapper) (*apiv1.CrossNamespaceObjectReference, error) {
+	raw, err := v.ConvertToNative(reflect.TypeOf(&structpb.Value{}))
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert to resource reference: %s", err)
+	}
+	cno := apiv1.CrossNamespaceObjectReference{}
+	b, err := raw.(*structpb.Value).MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("converting object references to JSON: %w", err)
+	}
+	err = json.Unmarshal(b, &cno)
+	if err != nil {
+		return nil, fmt.Errorf("parsing object reference: %w", err)
+	}
+
+	return &cno, err
+}
+
+func makeCELEnv() (*cel.Env, error) {
+	mapStrDyn := decls.NewMapType(decls.String, decls.Dyn)
+	return cel.NewEnv(
+		celext.Strings(),
+		celext.Encoders(),
+		cel.Declarations(
+			decls.NewVar("body", mapStrDyn),
+		))
+}
+
+func isJSONContent(r *http.Request) bool {
+	contentType := r.Header.Get("Content-type")
+	for _, v := range strings.Split(contentType, ",") {
+		t, _, err := mime.ParseMediaType(v)
+		if err != nil {
+			break
+		}
+		if t == "application/json" {
+			return true
+		}
+	}
+
+	return false
 }

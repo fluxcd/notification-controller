@@ -63,9 +63,21 @@ type ReceiverSpec struct {
 	// +optional
 	Events []string `json:"events,omitempty"`
 
+	// TODO: Validate one or other (or both?)
+
 	// A list of resources to be notified about changes.
 	// +required
 	Resources []CrossNamespaceObjectReference `json:"resources"`
+
+	// ResourceExpressions is a list of CEL expressions that will be parsed to
+	// determine resources to be notified about changes.
+	// The expressions must evaluate to CEL values that contain the keys "name",
+	// "kind", "apiVersion" and optionally "namespace".
+	//  These values will be parsed to CrossNamespaceObjectReferences.
+	// e.g. {"name": "test-resource-1", "kind": "Receiver", "apiVersion":
+	//       "notification.toolkit.fluxcd.io/v1"}.
+	// +optional
+	ResourceExpressions []string `json:"resourceExpressions,omitempty"`
 
 	// SecretRef specifies the Secret containing the token used
 	// to validate the payload authenticity.

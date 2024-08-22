@@ -760,6 +760,140 @@ func Test_handlePayload(t *testing.T) {
 			expectedResourcesAnnotated: 1,
 			expectedResponseCode:       http.StatusOK,
 		},
+		{
+			name: "resources determined by CEL expressions",
+			headers: map[string]string{
+				"Content-Type": "application/json; charset=utf-8",
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					ResourceExpressions: []string{
+						`{"name": "test-resource-1", "kind": "Receiver", "apiVersion": "notification.toolkit.fluxcd.io/v1"}`,
+						`[{"name": body.image.split(':',2)[0] + '-2', "namespace": "tested", "kind": "Receiver", "apiVersion": "notification.toolkit.fluxcd.io/v1"}]`,
+						`body.resources.map(r, {"name": r, "kind": "Receiver", "apiVersion": "notification.toolkit.fluxcd.io/v1"})`,
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			payload: map[string]interface{}{
+				"image": "test-resource:1.2.1",
+				"resources": []string{
+					"test-resource-3",
+					"test-resource-4",
+				},
+			},
+			resources: []client.Object{
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-resource-1",
+					},
+				},
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-resource-2",
+						Namespace: "tested",
+					},
+				},
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-resource-3",
+					},
+				},
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-resource-4",
+					},
+				},
+			},
+			expectedResourcesAnnotated: 4, // TODO: This should really check more than just the count.
+			expectedResponseCode:       http.StatusOK,
+		},
+		{
+			name: "handling errors when parsing the CEL expression results",
+			headers: map[string]string{
+				"Content-Type": "application/json; charset=utf-8",
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					ResourceExpressions: []string{
+						`{"name": ["test-resource-1"], "kind": "Receiver", "apiVersion": "notification.toolkit.fluxcd.io/v1"}`,
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			payload: map[string]interface{}{
+				"image": "test-resource:1.2.1",
+				"resources": []string{
+					"test-resource-3",
+					"test-resource-4",
+				},
+			},
+			resources: []client.Object{
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-resource-1",
+					},
+				},
+			},
+			expectedResourcesAnnotated: 0, // TODO: This should really check more than just the count.
+			expectedResponseCode:       http.StatusBadRequest,
+		},
 	}
 
 	scheme := runtime.NewScheme()
