@@ -21,9 +21,20 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+)
+
+const (
+	msTeamsSchemaDeprecatedConnector = iota
+	msTeamsSchemaAdaptiveCard
+
+	// msAdaptiveCardVersion is the version of the MS Adaptive Card schema.
+	// MS Teams currently supports only up to version 1.4:
+	// https://community.powerplatform.com/forums/thread/details/?threadid=edde0a5d-e995-4ba3-96dc-2120fe51a4d0
+	msAdaptiveCardVersion = "1.4"
 )
 
 // MS Teams holds the incoming webhook URL
@@ -31,6 +42,7 @@ type MSTeams struct {
 	URL      string
 	ProxyURL string
 	CertPool *x509.CertPool
+	Schema   int
 }
 
 // MSTeamsPayload holds the message card data
@@ -54,18 +66,75 @@ type MSTeamsField struct {
 	Value string `json:"value"`
 }
 
+// The Adaptice Card payload structures below reflect this documentation:
+// https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/connectors-using?tabs=cURL%2Ctext1#send-adaptive-cards-using-an-incoming-webhook
+
+type msAdaptiveCardMessage struct {
+	Type        string                     `json:"type"`
+	Attachments []msAdaptiveCardAttachment `json:"attachments"`
+}
+
+type msAdaptiveCardAttachment struct {
+	ContentType string                `json:"contentType"`
+	Content     msAdaptiveCardContent `json:"content"`
+}
+
+type msAdaptiveCardContent struct {
+	Schema  string                      `json:"$schema"`
+	Type    string                      `json:"type"`
+	Version string                      `json:"version"`
+	Body    []msAdaptiveCardBodyElement `json:"body"`
+}
+
+type msAdaptiveCardBodyElement struct {
+	Type string `json:"type"`
+
+	*msAdaptiveCardContainer `json:",inline"`
+	*msAdaptiveCardTextBlock `json:",inline"`
+	*msAdaptiveCardFactSet   `json:",inline"`
+}
+
+type msAdaptiveCardContainer struct {
+	Items []msAdaptiveCardBodyElement `json:"items,omitempty"`
+}
+
+type msAdaptiveCardTextBlock struct {
+	Text   string `json:"text,omitempty"`
+	Size   string `json:"size,omitempty"`
+	Weight string `json:"weight,omitempty"`
+	Color  string `json:"color,omitempty"`
+	Wrap   bool   `json:"wrap,omitempty"`
+}
+
+type msAdaptiveCardFactSet struct {
+	Facts []msAdaptiveCardFact `json:"facts,omitempty"`
+}
+
+type msAdaptiveCardFact struct {
+	Title string `json:"title"`
+	Value string `json:"value"`
+}
+
 // NewMSTeams validates the MS Teams URL and returns a MSTeams object
 func NewMSTeams(hookURL string, proxyURL string, certPool *x509.CertPool) (*MSTeams, error) {
-	_, err := url.ParseRequestURI(hookURL)
+	u, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid MS Teams webhook URL %s: '%w'", hookURL, err)
 	}
 
-	return &MSTeams{
+	provider := &MSTeams{
 		URL:      hookURL,
 		ProxyURL: proxyURL,
 		CertPool: certPool,
-	}, nil
+		Schema:   msTeamsSchemaAdaptiveCard,
+	}
+
+	// Check if the webhook URL is the deprecated connector and update the schema accordingly.
+	if strings.HasSuffix(strings.Split(u.Host, ":")[0], ".webhook.office.com") {
+		provider.Schema = msTeamsSchemaDeprecatedConnector
+	}
+
+	return provider, nil
 }
 
 // Post MS Teams message
@@ -75,6 +144,27 @@ func (s *MSTeams) Post(ctx context.Context, event eventv1.Event) error {
 		return nil
 	}
 
+	objName := fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace)
+
+	var payload any
+	switch s.Schema {
+	case msTeamsSchemaDeprecatedConnector:
+		payload = buildMSTeamsDeprecatedConnectorPayload(&event, objName)
+	case msTeamsSchemaAdaptiveCard:
+		payload = buildMSTeamsAdaptiveCardPayload(&event, objName)
+	default:
+		payload = buildMSTeamsAdaptiveCardPayload(&event, objName)
+	}
+
+	err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload)
+	if err != nil {
+		return fmt.Errorf("postMessage failed: %w", err)
+	}
+
+	return nil
+}
+
+func buildMSTeamsDeprecatedConnectorPayload(event *eventv1.Event, objName string) *MSTeamsPayload {
 	facts := make([]MSTeamsField, 0, len(event.Metadata))
 	for k, v := range event.Metadata {
 		facts = append(facts, MSTeamsField{
@@ -83,8 +173,7 @@ func (s *MSTeams) Post(ctx context.Context, event eventv1.Event) error {
 		})
 	}
 
-	objName := fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace)
-	payload := MSTeamsPayload{
+	payload := &MSTeamsPayload{
 		Type:       "MessageCard",
 		Context:    "http://schema.org/extensions",
 		ThemeColor: "0076D7",
@@ -102,10 +191,84 @@ func (s *MSTeams) Post(ctx context.Context, event eventv1.Event) error {
 		payload.ThemeColor = "FF0000"
 	}
 
-	err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload)
-	if err != nil {
-		return fmt.Errorf("postMessage failed: %w", err)
+	return payload
+}
+
+func buildMSTeamsAdaptiveCardPayload(event *eventv1.Event, objName string) *msAdaptiveCardMessage {
+	// Prepare message, add red color to error messages.
+	message := &msAdaptiveCardTextBlock{
+		Text: event.Message,
+		Wrap: true,
+	}
+	if event.Severity == eventv1.EventSeverityError {
+		message.Color = "attention"
 	}
 
-	return nil
+	// Put "summary" first, then sort the rest of the metadata by key.
+	facts := make([]msAdaptiveCardFact, 0, len(event.Metadata))
+	const summaryKey = "summary"
+	if summary, ok := event.Metadata[summaryKey]; ok {
+		facts = append(facts, msAdaptiveCardFact{
+			Title: summaryKey,
+			Value: summary,
+		})
+	}
+	metadataFirstIndex := len(facts)
+	for k, v := range event.Metadata {
+		if k == summaryKey {
+			continue
+		}
+		facts = append(facts, msAdaptiveCardFact{
+			Title: k,
+			Value: v,
+		})
+	}
+	slices.SortFunc(facts[metadataFirstIndex:], func(a, b msAdaptiveCardFact) int {
+		return strings.Compare(a.Title, b.Title)
+	})
+
+	// The card below was built with help from https://adaptivecards.io/designer using the Microsoft Teams host app.
+	payload := &msAdaptiveCardMessage{
+		Type: "message",
+		Attachments: []msAdaptiveCardAttachment{
+			{
+				ContentType: "application/vnd.microsoft.card.adaptive",
+				Content: msAdaptiveCardContent{
+					Schema:  "http://adaptivecards.io/schemas/adaptive-card.json",
+					Type:    "AdaptiveCard",
+					Version: msAdaptiveCardVersion,
+					Body: []msAdaptiveCardBodyElement{
+						{
+							Type: "Container",
+							msAdaptiveCardContainer: &msAdaptiveCardContainer{
+								Items: []msAdaptiveCardBodyElement{
+									{
+										Type: "TextBlock",
+										msAdaptiveCardTextBlock: &msAdaptiveCardTextBlock{
+											Text:   objName,
+											Size:   "large",
+											Weight: "bolder",
+											Wrap:   true,
+										},
+									},
+									{
+										Type:                    "TextBlock",
+										msAdaptiveCardTextBlock: message,
+									},
+									{
+										Type: "FactSet",
+										msAdaptiveCardFactSet: &msAdaptiveCardFactSet{
+											Facts: facts,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return payload
 }
