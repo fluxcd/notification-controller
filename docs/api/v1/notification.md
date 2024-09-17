@@ -128,8 +128,14 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>ResourceExpressions is a list of CEL expressions that will be parsed to
-determine resources to be notified about changes.</p>
+determine resources to be notified about changes.
+The expressions must evaluate to CEL values that contain the keys &ldquo;name&rdquo;,
+&ldquo;kind&rdquo;, &ldquo;apiVersion&rdquo; and optionally &ldquo;namespace&rdquo;.
+These values will be parsed to CrossNamespaceObjectReferences.
+e.g. {&ldquo;name&rdquo;: &ldquo;test-resource-1&rdquo;, &ldquo;kind&rdquo;: &ldquo;Receiver&rdquo;, &ldquo;apiVersion&rdquo;:
+&ldquo;notification.toolkit.fluxcd.io/v1&rdquo;}.</p>
 </td>
 </tr>
 <tr>
@@ -339,8 +345,14 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>ResourceExpressions is a list of CEL expressions that will be parsed to
-determine resources to be notified about changes.</p>
+determine resources to be notified about changes.
+The expressions must evaluate to CEL values that contain the keys &ldquo;name&rdquo;,
+&ldquo;kind&rdquo;, &ldquo;apiVersion&rdquo; and optionally &ldquo;namespace&rdquo;.
+These values will be parsed to CrossNamespaceObjectReferences.
+e.g. {&ldquo;name&rdquo;: &ldquo;test-resource-1&rdquo;, &ldquo;kind&rdquo;: &ldquo;Receiver&rdquo;, &ldquo;apiVersion&rdquo;:
+&ldquo;notification.toolkit.fluxcd.io/v1&rdquo;}.</p>
 </td>
 </tr>
 <tr>
