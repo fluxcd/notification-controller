@@ -919,11 +919,11 @@ func Test_handlePayload(t *testing.T) {
 			}
 
 			client := builder.Build()
-			s := ReceiverServer{
-				port:       "",
-				logger:     logger.NewLogger(logger.Options{}),
-				kubeClient: client,
-			}
+			s := newReceiverHandler(
+				logger.NewLogger(logger.Options{}),
+				client,
+				false,
+			)
 
 			data, err := json.Marshal(tt.payload)
 			if err != nil {

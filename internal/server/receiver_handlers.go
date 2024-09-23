@@ -77,8 +77,27 @@ func IndexReceiverWebhookPath(o client.Object) []string {
 	return nil
 }
 
-func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
-	ctx := context.Background()
+func newReceiverHandler(logger logr.Logger, kubeClient client.Client, exportHTTPPathMetrics bool) *receiverHandler {
+	h := &receiverHandler{
+		logger:                logger.WithName("receiver-server"),
+		kubeClient:            kubeClient,
+		exportHTTPPathMetrics: exportHTTPPathMetrics,
+		ServeMux:              http.NewServeMux(),
+	}
+	h.ServeMux.Handle(apiv1.ReceiverWebhookPath, http.HandlerFunc(h.handlePayload))
+
+	return h
+}
+
+type receiverHandler struct {
+	logger                logr.Logger
+	kubeClient            client.Client
+	exportHTTPPathMetrics bool
+	*http.ServeMux
+}
+
+func (s *receiverHandler) handlePayload(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	digest := url.PathEscape(strings.TrimPrefix(r.RequestURI, apiv1.ReceiverWebhookPath))
 
 	s.logger.Info(fmt.Sprintf("handling request: %s", digest))
@@ -150,7 +169,7 @@ func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, r *http.Request) error {
+func (s *receiverHandler) validate(ctx context.Context, receiver apiv1.Receiver, r *http.Request) error {
 	token, err := s.token(ctx, receiver)
 	if err != nil {
 		return fmt.Errorf("unable to read token, error: %w", err)
@@ -394,7 +413,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 	return fmt.Errorf("recevier type '%s' not supported", receiver.Spec.Type)
 }
 
-func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (string, error) {
+func (s *receiverHandler) token(ctx context.Context, receiver apiv1.Receiver) (string, error) {
 	token := ""
 	secretName := types.NamespacedName{
 		Namespace: receiver.GetNamespace(),
@@ -417,7 +436,7 @@ func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (st
 }
 
 // requestReconciliation requests reconciliation of all the resources matching the given CrossNamespaceObjectReference by annotating them accordingly.
-func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, defaultNamespace string) error {
+func (s *receiverHandler) requestReconciliation(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, defaultNamespace string) error {
 	namespace := defaultNamespace
 	if resource.Namespace != "" {
 		namespace = resource.Namespace
@@ -500,7 +519,7 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 	return nil
 }
 
-func (s *ReceiverServer) annotate(ctx context.Context, resource *metav1.PartialObjectMetadata) error {
+func (s *receiverHandler) annotate(ctx context.Context, resource *metav1.PartialObjectMetadata) error {
 	patch := client.MergeFrom(resource.DeepCopy())
 	sourceAnnotations := resource.GetAnnotations()
 
@@ -565,7 +584,7 @@ func getGroupVersion(s string) (string, string) {
 	return slice[0], slice[1]
 }
 
-func (s *ReceiverServer) evaluateResourceExpressions(r *http.Request, receiver apiv1.Receiver) ([]apiv1.CrossNamespaceObjectReference, error) {
+func (s *receiverHandler) evaluateResourceExpressions(r *http.Request, receiver apiv1.Receiver) ([]apiv1.CrossNamespaceObjectReference, error) {
 	if len(receiver.Spec.ResourceExpressions) == 0 {
 		return nil, nil
 	}

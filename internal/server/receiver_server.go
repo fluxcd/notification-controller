@@ -32,31 +32,25 @@ import (
 
 // ReceiverServer handles webhook POST requests
 type ReceiverServer struct {
-	port                  string
-	logger                logr.Logger
-	kubeClient            client.Client
-	exportHTTPPathMetrics bool
+	port string
+	*receiverHandler
 }
 
 // NewReceiverServer returns an HTTP server that handles webhooks
 func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client, exportHTTPPathMetrics bool) *ReceiverServer {
 	return &ReceiverServer{
-		port:                  port,
-		logger:                logger.WithName("receiver-server"),
-		kubeClient:            kubeClient,
-		exportHTTPPathMetrics: exportHTTPPathMetrics,
+		port:            port,
+		receiverHandler: newReceiverHandler(logger, kubeClient, exportHTTPPathMetrics),
 	}
 }
 
 // ListenAndServe starts the HTTP server on the specified port
 func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Middleware) {
-	mux := http.NewServeMux()
-	mux.Handle(apiv1.ReceiverWebhookPath, http.HandlerFunc(s.handlePayload))
 	handlerID := apiv1.ReceiverWebhookPath
 	if s.exportHTTPPathMetrics {
 		handlerID = ""
 	}
-	h := std.Handler(handlerID, mdlw, mux)
+	h := std.Handler(handlerID, mdlw, s.receiverHandler)
 	srv := &http.Server{
 		Addr:    s.port,
 		Handler: h,
