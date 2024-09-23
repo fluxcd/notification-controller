@@ -943,8 +943,7 @@ func Test_handlePayload(t *testing.T) {
 			}
 
 			rr := httptest.NewRecorder()
-			handler := s.handlePayload()
-			handler(rr, req)
+			s.handlePayload(rr, req)
 			g.Expect(rr.Result().StatusCode).To(gomega.Equal(tt.expectedResponseCode))
 
 			var allReceivers apiv1.ReceiverList
@@ -960,4 +959,21 @@ func Test_handlePayload(t *testing.T) {
 			g.Expect(annotatedResources).To(gomega.Equal(tt.expectedResourcesAnnotated))
 		})
 	}
+}
+
+func TestReceiverServer(t *testing.T) {
+	// k8sClient := buildTestClient()
+	// rs := NewReceiverServer(":0", logr.Discard(), k8sClient, false)
+
+}
+
+func buildTestClient(objs ...client.Object) client.Client {
+	scheme := runtime.NewScheme()
+	apiv1.AddToScheme(scheme)
+	corev1.AddToScheme(scheme)
+
+	return fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(objs...).
+		WithIndex(&apiv1.Receiver{}, WebhookPathIndexKey, IndexReceiverWebhookPath).Build()
 }

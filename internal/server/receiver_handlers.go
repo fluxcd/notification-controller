@@ -77,78 +77,76 @@ func IndexReceiverWebhookPath(o client.Object) []string {
 	return nil
 }
 
-func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.Background()
-		digest := url.PathEscape(strings.TrimPrefix(r.RequestURI, apiv1.ReceiverWebhookPath))
+func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
+	ctx := context.Background()
+	digest := url.PathEscape(strings.TrimPrefix(r.RequestURI, apiv1.ReceiverWebhookPath))
 
-		s.logger.Info(fmt.Sprintf("handling request: %s", digest))
+	s.logger.Info(fmt.Sprintf("handling request: %s", digest))
 
-		var allReceivers apiv1.ReceiverList
-		err := s.kubeClient.List(ctx, &allReceivers, client.MatchingFields{
-			WebhookPathIndexKey: r.RequestURI,
-		}, client.Limit(1))
-		if err != nil {
-			s.logger.Error(err, "unable to list receivers")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	var allReceivers apiv1.ReceiverList
+	err := s.kubeClient.List(ctx, &allReceivers, client.MatchingFields{
+		WebhookPathIndexKey: r.RequestURI,
+	}, client.Limit(1))
+	if err != nil {
+		s.logger.Error(err, "unable to list receivers")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-		if len(allReceivers.Items) == 0 {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+	if len(allReceivers.Items) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
-		receiver := allReceivers.Items[0]
-		logger := s.logger.WithValues(
-			"reconciler kind", apiv1.ReceiverKind,
-			"name", receiver.Name,
-			"namespace", receiver.Namespace)
+	receiver := allReceivers.Items[0]
+	logger := s.logger.WithValues(
+		"reconciler kind", apiv1.ReceiverKind,
+		"name", receiver.Name,
+		"namespace", receiver.Namespace)
 
-		if receiver.Spec.Suspend || !conditions.IsReady(&receiver) {
-			err := errors.New("unable to process request")
-			if receiver.Spec.Suspend {
-				logger.Error(err, "receiver is suspended")
-			} else {
-				logger.Error(err, "receiver is not ready")
-			}
-			w.WriteHeader(http.StatusServiceUnavailable)
-			return
-		}
-
-		if err := s.validate(ctx, receiver, r); err != nil {
-			logger.Error(err, "unable to validate payload")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		var withErrors bool
-		for _, resource := range receiver.Spec.Resources {
-			if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
-				logger.Error(err, "unable to request reconciliation")
-				withErrors = true
-			}
-		}
-
-		evaluatedResources, err := s.evaluateResourceExpressions(r, receiver)
-		if err != nil {
-			logger.Error(err, "unable to evaluate resource expressions")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		for _, resource := range evaluatedResources {
-			if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
-				logger.Error(err, "unable to request reconciliation")
-				withErrors = true
-			}
-		}
-
-		if withErrors {
-			w.WriteHeader(http.StatusInternalServerError)
+	if receiver.Spec.Suspend || !conditions.IsReady(&receiver) {
+		err := errors.New("unable to process request")
+		if receiver.Spec.Suspend {
+			logger.Error(err, "receiver is suspended")
 		} else {
-			w.WriteHeader(http.StatusOK)
+			logger.Error(err, "receiver is not ready")
 		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
+	if err := s.validate(ctx, receiver, r); err != nil {
+		logger.Error(err, "unable to validate payload")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var withErrors bool
+	for _, resource := range receiver.Spec.Resources {
+		if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
+			logger.Error(err, "unable to request reconciliation")
+			withErrors = true
+		}
+	}
+
+	evaluatedResources, err := s.evaluateResourceExpressions(r, receiver)
+	if err != nil {
+		logger.Error(err, "unable to evaluate resource expressions")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	for _, resource := range evaluatedResources {
+		if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
+			logger.Error(err, "unable to request reconciliation")
+			withErrors = true
+		}
+	}
+
+	if withErrors {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
