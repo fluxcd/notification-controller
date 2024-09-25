@@ -32,6 +32,7 @@ import (
 	"time"
 
 	cdevents "github.com/cdevents/sdk-go/pkg/api"
+	cdevents04 "github.com/cdevents/sdk-go/pkg/api/v04"
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 	"github.com/go-logr/logr"
@@ -205,7 +206,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 			return fmt.Errorf("unable to read CDEvent request body: %s", err)
 		}
 
-		cdevent, err := cdevents.NewFromJsonBytes(b)
+		cdevent, err := cdevents04.NewFromJsonBytes(b)
 		if err != nil {
 			return fmt.Errorf("unable to validate CDEvent event: %s", err)
 		}
