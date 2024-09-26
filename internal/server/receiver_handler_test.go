@@ -145,7 +145,7 @@ func Test_handlePayload(t *testing.T) {
 					"id":            "5555",
 					"source":        "github",
 					"timestamp":     "2023-12-07T14:51:29.908479495Z",
-					"type":          "dev.cdevents.change.merged.0.1.2",
+					"type":          "dev.cdevents.change.merged.0.2.0",
 				},
 				"subject": map[string]string{
 					"type": "change",
@@ -191,7 +191,7 @@ func Test_handlePayload(t *testing.T) {
 					"id":            "5555",
 					"source":        "github",
 					"timestamp":     "2023-12-07T14:51:29.908479495Z",
-					"type":          "dev.cdevents.change.merged.0.1.2",
+					"type":          "dev.cdevents.change.merged.0.2.0",
 				},
 				"subject": map[string]string{
 					"type": "change",
@@ -236,7 +236,7 @@ func Test_handlePayload(t *testing.T) {
 					"id":            "5555",
 					"source":        "github",
 					"timestamp":     "2023-12-07T14:51:29.908479495Z",
-					"type":          "dev.cdevents.change.merged.0.1.2",
+					"type":          "dev.cdevents.change.merged.0.2.0",
 				},
 				"subject": map[string]string{
 					"type": "change",

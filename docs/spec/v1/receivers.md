@@ -639,10 +639,8 @@ spec:
   secretRef:
     name: receiver-token
   resources:
-    - kind: GitRespository 
-      apiVersion: source.toolkit.fluxcd.io/v1
+    - kind: GitRepository 
       name: webapp
-      namespace: flux-system
 ```
 
 ### Events
