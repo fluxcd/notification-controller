@@ -26,7 +26,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v64/github"
 	"golang.org/x/oauth2"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"

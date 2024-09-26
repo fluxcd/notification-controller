@@ -36,7 +36,7 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 	"github.com/go-logr/logr"
-	"github.com/google/go-github/v63/github"
+	"github.com/google/go-github/v64/github"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -52,7 +52,7 @@ var (
 
 // defaultFluxAPIVersions is a map of Flux API kinds to their API versions.
 var defaultFluxAPIVersions = map[string]string{
-	"Bucket":          "source.toolkit.fluxcd.io/v1beta2",
+	"Bucket":          "source.toolkit.fluxcd.io/v1",
 	"HelmChart":       "source.toolkit.fluxcd.io/v1",
 	"HelmRepository":  "source.toolkit.fluxcd.io/v1",
 	"GitRepository":   "source.toolkit.fluxcd.io/v1",
