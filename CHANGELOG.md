@@ -2,6 +2,57 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.4.0
+
+**Release date:** 2024-09-27
+
+This minor release comes with various bug fixes and improvements.
+
+MS Teams Provider has been updated to support MS Adaptive Card payloads.
+This allows users to migrate from the deprecated
+[Office 365 Connector for Incoming Webhooks](https://devblogs.microsoft.com/microsoft365dev/retirement-of-office-365-connectors-within-microsoft-teams/)
+to the new [Microsoft Teams Incoming Webhooks with Workflows](https://support.microsoft.com/en-us/office/create-incoming-webhooks-with-workflows-for-microsoft-teams-8ae491c7-0394-4861-ba59-055e33f75498).
+See the [Provider API documentation](https://fluxcd.io/flux/components/notification/providers/#microsoft-teams)
+for more information. After getting the URL for the new Incoming Webhook Workflow,
+update the secret used by the `msteams` Provider object with the new URL.
+
+In addition, the Kubernetes dependencies have been updated to v1.31.1 and
+various other controller dependencies have been updated to their latest
+version. The controller is now built with Go 1.23.
+
+Fixes:
+- telegram notifier should escape with metadata key
+  [#829](https://github.com/fluxcd/notification-controller/pull/829)
+- docs: use stringData for secret of GitHub PAT
+  [#873](https://github.com/fluxcd/notification-controller/pull/873)
+- Fix incorrect use of format strings with the conditions package.
+  [#879](https://github.com/fluxcd/notification-controller/pull/879)
+
+Improvements:
+- New flag to disable detailed metrics for path
+  [#841](https://github.com/fluxcd/notification-controller/pull/841)
+- Fix telegram test flake
+  [#894](https://github.com/fluxcd/notification-controller/pull/894)
+- Build with Go 1.23
+  [#907](https://github.com/fluxcd/notification-controller/pull/907)
+- Add MS Adaptive Card payload to msteams Provider
+  [#920](https://github.com/fluxcd/notification-controller/pull/920)
+- Various dependency updates
+  [#845](https://github.com/fluxcd/notification-controller/pull/845)
+  [#855](https://github.com/fluxcd/notification-controller/pull/855)
+  [#854](https://github.com/fluxcd/notification-controller/pull/854)
+  [#857](https://github.com/fluxcd/notification-controller/pull/857)
+  [#865](https://github.com/fluxcd/notification-controller/pull/865)
+  [#866](https://github.com/fluxcd/notification-controller/pull/866)
+  [#905](https://github.com/fluxcd/notification-controller/pull/905)
+  [#903](https://github.com/fluxcd/notification-controller/pull/903)
+  [#912](https://github.com/fluxcd/notification-controller/pull/912)
+  [#925](https://github.com/fluxcd/notification-controller/pull/925)
+  [#931](https://github.com/fluxcd/notification-controller/pull/931)
+  [#932](https://github.com/fluxcd/notification-controller/pull/932)
+  [#933](https://github.com/fluxcd/notification-controller/pull/933)
+  [#934](https://github.com/fluxcd/notification-controller/pull/934)
+
 ## 1.3.0
 
 **Release date:** 2024-05-06
