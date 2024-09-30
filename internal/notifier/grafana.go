@@ -75,6 +75,8 @@ func (g *Grafana) Post(ctx context.Context, event eventv1.Event) error {
 		value := strings.ReplaceAll(v, ":", "|")
 		sfields = append(sfields, fmt.Sprintf("%s: %s", key, value))
 	}
+	sfields = append(sfields, fmt.Sprintf("name: %s", event.InvolvedObject.Name))
+	sfields = append(sfields, fmt.Sprintf("namespace: %s", event.InvolvedObject.Namespace))
 	payload := GraphitePayload{
 		When: event.Timestamp.Unix(),
 		Text: fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace),
