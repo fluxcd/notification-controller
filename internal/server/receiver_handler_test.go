@@ -27,6 +27,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/google/go-github/v64/github"
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -962,9 +963,68 @@ func Test_handlePayload(t *testing.T) {
 }
 
 func TestReceiverServer(t *testing.T) {
-	// k8sClient := buildTestClient()
-	// rs := NewReceiverServer(":0", logr.Discard(), k8sClient, false)
+	receiver := &apiv1.Receiver{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-receiver",
+			Namespace: "default",
+		},
+		Spec: apiv1.ReceiverSpec{
+			Type: apiv1.GenericReceiver,
+			SecretRef: meta.LocalObjectReference{
+				Name: "token",
+			},
+			ResourceExpressions: []string{
+				`{"name": "test-receiver", "kind": "Receiver", "apiVersion": "notification.toolkit.fluxcd.io/v1"}`,
+			},
+		},
+		Status: apiv1.ReceiverStatus{
+			WebhookPath: apiv1.ReceiverWebhookPath,
+			Conditions: []metav1.Condition{
+				{
+					Type:   meta.ReadyCondition,
+					Status: metav1.ConditionTrue,
+				},
+			},
+		},
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "token",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"token": []byte("token"),
+		},
+	}
 
+	k8sClient := buildTestClient(receiver, secret)
+
+	rs := newReceiverHandler(logr.Discard(), k8sClient, false)
+	srv := httptest.NewServer(rs)
+	defer srv.Close()
+
+	payload := map[string]any{
+		"image": "test-resource:1.2.1",
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req, err := http.NewRequest(http.MethodPost, srv.URL+apiv1.ReceiverWebhookPath, bytes.NewBuffer(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+
+	resp, err := srv.Client().Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("got StatusCode %v, want %v", resp.StatusCode, http.StatusOK)
+	}
 }
 
 func buildTestClient(objs ...client.Object) client.Client {
@@ -975,5 +1035,6 @@ func buildTestClient(objs ...client.Object) client.Client {
 	return fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(objs...).
+		WithStatusSubresource(&apiv1.Receiver{}).
 		WithIndex(&apiv1.Receiver{}, WebhookPathIndexKey, IndexReceiverWebhookPath).Build()
 }

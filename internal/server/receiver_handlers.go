@@ -106,6 +106,7 @@ func (s *receiverHandler) handlePayload(w http.ResponseWriter, r *http.Request) 
 	err := s.kubeClient.List(ctx, &allReceivers, client.MatchingFields{
 		WebhookPathIndexKey: r.RequestURI,
 	}, client.Limit(1))
+
 	if err != nil {
 		s.logger.Error(err, "unable to list receivers")
 		w.WriteHeader(http.StatusInternalServerError)
