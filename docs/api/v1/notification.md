@@ -122,6 +122,19 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </tr>
 <tr>
 <td>
+<code>resourceFilter</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ResourceFilter is an expression that is applied to each Resource
+referenced in the Resources. If the expression returns false then the
+Resource is discarded and will not be notified.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>secretRef</code><br>
 <em>
 <a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
@@ -317,6 +330,19 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </td>
 <td>
 <p>A list of resources to be notified about changes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resourceFilter</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ResourceFilter is an expression that is applied to each Resource
+referenced in the Resources. If the expression returns false then the
+Resource is discarded and will not be notified.</p>
 </td>
 </tr>
 <tr>
