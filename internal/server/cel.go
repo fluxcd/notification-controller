@@ -53,7 +53,9 @@ func newCELEvaluator(expr string, req *http.Request) (resourcePredicate, error) 
 
 		out, _, err := prg.Eval(map[string]any{
 			"resource": data,
-			"request":  body,
+			"request": map[string]any{
+				"body": body,
+			},
 		})
 		if err != nil {
 			return nil, fmt.Errorf("expression %v failed to evaluate: %w", expr, err)
@@ -74,7 +76,6 @@ func makeCELEnv() (*cel.Env, error) {
 	mapStrDyn := decls.NewMapType(decls.String, decls.Dyn)
 	return cel.NewEnv(
 		celext.Strings(),
-		celext.Encoders(),
 		notifications(),
 		cel.Declarations(
 			decls.NewVar("resource", mapStrDyn),

@@ -700,6 +700,117 @@ resources:
 **Note:** Cross-namespace references [can be disabled for security
 reasons](#disabling-cross-namespace-selectors).
 
+#### Filtering reconciled objects with CEL
+
+To filter the resources that are reconciled you can use [Common Expression Language (CEL)](https://cel.dev/).
+
+For example to trigger `ImageRepositories` on notifications from [Google Artifact Regisry](https://cloud.google.com/artifact-registry/docs/configure-notifications#examples) you can define a receiver.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Receiver
+metadata:
+  name: gar-receiver
+  namespace: apps
+spec:
+  type: gcr
+  secretRef:
+    name: flux-gar-token
+  resources:
+    - apiVersion: image.toolkit.fluxcd.io/v1beta2
+      kind: ImageRepository
+      name: "*"
+      matchLabels:
+        registry: gar
+```
+
+This will trigger the reconciliation of all `ImageRepositories` with matching labels `registry: gar`, but if you want to only notify `ImageRepository` resources that are referenced from the incoming hook you can use CEL to filter the resources.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Receiver
+metadata:
+  name: gar-receiver
+  namespace: apps
+spec:
+  type: gcr
+  secretRef:
+    name: flux-gar-token
+  resources:
+    - apiVersion: image.toolkit.fluxcd.io/v1beta2
+      kind: ImageRepository
+      name: "*"
+      matchLabels:
+        registry: gar
+  resourceFilter: 'request.body.tag.contains(resource.metadata.name)'
+```
+
+If the body of the incoming hook looks like this:
+
+```json
+{
+  "action":"INSERT",
+  "digest":"us-east1-docker.pkg.dev/my-project/my-repo/hello-world@sha256:6ec128e26cd5...",
+  "tag":"us-east1-docker.pkg.dev/my-project/my-repo/hello-world:1.1"
+}
+```
+
+This simple example would match `ImageRepositories` with the name `hello-world`.
+
+If you want do do more complex processing:
+
+```yaml
+  resourceFilter: has(resource.metadata.annotations) && request.body.tag.split('/').last().split(":").first() == resource.metadata.annotations['update-image']
+```
+
+This would look for an annotation "update-image" on the resource, and match it to the `hello-world` part of the tag name.
+
+**NOTE**: Currently the `resource` value in the CEL expression only provides the object metadata, this means you can access things like `resource.metadata.labels` and `resource.metadata.annotations`.
+
+There are a number of functions available to the CEL expressions beyond the basic CEL functionality.
+
+The [Strings extension](https://github.com/google/cel-go/tree/master/ext#strings) is available.
+
+In addition the notifications-controller CEL implementation provides the following functions:
+
+#### first
+
+Returns the first element of a CEL array expression.
+
+```
+<list<any>>.first() -> <any>
+```
+
+This is syntactic sugar for `['hello', 'mellow'][0]`
+
+Examples:
+
+```
+['hello', 'mellow'].first() // returns 'hello'
+[].first() // returns nil
+'this/test'.split('/').first() // returns 'this'
+```
+
+#### last
+
+Returns the last element of a CEL array expression.
+
+```
+<list<any>>.last() -> <any>
+```
+
+Examples:
+
+```
+['hello', 'mellow'].last() // returns 'mellow'
+[].last() // returns nil
+'this/test'.split('/').last() // returns 'test'
+```
+
+This is syntactic sugar for `['hello', 'mellow'][size(['hello, 'mellow'])-1]`
+
+For zero-length array values, these will both return `nil`.
+
 ### Secret reference
 
 `.spec.secretRef.name` is a required field to specify a name reference to a
