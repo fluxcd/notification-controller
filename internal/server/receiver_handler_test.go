@@ -789,7 +789,7 @@ func Test_handlePayload(t *testing.T) {
 							},
 						},
 					},
-					ResourceFilter: `has(resource.metadata.annotations) && request.tag.split('/').last().split(":").first() == resource.metadata.annotations['update-image']`,
+					ResourceFilter: `has(resource.metadata.annotations) && request.body.tag.split('/').last().split(":").first() == resource.metadata.annotations['update-image']`,
 				},
 				Status: apiv1.ReceiverStatus{
 					WebhookPath: apiv1.ReceiverWebhookPath,
@@ -878,7 +878,7 @@ func Test_handlePayload(t *testing.T) {
 							Name:       "test-resource",
 						},
 					},
-					ResourceFilter: `has(resource.metadata.annotations) && request.tag.split('/').last().split(":").first() == resource.metadata.annotations['update-image']`,
+					ResourceFilter: `has(resource.metadata.annotations) && request.body.tag.split('/').last().split(":").first() == resource.metadata.annotations['update-image']`,
 				},
 				Status: apiv1.ReceiverStatus{
 					WebhookPath: apiv1.ReceiverWebhookPath,
