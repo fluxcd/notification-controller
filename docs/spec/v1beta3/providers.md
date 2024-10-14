@@ -1547,15 +1547,19 @@ kubectl create secret generic github-token --from-literal=token=<GITHUB-TOKEN>
 #### GitLab
 
 When `.spec.type` is set to `gitlab`, the referenced secret must contain a key called `token` with the value set to a
-[GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html).
+[GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html). If available group and project access tokens can also be used.
 
-The token must have permissions to update the commit status for the GitLab repository specified in `.spec.address`.
+The token must have permissions to update the commit status for the GitLab repository specified in `.spec.address` (grant it the `api` scope).
 
 You can create the secret with `kubectl` like this:
 
 ```shell
 kubectl create secret generic gitlab-token --from-literal=token=<GITLAB-TOKEN>
 ```
+
+For gitlab.com and current self-hosted gitlab installations that support only the Gitlab v4 API you need to use the project ID in the address instead of the project name.
+Use an address like `https://gitlab.com/1234` (with `1234` being the project ID).
+You can find out the ID by opening the project in the browser and clicking on the three dot button in the top right corner. The menu that opens shows the project ID.
 
 #### Gitea
 
