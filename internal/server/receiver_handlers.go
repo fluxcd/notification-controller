@@ -17,6 +17,7 @@ limitations under the License.
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha1"
@@ -163,8 +164,14 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 			return fmt.Errorf("unable to validate HMAC signature: %s", err)
 		}
 		return nil
+		r.Body = io.NopCloser(bytes.NewReader(b))
 	case apiv1.GitHubReceiver:
-		_, err := github.ValidatePayload(r, []byte(token))
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("unable to read request body: %s", err)
+		}
+		r.Body = io.NopCloser(bytes.NewReader(b))
+		_, err = github.ValidatePayload(r, []byte(token))
 		if err != nil {
 			return fmt.Errorf("the GitHub signature header is invalid, err: %w", err)
 		}
@@ -184,6 +191,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		}
 
 		logger.Info(fmt.Sprintf("handling GitHub event: %s", event))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.GitLabReceiver:
 		if r.Header.Get("X-Gitlab-Token") != token {
@@ -237,9 +245,15 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		}
 
 		logger.Info(fmt.Sprintf("handling CDEvent: %s", event))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.BitbucketReceiver:
-		_, err := github.ValidatePayload(r, []byte(token))
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("unable to read request body: %s", err)
+		}
+		r.Body = io.NopCloser(bytes.NewReader(b))
+		_, err = github.ValidatePayload(r, []byte(token))
 		if err != nil {
 			return fmt.Errorf("the Bitbucket server signature header is invalid, err: %w", err)
 		}
@@ -259,6 +273,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		}
 
 		logger.Info(fmt.Sprintf("handling Bitbucket server event: %s", event))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.QuayReceiver:
 		type payload struct {
@@ -266,12 +281,18 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 			UpdatedTags []string `json:"updated_tags"`
 		}
 
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("unable to read request body: %s", err)
+		}
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			return fmt.Errorf("cannot decode Quay webhook payload")
+			return fmt.Errorf("cannot decode Quay webhook payload: %w", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling Quay event from %s", p.DockerUrl))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.HarborReceiver:
 		if r.Header.Get("Authorization") != token {
@@ -423,6 +444,7 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 
 	group, version := getGroupVersion(apiVersion)
 
+	// TODO: Split this into two functions.
 	if resource.Name == "*" {
 		if resource.MatchLabels == nil {
 			return fmt.Errorf("matchLabels field not set when using wildcard '*' as name")
