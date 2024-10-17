@@ -47,6 +47,25 @@ func Test_handlePayload(t *testing.T) {
 		header    string
 	}
 
+	testReceiverResource := &apiv1.Receiver{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       apiv1.ReceiverKind,
+			APIVersion: apiv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-resource",
+		},
+	}
+
+	testSecretWithToken := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "token",
+		},
+		Data: map[string][]byte{
+			"token": []byte("token"),
+		},
+	}
+
 	tests := []struct {
 		name                       string
 		hashOpts                   hashOpts
@@ -76,14 +95,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret:               testSecretWithToken,
 			expectedResponseCode: http.StatusOK,
 		},
 		{
@@ -106,14 +118,7 @@ func Test_handlePayload(t *testing.T) {
 			headers: map[string]string{
 				"X-Gitlab-Token": "token",
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret:               testSecretWithToken,
 			expectedResponseCode: http.StatusOK,
 		},
 		{
@@ -152,14 +157,7 @@ func Test_handlePayload(t *testing.T) {
 					"id":   "5555",
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret:               testSecretWithToken,
 			expectedResponseCode: http.StatusOK,
 		},
 		{
@@ -198,14 +196,7 @@ func Test_handlePayload(t *testing.T) {
 					"id":   "5555",
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret:               testSecretWithToken,
 			expectedResponseCode: http.StatusBadRequest,
 		},
 		{
@@ -243,14 +234,7 @@ func Test_handlePayload(t *testing.T) {
 					"id":   "5555",
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret:               testSecretWithToken,
 			expectedResponseCode: http.StatusOK,
 		},
 		{
@@ -280,14 +264,7 @@ func Test_handlePayload(t *testing.T) {
 			payload: map[string]interface{}{
 				"action": "push",
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret:               testSecretWithToken,
 			expectedResponseCode: http.StatusOK,
 		},
 		{
@@ -314,14 +291,7 @@ func Test_handlePayload(t *testing.T) {
 			headers: map[string]string{
 				"Content-Type": "application/json",
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret:               testSecretWithToken,
 			expectedResponseCode: http.StatusOK,
 		},
 		{
@@ -350,14 +320,7 @@ func Test_handlePayload(t *testing.T) {
 				"Content-Type": "application/json",
 				"X-Event-Key":  "push",
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret:               testSecretWithToken,
 			expectedResponseCode: http.StatusOK,
 		},
 		{
@@ -377,14 +340,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret: testSecretWithToken,
 			payload: map[string]interface{}{
 				"docker_url": "docker.io",
 				"updated_tags": []string{
@@ -410,14 +366,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret: testSecretWithToken,
 			headers: map[string]string{
 				"Authorization": "token",
 			},
@@ -501,14 +450,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret:               testSecretWithToken,
 			expectedResponseCode: http.StatusInternalServerError,
 		},
 		{
@@ -535,14 +477,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret:               testSecretWithToken,
 			expectedResponseCode: http.StatusInternalServerError,
 		},
 		{
@@ -572,14 +507,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
 					TypeMeta: metav1.TypeMeta{
@@ -633,14 +561,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
 					TypeMeta: metav1.TypeMeta{
@@ -692,14 +613,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret:               testSecretWithToken,
 			expectedResponseCode: http.StatusInternalServerError,
 		},
 		{
@@ -729,14 +643,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
 					TypeMeta: metav1.TypeMeta{
@@ -796,14 +703,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
 					TypeMeta: metav1.TypeMeta{
@@ -885,14 +785,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
 					TypeMeta: metav1.TypeMeta{
@@ -911,7 +804,7 @@ func Test_handlePayload(t *testing.T) {
 			expectedResponseCode:       http.StatusOK,
 		},
 		{
-			name: "filtering a GitHub receiver",
+			name: "CEL filtering a GitHub receiver",
 			hashOpts: hashOpts{
 				calculate: true,
 				header:    github.SHA256SignatureHeader,
@@ -938,37 +831,199 @@ func Test_handlePayload(t *testing.T) {
 							Name:       "test-resource",
 						},
 					},
-					ResourceFilter: `resource.name == 'testing' && request.body.action == 'push'`,
+					ResourceFilter: `resource.metadata.name == 'test-resource' && request.body.action == 'push'`,
 				},
 				Status: apiv1.ReceiverStatus{
 					WebhookPath: apiv1.ReceiverWebhookPath,
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
-			resources: []client.Object{
-				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-resource",
-						Annotations: map[string]string{
-							"update-image": "not-hello-world",
-						},
-					},
-				},
-			},
+			secret:                     testSecretWithToken,
+			resources:                  []client.Object{testReceiverResource},
 			expectedResourcesAnnotated: 1,
 			expectedResponseCode:       http.StatusOK,
+		},
+		{
+			name: "CEL filtering a GitLab receiver - (does not read body)",
+			headers: map[string]string{
+				"Content-Type":   "application/json",
+				"X-Gitlab-Token": "token",
+			},
+			payload: map[string]interface{}{
+				"action": "push",
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GitLabReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+					ResourceFilter: `resource.metadata.name == 'test-resource' && request.body.action == 'push'`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret:                     testSecretWithToken,
+			resources:                  []client.Object{testReceiverResource},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
+		},
+		{
+			name: "CEL filtering a cdevents receiver",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "cdevents-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type:   apiv1.CDEventsReceiver,
+					Events: []string{"cd.change.merged.v1"},
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+					ResourceFilter: `resource.metadata.name == 'test-resource' && request.body.context.gitRepository == 'adamkenihan/notification-controller'`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			headers: map[string]string{
+				"Ce-Type":      "cd.change.merged.v1",
+				"Content-Type": "application/json; charset=utf-8",
+			},
+			payload: map[string]interface{}{
+				"context": map[string]string{
+					"gitRepository": "adamkenihan/notification-controller",
+					"gitRevision":   "5555",
+					"version":       "0.3.0",
+					"id":            "5555",
+					"source":        "github",
+					"timestamp":     "2023-12-07T14:51:29.908479495Z",
+					"type":          "dev.cdevents.change.merged.0.2.0",
+				},
+				"subject": map[string]string{
+					"type": "change",
+					"id":   "5555",
+				},
+			},
+			secret:                     testSecretWithToken,
+			resources:                  []client.Object{testReceiverResource},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
+		},
+		{
+			name: "CEL filtering a Bitbucket receiver",
+			hashOpts: hashOpts{
+				calculate: true,
+				header:    github.SHA256SignatureHeader,
+			},
+			headers: map[string]string{
+				"Content-Type": "application/json",
+				"X-Event-Key":  "push",
+			},
+			payload: map[string]interface{}{
+				"action": "push",
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.BitbucketReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+					ResourceFilter: `resource.metadata.name == 'test-resource' && request.body.action == 'push'`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret:                     testSecretWithToken,
+			resources:                  []client.Object{testReceiverResource},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
+		},
+		{
+			name: "CEL filtering a quay receiver",
+			headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "quay-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.QuayReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+					ResourceFilter: `resource.metadata.name == 'test-resource' && request.body.docker_url == 'docker.io'`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: testSecretWithToken,
+			payload: map[string]interface{}{
+				"docker_url": "docker.io",
+				"updated_tags": []string{
+					"v0.0.1",
+				},
+			},
+			resources:                  []client.Object{testReceiverResource},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
+		},
+		{
+			name: "CEL filtering a Harbor receiver",
+		},
+		{
+			name: "CEL filtering a Docker hub receiver",
+		},
+		{
+			name: "CEL filtering a GCR receiver",
+		},
+		{
+			name: "CEL filtering a Nexus receiver",
+		},
+		{
+			name: "CEL filtering a ACR receiver",
 		},
 		{
 			name: "handling errors when parsing the CEL expression results",
@@ -994,21 +1049,14 @@ func Test_handlePayload(t *testing.T) {
 							},
 						},
 					},
-					ResourceFilter: `resource.metadata.name == "test-resource-1"`,
+					ResourceFilter: `resource.name == "test-resource-1"`,
 				},
 				Status: apiv1.ReceiverStatus{
 					WebhookPath: apiv1.ReceiverWebhookPath,
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
-				Data: map[string][]byte{
-					"token": []byte("token"),
-				},
-			},
+			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
 					TypeMeta: metav1.TypeMeta{
@@ -1059,9 +1107,9 @@ func Test_handlePayload(t *testing.T) {
 
 			data, err := json.Marshal(tt.payload)
 			if err != nil {
-				t.Errorf("error marshalling test payload: '%s'", err)
+				t.Fatalf("error marshalling test payload: '%s'", err)
 			}
-			req := httptest.NewRequest("POST", "/hook/", bytes.NewBuffer(data))
+			req := httptest.NewRequest(http.MethodPost, "/hook/", bytes.NewBuffer(data))
 			for key, val := range tt.headers {
 				req.Header.Set(key, val)
 			}
