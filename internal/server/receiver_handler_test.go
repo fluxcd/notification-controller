@@ -910,7 +910,66 @@ func Test_handlePayload(t *testing.T) {
 			expectedResourcesAnnotated: 0,
 			expectedResponseCode:       http.StatusOK,
 		},
-
+		{
+			name: "filtering a GitHub receiver",
+			hashOpts: hashOpts{
+				calculate: true,
+				header:    github.SHA256SignatureHeader,
+			},
+			headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			payload: map[string]interface{}{
+				"action": "push",
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GitHubReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+					ResourceFilter: `resource.name == 'testing' && request.body.action == 'push'`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			resources: []client.Object{
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "test-resource",
+						Annotations: map[string]string{
+							"update-image": "not-hello-world",
+						},
+					},
+				},
+			},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
+		},
 		{
 			name: "handling errors when parsing the CEL expression results",
 			headers: map[string]string{
@@ -935,7 +994,7 @@ func Test_handlePayload(t *testing.T) {
 							},
 						},
 					},
-					ResourceFilter: `resource.name == "test-resource-1"`,
+					ResourceFilter: `resource.metadata.name == "test-resource-1"`,
 				},
 				Status: apiv1.ReceiverStatus{
 					WebhookPath: apiv1.ReceiverWebhookPath,
