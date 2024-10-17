@@ -139,6 +139,57 @@ func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *ReceiverServer) handleDynamicResourceList(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, namespace, group, version string, resourcePredicate resourcePredicate) error {
+	if resource.MatchLabels == nil {
+		return fmt.Errorf("matchLabels field not set when using wildcard '*' as name")
+	}
+
+	logger.V(1).Info(fmt.Sprintf("annotate resources by matchLabel for kind '%s' in '%s'",
+		resource.Kind, namespace), "matchLabels", resource.MatchLabels)
+
+	var resources metav1.PartialObjectMetadataList
+	resources.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   group,
+		Kind:    resource.Kind,
+		Version: version,
+	})
+
+	if err := s.kubeClient.List(ctx, &resources,
+		client.InNamespace(namespace),
+		client.MatchingLabels(resource.MatchLabels),
+	); err != nil {
+		return fmt.Errorf("failed listing resources in namespace %q by matching labels %q: %w", namespace, resource.MatchLabels, err)
+	}
+
+	if len(resources.Items) == 0 {
+		noObjectsFoundErr := fmt.Errorf("no '%s' resources found with matching labels '%s' in '%s' namespace", resource.Kind, resource.MatchLabels, namespace)
+		logger.Error(noObjectsFoundErr, "error annotating resources")
+		return nil
+	}
+
+	for i, resource := range resources.Items {
+		if resourcePredicate != nil {
+			accept, err := resourcePredicate(&resource)
+			if err != nil {
+				return err
+			}
+			if !*accept {
+				logger.Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, namespace))
+				continue
+			}
+		}
+
+		if err := s.annotate(ctx, &resources.Items[i]); err != nil {
+			return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
+		} else {
+			logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
+				resource.Kind, resource.Name, namespace))
+		}
+	}
+
+	return nil
+}
+
 func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, r *http.Request) error {
 	token, err := s.token(ctx, receiver)
 	if err != nil {
@@ -446,54 +497,7 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 
 	// TODO: Split this into two functions.
 	if resource.Name == "*" {
-		if resource.MatchLabels == nil {
-			return fmt.Errorf("matchLabels field not set when using wildcard '*' as name")
-		}
-
-		logger.V(1).Info(fmt.Sprintf("annotate resources by matchLabel for kind '%s' in '%s'",
-			resource.Kind, namespace), "matchLabels", resource.MatchLabels)
-
-		var resources metav1.PartialObjectMetadataList
-		resources.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   group,
-			Kind:    resource.Kind,
-			Version: version,
-		})
-
-		if err := s.kubeClient.List(ctx, &resources,
-			client.InNamespace(namespace),
-			client.MatchingLabels(resource.MatchLabels),
-		); err != nil {
-			return fmt.Errorf("failed listing resources in namespace %q by matching labels %q: %w", namespace, resource.MatchLabels, err)
-		}
-
-		if len(resources.Items) == 0 {
-			noObjectsFoundErr := fmt.Errorf("no '%s' resources found with matching labels '%s' in '%s' namespace", resource.Kind, resource.MatchLabels, namespace)
-			logger.Error(noObjectsFoundErr, "error annotating resources")
-			return nil
-		}
-
-		for i, resource := range resources.Items {
-			if resourcePredicate != nil {
-				accept, err := resourcePredicate(&resource)
-				if err != nil {
-					return err
-				}
-				if !*accept {
-					logger.Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, namespace))
-					continue
-				}
-			}
-
-			if err := s.annotate(ctx, &resources.Items[i]); err != nil {
-				return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
-			} else {
-				logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
-					resource.Kind, resource.Name, namespace))
-			}
-		}
-
-		return nil
+		return s.handleDynamicResourceList(ctx, logger, resource, namespace, group, version, resourcePredicate)
 	}
 
 	u := &metav1.PartialObjectMetadata{}
