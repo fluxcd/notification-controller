@@ -20,9 +20,12 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
+	"crypto/sha1"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"hash"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -43,7 +46,8 @@ import (
 
 func Test_handlePayload(t *testing.T) {
 	type hashOpts struct {
-		calculate bool
+		calculate func() hash.Hash
+		prefix    string
 		header    string
 	}
 
@@ -70,7 +74,7 @@ func Test_handlePayload(t *testing.T) {
 		name                       string
 		hashOpts                   hashOpts
 		headers                    map[string]string
-		payload                    map[string]interface{}
+		payload                    map[string]any
 		receiver                   *apiv1.Receiver
 		receiverType               string
 		secret                     *corev1.Secret
@@ -142,7 +146,7 @@ func Test_handlePayload(t *testing.T) {
 			headers: map[string]string{
 				"Ce-Type": "cd.change.merged.v1",
 			},
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"context": map[string]string{
 					"gitRepository": "adamkenihan/notification-controller",
 					"gitRevision":   "5555",
@@ -181,7 +185,7 @@ func Test_handlePayload(t *testing.T) {
 			headers: map[string]string{
 				"Ce-Type": "cd.change.merged.v1",
 			},
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"context": map[string]string{
 					"gitRepository": "adamkenihan/notification-controller",
 					"gitRevision":   "5555",
@@ -219,7 +223,7 @@ func Test_handlePayload(t *testing.T) {
 			headers: map[string]string{
 				"Ce-Type": "cd.change.merged.v1",
 			},
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"context": map[string]string{
 					"gitRepository": "adamkenihan/notification-controller",
 					"gitRevision":   "5555",
@@ -255,13 +259,14 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			hashOpts: hashOpts{
-				calculate: true,
+				calculate: sha256.New,
+				prefix:    "sha256=",
 				header:    github.SHA256SignatureHeader,
 			},
 			headers: map[string]string{
 				"Content-Type": "application/json",
 			},
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"action": "push",
 			},
 			secret:               testSecretWithToken,
@@ -285,7 +290,8 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			hashOpts: hashOpts{
-				calculate: true,
+				calculate: sha256.New,
+				prefix:    "sha256=",
 				header:    "X-Signature",
 			},
 			headers: map[string]string{
@@ -313,7 +319,8 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			hashOpts: hashOpts{
-				calculate: true,
+				calculate: sha256.New,
+				prefix:    "sha256=",
 				header:    github.SHA256SignatureHeader,
 			},
 			headers: map[string]string{
@@ -341,7 +348,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			secret: testSecretWithToken,
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"docker_url": "docker.io",
 				"updated_tags": []string{
 					"v0.0.1",
@@ -672,7 +679,7 @@ func Test_handlePayload(t *testing.T) {
 			headers: map[string]string{
 				"Content-Type": "application/json; charset=utf-8",
 			},
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"action": "INSERT",
 				"digest": "us-east1-docker.pkg.dev/my-project/my-repo/hello-world@sha256:6ec128e26cd5...",
 				"tag":    "us-east1-docker.pkg.dev/my-project/my-repo/hello-world:1.1",
@@ -749,7 +756,7 @@ func Test_handlePayload(t *testing.T) {
 					},
 				},
 			},
-			expectedResourcesAnnotated: 1, // TODO: This should really check more than just the count.
+			expectedResourcesAnnotated: 1,
 			expectedResponseCode:       http.StatusOK,
 		},
 		{
@@ -757,7 +764,7 @@ func Test_handlePayload(t *testing.T) {
 			headers: map[string]string{
 				"Content-Type": "application/json; charset=utf-8",
 			},
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"action": "INSERT",
 				"digest": "us-east1-docker.pkg.dev/my-project/my-repo/hello-world@sha256:6ec128e26cd5...",
 				"tag":    "us-east1-docker.pkg.dev/my-project/my-repo/hello-world:1.1",
@@ -806,13 +813,14 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "CEL filtering a GitHub receiver",
 			hashOpts: hashOpts{
-				calculate: true,
+				calculate: sha256.New,
 				header:    github.SHA256SignatureHeader,
+				prefix:    "sha256=",
 			},
 			headers: map[string]string{
 				"Content-Type": "application/json",
 			},
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"action": "push",
 			},
 			receiver: &apiv1.Receiver{
@@ -849,7 +857,7 @@ func Test_handlePayload(t *testing.T) {
 				"Content-Type":   "application/json",
 				"X-Gitlab-Token": "token",
 			},
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"action": "push",
 			},
 			receiver: &apiv1.Receiver{
@@ -910,7 +918,7 @@ func Test_handlePayload(t *testing.T) {
 				"Ce-Type":      "cd.change.merged.v1",
 				"Content-Type": "application/json; charset=utf-8",
 			},
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"context": map[string]string{
 					"gitRepository": "adamkenihan/notification-controller",
 					"gitRevision":   "5555",
@@ -933,14 +941,15 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "CEL filtering a Bitbucket receiver",
 			hashOpts: hashOpts{
-				calculate: true,
+				calculate: sha256.New,
 				header:    github.SHA256SignatureHeader,
+				prefix:    "sha256=",
 			},
 			headers: map[string]string{
 				"Content-Type": "application/json",
 				"X-Event-Key":  "push",
 			},
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"action": "push",
 			},
 			receiver: &apiv1.Receiver{
@@ -1000,7 +1009,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			secret: testSecretWithToken,
-			payload: map[string]interface{}{
+			payload: map[string]any{
 				"docker_url": "docker.io",
 				"updated_tags": []string{
 					"v0.0.1",
@@ -1011,19 +1020,226 @@ func Test_handlePayload(t *testing.T) {
 			expectedResponseCode:       http.StatusOK,
 		},
 		{
-			name: "CEL filtering a Harbor receiver",
+			name: "CEL filtering a Harbor receiver - (does not read body)",
+			headers: map[string]string{
+				"Authorization": "token",
+				"Content-Type":  "application/json",
+			},
+			payload: map[string]any{
+				"event_type": "pushImage",
+				"events": []map[string]any{
+					{
+						"project":      "prj",
+						"repo_name":    "repo1",
+						"tag":          "latest",
+						"full_name":    "prj/repo1",
+						"trigger_time": 158322233213,
+						"image_id":     "9e2c9d5f44efbb6ee83aecd17a120c513047d289d142ec5738c9f02f9b24ad07",
+						"project_type": "Private",
+					},
+				},
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "harbor-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.HarborReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+					ResourceFilter: `resource.metadata.name == 'test-resource' && request.body.events[0].full_name == 'prj/repo1'`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret:                     testSecretWithToken,
+			resources:                  []client.Object{testReceiverResource},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
 		},
 		{
 			name: "CEL filtering a Docker hub receiver",
+			headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			payload: map[string]any{
+				"push_data": map[string]any{
+					"tag": "test-org/test-repo:v1.0",
+				},
+				"repository": map[string]any{
+					"repo_url": "docker.io",
+				},
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "dockerhub-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.DockerHubReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+					ResourceFilter: `resource.metadata.name == 'test-resource' && request.body.push_data.tag.split('/').last().split(':').first() == 'test-repo'`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret:                     testSecretWithToken,
+			resources:                  []client.Object{testReceiverResource},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
 		},
 		{
 			name: "CEL filtering a GCR receiver",
+			headers: map[string]string{
+				"Content-Type":  "application/json",
+				"Authorization": "Bearer token",
+			},
+			payload: map[string]any{
+				"message": map[string]any{
+					"data": marshalGCRData(t, map[string]any{
+						"action": "INSERT",
+						"digest": "us-east1-docker.pkg.dev/my-project/my-repo/app1@sha256:6ec128e26cd5...",
+						"tag":    "us-east1-docker.pkg.dev/my-project/my-repo/app1:v1.2.3",
+					}),
+				},
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "gcr-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GCRReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+					ResourceFilter: `resource.metadata.name == 'test-resource' && request.body.tag.split('/').last().split(":").first() == 'app1'`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret:                     testSecretWithToken,
+			resources:                  []client.Object{testReceiverResource},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
 		},
 		{
 			name: "CEL filtering a Nexus receiver",
+			headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			payload: map[string]any{
+				"timestamp":      "2016-11-10T23:57:49.664+0000",
+				"nodeId":         "52905B51-085CCABB-CEBBEAAD-16795588-FC927D93",
+				"initiator":      "admin/127.0.0.1",
+				"repositoryName": "npm-proxy",
+				"action":         "CREATED",
+				"asset": map[string]any{
+					"id":      "31c950c8eeeab78336308177ae9c441c",
+					"assetId": "bnBtLXByb3h5OjMxYzk1MGM4ZWVlYWI3ODMzNjMwODE3N2FlOWM0NDFj",
+					"format":  "npm",
+					"name":    "concrete",
+				},
+			},
+			hashOpts: hashOpts{
+				calculate: sha1.New,
+				header:    "X-Nexus-Webhook-Signature",
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "nexus-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.NexusReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+					ResourceFilter: `resource.metadata.name == 'test-resource' && request.body.repositoryName == 'npm-proxy'`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret:                     testSecretWithToken,
+			resources:                  []client.Object{testReceiverResource},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
 		},
 		{
-			name: "CEL filtering a ACR receiver",
+			name: "CEL filtering an ACR receiver",
+			headers: map[string]string{
+				"Content-Type": "application/json",
+			},
+			payload: map[string]any{
+				"action": "push",
+				"target": map[string]any{
+					"repository": "hello-world",
+					"tag":        "v1",
+				},
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "nexus-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.ACRReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+					ResourceFilter: `resource.metadata.name == 'test-resource' && request.body.target.repository == 'hello-world'`,
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret:                     testSecretWithToken,
+			resources:                  []client.Object{testReceiverResource},
+			expectedResourcesAnnotated: 1,
+			expectedResponseCode:       http.StatusOK,
 		},
 		{
 			name: "handling errors when parsing the CEL expression results",
@@ -1071,7 +1287,7 @@ func Test_handlePayload(t *testing.T) {
 					},
 				},
 			},
-			expectedResourcesAnnotated: 0, // TODO: This should really check more than just the count.
+			expectedResourcesAnnotated: 0,
 			expectedResponseCode:       http.StatusInternalServerError,
 		},
 	}
@@ -1113,15 +1329,14 @@ func Test_handlePayload(t *testing.T) {
 			for key, val := range tt.headers {
 				req.Header.Set(key, val)
 			}
-			if tt.hashOpts.calculate {
-				mac := hmac.New(sha256.New, tt.secret.Data["token"])
+			if tt.hashOpts.calculate != nil {
+				mac := hmac.New(tt.hashOpts.calculate, tt.secret.Data["token"])
 				_, err := mac.Write(data)
 				if err != nil {
-					t.Errorf("error writing hmac: '%s'", err)
+					t.Fatalf("error writing hmac: '%s'", err)
 				}
-				req.Header.Set(tt.hashOpts.header, "sha256="+hex.EncodeToString(mac.Sum(nil)))
+				req.Header.Set(tt.hashOpts.header, tt.hashOpts.prefix+hex.EncodeToString(mac.Sum(nil)))
 			}
-
 			rr := httptest.NewRecorder()
 			s.handlePayload(rr, req)
 			g.Expect(rr.Result().StatusCode).To(gomega.Equal(tt.expectedResponseCode))
@@ -1150,4 +1365,13 @@ func buildTestClient(objs ...client.Object) client.Client {
 		WithScheme(scheme).
 		WithObjects(objs...).
 		WithIndex(&apiv1.Receiver{}, WebhookPathIndexKey, IndexReceiverWebhookPath).Build()
+}
+
+func marshalGCRData(t *testing.T, v any) string {
+	t.Helper()
+	b, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return base64.StdEncoding.EncodeToString(b)
 }
