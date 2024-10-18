@@ -704,7 +704,7 @@ reasons](#disabling-cross-namespace-selectors).
 
 To filter the resources that are reconciled you can use [Common Expression Language (CEL)](https://cel.dev/).
 
-For example to trigger `ImageRepositories` on notifications from [Google Artifact Regisry](https://cloud.google.com/artifact-registry/docs/configure-notifications#examples) you can define a receiver.
+For example to trigger `ImageRepositories` on notifications from [Google Artifact Registry](https://cloud.google.com/artifact-registry/docs/configure-notifications#examples) you can define a receiver.
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1
@@ -755,7 +755,7 @@ If the body of the incoming hook looks like this:
 }
 ```
 
-This simple example would match `ImageRepositories` with the name `hello-world`.
+This simple example would match `ImageRepositories` containing the name `hello-world`.
 
 If you want do do more complex processing:
 
@@ -765,7 +765,7 @@ If you want do do more complex processing:
 
 This would look for an annotation "update-image" on the resource, and match it to the `hello-world` part of the tag name.
 
-**NOTE**: Currently the `resource` value in the CEL expression only provides the object metadata, this means you can access things like `resource.metadata.labels` and `resource.metadata.annotations`.
+**NOTE**: Currently the `resource` value in the CEL expression only provides the object metadata, this means you can access things like `resource.metadata.labels` and `resource.metadata.annotations` and `resource.metadata.name`.
 
 There are a number of functions available to the CEL expressions beyond the basic CEL functionality.
 
