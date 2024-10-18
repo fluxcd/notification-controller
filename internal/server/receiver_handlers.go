@@ -139,7 +139,34 @@ func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *ReceiverServer) handleDynamicResourceList(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, namespace, group, version string, resourcePredicate resourcePredicate) error {
+func (s *ReceiverServer) notifySingleResource(ctx context.Context, logger logr.Logger, resource *metav1.PartialObjectMetadata, resourcePredicate resourcePredicate) error {
+	objectKey := client.ObjectKeyFromObject(resource)
+	if err := s.kubeClient.Get(ctx, objectKey, resource); err != nil {
+		return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, objectKey, err)
+	}
+
+	if resourcePredicate != nil {
+		accept, err := resourcePredicate(resource)
+		if err != nil {
+			return err
+		}
+		if !*accept {
+			logger.Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, resource.Namespace))
+			return nil
+		}
+	}
+	err := s.annotate(ctx, resource)
+	if err != nil {
+		return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, resource.Namespace, err)
+	} else {
+		logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
+			resource.Kind, resource.Name, resource.Namespace))
+	}
+
+	return nil
+}
+
+func (s *ReceiverServer) notifyDynamicResources(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, namespace, group, version string, resourcePredicate resourcePredicate) error {
 	if resource.MatchLabels == nil {
 		return fmt.Errorf("matchLabels field not set when using wildcard '*' as name")
 	}
@@ -214,8 +241,8 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		if err != nil {
 			return fmt.Errorf("unable to validate HMAC signature: %s", err)
 		}
-		return nil
 		r.Body = io.NopCloser(bytes.NewReader(b))
+		return nil
 	case apiv1.GitHubReceiver:
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
@@ -361,12 +388,18 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				URL string `json:"repo_url"`
 			} `json:"repository"`
 		}
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("unable to read request body: %s", err)
+		}
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 			return fmt.Errorf("cannot decode DockerHub webhook payload")
 		}
 
 		logger.Info(fmt.Sprintf("handling DockerHub event from %s for tag %s", p.Repository.URL, p.PushData.Tag))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.GCRReceiver:
 		const tokenIndex = len("Bearer ")
@@ -388,23 +421,30 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 
 		err := authenticateGCRRequest(&http.Client{}, r.Header.Get("Authorization"), tokenIndex)
 		if err != nil {
-			return fmt.Errorf("cannot authenticate GCR request: %s", err)
+			return fmt.Errorf("cannot authenticate GCR request: %w", err)
 		}
 
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			return fmt.Errorf("cannot decode GCR webhook payload")
+			return fmt.Errorf("cannot decode GCR webhook payload: %w", err)
 		}
-
+		// The GCR payload is a Google PubSub event with the GCR event wrapped
+		// inside (in base64 JSON).
 		raw, _ := base64.StdEncoding.DecodeString(p.Message.Data)
 
 		var d data
 		err = json.Unmarshal(raw, &d)
 		if err != nil {
-			return fmt.Errorf("cannot decode GCR webhook body")
+			return fmt.Errorf("cannot decode GCR webhook body: %w", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling GCR event from %s for tag %s", d.Digest, d.Tag))
+		encodedPayload, err := json.Marshal(d)
+		if err != nil {
+			return fmt.Errorf("cannot decode GCR webhook body: %w", err)
+		}
+		// This only puts the unwrapped event into the payload.
+		r.Body = io.NopCloser(bytes.NewReader(encodedPayload))
 		return nil
 	case apiv1.NexusReceiver:
 		signature := r.Header.Get("X-Nexus-Webhook-Signature")
@@ -414,7 +454,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
-			return fmt.Errorf("cannot read Nexus payload. error: %s", err)
+			return fmt.Errorf("cannot read Nexus payload. error: %w", err)
 		}
 
 		if !verifyHmacSignature([]byte(token), signature, b) {
@@ -426,10 +466,11 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		}
 		var p payload
 		if err := json.Unmarshal(b, &p); err != nil {
-			return fmt.Errorf("cannot decode Nexus webhook payload: %s", err)
+			return fmt.Errorf("cannot decode Nexus webhook payload: %w", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling Nexus event from %s", p.RepositoryName))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.ACRReceiver:
 		type target struct {
@@ -442,12 +483,19 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 			Target target `json:"target"`
 		}
 
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("unable to read request body: %s", err)
+		}
+		r.Body = io.NopCloser(bytes.NewReader(b))
+
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 			return fmt.Errorf("cannot decode ACR webhook payload: %s", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling ACR event from %s for tag %s", p.Target.Repository, p.Target.Tag))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	}
 
@@ -495,9 +543,8 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 
 	group, version := getGroupVersion(apiVersion)
 
-	// TODO: Split this into two functions.
 	if resource.Name == "*" {
-		return s.handleDynamicResourceList(ctx, logger, resource, namespace, group, version, resourcePredicate)
+		return s.notifyDynamicResources(ctx, logger, resource, namespace, group, version, resourcePredicate)
 	}
 
 	u := &metav1.PartialObjectMetadata{}
@@ -506,35 +553,10 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 		Kind:    resource.Kind,
 		Version: version,
 	})
+	u.SetNamespace(namespace)
+	u.SetName(resource.Name)
 
-	objectKey := client.ObjectKey{
-		Namespace: namespace,
-		Name:      resource.Name,
-	}
-
-	if err := s.kubeClient.Get(ctx, objectKey, u); err != nil {
-		return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, objectKey, err)
-	}
-
-	if resourcePredicate != nil {
-		accept, err := resourcePredicate(u)
-		if err != nil {
-			return err
-		}
-		if !*accept {
-			logger.Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, namespace))
-			return nil
-		}
-	}
-	err := s.annotate(ctx, u)
-	if err != nil {
-		return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
-	} else {
-		logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
-			resource.Kind, resource.Name, namespace))
-	}
-
-	return nil
+	return s.notifySingleResource(ctx, logger, u, resourcePredicate)
 }
 
 func (s *ReceiverServer) annotate(ctx context.Context, resource *metav1.PartialObjectMetadata) error {
