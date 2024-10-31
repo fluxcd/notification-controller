@@ -145,8 +145,12 @@ func (s *ReceiverServer) notifySingleResource(ctx context.Context, logger logr.L
 		return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, objectKey, err)
 	}
 
-	if resourcePredicate != nil {
-		accept, err := resourcePredicate(resource)
+	return s.notifyResource(ctx, logger, resource, resourcePredicate)
+}
+
+func (s *ReceiverServer) notifyResource(ctx context.Context, logger logr.Logger, resource *metav1.PartialObjectMetadata, predicate resourcePredicate) error {
+	if predicate != nil {
+		accept, err := predicate(resource)
 		if err != nil {
 			return err
 		}
@@ -194,23 +198,9 @@ func (s *ReceiverServer) notifyDynamicResources(ctx context.Context, logger logr
 		return nil
 	}
 
-	for i, resource := range resources.Items {
-		if resourcePredicate != nil {
-			accept, err := resourcePredicate(&resource)
-			if err != nil {
-				return err
-			}
-			if !*accept {
-				logger.Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, namespace))
-				continue
-			}
-		}
-
-		if err := s.annotate(ctx, &resources.Items[i]); err != nil {
-			return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
-		} else {
-			logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
-				resource.Kind, resource.Name, namespace))
+	for i := range resources.Items {
+		if err := s.notifyResource(ctx, logger, &resources.Items[i], resourcePredicate); err != nil {
+			return err
 		}
 	}
 
