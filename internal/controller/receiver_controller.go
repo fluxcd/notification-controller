@@ -40,6 +40,7 @@ import (
 	helper "github.com/fluxcd/pkg/runtime/controller"
 	"github.com/fluxcd/pkg/runtime/patch"
 	"github.com/fluxcd/pkg/runtime/predicates"
+	"github.com/go-logr/logr"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	"github.com/fluxcd/notification-controller/internal/server"
@@ -150,12 +151,12 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		return ctrl.Result{}, nil
 	}
 
-	return r.reconcile(ctx, obj)
+	return r.reconcile(ctx, obj, log)
 }
 
 // reconcile steps through the actual reconciliation tasks for the object, it returns early on the first step that
 // produces an error.
-func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver) (ctrl.Result, error) {
+func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver, logger logr.Logger) (ctrl.Result, error) {
 	// Mark the resource as under reconciliation.
 	conditions.MarkReconciling(obj, meta.ProgressingReason, "Reconciliation in progress")
 
@@ -171,7 +172,8 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 		if err != nil {
 			conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.InvalidCELExpressionReason, "%s", err)
 			obj.Status.WebhookPath = ""
-			return ctrl.Result{}, err
+			logger.Error(err, "parsing CEL resource filter expression")
+			return ctrl.Result{}, nil
 		}
 	}
 
