@@ -166,6 +166,15 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 		return ctrl.Result{Requeue: true}, err
 	}
 
+	if filter := obj.Spec.ResourceFilter; filter != "" {
+		err := server.ValidateCELExpression(filter)
+		if err != nil {
+			conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.InvalidCELExpressionReason, "%s", err)
+			obj.Status.WebhookPath = ""
+			return ctrl.Result{}, err
+		}
+	}
+
 	webhookPath := obj.GetWebhookPath(token)
 	msg := fmt.Sprintf("Receiver initialized for path: %s", webhookPath)
 

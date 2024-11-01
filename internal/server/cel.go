@@ -32,7 +32,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func newCELEvaluator(expr string, req *http.Request) (resourcePredicate, error) {
+// ValidateCELEXpression accepts a CEL expression and will parse and check that
+// it's valid, if it's not valid an error is returned.
+func ValidateCELExpression(s string) error {
+	_, err := newCELProgram(s)
+	return err
+}
+
+func newCELProgram(expr string) (cel.Program, error) {
 	env, err := makeCELEnv()
 	if err != nil {
 		return nil, err
@@ -50,6 +57,15 @@ func newCELEvaluator(expr string, req *http.Request) (resourcePredicate, error) 
 	prg, err := env.Program(checked, cel.EvalOptions(cel.OptOptimize))
 	if err != nil {
 		return nil, fmt.Errorf("expression %v failed to create a Program: %w", expr, err)
+	}
+
+	return prg, nil
+}
+
+func newCELEvaluator(expr string, req *http.Request) (resourcePredicate, error) {
+	prg, err := newCELProgram(expr)
+	if err != nil {
+		return nil, err
 	}
 
 	body := map[string]any{}
