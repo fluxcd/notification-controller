@@ -64,9 +64,9 @@ spec:
                 type: string
               resourceFilter:
                 description: |-
-                  ResourceFilter is an expression that is applied to each Resource
+                  ResourceFilter is a CEL expression that is applied to each Resource
                   referenced in the Resources. If the expression returns false then the
-                  Resource is discarded and will not be notified.
+                  Resource will not be notified.
                 type: string
               resources:
                 description: A list of resources to be notified about changes.
