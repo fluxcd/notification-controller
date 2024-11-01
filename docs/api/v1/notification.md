@@ -128,9 +128,9 @@ string
 </em>
 </td>
 <td>
-<p>ResourceFilter is an expression that is applied to each Resource
+<p>ResourceFilter is a CEL expression that is applied to each Resource
 referenced in the Resources. If the expression returns false then the
-Resource is discarded and will not be notified.</p>
+Resource will not be notified.</p>
 </td>
 </tr>
 <tr>
@@ -340,9 +340,9 @@ string
 </em>
 </td>
 <td>
-<p>ResourceFilter is an expression that is applied to each Resource
+<p>ResourceFilter is a CEL expression that is applied to each Resource
 referenced in the Resources. If the expression returns false then the
-Resource is discarded and will not be notified.</p>
+Resource will not be notified.</p>
 </td>
 </tr>
 <tr>
