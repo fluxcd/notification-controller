@@ -17,6 +17,7 @@ limitations under the License.
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"mime"
@@ -54,7 +55,7 @@ func newCELProgram(expr string) (cel.Program, error) {
 		return nil, fmt.Errorf("expression %v check failed: %w", expr, issues.Err())
 	}
 
-	prg, err := env.Program(checked, cel.EvalOptions(cel.OptOptimize))
+	prg, err := env.Program(checked, cel.EvalOptions(cel.OptOptimize), cel.InterruptCheckFrequency(100))
 	if err != nil {
 		return nil, fmt.Errorf("expression %v failed to create a Program: %w", expr, err)
 	}
@@ -77,13 +78,13 @@ func newCELEvaluator(expr string, req *http.Request) (resourcePredicate, error) 
 		}
 	}
 
-	return func(obj client.Object) (*bool, error) {
+	return func(ctx context.Context, obj client.Object) (*bool, error) {
 		data, err := clientObjectToMap(obj)
 		if err != nil {
 			return nil, err
 		}
 
-		out, _, err := prg.Eval(map[string]any{
+		out, _, err := prg.ContextEval(ctx, map[string]any{
 			"resource": data,
 			"request": map[string]any{
 				"body": body,

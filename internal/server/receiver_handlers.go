@@ -115,7 +115,7 @@ func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var evaluator func(client.Object) (*bool, error)
+	var evaluator func(context.Context, client.Object) (*bool, error)
 	if receiver.Spec.ResourceFilter != "" {
 		evaluator, err = newCELEvaluator(receiver.Spec.ResourceFilter, r)
 		if err != nil {
@@ -150,12 +150,12 @@ func (s *ReceiverServer) notifySingleResource(ctx context.Context, logger logr.L
 
 func (s *ReceiverServer) notifyResource(ctx context.Context, logger logr.Logger, resource *metav1.PartialObjectMetadata, predicate resourcePredicate) error {
 	if predicate != nil {
-		accept, err := predicate(resource)
+		accept, err := predicate(ctx, resource)
 		if err != nil {
 			return err
 		}
 		if !*accept {
-			logger.Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, resource.Namespace))
+			logger.V(1).Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, resource.Namespace))
 			return nil
 		}
 	}
@@ -514,7 +514,7 @@ func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (st
 	return token, nil
 }
 
-type resourcePredicate func(client.Object) (*bool, error)
+type resourcePredicate func(context.Context, client.Object) (*bool, error)
 
 // requestReconciliation requests reconciliation of all the resources matching the given CrossNamespaceObjectReference by annotating them accordingly.
 func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, defaultNamespace string, resourcePredicate resourcePredicate) error {

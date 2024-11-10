@@ -757,7 +757,7 @@ If the body of the incoming hook looks like this:
 
 This simple example would match `ImageRepositories` containing the name `hello-world`.
 
-If you want do do more complex processing:
+If you want to do more complex processing:
 
 ```yaml
   resourceFilter: has(resource.metadata.annotations) && request.body.tag.split('/').last().split(":").first() == resource.metadata.annotations['update-image']
@@ -765,7 +765,7 @@ If you want do do more complex processing:
 
 This would look for an annotation "update-image" on the resource, and match it to the `hello-world` part of the tag name.
 
-**NOTE**: Currently the `resource` value in the CEL expression only provides the object metadata, this means you can access things like `resource.metadata.labels` and `resource.metadata.annotations` and `resource.metadata.name`.
+**Note:** Currently the `resource` value in the CEL expression only provides the object metadata, this means you can access things like `resource.metadata.labels` and `resource.metadata.annotations` and `resource.metadata.name`.
 
 There are a number of functions available to the CEL expressions beyond the basic CEL functionality.
 
