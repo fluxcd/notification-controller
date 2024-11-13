@@ -25,7 +25,6 @@ import (
 	"strings"
 
 	"github.com/google/cel-go/cel"
-	"github.com/google/cel-go/checker/decls"
 	"github.com/google/cel-go/common/types"
 	"github.com/google/cel-go/common/types/ref"
 	"github.com/google/cel-go/common/types/traits"
@@ -53,6 +52,9 @@ func newCELProgram(expr string) (cel.Program, error) {
 	checked, issues := env.Check(parsed)
 	if issues != nil && issues.Err() != nil {
 		return nil, fmt.Errorf("expression %v check failed: %w", expr, issues.Err())
+	}
+	if checked.OutputType() != types.BoolType {
+		return nil, fmt.Errorf("invalid expression output type %v", checked.OutputType())
 	}
 
 	prg, err := env.Program(checked, cel.EvalOptions(cel.OptOptimize), cel.InterruptCheckFrequency(100))
@@ -94,26 +96,19 @@ func newCELEvaluator(expr string, req *http.Request) (resourcePredicate, error) 
 			return nil, fmt.Errorf("expression %v failed to evaluate: %w", expr, err)
 		}
 
-		v, ok := out.(types.Bool)
-		if !ok {
-			return nil, fmt.Errorf("expression %q did not return a boolean value", expr)
-		}
-
-		result := v.Value().(bool)
+		result := out.Value().(bool)
 
 		return &result, nil
 	}, nil
 }
 
 func makeCELEnv() (*cel.Env, error) {
-	mapStrDyn := decls.NewMapType(decls.String, decls.Dyn)
 	return cel.NewEnv(
 		celext.Strings(),
 		notifications(),
-		cel.Declarations(
-			decls.NewVar("resource", mapStrDyn),
-			decls.NewVar("request", mapStrDyn),
-		))
+		cel.Variable("resource", cel.ObjectType("google.protobuf.Struct")),
+		cel.Variable("request", cel.ObjectType("google.protobuf.Struct")),
+	)
 }
 
 func isJSONContent(r *http.Request) bool {
@@ -132,17 +127,10 @@ func isJSONContent(r *http.Request) bool {
 }
 
 func notifications() cel.EnvOption {
-	r, err := types.NewRegistry()
-	if err != nil {
-		panic(err) // TODO: Do something better?
-	}
-
-	return cel.Lib(&notificationsLib{registry: r})
+	return cel.Lib(&notificationsLib{})
 }
 
-type notificationsLib struct {
-	registry *types.Registry
-}
+type notificationsLib struct{}
 
 // LibraryName implements the SingletonLibrary interface method.
 func (*notificationsLib) LibraryName() string {
@@ -151,13 +139,13 @@ func (*notificationsLib) LibraryName() string {
 
 // CompileOptions implements the Library interface method.
 func (l *notificationsLib) CompileOptions() []cel.EnvOption {
-	listStrDyn := cel.ListType(cel.DynType)
+	listDyn := cel.ListType(cel.DynType)
 	opts := []cel.EnvOption{
 		cel.Function("first",
-			cel.MemberOverload("first_list", []*cel.Type{listStrDyn}, cel.DynType,
+			cel.MemberOverload("first_list", []*cel.Type{listDyn}, cel.DynType,
 				cel.UnaryBinding(listFirst))),
 		cel.Function("last",
-			cel.MemberOverload("last_list", []*cel.Type{listStrDyn}, cel.DynType,
+			cel.MemberOverload("last_list", []*cel.Type{listDyn}, cel.DynType,
 				cel.UnaryBinding(listLast))),
 	}
 
