@@ -32,10 +32,11 @@ import (
 	"time"
 
 	cdevents "github.com/cdevents/sdk-go/pkg/api"
+	cdevents04 "github.com/cdevents/sdk-go/pkg/api/v04"
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 	"github.com/go-logr/logr"
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v64/github"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -51,7 +52,7 @@ var (
 
 // defaultFluxAPIVersions is a map of Flux API kinds to their API versions.
 var defaultFluxAPIVersions = map[string]string{
-	"Bucket":          "source.toolkit.fluxcd.io/v1beta2",
+	"Bucket":          "source.toolkit.fluxcd.io/v1",
 	"HelmChart":       "source.toolkit.fluxcd.io/v1",
 	"HelmRepository":  "source.toolkit.fluxcd.io/v1",
 	"GitRepository":   "source.toolkit.fluxcd.io/v1",
@@ -205,7 +206,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 			return fmt.Errorf("unable to read CDEvent request body: %s", err)
 		}
 
-		cdevent, err := cdevents.NewFromJsonBytes(b)
+		cdevent, err := cdevents04.NewFromJsonBytes(b)
 		if err != nil {
 			return fmt.Errorf("unable to validate CDEvent event: %s", err)
 		}

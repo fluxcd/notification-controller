@@ -350,23 +350,26 @@ stringData:
 ##### Microsoft Teams
 
 When `.spec.type` is set to `msteams`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Microsoft Teams [Address](#address).
+an [Event](events.md#event-structure) to the provided [Address](#address). The address
+may be a [Microsoft Teams Incoming Webhook Workflow](https://support.microsoft.com/en-us/office/create-incoming-webhooks-with-workflows-for-microsoft-teams-8ae491c7-0394-4861-ba59-055e33f75498), or
+the deprecated [Office 365 Connector](https://devblogs.microsoft.com/microsoft365dev/retirement-of-office-365-connectors-within-microsoft-teams/).
 
-The Event will be formatted into a Microsoft Teams
-[connector message](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/connectors-using#example-of-connector-message),
-with the metadata attached as facts, and the involved object as summary.
+**Note:** If the Address host contains the suffix `.webhook.office.com`, the controller will imply that
+the backend is the deprecated Office 365 Connector and is expecting the Event in the [connector message](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/connectors-using#example-of-connector-message) format. Otherwise, the controller will format the Event as a [Microsoft Adaptive Card](https://adaptivecards.io/explorer/) message.
+
+In both cases the Event metadata is attached as facts, and the involved object as a summary/title.
 The severity of the Event is used to set the color of the message.
 
 This Provider type supports the configuration of a [proxy URL](#https-proxy)
 and/or [TLS certificates](#tls-certificates), but lacks support for
 configuring a [Channel](#channel). This can be configured during the
-creation of the incoming webhook in Microsoft Teams.
+creation of the Incoming Webhook Workflow in Microsoft Teams.
 
 ###### Microsoft Teams example
 
 To configure a Provider for Microsoft Teams, create a Secret with [the
-`address`](#address-example) set to the [webhook URL](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook#create-incoming-webhooks-1),
-and a `msteams` Provider with a [Secret reference](#address-example).
+`address`](#address-example) set to the [webhook URL](https://support.microsoft.com/en-us/office/create-incoming-webhooks-with-workflows-for-microsoft-teams-8ae491c7-0394-4861-ba59-055e33f75498),
+and an `msteams` Provider with a [Secret reference](#secret-reference).
 
 ```yaml
 ---
@@ -386,7 +389,7 @@ metadata:
   name: msteams-webhook
   namespace: default
 stringData:
-    address: "https://xxx.webhook.office.com/..."
+  address: https://prod-xxx.yyy.logic.azure.com:443/workflows/zzz/triggers/manual/paths/invoke?...
 ```
 
 ##### DataDog
@@ -1278,7 +1281,7 @@ kind: Secret
 metadata:
   name: api-token
   namespace: default
-data:
+stringData:
   token: <personal-access-tokens>
 ```
 
