@@ -112,11 +112,6 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 			retErr = kerrors.NewAggregate([]error{retErr, err})
 		}
 
-		// Record Prometheus metrics.
-		r.Metrics.RecordReadiness(ctx, obj)
-		r.Metrics.RecordDuration(ctx, obj, reconcileStart)
-		r.Metrics.RecordSuspend(ctx, obj, obj.Spec.Suspend)
-
 		// Emit warning event if the reconciliation failed.
 		if retErr != nil {
 			r.Event(obj, corev1.EventTypeWarning, meta.FailedReason, retErr.Error())
