@@ -47,8 +47,11 @@ import (
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
-var (
-	WebhookPathIndexKey = ".metadata.webhookPath"
+const (
+	WebhookPathIndexKey string = ".metadata.webhookPath"
+
+	// maxRequestSizeBytes is the maximum size of a request to the API server
+	maxRequestSizeBytes int64 = 3 * 1024 * 1024
 )
 
 // defaultFluxAPIVersions is a map of Flux API kinds to their API versions.
@@ -142,7 +145,7 @@ func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
 func (s *ReceiverServer) notifySingleResource(ctx context.Context, logger logr.Logger, resource *metav1.PartialObjectMetadata, resourcePredicate resourcePredicate) error {
 	objectKey := client.ObjectKeyFromObject(resource)
 	if err := s.kubeClient.Get(ctx, objectKey, resource); err != nil {
-		return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, objectKey, err)
+		return fmt.Errorf("unable to read %s %q error: %w", resource.Kind, objectKey, err)
 	}
 
 	return s.notifyResource(ctx, logger, resource, resourcePredicate)
@@ -175,7 +178,7 @@ func (s *ReceiverServer) notifyDynamicResources(ctx context.Context, logger logr
 		return fmt.Errorf("matchLabels field not set when using wildcard '*' as name")
 	}
 
-	logger.V(1).Info(fmt.Sprintf("annotate resources by matchLabel for kind '%s' in '%s'",
+	logger.V(1).Info(fmt.Sprintf("annotate resources by matchLabel for kind %q in %q",
 		resource.Kind, namespace), "matchLabels", resource.MatchLabels)
 
 	var resources metav1.PartialObjectMetadataList
@@ -193,7 +196,7 @@ func (s *ReceiverServer) notifyDynamicResources(ctx context.Context, logger logr
 	}
 
 	if len(resources.Items) == 0 {
-		noObjectsFoundErr := fmt.Errorf("no '%s' resources found with matching labels '%s' in '%s' namespace", resource.Kind, resource.MatchLabels, namespace)
+		noObjectsFoundErr := fmt.Errorf("no %q resources found with matching labels %q' in %q namespace", resource.Kind, resource.MatchLabels, namespace)
 		logger.Error(noObjectsFoundErr, "error annotating resources")
 		return nil
 	}
@@ -218,6 +221,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		"name", receiver.Name,
 		"namespace", receiver.Namespace)
 
+	r.Body = io.NopCloser(io.LimitReader(r.Body, maxRequestSizeBytes))
 	switch receiver.Spec.Type {
 	case apiv1.GenericReceiver:
 		return nil
@@ -254,7 +258,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the GitHub event '%s' is not authorised", event)
+				return fmt.Errorf("the GitHub event %q is not authorised", event)
 			}
 		}
 
@@ -276,7 +280,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the GitLab event '%s' is not authorised", event)
+				return fmt.Errorf("the GitLab event %q is not authorised", event)
 			}
 		}
 
@@ -308,7 +312,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the CDEvent '%s' is not authorised", event)
+				return fmt.Errorf("the CDEvent %q is not authorised", event)
 			}
 		}
 
@@ -336,7 +340,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the Bitbucket server event '%s' is not authorised", event)
+				return fmt.Errorf("the Bitbucket server event %q is not authorised", event)
 			}
 		}
 
@@ -489,7 +493,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		return nil
 	}
 
-	return fmt.Errorf("recevier type '%s' not supported", receiver.Spec.Type)
+	return fmt.Errorf("recevier type %q not supported", receiver.Spec.Type)
 }
 
 func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (string, error) {
@@ -502,13 +506,13 @@ func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (st
 	var secret corev1.Secret
 	err := s.kubeClient.Get(ctx, secretName, &secret)
 	if err != nil {
-		return "", fmt.Errorf("unable to read token from secret '%s' error: %w", secretName, err)
+		return "", fmt.Errorf("unable to read token from secret %q error: %w", secretName, err)
 	}
 
 	if val, ok := secret.Data["token"]; ok {
 		token = string(val)
 	} else {
-		return "", fmt.Errorf("invalid '%s' secret data: required field 'token'", secretName)
+		return "", fmt.Errorf("invalid %q secret data: required field 'token'", secretName)
 	}
 
 	return token, nil
@@ -526,7 +530,7 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 	apiVersion := resource.APIVersion
 	if apiVersion == "" {
 		if defaultFluxAPIVersions[resource.Kind] == "" {
-			return fmt.Errorf("apiVersion must be specified for kind '%s'", resource.Kind)
+			return fmt.Errorf("apiVersion must be specified for kind %q", resource.Kind)
 		}
 		apiVersion = defaultFluxAPIVersions[resource.Kind]
 	}
@@ -561,7 +565,7 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource *metav1.PartialO
 	resource.SetAnnotations(sourceAnnotations)
 
 	if err := s.kubeClient.Patch(ctx, resource, patch); err != nil {
-		return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, client.ObjectKey{
+		return fmt.Errorf("unable to annotate %s %q error: %w", resource.Kind, client.ObjectKey{
 			Namespace: resource.Namespace,
 			Name:      resource.Name,
 		}, err)
