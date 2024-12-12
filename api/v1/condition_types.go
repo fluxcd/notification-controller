@@ -28,4 +28,8 @@ const (
 
 	// TokenNotFoundReason represents the fact that receiver token can't be found.
 	TokenNotFoundReason string = "TokenNotFound"
+
+	// InvalidCELExpressionReason represents the fact that the CEL resource
+	// filter is invalid.
+	InvalidCELExpressionReason string = "InvalidCELExpression"
 )
