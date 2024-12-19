@@ -99,7 +99,9 @@ func (g *GitLab) Post(ctx context.Context, event eventv1.Event) error {
 		Description: desc,
 	}
 
-	getOpt := &gitlab.GetCommitStatusesOptions{}
+	getOpt := &gitlab.GetCommitStatusesOptions{
+		Name: &status.Name,
+	}
 	statuses, _, err := g.Client.Commits.GetCommitStatuses(g.Id, rev, getOpt, gitlab.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("unable to list commit status: %s", err)
