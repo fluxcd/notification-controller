@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -256,7 +257,7 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 	}
 
 	notification := *event.DeepCopy()
-	s.enhanceEventWithAlertMetadata(ctx, &notification, alert)
+	s.combineEventMetadata(ctx, &notification, alert)
 
 	return sender, &notification, token, provider.GetTimeout(), nil
 }
@@ -418,30 +419,90 @@ func (s *EventServer) eventMatchesAlertSource(ctx context.Context, event *eventv
 	return sel.Matches(labels.Set(obj.GetLabels()))
 }
 
-// enhanceEventWithAlertMetadata enhances the event with Alert metadata.
-func (s *EventServer) enhanceEventWithAlertMetadata(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) {
-	meta := event.Metadata
-	if meta == nil {
-		meta = make(map[string]string)
-	}
+// combineEventMetadata combines all the sources of metadata for the event
+// according to the precedence order defined in RFC 0008. From lowest to
+// highest precedence, the sources are:
+//
+// 1) Event metadata keys prefixed with the Event API Group stripped of the prefix.
+//
+// 2) Alert .spec.eventMetadata with the keys as they are.
+//
+// 3) Alert .spec.summary with the key "summary".
+//
+// 4) Event metadata keys prefixed with the involved object's API Group stripped of the prefix.
+//
+// At the end of the process key conflicts are detected and a single
+// info-level log is emitted to warn users about all the conflicts,
+// but only if at least one conflict is found.
+func (s *EventServer) combineEventMetadata(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) {
+	const (
+		sourceEventGroup         = "involved object annotations"
+		sourceAlertEventMetadata = "Alert object .spec.eventMetadata"
+		sourceAlertSummary       = "Alert object .spec.summary"
+		sourceObjectGroup        = "involved object controller metadata"
 
-	for key, value := range alert.Spec.EventMetadata {
-		if _, alreadyPresent := meta[key]; !alreadyPresent {
-			meta[key] = value
-		} else {
-			log.FromContext(ctx).
-				Info("metadata key found in the existing set of metadata", "key", key)
-			s.Eventf(alert, corev1.EventTypeWarning, "MetadataAppendFailed",
-				"metadata key found in the existing set of metadata for '%s' in %s", key, involvedObjectString(event.InvolvedObject))
+		summaryKey = "summary"
+	)
+
+	l := log.FromContext(ctx)
+	metadata := make(map[string]string)
+	metadataSources := make(map[string][]string)
+
+	// 1) Event metadata keys prefixed with the Event API Group stripped of the prefix.
+	const eventGroupPrefix = eventv1.Group + "/"
+	for k, v := range event.Metadata {
+		if strings.HasPrefix(k, eventGroupPrefix) {
+			key := strings.TrimPrefix(k, eventGroupPrefix)
+			metadata[key] = v
+			metadataSources[key] = append(metadataSources[key], sourceEventGroup)
 		}
 	}
 
-	if alert.Spec.Summary != "" {
-		meta["summary"] = alert.Spec.Summary
+	// 2) Alert .spec.eventMetadata with the keys as they are.
+	for k, v := range alert.Spec.EventMetadata {
+		metadata[k] = v
+		metadataSources[k] = append(metadataSources[k], sourceAlertEventMetadata)
 	}
 
-	if len(meta) > 0 {
-		event.Metadata = meta
+	// 3) Alert .spec.summary with the key "summary".
+	if alert.Spec.Summary != "" {
+		metadata[summaryKey] = alert.Spec.Summary
+		metadataSources[summaryKey] = append(metadataSources[summaryKey], sourceAlertSummary)
+		l.Info("warning: specifying an alert summary with '.spec.summary' is deprecated, use '.spec.eventMetadata.summary' instead")
+	}
+
+	// 4) Event metadata keys prefixed with the involved object's API Group stripped of the prefix.
+	objectGroupPrefix := event.InvolvedObject.GroupVersionKind().Group + "/"
+	for k, v := range event.Metadata {
+		if strings.HasPrefix(k, objectGroupPrefix) {
+			key := strings.TrimPrefix(k, objectGroupPrefix)
+			metadata[key] = v
+			metadataSources[key] = append(metadataSources[key], sourceObjectGroup)
+		}
+	}
+
+	// Detect key conflicts and emit warnings if any.
+	type keyConflict struct {
+		Key     string   `json:"key"`
+		Sources []string `json:"sources"`
+	}
+	var conflictingKeys []*keyConflict
+	conflictEventAnnotations := make(map[string]string)
+	for key, sources := range metadataSources {
+		if len(sources) > 1 {
+			conflictingKeys = append(conflictingKeys, &keyConflict{key, sources})
+			conflictEventAnnotations[key] = strings.Join(sources, ", ")
+		}
+	}
+	if len(conflictingKeys) > 0 {
+		const msg = "metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information)"
+		slices.SortFunc(conflictingKeys, func(a, b *keyConflict) int { return strings.Compare(a.Key, b.Key) })
+		l.Info("warning: "+msg, "conflictingKeys", conflictingKeys)
+		s.AnnotatedEventf(alert, conflictEventAnnotations, corev1.EventTypeWarning, "MetadataAppendFailed", "%s", msg)
+	}
+
+	if len(metadata) > 0 {
+		event.Metadata = metadata
 	}
 }
 
@@ -450,7 +511,9 @@ func excludeInternalMetadata(event *eventv1.Event) {
 	if len(event.Metadata) == 0 {
 		return
 	}
-	excludeList := []string{eventv1.MetaTokenKey}
+	objectGroup := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group
+	tokenKey := fmt.Sprintf("%s/%s", objectGroup, eventv1.MetaTokenKey)
+	excludeList := []string{tokenKey}
 	for _, key := range excludeList {
 		delete(event.Metadata, key)
 	}

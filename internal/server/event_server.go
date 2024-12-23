@@ -156,21 +156,23 @@ func (s *EventServer) eventMiddleware(h http.Handler) http.Handler {
 }
 
 // cleanupMetadata removes metadata entries which are not used for alerting.
+// In particular, it removes the checksum and digest metadata entries and
+// keeps only the metadata entries that are prefixed with either the event
+// group prefix or the involved object's group prefix.
 func cleanupMetadata(event *eventv1.Event) {
-	group := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group
+	const eventGroupPrefix = eventv1.Group + "/"
+	objectGroupPrefix := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group + "/"
 	excludeList := []string{
-		fmt.Sprintf("%s/%s", group, eventv1.MetaChecksumKey),
-		fmt.Sprintf("%s/%s", group, eventv1.MetaDigestKey),
+		fmt.Sprintf("%s%s", objectGroupPrefix, eventv1.MetaChecksumKey),
+		fmt.Sprintf("%s%s", objectGroupPrefix, eventv1.MetaDigestKey),
 	}
 
+	// Filter other meta based on group prefix, while filtering out excludes
 	meta := make(map[string]string)
-	if event.Metadata != nil && len(event.Metadata) > 0 {
-		// Filter other meta based on group prefix, while filtering out excludes
-		for key, val := range event.Metadata {
-			if strings.HasPrefix(key, group) && !inList(excludeList, key) {
-				newKey := strings.TrimPrefix(key, fmt.Sprintf("%s/", group))
-				meta[newKey] = val
-			}
+	for key, val := range event.Metadata {
+		if !inList(excludeList, key) &&
+			(strings.HasPrefix(key, eventGroupPrefix) || strings.HasPrefix(key, objectGroupPrefix)) {
+			meta[key] = val
 		}
 	}
 
@@ -229,12 +231,16 @@ func eventKeyFunc(r *http.Request) (string, error) {
 		"message=" + event.Message,
 	}
 
-	revision, ok := event.Metadata[eventv1.MetaRevisionKey]
+	objectGroup := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group
+
+	revisionKey := fmt.Sprintf("%s/%s", objectGroup, eventv1.MetaRevisionKey)
+	revision, ok := event.Metadata[revisionKey]
 	if ok {
 		comps = append(comps, "revision="+revision)
 	}
 
-	token, ok := event.Metadata[eventv1.MetaTokenKey]
+	tokenKey := fmt.Sprintf("%s/%s", objectGroup, eventv1.MetaTokenKey)
+	token, ok := event.Metadata[tokenKey]
 	if ok {
 		comps = append(comps, "token="+token)
 	}

@@ -17,7 +17,7 @@ require (
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/fluxcd/cli-utils v0.36.0-flux.11
 	github.com/fluxcd/notification-controller/api v1.4.0
-	github.com/fluxcd/pkg/apis/event v0.12.0
+	github.com/fluxcd/pkg/apis/event v0.13.0
 	github.com/fluxcd/pkg/apis/meta v1.9.0
 	github.com/fluxcd/pkg/git v0.23.0
 	github.com/fluxcd/pkg/masktoken v0.6.0
