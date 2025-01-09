@@ -35,7 +35,7 @@ require (
 	github.com/slok/go-http-metrics v0.13.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.10.0
-	github.com/xanzy/go-gitlab v0.115.0
+	gitlab.com/gitlab-org/api/client-go v0.116.0
 	golang.org/x/oauth2 v0.24.0
 	golang.org/x/text v0.21.0
 	google.golang.org/api v0.211.0
