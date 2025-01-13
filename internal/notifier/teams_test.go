@@ -100,6 +100,9 @@ func TestMSTeams_Post(t *testing.T) {
 						"$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
 						"type":    "AdaptiveCard",
 						"version": "1.4",
+						"msteams": map[string]any{
+							"width": "Full",
+						},
 						"body": []any{
 							map[string]any{
 								"type": "Container",
