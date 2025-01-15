@@ -156,6 +156,8 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 // reconcile steps through the actual reconciliation tasks for the object, it returns early on the first step that
 // produces an error.
 func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Mark the resource as under reconciliation.
 	conditions.MarkReconciling(obj, meta.ProgressingReason, "Reconciliation in progress")
 
@@ -164,6 +166,16 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.TokenNotFoundReason, "%s", err)
 		obj.Status.WebhookPath = ""
 		return ctrl.Result{Requeue: true}, err
+	}
+
+	if filter := obj.Spec.ResourceFilter; filter != "" {
+		err := server.ValidateCELExpression(filter)
+		if err != nil {
+			conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.InvalidCELExpressionReason, "%s", err)
+			obj.Status.WebhookPath = ""
+			log.Error(err, "parsing CEL resource filter expression")
+			return ctrl.Result{}, nil
+		}
 	}
 
 	webhookPath := obj.GetWebhookPath(token)
