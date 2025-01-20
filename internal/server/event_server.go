@@ -233,6 +233,12 @@ func eventKeyFunc(r *http.Request) (string, error) {
 
 	objectGroup := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group
 
+	originRevisionKey := fmt.Sprintf("%s/%s", objectGroup, eventv1.MetaOriginRevisionKey)
+	originRevision, ok := event.Metadata[originRevisionKey]
+	if ok {
+		comps = append(comps, "originRevision="+originRevision)
+	}
+
 	revisionKey := fmt.Sprintf("%s/%s", objectGroup, eventv1.MetaRevisionKey)
 	revision, ok := event.Metadata[revisionKey]
 	if ok {
