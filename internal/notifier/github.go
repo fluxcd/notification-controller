@@ -96,7 +96,7 @@ func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 		return nil
 	}
 
-	revString, ok := event.Metadata[eventv1.MetaRevisionKey]
+	revString, ok := event.GetRevision()
 	if !ok {
 		return errors.New("missing revision metadata")
 	}

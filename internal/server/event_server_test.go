@@ -470,6 +470,48 @@ func TestEventKeyFunc(t *testing.T) {
 			severity: eventv1.EventSeverityInfo,
 			message:  "Health check passed",
 			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaOriginRevisionKey): "orev1",
+			},
+			rateLimit: false,
+		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaOriginRevisionKey): "orev1",
+			},
+			rateLimit: true,
+		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaOriginRevisionKey): "orev2",
+			},
+			rateLimit: false,
+		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
 				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaTokenKey): "token1",
 			},
 			rateLimit: false,
