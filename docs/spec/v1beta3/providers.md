@@ -109,7 +109,9 @@ The supported alerting providers are:
 | [WebEx](#webex)                                         | `webex`          |
 | [NATS](#nats)                                           | `nats`           |
 
-The supported providers for [Git commit status updates](#git-commit-status-updates) are:
+#### Types supporting Git commit status updates
+
+The providers supporting [Git commit status updates](#git-commit-status-updates) are:
 
 | Provider                                                     | Type              |
 |--------------------------------------------------------------|-------------------|
