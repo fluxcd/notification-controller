@@ -919,10 +919,13 @@ and [TLS certificates](#tls-certificates).
 
 ###### Prometheus Alertmanager example
 
-To configure a Provider for Prometheus Alertmanager, create a Secret with [the
-`address`](#address-example) set to the Prometheus Alertmanager [HTTP API
+To configure a Provider for Prometheus Alertmanager, authentication can be done using either Basic Authentication or a Bearer Token. 
+Both methods are supported, but using authentication is optional based on your setup.
+
+Basic Authentication: 
+Create a Secret with [the `address`](#address-example) set to the Prometheus Alertmanager [HTTP API
 URL](https://prometheus.io/docs/alerting/latest/https/#http-traffic)
-including Basic Auth credentials, and a `alertmanager` Provider with a [Secret
+including Basic Auth credentials, and an `alertmanager` Provider with a [Secret
 reference](#secret-reference).
 
 ```yaml
@@ -943,7 +946,33 @@ metadata:
   name: alertmanager-address
   namespace: default
 stringData:
-    address: https://username:password@<alertmanager-url>/api/v2/alerts/"
+    address: https://<username>:<password>@<alertmanager-hostport>/api/v2/alerts/
+```
+Bearer Token Authentication:
+Create a Secret with [the `token`](#token-example), and an `alertmanager` Provider with a [Secret
+reference](#secret-reference) and the Prometheus Alertmanager [HTTP API
+URL](https://prometheus.io/docs/alerting/latest/https/#http-traffic) set directly in the `.spec.address` field.
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: alertmanager
+  namespace: default
+spec:
+  type: alertmanager
+  address: https://<alertmanager-hostport>/api/v2/alerts/
+  secretRef:
+    name: alertmanager-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-token
+  namespace: default
+stringData:
+    token: <token>
 ```
 
 ##### Webex
