@@ -56,6 +56,7 @@ func Test_handlePayload(t *testing.T) {
 		receiverType               string
 		secret                     *corev1.Secret
 		resources                  []client.Object
+		noCrossNamespaceRefs       bool
 		expectedResourcesAnnotated int
 		expectedResponseCode       int
 	}{
@@ -665,7 +666,7 @@ func Test_handlePayload(t *testing.T) {
 			expectedResponseCode:       http.StatusOK,
 		},
 		{
-			name: "annotating all resources if name is *",
+			name: "cannot annotate all resources if name is * and no labels were set",
 			receiver: &apiv1.Receiver{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       apiv1.ReceiverKind,
@@ -700,6 +701,46 @@ func Test_handlePayload(t *testing.T) {
 					"token": []byte("token"),
 				},
 			},
+			expectedResponseCode: http.StatusInternalServerError,
+		},
+		{
+			name: "no cross-namespace refs",
+			receiver: &apiv1.Receiver{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "some-resource",
+							Namespace:  "another-namespace",
+						},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+				},
+			},
+			noCrossNamespaceRefs: true,
 			expectedResponseCode: http.StatusInternalServerError,
 		},
 		{
@@ -745,6 +786,9 @@ func Test_handlePayload(t *testing.T) {
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "dummy-resource-2",
+						Labels: map[string]string{
+							"label": "match",
+						},
 					},
 				},
 				&apiv1.Receiver{
@@ -786,9 +830,10 @@ func Test_handlePayload(t *testing.T) {
 
 			client := builder.Build()
 			s := ReceiverServer{
-				port:       "",
-				logger:     logger.NewLogger(logger.Options{}),
-				kubeClient: client,
+				port:                 "",
+				logger:               logger.NewLogger(logger.Options{}),
+				kubeClient:           client,
+				noCrossNamespaceRefs: tt.noCrossNamespaceRefs,
 			}
 
 			data, err := json.Marshal(tt.payload)

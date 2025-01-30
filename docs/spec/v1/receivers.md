@@ -743,7 +743,7 @@ When the field is set to `false` or removed, it will resume.
 On multi-tenant clusters, platform admins can disable cross-namespace
 references with the `--no-cross-namespace-refs=true` flag. When this flag is
 set, Receivers can only refer to [Resources](#resources) in the same namespace
-as the [Alert](alerts.md) object, preventing tenants from triggering
+as the Receiver object, preventing tenants from triggering
 reconciliations to another tenant's resources.
 
 ### Public Ingress considerations

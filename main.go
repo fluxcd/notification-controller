@@ -226,7 +226,7 @@ func main() {
 	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)
-	receiverServer := server.NewReceiverServer(receiverAddr, ctrl.Log, mgr.GetClient(), exportHTTPPathMetrics)
+	receiverServer := server.NewReceiverServer(receiverAddr, ctrl.Log, mgr.GetClient(), aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics)
 	receiverMdlw := middleware.New(middleware.Config{
 		Recorder: prommetrics.NewRecorder(prommetrics.Config{
 			Prefix:   "gotk_receiver",

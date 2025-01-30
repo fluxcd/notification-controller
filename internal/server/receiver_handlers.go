@@ -118,7 +118,7 @@ func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Req
 		var withErrors bool
 		for _, resource := range receiver.Spec.Resources {
 			if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
-				logger.Error(err, "unable to request reconciliation")
+				logger.Error(err, "unable to request reconciliation", "resource", resource)
 				withErrors = true
 			}
 		}
@@ -401,6 +401,9 @@ func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (st
 func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, defaultNamespace string) error {
 	namespace := defaultNamespace
 	if resource.Namespace != "" {
+		if s.noCrossNamespaceRefs && resource.Namespace != defaultNamespace {
+			return fmt.Errorf("cross-namespace references are not allowed")
+		}
 		namespace = resource.Namespace
 	}
 

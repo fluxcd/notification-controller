@@ -35,15 +35,17 @@ type ReceiverServer struct {
 	port                  string
 	logger                logr.Logger
 	kubeClient            client.Client
+	noCrossNamespaceRefs  bool
 	exportHTTPPathMetrics bool
 }
 
 // NewReceiverServer returns an HTTP server that handles webhooks
-func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client, exportHTTPPathMetrics bool) *ReceiverServer {
+func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client, noCrossNamespaceRefs bool, exportHTTPPathMetrics bool) *ReceiverServer {
 	return &ReceiverServer{
 		port:                  port,
 		logger:                logger.WithName("receiver-server"),
 		kubeClient:            kubeClient,
+		noCrossNamespaceRefs:  noCrossNamespaceRefs,
 		exportHTTPPathMetrics: exportHTTPPathMetrics,
 	}
 }
