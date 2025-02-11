@@ -53,7 +53,7 @@ func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client
 // ListenAndServe starts the HTTP server on the specified port
 func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Middleware) {
 	mux := http.NewServeMux()
-	mux.Handle(apiv1.ReceiverWebhookPath, http.HandlerFunc(s.handlePayload()))
+	mux.Handle(apiv1.ReceiverWebhookPath, http.HandlerFunc(s.handlePayload))
 	handlerID := apiv1.ReceiverWebhookPath
 	if s.exportHTTPPathMetrics {
 		handlerID = ""

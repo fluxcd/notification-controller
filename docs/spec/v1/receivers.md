@@ -700,6 +700,75 @@ resources:
 **Note:** Cross-namespace references [can be disabled for security
 reasons](#disabling-cross-namespace-selectors).
 
+#### Filtering reconciled objects with CEL
+
+To filter the resources that are reconciled you can use [Common Expression Language (CEL)](https://cel.dev/).
+
+For example, to trigger `ImageRepositories` on notifications from [Google Artifact Registry](https://cloud.google.com/artifact-registry/docs/configure-notifications#examples) you can define the following receiver:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Receiver
+metadata:
+  name: gar-receiver
+  namespace: apps
+spec:
+  type: gcr
+  secretRef:
+    name: flux-gar-token
+  resources:
+    - apiVersion: image.toolkit.fluxcd.io/v1beta2
+      kind: ImageRepository
+      name: "*"
+      matchLabels:
+        registry: gar
+```
+
+This will trigger the reconciliation of all `ImageRepositories` with the label `registry: gar`.
+
+But if you want to only notify `ImageRepository` resources that are referenced from the incoming hook you can use CEL to filter the resources.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Receiver
+metadata:
+  name: gar-receiver
+  namespace: apps
+spec:
+  type: gcr
+  secretRef:
+    name: flux-gar-token
+  resources:
+    - apiVersion: image.toolkit.fluxcd.io/v1beta2
+      kind: ImageRepository
+      name: "*"
+      matchLabels:
+        registry: gar
+  resourceFilter: 'req.tag.contains(res.metadata.name)'
+```
+
+If the body of the incoming hook looks like this:
+
+```json
+{
+  "action":"INSERT",
+  "digest":"us-east1-docker.pkg.dev/my-project/my-repo/hello-world@sha256:6ec128e26cd5...",
+  "tag":"us-east1-docker.pkg.dev/my-project/my-repo/hello-world:1.1"
+}
+```
+
+This simple example would match `ImageRepositories` containing the name `hello-world`.
+
+If you want to do more complex processing:
+
+```yaml
+  resourceFilter: has(res.metadata.annotations) && req.tag.split('/').last().value().split(":").first().value() == res.metadata.annotations['update-image']
+```
+
+This would look for an annotation "update-image" on the resource, and match it to the `hello-world` part of the tag name.
+
+**Note:** Currently the `resource` value in the CEL expression only provides the object metadata, this means you can access things like `res.metadata.labels`, `res.metadata.annotations` and `res.metadata.name`.
+
 ### Secret reference
 
 `.spec.secretRef.name` is a required field to specify a name reference to a

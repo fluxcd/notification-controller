@@ -122,6 +122,24 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </tr>
 <tr>
 <td>
+<code>resourceFilter</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ResourceFilter is a CEL expression expected to return a boolean that is
+evaluated for each resource referenced in the Resources field when a
+webhook is received. If the expression returns false then the controller
+will not request a reconciliation for the resource.
+When the expression is specified the controller will parse it and mark
+the object as terminally failed if the expression is invalid or does not
+return a boolean.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>secretRef</code><br>
 <em>
 <a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
@@ -317,6 +335,24 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 </td>
 <td>
 <p>A list of resources to be notified about changes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resourceFilter</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ResourceFilter is a CEL expression expected to return a boolean that is
+evaluated for each resource referenced in the Resources field when a
+webhook is received. If the expression returns false then the controller
+will not request a reconciliation for the resource.
+When the expression is specified the controller will parse it and mark
+the object as terminally failed if the expression is invalid or does not
+return a boolean.</p>
 </td>
 </tr>
 <tr>
