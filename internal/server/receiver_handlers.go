@@ -51,7 +51,7 @@ const (
 	WebhookPathIndexKey string = ".metadata.webhookPath"
 
 	// maxRequestSizeBytes is the maximum size of a request to the API server
-	maxRequestSizeBytes int64 = 3 * 1024 * 1024
+	maxRequestSizeBytes = 3 * 1024 * 1024
 )
 
 // defaultFluxAPIVersions is a map of Flux API kinds to their API versions.
@@ -213,6 +213,17 @@ func (s *ReceiverServer) notifyDynamicResources(ctx context.Context, logger logr
 }
 
 func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, r *http.Request) error {
+	// Validate payload size before doing anything else in case we are being DDoSed.
+	b, err := io.ReadAll(io.LimitReader(r.Body, maxRequestSizeBytes+1))
+	if err != nil {
+		return fmt.Errorf("failed to read request body: %w", err)
+	}
+	if len(b) > maxRequestSizeBytes {
+		return fmt.Errorf("request body exceeds the maximum size of %d bytes", maxRequestSizeBytes)
+	}
+	r.Body = io.NopCloser(bytes.NewReader(b))
+
+	// Fetch the token.
 	token, err := s.token(ctx, receiver)
 	if err != nil {
 		return fmt.Errorf("unable to read token, error: %w", err)
@@ -223,7 +234,6 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		"name", receiver.Name,
 		"namespace", receiver.Namespace)
 
-	r.Body = io.NopCloser(io.LimitReader(r.Body, maxRequestSizeBytes))
 	switch receiver.Spec.Type {
 	case apiv1.GenericReceiver:
 		return nil
@@ -240,12 +250,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.GitHubReceiver:
-		b, err := io.ReadAll(r.Body)
-		if err != nil {
-			return fmt.Errorf("unable to read request body: %s", err)
-		}
-		r.Body = io.NopCloser(bytes.NewReader(b))
-		_, err = github.ValidatePayload(r, []byte(token))
+		b, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
 			return fmt.Errorf("the GitHub signature header is invalid, err: %w", err)
 		}
@@ -322,12 +327,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.BitbucketReceiver:
-		b, err := io.ReadAll(r.Body)
-		if err != nil {
-			return fmt.Errorf("unable to read request body: %s", err)
-		}
-		r.Body = io.NopCloser(bytes.NewReader(b))
-		_, err = github.ValidatePayload(r, []byte(token))
+		b, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
 			return fmt.Errorf("the Bitbucket server signature header is invalid, err: %w", err)
 		}
