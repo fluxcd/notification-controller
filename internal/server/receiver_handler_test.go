@@ -31,6 +31,7 @@ import (
 	"testing"
 
 	"github.com/google/go-github/v64/github"
+	"github.com/google/uuid"
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,6 +69,11 @@ func Test_handlePayload(t *testing.T) {
 		Data: map[string][]byte{
 			"token": []byte("token"),
 		},
+	}
+
+	largePayload := make(map[string]any)
+	for keySize := len(uuid.NewString()); len(largePayload)*keySize <= maxRequestSizeBytes; {
+		largePayload[uuid.NewString()] = "something"
 	}
 
 	tests := []struct {
@@ -663,6 +669,37 @@ func Test_handlePayload(t *testing.T) {
 			},
 			noCrossNamespaceRefs: true,
 			expectedResponseCode: http.StatusInternalServerError,
+		},
+		{
+			name:    "large payload",
+			payload: largePayload,
+			receiver: &apiv1.Receiver{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "some-resource",
+						},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			expectedResponseCode: http.StatusBadRequest,
 		},
 		{
 			name: "resource matchLabels is ignored if name is not *",
