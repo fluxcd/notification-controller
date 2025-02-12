@@ -118,18 +118,22 @@ func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var evaluator func(context.Context, client.Object) (*bool, error)
+	resourceFilter := func(ctx context.Context, o client.Object) (*bool, error) {
+		accept := true
+		return &accept, nil
+	}
 	if receiver.Spec.ResourceFilter != "" {
-		evaluator, err = newResourceFilter(receiver.Spec.ResourceFilter, r)
+		resourceFilter, err = newResourceFilter(receiver.Spec.ResourceFilter, r)
 		if err != nil {
-			logger.Error(err, "unable to create CEL evaluator")
+			logger.Error(err, "unable to create resource filter")
 			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 	}
 
 	var withErrors bool
 	for _, resource := range receiver.Spec.Resources {
-		if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace, evaluator); err != nil {
+		if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace, resourceFilter); err != nil {
 			logger.Error(err, "unable to request reconciliation", "resource", resource)
 			withErrors = true
 		}
@@ -152,18 +156,16 @@ func (s *ReceiverServer) notifySingleResource(ctx context.Context, logger logr.L
 }
 
 func (s *ReceiverServer) notifyResource(ctx context.Context, logger logr.Logger, resource *metav1.PartialObjectMetadata, resourceFilter resourceFilter) error {
-	if resourceFilter != nil {
-		accept, err := resourceFilter(ctx, resource)
-		if err != nil {
-			return err
-		}
-		if !*accept {
-			logger.V(1).Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, resource.Namespace))
-			return nil
-		}
-	}
-	err := s.annotate(ctx, resource)
+	accept, err := resourceFilter(ctx, resource)
 	if err != nil {
+		return err
+	}
+	if !*accept {
+		logger.V(1).Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, resource.Namespace))
+		return nil
+	}
+
+	if err := s.annotate(ctx, resource); err != nil {
 		return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, resource.Namespace, err)
 	} else {
 		logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
