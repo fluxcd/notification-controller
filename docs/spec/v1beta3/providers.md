@@ -1270,6 +1270,11 @@ spec:
     name: grafana-token
 ```
 
+Besides the tag `flux` and the tag containing the reporting controller (e.g. `source-controller`),
+the event metadata is also included as tags of the form `${metadataKey}: ${metadataValue}`, and
+the tags `kind: ${event.InvolvedObject.Kind}`, `name: ${event.InvolvedObject.Name}` and
+`namespace: ${event.InvolvedObject.Namespace}` are also included.
+
 ### GitHub dispatch
 
 The `githubdispatch` provider generates GitHub events of type
