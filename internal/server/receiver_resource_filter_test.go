@@ -132,10 +132,10 @@ func TestCELEvaluation(t *testing.T) {
 	for _, tt := range evaluationTests {
 		t.Run(tt.expression, func(t *testing.T) {
 			g := NewWithT(t)
-			evaluator, err := newResourceFilter(tt.expression, tt.request)
+			resourceFilter, err := newResourceFilter(tt.expression, tt.request)
 			g.Expect(err).To(Succeed())
 
-			result, err := evaluator(context.Background(), tt.resource)
+			result, err := resourceFilter(context.Background(), tt.resource)
 			g.Expect(err).To(Succeed())
 			g.Expect(result).To(Equal(&tt.wantResult))
 		})
