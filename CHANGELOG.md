@@ -2,6 +2,71 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.5.0
+
+**Release date:** 2025-02-13
+
+This minor release comes with various bug fixes and improvements.
+
+### Alert
+
+Now notification-controller also sends event metadata specified in Flux objects through
+annotations. See [docs](https://fluxcd.io/flux/components/notification/alerts/#event-metadata-from-object-annotations).
+
+Now notification-controller is also capable of updating Git commit statuses
+from events about Kustomizations that consume OCIRepositories. See
+[docs](https://fluxcd.io/flux/cheatsheets/oci-artifacts/#git-commit-status-updates).
+
+### Receiver
+
+The Receiver API now supports filtering the declared resources that
+match a given Common Expression Language (CEL) expression. See
+[docs](https://fluxcd.io/flux/components/notification/receivers/#filtering-reconciled-objects-with-cel).
+
+In addition, the Kubernetes dependencies have been updated to v1.32.1 and
+various other controller dependencies have been updated to their latest
+version.
+
+Fixes:
+- Remove deprecated object metrics from controllers
+  [#997](https://github.com/fluxcd/notification-controller/pull/997)
+- msteams notifier: adaptive cards full width
+  [#1017](https://github.com/fluxcd/notification-controller/pull/1017)
+- fix: adding of duplicate commit statuses in gitlab
+  [#1010](https://github.com/fluxcd/notification-controller/pull/1010)
+- Fix add missing return statement and a few style issues
+  [#1039](https://github.com/fluxcd/notification-controller/pull/1039)
+
+Improvements:
+- [RFC-0008] Custom Event Metadata from Annotations
+  [#1014](https://github.com/fluxcd/notification-controller/pull/1014)
+- Add support for MetaOriginRevisionKey from the Event API
+  [#1018](https://github.com/fluxcd/notification-controller/pull/1018)
+- Add subsection for Git providers supporting commit status updates
+  [#1019](https://github.com/fluxcd/notification-controller/pull/1019)
+- Add support for Bearer Token authentication to Provider alertmanager
+  [#1021](https://github.com/fluxcd/notification-controller/pull/1021)
+- Enforce namespace check on receiver
+  [#1022](https://github.com/fluxcd/notification-controller/pull/1022)
+- Implement Receiver resource filtering with CEL
+  [#948](https://github.com/fluxcd/notification-controller/pull/948)
+- Clarify gitlab provider usage
+  [#953](https://github.com/fluxcd/notification-controller/pull/953)
+- Add involved object reference as annotations for the grafana provider
+  [#1040](https://github.com/fluxcd/notification-controller/pull/1040)
+- Improvements after CEL resource filtering
+  [#1041](https://github.com/fluxcd/notification-controller/pull/1041)
+- Various dependency updates
+  [#1002](https://github.com/fluxcd/notification-controller/pull/1002)
+  [#1016](https://github.com/fluxcd/notification-controller/pull/1016)
+  [#1023](https://github.com/fluxcd/notification-controller/pull/1023)
+  [#1025](https://github.com/fluxcd/notification-controller/pull/1025)
+  [#1027](https://github.com/fluxcd/notification-controller/pull/1027)
+  [#1032](https://github.com/fluxcd/notification-controller/pull/1032)
+  [#1036](https://github.com/fluxcd/notification-controller/pull/1036)
+  [#1037](https://github.com/fluxcd/notification-controller/pull/1037)
+  [#1042](https://github.com/fluxcd/notification-controller/pull/1042)
+
 ## 1.4.0
 
 **Release date:** 2024-09-27
