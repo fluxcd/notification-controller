@@ -30,11 +30,14 @@ import (
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 	"github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/runtime/patch"
+
+	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=providers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="",resources=serviceaccounts/token,verbs=create
 
 // ProviderReconciler reconciles a Provider object to migrate it to static
 // Provider.
@@ -64,7 +67,7 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	var delete bool
 	if !obj.ObjectMeta.DeletionTimestamp.IsZero() {
 		delete = true
-		r.TokenCache.DeleteEventsForObject(apiv1beta3.ProviderKind, obj.GetName(), obj.GetNamespace())
+		r.TokenCache.DeleteEventsForObject(apiv1beta3.ProviderKind, obj.GetName(), obj.GetNamespace(), notifier.OperationPost)
 	}
 
 	// Early return if no migration is needed.

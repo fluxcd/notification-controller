@@ -17,12 +17,15 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta3"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	pkgcache "github.com/fluxcd/pkg/cache"
+
+	apiv1 "github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
 var (
@@ -66,19 +69,22 @@ type notifierMap map[string]factoryFunc
 type factoryFunc func(opts notifierOptions) (Interface, error)
 
 type notifierOptions struct {
-	URL               string
-	ProxyURL          string
-	Username          string
-	Channel           string
-	Token             string
-	Headers           map[string]string
-	CertPool          *x509.CertPool
-	Password          string
-	CommitStatus      string
-	ProviderName      string
-	ProviderNamespace string
-	SecretData        map[string][]byte
-	TokenCache        *pkgcache.TokenCache
+	Context            context.Context
+	URL                string
+	ProxyURL           string
+	Username           string
+	Channel            string
+	Token              string
+	Headers            map[string]string
+	CertPool           *x509.CertPool
+	Password           string
+	CommitStatus       string
+	ProviderName       string
+	ProviderNamespace  string
+	SecretData         map[string][]byte
+	ServiceAccountName string
+	TokenCache         *pkgcache.TokenCache
+	TokenClient        client.Client
 }
 
 type Factory struct {
@@ -172,10 +178,25 @@ func WithTokenCache(cache *pkgcache.TokenCache) Option {
 	}
 }
 
+// WithTokenClient sets the token client for the notifier.
+func WithTokenClient(kubeClient client.Client) Option {
+	return func(o *notifierOptions) {
+		o.TokenClient = kubeClient
+	}
+}
+
+// WithServiceAccount sets the service account for the notifier.
+func WithServiceAccount(serviceAccountName string) Option {
+	return func(o *notifierOptions) {
+		o.ServiceAccountName = serviceAccountName
+	}
+}
+
 // NewFactory creates a new notifier factory with the given URL and optional configurations.
-func NewFactory(url string, opts ...Option) *Factory {
+func NewFactory(ctx context.Context, url string, opts ...Option) *Factory {
 	options := notifierOptions{
-		URL: url,
+		Context: ctx,
+		URL:     url,
 	}
 
 	for _, opt := range opts {
@@ -249,7 +270,7 @@ func sentryNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func azureEventHubNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewAzureEventHub(opts.URL, opts.Token, opts.Channel)
+	return NewAzureEventHub(opts.Context, opts.URL, opts.Token, opts.Channel, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName, opts.ProviderNamespace, opts.TokenClient, opts.TokenCache)
 }
 
 func telegramNotifierFunc(opts notifierOptions) (Interface, error) {

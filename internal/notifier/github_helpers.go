@@ -65,7 +65,7 @@ func getGitHubAppOptions(providerName, providerNamespace, proxy string, secretDa
 		githubOpts = append(githubOpts, github.WithProxyURL(proxyURL))
 	}
 	if len(githubOpts) > 0 && tokenCache != nil {
-		githubOpts = append(githubOpts, github.WithCache(tokenCache, v1beta3.ProviderKind, providerName, providerNamespace))
+		githubOpts = append(githubOpts, github.WithCache(tokenCache, v1beta3.ProviderKind, providerName, providerNamespace, OperationPost))
 	}
 
 	return githubOpts, nil
