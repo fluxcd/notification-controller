@@ -18,16 +18,23 @@ package notifier
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	authgithub "github.com/fluxcd/pkg/git/github"
+	"github.com/fluxcd/pkg/ssh"
 )
 
 func TestNewGitHubDispatchBasic(t *testing.T) {
-	g, err := NewGitHubDispatch("https://github.com/foo/bar", "foobar", nil)
+	g, err := NewGitHubDispatch("https://github.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
@@ -35,7 +42,7 @@ func TestNewGitHubDispatchBasic(t *testing.T) {
 }
 
 func TestNewEnterpriseGitHubDispatchBasic(t *testing.T) {
-	g, err := NewGitHubDispatch("https://foobar.com/foo/bar", "foobar", nil)
+	g, err := NewGitHubDispatch("https://foobar.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
 	assert.Nil(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
@@ -43,17 +50,98 @@ func TestNewEnterpriseGitHubDispatchBasic(t *testing.T) {
 }
 
 func TestNewGitHubDispatchInvalidUrl(t *testing.T) {
-	_, err := NewGitHubDispatch("https://github.com/foo/bar/baz", "foobar", nil)
+	_, err := NewGitHubDispatch("https://github.com/foo/bar/baz", "foobar", nil, "", "", "", nil, nil)
 	assert.NotNil(t, err)
 }
 
 func TestNewGitHubDispatchEmptyToken(t *testing.T) {
-	_, err := NewGitHubDispatch("https://github.com/foo/bar", "", nil)
+	_, err := NewGitHubDispatch("https://github.com/foo/bar", "", nil, "", "", "", nil, nil)
 	assert.NotNil(t, err)
 }
 
+func TestNewGithubDispatchProvider(t *testing.T) {
+	appID := "123"
+	installationID := "456"
+	kp, _ := ssh.GenerateKeyPair(ssh.RSA_4096)
+	expiresAt := time.Now().UTC().Add(time.Hour)
+
+	var tests = []struct {
+		name       string
+		secretData map[string][]byte
+		wantErr    error
+	}{
+		{
+			name:    "nil provider, no token",
+			wantErr: errors.New("github token or github app details must be specified"),
+		},
+		{
+			name:       "provider with no github options",
+			secretData: map[string][]byte{},
+			wantErr:    errors.New("github token or github app details must be specified"),
+		},
+		{
+			name: "provider with missing app ID in options ",
+			secretData: map[string][]byte{
+				"githubAppInstallationID": []byte(installationID),
+				"githubAppPrivateKey":     kp.PrivateKey,
+			},
+			wantErr: errors.New("app ID must be provided to use github app authentication"),
+		},
+		{
+			name: "provider with missing app installation ID in options ",
+			secretData: map[string][]byte{
+				"githubAppID":         []byte(appID),
+				"githubAppPrivateKey": kp.PrivateKey,
+			},
+			wantErr: errors.New("app installation ID must be provided to use github app authentication"),
+		},
+		{
+			name: "provider with missing app private key in options ",
+			secretData: map[string][]byte{
+				"githubAppID":             []byte(appID),
+				"githubAppInstallationID": []byte(installationID),
+			},
+			wantErr: errors.New("private key must be provided to use github app authentication"),
+		},
+		{
+			name: "provider with complete app authentication information",
+			secretData: map[string][]byte{
+				"githubAppID":             []byte(appID),
+				"githubAppInstallationID": []byte(installationID),
+				"githubAppPrivateKey":     kp.PrivateKey,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		handler := func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			var response []byte
+			var err error
+			response, err = json.Marshal(&authgithub.AppToken{Token: "access-token", ExpiresAt: expiresAt})
+			assert.Nil(t, err)
+			w.Write(response)
+		}
+		srv := httptest.NewServer(http.HandlerFunc(handler))
+		t.Cleanup(func() {
+			srv.Close()
+		})
+
+		if tt.secretData != nil && len(tt.secretData) > 0 {
+			tt.secretData["githubAppBaseURL"] = []byte(srv.URL)
+		}
+		_, err := NewGitHubDispatch("https://github.com/foo/bar", "", nil, "", "foo", "bar", tt.secretData, nil)
+		if tt.wantErr != nil {
+			assert.NotNil(t, err)
+			assert.Equal(t, tt.wantErr, err)
+		} else {
+			assert.Nil(t, err)
+		}
+	}
+}
+
 func TestGitHubDispatch_PostUpdate(t *testing.T) {
-	githubDispatch, err := NewGitHubDispatch("https://github.com/foo/bar", "foobar", nil)
+	githubDispatch, err := NewGitHubDispatch("https://github.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
 	require.NoError(t, err)
 
 	event := testEvent()

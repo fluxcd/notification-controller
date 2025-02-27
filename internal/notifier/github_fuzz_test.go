@@ -48,7 +48,7 @@ func Fuzz_GitHub(f *testing.F) {
 		var cert x509.CertPool
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
-		github, err := NewGitHub(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert)
+		github, err := NewGitHub(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert, "", "foo", "bar", nil, nil)
 		if err != nil {
 			return
 		}

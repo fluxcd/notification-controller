@@ -34,9 +34,10 @@ import (
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/config"
-	crtlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
+	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	pkgcache "github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/runtime/acl"
 	"github.com/fluxcd/pkg/runtime/client"
 	helper "github.com/fluxcd/pkg/runtime/controller"
@@ -73,6 +74,10 @@ func init() {
 }
 
 func main() {
+	const (
+		tokenCacheDefaultMaxSize = 0
+	)
+
 	var (
 		eventsAddr            string
 		receiverAddr          string
@@ -88,6 +93,7 @@ func main() {
 		rateLimiterOptions    helper.RateLimiterOptions
 		featureGates          feathelper.FeatureGates
 		exportHTTPPathMetrics bool
+		tokenCacheOptions     pkgcache.TokenFlags
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -106,6 +112,7 @@ func main() {
 	aclOptions.BindFlags(flag.CommandLine)
 	rateLimiterOptions.BindFlags(flag.CommandLine)
 	featureGates.BindFlags(flag.CommandLine)
+	tokenCacheOptions.BindFlags(flag.CommandLine, tokenCacheDefaultMaxSize)
 
 	flag.Parse()
 
@@ -215,14 +222,27 @@ func main() {
 		os.Exit(1)
 	}
 
+	var tokenCache *pkgcache.TokenCache
+	if tokenCacheOptions.MaxSize > 0 {
+		var err error
+		tokenCache, err = pkgcache.NewTokenCache(tokenCacheOptions.MaxSize,
+			pkgcache.WithMaxDuration(tokenCacheOptions.MaxDuration),
+			pkgcache.WithMetricsRegisterer(ctrlmetrics.Registry),
+			pkgcache.WithMetricsPrefix("gotk_token_"))
+		if err != nil {
+			setupLog.Error(err, "unable to create token cache")
+			os.Exit(1)
+		}
+	}
+
 	setupLog.Info("starting event server", "addr", eventsAddr)
 	eventMdlw := middleware.New(middleware.Config{
 		Recorder: prommetrics.NewRecorder(prommetrics.Config{
 			Prefix:   "gotk_event",
-			Registry: crtlmetrics.Registry,
+			Registry: ctrlmetrics.Registry,
 		}),
 	})
-	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), mgr.GetEventRecorderFor(controllerName), aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics)
+	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), mgr.GetEventRecorderFor(controllerName), aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics, tokenCache)
 	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)
@@ -230,7 +250,7 @@ func main() {
 	receiverMdlw := middleware.New(middleware.Config{
 		Recorder: prommetrics.NewRecorder(prommetrics.Config{
 			Prefix:   "gotk_receiver",
-			Registry: crtlmetrics.Registry,
+			Registry: ctrlmetrics.Registry,
 		}),
 	})
 	go receiverServer.ListenAndServe(ctx.Done(), receiverMdlw)

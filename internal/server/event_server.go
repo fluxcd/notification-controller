@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	pkgcache "github.com/fluxcd/pkg/cache"
 )
 
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
@@ -53,11 +54,12 @@ type EventServer struct {
 	kubeClient            client.Client
 	noCrossNamespaceRefs  bool
 	exportHTTPPathMetrics bool
+	tokenCache            *pkgcache.TokenCache
 	kuberecorder.EventRecorder
 }
 
 // NewEventServer returns an HTTP server that handles events
-func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, eventRecorder kuberecorder.EventRecorder, noCrossNamespaceRefs bool, exportHTTPPathMetrics bool) *EventServer {
+func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, eventRecorder kuberecorder.EventRecorder, noCrossNamespaceRefs bool, exportHTTPPathMetrics bool, tokenCache *pkgcache.TokenCache) *EventServer {
 	return &EventServer{
 		port:                  port,
 		logger:                logger.WithName("event-server"),
@@ -65,6 +67,7 @@ func NewEventServer(port string, logger logr.Logger, kubeClient client.Client, e
 		EventRecorder:         eventRecorder,
 		noCrossNamespaceRefs:  noCrossNamespaceRefs,
 		exportHTTPPathMetrics: exportHTTPPathMetrics,
+		tokenCache:            tokenCache,
 	}
 }
 

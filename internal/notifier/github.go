@@ -18,19 +18,15 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
-	"strings"
 
 	"github.com/google/go-github/v64/github"
-	"golang.org/x/oauth2"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
+	pkgcache "github.com/fluxcd/pkg/cache"
 )
 
 type GitHub struct {
@@ -40,57 +36,22 @@ type GitHub struct {
 	Client       *github.Client
 }
 
-func NewGitHub(commitStatus string, addr string, token string, certPool *x509.CertPool) (*GitHub, error) {
-	if len(token) == 0 {
-		return nil, errors.New("github token cannot be empty")
-	}
-
-	host, id, err := parseGitAddress(addr)
-	if err != nil {
-		return nil, err
-	}
-
-	baseUrl, err := url.Parse(host)
-	if err != nil {
-		return nil, err
-	}
-
-	comp := strings.Split(id, "/")
-	if len(comp) != 2 {
-		return nil, fmt.Errorf("invalid repository id %q", id)
-	}
-
+func NewGitHub(commitStatus string, addr string, token string, certPool *x509.CertPool, proxyURL string, providerName string, providerNamespace string, secretData map[string][]byte, tokenCache *pkgcache.TokenCache) (*GitHub, error) {
 	// this should never happen
 	if commitStatus == "" {
 		return nil, errors.New("commit status cannot be empty")
 	}
 
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-	tc := oauth2.NewClient(context.Background(), ts)
-	client := github.NewClient(tc)
-	if baseUrl.Host != "github.com" {
-		if certPool != nil {
-			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs: certPool,
-				},
-			}
-			hc := &http.Client{Transport: tr}
-			ctx := context.WithValue(context.Background(), oauth2.HTTPClient, hc)
-			tc = oauth2.NewClient(ctx, ts)
-		}
-
-		client, err = github.NewEnterpriseClient(host, host, tc)
-		if err != nil {
-			return nil, fmt.Errorf("could not create enterprise GitHub client: %v", err)
-		}
+	repoInfo, err := getRepoInfoAndGithubClient(addr, token, certPool, proxyURL, providerName, providerNamespace, secretData, tokenCache)
+	if err != nil {
+		return nil, err
 	}
 
 	return &GitHub{
-		Owner:        comp[0],
-		Repo:         comp[1],
+		Owner:        repoInfo.owner,
+		Repo:         repoInfo.repo,
 		CommitStatus: commitStatus,
-		Client:       client,
+		Client:       repoInfo.client,
 	}, nil
 }
 
