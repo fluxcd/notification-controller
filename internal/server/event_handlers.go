@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	"github.com/fluxcd/pkg/auth/github"
 	"github.com/fluxcd/pkg/masktoken"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
@@ -272,6 +273,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 	token := ""
 	password := ""
 	headers := make(map[string]string)
+	providerOpts := &notifier.ProviderOptions{}
 	if provider.Spec.SecretRef != nil {
 		var secret corev1.Secret
 		secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.SecretRef.Name}
@@ -294,9 +296,13 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 
 		if val, ok := secret.Data["proxy"]; ok {
 			proxy = strings.TrimSpace(string(val))
-			_, err := url.Parse(proxy)
+		}
+
+		var proxyURL *url.URL
+		if proxy != "" {
+			proxyURL, err = url.Parse(proxy)
 			if err != nil {
-				return nil, "", fmt.Errorf("invalid proxy in secret '%s': %w", proxy, err)
+				return nil, "", fmt.Errorf("error parsing proxy URL '%s': %w", proxy, err)
 			}
 		}
 
@@ -312,6 +318,30 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 			err := yaml.Unmarshal(h, &headers)
 			if err != nil {
 				return nil, "", fmt.Errorf("failed to read headers from secret: %w", err)
+			}
+		}
+
+		// If token/password are not present in secret, check if provider authentication can be used.
+		if token == "" && password == "" {
+			switch provider.Spec.Type {
+			case apiv1beta3.GitHubDispatchProvider, apiv1beta3.GitHubProvider:
+				providerOpts.Name = notifier.ProviderGitHub
+				providerOpts.GitHubOpts = []github.OptFunc{}
+				if val, ok := secret.Data[github.AppIDKey]; ok {
+					providerOpts.GitHubOpts = append(providerOpts.GitHubOpts, github.WithAppID(string(val)))
+				}
+				if val, ok := secret.Data[github.AppInstallationIDKey]; ok {
+					providerOpts.GitHubOpts = append(providerOpts.GitHubOpts, github.WithInstllationID(string(val)))
+				}
+				if val, ok := secret.Data[github.AppPrivateKey]; ok {
+					providerOpts.GitHubOpts = append(providerOpts.GitHubOpts, github.WithPrivateKey(val))
+				}
+				if val, ok := secret.Data[github.AppBaseUrlKey]; ok {
+					providerOpts.GitHubOpts = append(providerOpts.GitHubOpts, github.WithAppBaseURL(string(val)))
+				}
+				if len(providerOpts.GitHubOpts) > 0 && proxyURL != nil {
+					providerOpts.GitHubOpts = append(providerOpts.GitHubOpts, github.WithProxyURL(proxyURL))
+				}
 			}
 		}
 	}
@@ -353,7 +383,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 		return nil, "", fmt.Errorf("provider has no address")
 	}
 
-	factory := notifier.NewFactory(webhook, proxy, username, provider.Spec.Channel, token, headers, certPool, password, string(provider.UID))
+	factory := notifier.NewFactory(webhook, proxy, username, provider.Spec.Channel, token, headers, certPool, password, string(provider.UID), providerOpts)
 	sender, err := factory.Notifier(provider.Spec.Type)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to initialize notifier: %w", err)

@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1beta3"
+	"github.com/fluxcd/pkg/auth/github"
 )
 
 var (
@@ -63,16 +64,28 @@ type notifierMap map[string]factoryFunc
 // factoryFunc is a factory function that creates a new notifier
 type factoryFunc func(opts notifierOptions) (Interface, error)
 
+const (
+	ProviderGitHub = "github"
+)
+
+// ProviderOptions contains options to configure various authentication
+// providers.
+type ProviderOptions struct {
+	Name       string
+	GitHubOpts []github.OptFunc
+}
+
 type notifierOptions struct {
-	URL         string
-	ProxyURL    string
-	Username    string
-	Channel     string
-	Token       string
-	Headers     map[string]string
-	CertPool    *x509.CertPool
-	Password    string
-	ProviderUID string
+	URL          string
+	ProxyURL     string
+	Username     string
+	Channel      string
+	Token        string
+	Headers      map[string]string
+	CertPool     *x509.CertPool
+	Password     string
+	ProviderUID  string
+	ProviderOpts *ProviderOptions
 }
 
 type Factory struct {
@@ -87,18 +100,20 @@ func NewFactory(url string,
 	headers map[string]string,
 	certPool *x509.CertPool,
 	password string,
-	providerUID string) *Factory {
+	providerUID string,
+	providerOpts *ProviderOptions) *Factory {
 	return &Factory{
 		notifierOptions: notifierOptions{
-			URL:         url,
-			ProxyURL:    proxy,
-			Username:    username,
-			Channel:     channel,
-			Token:       token,
-			Headers:     headers,
-			CertPool:    certPool,
-			Password:    password,
-			ProviderUID: providerUID,
+			URL:          url,
+			ProxyURL:     proxy,
+			Username:     username,
+			Channel:      channel,
+			Token:        token,
+			Headers:      headers,
+			CertPool:     certPool,
+			Password:     password,
+			ProviderUID:  providerUID,
+			ProviderOpts: providerOpts,
 		},
 	}
 }
@@ -208,14 +223,14 @@ func gitHubNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitHub(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool)
+	return NewGitHub(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool, opts.ProviderOpts)
 }
 
 func gitHubDispatchNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitHubDispatch(opts.URL, opts.Token, opts.CertPool)
+	return NewGitHubDispatch(opts.URL, opts.Token, opts.CertPool, opts.ProviderOpts)
 }
 
 func gitLabNotifierFunc(opts notifierOptions) (Interface, error) {

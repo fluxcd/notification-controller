@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	authgithub "github.com/fluxcd/pkg/auth/github"
 
 	"github.com/google/go-github/v64/github"
 	"golang.org/x/oauth2"
@@ -39,9 +40,25 @@ type GitHubDispatch struct {
 	Client *github.Client
 }
 
-func NewGitHubDispatch(addr string, token string, certPool *x509.CertPool) (*GitHubDispatch, error) {
+func NewGitHubDispatch(addr string, token string, certPool *x509.CertPool, providerOpts *ProviderOptions) (*GitHubDispatch, error) {
 	if len(token) == 0 {
-		return nil, errors.New("github token cannot be empty")
+		if providerOpts != nil && providerOpts.GitHubOpts != nil && len(providerOpts.GitHubOpts) != 0 {
+			if providerOpts.Name == ProviderGitHub {
+				client, err := authgithub.New(providerOpts.GitHubOpts...)
+				if err != nil {
+					return nil, err
+				}
+				appToken, err := client.GetToken(context.Background())
+				if err != nil {
+					return nil, err
+				}
+				token = appToken.Token
+			} else {
+				return nil, errors.New("invalid provider name " + providerOpts.Name)
+			}
+		} else {
+			return nil, errors.New("github token or github app details must be specified")
+		}
 	}
 
 	host, id, err := parseGitAddress(addr)
