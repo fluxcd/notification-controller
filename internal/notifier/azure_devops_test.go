@@ -101,6 +101,34 @@ func TestAzureDevOps_Post(t *testing.T) {
 			},
 		},
 		{
+			name: "event with origin revision",
+			event: eventv1.Event{
+				Severity: eventv1.EventSeverityInfo,
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Metadata: map[string]string{
+					eventv1.MetaRevisionKey:       "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
+					eventv1.MetaOriginRevisionKey: "main@sha1:bd88a9156325322a124e55a369b59063470310eb",
+				},
+				Reason: "ApplySucceeded",
+			},
+			want: git.CreateCommitStatusArgs{
+				CommitId:     strPtr("bd88a9156325322a124e55a369b59063470310eb"),
+				Project:      strPtr("bar"),
+				RepositoryId: strPtr("baz"),
+				GitCommitStatusToCreate: &git.GitStatus{
+					Description: strPtr("apply succeeded"),
+					State:       &git.GitStatusStateValues.Succeeded,
+					Context: &git.GitStatusContext{
+						Genre: strPtr("fluxcd"),
+						Name:  strPtr("kustomization/gitops-system/0c9c2e41"),
+					},
+				},
+			},
+		},
+		{
 			name: "event with summary",
 			event: eventv1.Event{
 				Severity: eventv1.EventSeverityInfo,

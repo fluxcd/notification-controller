@@ -24,6 +24,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/hashicorp/go-retryablehttp"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 
@@ -34,6 +35,7 @@ type Alertmanager struct {
 	URL      string
 	ProxyURL string
 	CertPool *x509.CertPool
+	Token    string
 }
 
 type AlertManagerAlert struct {
@@ -72,7 +74,7 @@ func (a *AlertManagerTime) UnmarshalJSON(jsonRepr []byte) error {
 	return nil
 }
 
-func NewAlertmanager(hookURL string, proxyURL string, certPool *x509.CertPool) (*Alertmanager, error) {
+func NewAlertmanager(hookURL string, proxyURL string, certPool *x509.CertPool, token string) (*Alertmanager, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Alertmanager URL %s: '%w'", hookURL, err)
@@ -82,6 +84,7 @@ func NewAlertmanager(hookURL string, proxyURL string, certPool *x509.CertPool) (
 		URL:      hookURL,
 		ProxyURL: proxyURL,
 		CertPool: certPool,
+		Token:    token,
 	}, nil
 }
 
@@ -134,8 +137,13 @@ func (s *Alertmanager) Post(ctx context.Context, event eventv1.Event) error {
 		},
 	}
 
-	err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload)
-
+	var opts []requestOptFunc
+	if s.Token != "" {
+		opts = append(opts, func(request *retryablehttp.Request) {
+			request.Header.Add("Authorization", "Bearer "+s.Token)
+		})
+	}
+	err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload, opts...)
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}

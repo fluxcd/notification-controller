@@ -46,7 +46,7 @@ func Fuzz_AlertManager(f *testing.F) {
 		var cert x509.CertPool
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
-		alertmanager, err := NewAlertmanager(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &cert)
+		alertmanager, err := NewAlertmanager(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &cert, "")
 		if err != nil {
 			return
 		}

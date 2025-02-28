@@ -84,6 +84,7 @@ type msAdaptiveCardContent struct {
 	Type    string                      `json:"type"`
 	Version string                      `json:"version"`
 	Body    []msAdaptiveCardBodyElement `json:"body"`
+	MSTeams msAdaptiveCardMSTeams       `json:"msteams"`
 }
 
 type msAdaptiveCardBodyElement struct {
@@ -96,6 +97,10 @@ type msAdaptiveCardBodyElement struct {
 
 type msAdaptiveCardContainer struct {
 	Items []msAdaptiveCardBodyElement `json:"items,omitempty"`
+}
+
+type msAdaptiveCardMSTeams struct {
+	Width string `json:"width,omitempty"`
 }
 
 type msAdaptiveCardTextBlock struct {
@@ -237,6 +242,9 @@ func buildMSTeamsAdaptiveCardPayload(event *eventv1.Event, objName string) *msAd
 					Schema:  "http://adaptivecards.io/schemas/adaptive-card.json",
 					Type:    "AdaptiveCard",
 					Version: msAdaptiveCardVersion,
+					MSTeams: msAdaptiveCardMSTeams{
+						Width: "Full",
+					},
 					Body: []msAdaptiveCardBodyElement{
 						{
 							Type: "Container",

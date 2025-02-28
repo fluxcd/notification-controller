@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"testing"
 
@@ -183,6 +184,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 		event          eventv1.Event
 		provideruid    string
 		key            string
+		uriHash        string
 	}{
 		{
 			name:        "Validate Token Auth ",
@@ -199,6 +201,25 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("info", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}))),
+			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
+		},
+		{
+			name:        "Event with origin revision",
+			token:       "goodtoken",
+			provideruid: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			headers: map[string]string{
+				"Authorization":     "Bearer goodtoken",
+				"x-atlassian-token": "no-check",
+				"x-requested-with":  "XMLHttpRequest",
+			},
+			event: generateTestEventKustomization("info", map[string]string{
+				eventv1.MetaRevisionKey:       "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
+				eventv1.MetaOriginRevisionKey: "main@sha1:e7c17dd8b8384bbc84b7e7385394cb7f48332b2d",
+			}),
+			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("info", map[string]string{
+				eventv1.MetaRevisionKey: "main@sha1:e7c17dd8b8384bbc84b7e7385394cb7f48332b2d",
+			}))),
+			uriHash: "e7c17dd8b8384bbc84b7e7385394cb7f48332b2d",
 		},
 		{
 			name:        "Validate Basic Auth and Post State=Successful",
@@ -216,6 +237,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("info", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}))),
+			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 		{
 			name:        "Validate Post State=Failed",
@@ -233,6 +255,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}))),
+			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 		{
 			name:           "Fail if bad json response in existing commit status",
@@ -252,6 +275,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}))),
+			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 		{
 			name:           "Fail if status code is non-200 in existing commit status",
@@ -271,6 +295,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}))),
+			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 		{
 			name:           "Bad post- Unauthorized",
@@ -290,6 +315,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}))),
+			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 		{
 			name:        "Validate duplicate commit status successful match",
@@ -307,6 +333,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("info", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}))),
+			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 	}
 
@@ -320,7 +347,8 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				}
 
 				// Validate URI
-				require.Equal(t, r.URL.Path, "/rest/api/latest/projects/projectfoo/repos/repobar/commits/5394cb7f48332b2de7c17dd8b8384bbc84b7e738/builds")
+				path := fmt.Sprintf("/rest/api/latest/projects/projectfoo/repos/repobar/commits/%s/builds", tt.uriHash)
+				require.Equal(t, r.URL.Path, path)
 
 				// Validate Get Build Status call
 				if r.Method == http.MethodGet {

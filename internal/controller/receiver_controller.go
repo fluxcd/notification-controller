@@ -113,9 +113,7 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		}
 
 		// Record Prometheus metrics.
-		r.Metrics.RecordReadiness(ctx, obj)
 		r.Metrics.RecordDuration(ctx, obj, reconcileStart)
-		r.Metrics.RecordSuspend(ctx, obj, obj.Spec.Suspend)
 
 		// Emit warning event if the reconciliation failed.
 		if retErr != nil {
@@ -158,6 +156,21 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 // reconcile steps through the actual reconciliation tasks for the object, it returns early on the first step that
 // produces an error.
 func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if filter := obj.Spec.ResourceFilter; filter != "" {
+		if err := server.ValidateResourceFilter(filter); err != nil {
+			const msg = "Reconciliation failed terminally due to configuration error"
+			errMsg := fmt.Sprintf("%s: %v", msg, err)
+			conditions.MarkFalse(obj, meta.ReadyCondition, meta.InvalidCELExpressionReason, "%s", errMsg)
+			conditions.MarkStalled(obj, meta.InvalidCELExpressionReason, "%s", errMsg)
+			obj.Status.ObservedGeneration = obj.Generation
+			log.Error(err, msg)
+			r.Event(obj, corev1.EventTypeWarning, meta.InvalidCELExpressionReason, errMsg)
+			return ctrl.Result{}, nil
+		}
+	}
+
 	// Mark the resource as under reconciliation.
 	conditions.MarkReconciling(obj, meta.ProgressingReason, "Reconciliation in progress")
 
@@ -165,7 +178,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 	if err != nil {
 		conditions.MarkFalse(obj, meta.ReadyCondition, apiv1.TokenNotFoundReason, "%s", err)
 		obj.Status.WebhookPath = ""
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	webhookPath := obj.GetWebhookPath(token)
@@ -176,7 +189,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 
 	if obj.Status.WebhookPath != webhookPath {
 		obj.Status.WebhookPath = webhookPath
-		ctrl.LoggerFrom(ctx).Info(msg)
+		log.Info(msg)
 	}
 
 	return ctrl.Result{RequeueAfter: obj.GetInterval()}, nil

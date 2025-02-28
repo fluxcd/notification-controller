@@ -144,6 +144,45 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 		g.Expect(resultR.Spec.Interval.Duration).To(BeIdenticalTo(10 * time.Minute))
 	})
 
+	t.Run("fails with invalid CEL resource filter", func(t *testing.T) {
+		g := NewWithT(t)
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)).To(Succeed())
+
+		// Incomplete CEL expression
+		patch := []byte(`{"spec":{"resourceFilter":"has(res.metadata.annotations"}}`)
+		g.Expect(k8sClient.Patch(context.Background(), resultR, client.RawPatch(types.MergePatchType, patch))).To(Succeed())
+
+		g.Eventually(func() bool {
+			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
+			return !conditions.IsReady(resultR)
+		}, timeout, time.Second).Should(BeTrue())
+
+		g.Expect(resultR.Status.ObservedGeneration).To(Equal(resultR.Generation))
+
+		g.Expect(conditions.GetReason(resultR, meta.ReadyCondition)).To(BeIdenticalTo(meta.InvalidCELExpressionReason))
+		g.Expect(conditions.GetMessage(resultR, meta.ReadyCondition)).To(ContainSubstring("annotations"))
+
+		g.Expect(conditions.Has(resultR, meta.StalledCondition)).To(BeTrue())
+		g.Expect(conditions.GetReason(resultR, meta.StalledCondition)).To(BeIdenticalTo(meta.InvalidCELExpressionReason))
+		g.Expect(conditions.GetObservedGeneration(resultR, meta.StalledCondition)).To(BeIdenticalTo(resultR.Generation))
+	})
+
+	t.Run("recovers when the CEL expression is valid", func(t *testing.T) {
+		g := NewWithT(t)
+		// Incomplete CEL expression
+		patch := []byte(`{"spec":{"resourceFilter":"has(res.metadata.annotations)"}}`)
+		g.Expect(k8sClient.Patch(context.Background(), resultR, client.RawPatch(types.MergePatchType, patch))).To(Succeed())
+
+		g.Eventually(func() bool {
+			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
+			return conditions.IsReady(resultR)
+		}, timeout, time.Second).Should(BeTrue())
+
+		g.Expect(conditions.GetObservedGeneration(resultR, meta.ReadyCondition)).To(BeIdenticalTo(resultR.Generation))
+		g.Expect(resultR.Status.ObservedGeneration).To(BeIdenticalTo(resultR.Generation))
+		g.Expect(conditions.Has(resultR, meta.ReconcilingCondition)).To(BeFalse())
+	})
+
 	t.Run("fails with secret not found error", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -239,7 +278,7 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 
 	// Use the client from the manager as the server handler needs to list objects from the cache
 	// which the "live" k8s client does not have access to.
-	receiverServer := server.NewReceiverServer("127.0.0.1:56788", logf.Log, testEnv.GetClient(), true)
+	receiverServer := server.NewReceiverServer("127.0.0.1:56788", logf.Log, testEnv.GetClient(), true, true)
 	receiverMdlw := middleware.New(middleware.Config{
 		Recorder: prommetrics.NewRecorder(prommetrics.Config{
 			Prefix: "gotk_receiver",

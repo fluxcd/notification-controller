@@ -470,6 +470,48 @@ func TestEventKeyFunc(t *testing.T) {
 			severity: eventv1.EventSeverityInfo,
 			message:  "Health check passed",
 			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaOriginRevisionKey): "orev1",
+			},
+			rateLimit: false,
+		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaOriginRevisionKey): "orev1",
+			},
+			rateLimit: true,
+		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
+				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaOriginRevisionKey): "orev2",
+			},
+			rateLimit: false,
+		},
+		{
+			involvedObject: corev1.ObjectReference{
+				APIVersion: "kustomize.toolkit.fluxcd.io/v1",
+				Kind:       "Kustomization",
+				Name:       "4",
+				Namespace:  "4",
+			},
+			severity: eventv1.EventSeverityInfo,
+			message:  "Health check passed",
+			metadata: map[string]string{
 				fmt.Sprintf("%s/%s", "kustomize.toolkit.fluxcd.io", eventv1.MetaTokenKey): "token1",
 			},
 			rateLimit: false,
@@ -562,13 +604,17 @@ func TestCleanupMetadata(t *testing.T) {
 					"source.toolkit.fluxcd.io/baz":        "bazval",
 					group + "/zzz":                        "zzzz",
 					group + "/aa/bb":                      "cc",
+					"event.toolkit.fluxcd.io/baz":         "foo",
+					"event.toolkit.fluxcd.io/bazfoo":      "foobaz",
 				},
 			},
 			wantMeta: map[string]string{
-				"foo":   "fooval",
-				"bar":   "barval",
-				"zzz":   "zzzz",
-				"aa/bb": "cc",
+				"kustomize.toolkit.fluxcd.io/foo":   "fooval",
+				"kustomize.toolkit.fluxcd.io/bar":   "barval",
+				"kustomize.toolkit.fluxcd.io/zzz":   "zzzz",
+				"kustomize.toolkit.fluxcd.io/aa/bb": "cc",
+				"event.toolkit.fluxcd.io/baz":       "foo",
+				"event.toolkit.fluxcd.io/bazfoo":    "foobaz",
 			},
 		},
 	}

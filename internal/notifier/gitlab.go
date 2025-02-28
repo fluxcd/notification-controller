@@ -24,7 +24,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
@@ -77,7 +77,7 @@ func (g *GitLab) Post(ctx context.Context, event eventv1.Event) error {
 		return nil
 	}
 
-	revString, ok := event.Metadata[eventv1.MetaRevisionKey]
+	revString, ok := event.GetRevision()
 	if !ok {
 		return errors.New("missing revision metadata")
 	}
@@ -99,7 +99,9 @@ func (g *GitLab) Post(ctx context.Context, event eventv1.Event) error {
 		Description: desc,
 	}
 
-	getOpt := &gitlab.GetCommitStatusesOptions{}
+	getOpt := &gitlab.GetCommitStatusesOptions{
+		Name: &status.Name,
+	}
 	statuses, _, err := g.Client.Commits.GetCommitStatuses(g.Id, rev, getOpt, gitlab.WithContext(ctx))
 	if err != nil {
 		return fmt.Errorf("unable to list commit status: %s", err)

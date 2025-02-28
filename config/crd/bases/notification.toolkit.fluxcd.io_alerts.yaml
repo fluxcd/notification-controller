@@ -557,8 +557,9 @@ spec:
                 - name
                 type: object
               summary:
-                description: Summary holds a short description of the impact and affected
-                  cluster.
+                description: |-
+                  Summary holds a short description of the impact and affected cluster.
+                  Deprecated: Use EventMetadata instead.
                 maxLength: 255
                 type: string
               suspend:

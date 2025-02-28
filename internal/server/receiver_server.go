@@ -35,15 +35,17 @@ type ReceiverServer struct {
 	port                  string
 	logger                logr.Logger
 	kubeClient            client.Client
+	noCrossNamespaceRefs  bool
 	exportHTTPPathMetrics bool
 }
 
 // NewReceiverServer returns an HTTP server that handles webhooks
-func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client, exportHTTPPathMetrics bool) *ReceiverServer {
+func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client, noCrossNamespaceRefs bool, exportHTTPPathMetrics bool) *ReceiverServer {
 	return &ReceiverServer{
 		port:                  port,
 		logger:                logger.WithName("receiver-server"),
 		kubeClient:            kubeClient,
+		noCrossNamespaceRefs:  noCrossNamespaceRefs,
 		exportHTTPPathMetrics: exportHTTPPathMetrics,
 	}
 }
@@ -51,7 +53,7 @@ func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client
 // ListenAndServe starts the HTTP server on the specified port
 func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Middleware) {
 	mux := http.NewServeMux()
-	mux.Handle(apiv1.ReceiverWebhookPath, http.HandlerFunc(s.handlePayload()))
+	mux.Handle(apiv1.ReceiverWebhookPath, http.HandlerFunc(s.handlePayload))
 	handlerID := apiv1.ReceiverWebhookPath
 	if s.exportHTTPPathMetrics {
 		handlerID = ""

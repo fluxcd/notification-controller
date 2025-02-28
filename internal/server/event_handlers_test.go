@@ -515,7 +515,7 @@ func TestGetNotificationParams(t *testing.T) {
 				g.Expect(n.Metadata["summary"]).To(Equal(tt.alertSummary))
 			}
 			// NOTE: This is performing simple check. Thorough test for event
-			// metadata is performed in TestEnhanceEventWithAlertMetadata.
+			// metadata is performed in TestCombineEventMetadata.
 			if tt.alertEventMetadata != nil {
 				for k, v := range tt.alertEventMetadata {
 					g.Expect(n.Metadata).To(HaveKeyWithValue(k, v))
@@ -977,84 +977,143 @@ func TestEventMatchesAlert(t *testing.T) {
 	}
 }
 
-func TestEnhanceEventWithAlertMetadata(t *testing.T) {
-	s := &EventServer{
-		logger:        log.Log,
-		EventRecorder: record.NewFakeRecorder(32),
-	}
-
+func TestCombineEventMetadata(t *testing.T) {
 	for name, tt := range map[string]struct {
 		event            eventv1.Event
 		alert            apiv1beta3.Alert
 		expectedMetadata map[string]string
+		conflictEvent    string
 	}{
 		"empty metadata": {
 			event:            eventv1.Event{},
 			alert:            apiv1beta3.Alert{},
 			expectedMetadata: nil,
 		},
-		"enhanced with summary": {
-			event: eventv1.Event{},
-			alert: apiv1beta3.Alert{
-				Spec: apiv1beta3.AlertSpec{
-					Summary: "summary",
-				},
-			},
-			expectedMetadata: map[string]string{
-				"summary": "summary",
-			},
-		},
-		"overriden with summary": {
+		"all metadata sources work": {
 			event: eventv1.Event{
 				Metadata: map[string]string{
-					"summary": "original summary",
+					"kustomize.toolkit.fluxcd.io/controllerMetadata1": "controllerMetadataValue1",
+					"kustomize.toolkit.fluxcd.io/controllerMetadata2": "controllerMetadataValue2",
+					"event.toolkit.fluxcd.io/objectMetadata1":         "objectMetadataValue1",
+					"event.toolkit.fluxcd.io/objectMetadata2":         "objectMetadataValue2",
 				},
 			},
 			alert: apiv1beta3.Alert{
 				Spec: apiv1beta3.AlertSpec{
-					Summary: "summary",
-				},
-			},
-			expectedMetadata: map[string]string{
-				"summary": "summary",
-			},
-		},
-		"enhanced with metadata": {
-			event: eventv1.Event{},
-			alert: apiv1beta3.Alert{
-				Spec: apiv1beta3.AlertSpec{
+					Summary: "summaryValue",
 					EventMetadata: map[string]string{
 						"foo": "bar",
+						"baz": "qux",
 					},
 				},
 			},
 			expectedMetadata: map[string]string{
-				"foo": "bar",
+				"foo":                 "bar",
+				"baz":                 "qux",
+				"controllerMetadata1": "controllerMetadataValue1",
+				"controllerMetadata2": "controllerMetadataValue2",
+				"summary":             "summaryValue",
+				"objectMetadata1":     "objectMetadataValue1",
+				"objectMetadata2":     "objectMetadataValue2",
 			},
 		},
-		"skipped override with metadata": {
+		"object metadata is overriden by summary": {
 			event: eventv1.Event{
 				Metadata: map[string]string{
-					"foo": "baz",
+					"event.toolkit.fluxcd.io/summary": "objectSummary",
+				},
+			},
+			alert: apiv1beta3.Alert{
+				Spec: apiv1beta3.AlertSpec{
+					Summary: "alertSummary",
+				},
+			},
+			expectedMetadata: map[string]string{
+				"summary": "alertSummary",
+			},
+			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information) map[summary:involved object annotations, Alert object .spec.summary]",
+		},
+		"alert event metadata is overriden by summary": {
+			event: eventv1.Event{},
+			alert: apiv1beta3.Alert{
+				Spec: apiv1beta3.AlertSpec{
+					Summary: "alertSummary",
+					EventMetadata: map[string]string{
+						"summary": "eventMetadataSummary",
+					},
+				},
+			},
+			expectedMetadata: map[string]string{
+				"summary": "alertSummary",
+			},
+			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information) map[summary:Alert object .spec.eventMetadata, Alert object .spec.summary]",
+		},
+		"summary is overriden by controller metadata": {
+			event: eventv1.Event{
+				Metadata: map[string]string{
+					"kustomize.toolkit.fluxcd.io/summary": "controllerSummary",
+				},
+			},
+			alert: apiv1beta3.Alert{
+				Spec: apiv1beta3.AlertSpec{
+					Summary: "alertSummary",
+				},
+			},
+			expectedMetadata: map[string]string{
+				"summary": "controllerSummary",
+			},
+			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information) map[summary:Alert object .spec.summary, involved object controller metadata]",
+		},
+		"precedence order in RFC 0008 is honered": {
+			event: eventv1.Event{
+				Metadata: map[string]string{
+					"kustomize.toolkit.fluxcd.io/objectMetadataOverridenByController": "controllerMetadataValue1",
+					"kustomize.toolkit.fluxcd.io/alertMetadataOverridenByController":  "controllerMetadataValue2",
+					"kustomize.toolkit.fluxcd.io/controllerMetadata":                  "controllerMetadataValue3",
+					"event.toolkit.fluxcd.io/objectMetadata":                          "objectMetadataValue1",
+					"event.toolkit.fluxcd.io/objectMetadataOverridenByAlert":          "objectMetadataValue2",
+					"event.toolkit.fluxcd.io/objectMetadataOverridenByController":     "objectMetadataValue3",
 				},
 			},
 			alert: apiv1beta3.Alert{
 				Spec: apiv1beta3.AlertSpec{
 					EventMetadata: map[string]string{
-						"foo": "bar",
+						"objectMetadataOverridenByAlert":     "alertMetadataValue1",
+						"alertMetadata":                      "alertMetadataValue2",
+						"alertMetadataOverridenByController": "alertMetadataValue3",
 					},
 				},
 			},
 			expectedMetadata: map[string]string{
-				"foo": "baz",
+				"objectMetadata":                      "objectMetadataValue1",
+				"objectMetadataOverridenByAlert":      "alertMetadataValue1",
+				"objectMetadataOverridenByController": "controllerMetadataValue1",
+				"alertMetadata":                       "alertMetadataValue2",
+				"alertMetadataOverridenByController":  "controllerMetadataValue2",
+				"controllerMetadata":                  "controllerMetadataValue3",
 			},
+			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information) map[alertMetadataOverridenByController:Alert object .spec.eventMetadata, involved object controller metadata objectMetadataOverridenByAlert:involved object annotations, Alert object .spec.eventMetadata objectMetadataOverridenByController:involved object annotations, involved object controller metadata]",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			g := NewGomegaWithT(t)
 
-			s.enhanceEventWithAlertMetadata(context.Background(), &tt.event, &tt.alert)
+			eventRecorder := record.NewFakeRecorder(1)
+			s := &EventServer{
+				logger:        log.Log,
+				EventRecorder: eventRecorder,
+			}
+
+			tt.event.InvolvedObject.APIVersion = "kustomize.toolkit.fluxcd.io/v1"
+			s.combineEventMetadata(context.Background(), &tt.event, &tt.alert)
 			g.Expect(tt.event.Metadata).To(BeEquivalentTo(tt.expectedMetadata))
+
+			var event string
+			select {
+			case event = <-eventRecorder.Events:
+			default:
+			}
+			g.Expect(event).To(Equal(tt.conflictEvent))
 		})
 	}
 }
@@ -1071,13 +1130,16 @@ func Test_excludeInternalMetadata(t *testing.T) {
 		{
 			name: "internal metadata",
 			event: eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					APIVersion: "kustomize.toolkit.fluxcd.io/v1",
+				},
 				Metadata: map[string]string{
-					eventv1.MetaTokenKey:    "aaaa",
-					eventv1.MetaRevisionKey: "bbbb",
+					"kustomize.toolkit.fluxcd.io/" + eventv1.MetaTokenKey:    "aaaa",
+					"kustomize.toolkit.fluxcd.io/" + eventv1.MetaRevisionKey: "bbbb",
 				},
 			},
 			wantMetadata: map[string]string{
-				eventv1.MetaRevisionKey: "bbbb",
+				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaRevisionKey: "bbbb",
 			},
 		},
 	}

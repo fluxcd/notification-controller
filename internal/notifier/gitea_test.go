@@ -42,6 +42,10 @@ func newTestServer(t *testing.T) *httptest.Server {
 			fmt.Fprintf(w, "[]")
 		case "/api/v1/repos/foo/bar/statuses/69b59063470310ebbd88a9156325322a124e55a3":
 			fmt.Fprintf(w, "{}")
+		case "/api/v1/repos/foo/bar/commits/8a9156325322a124e55a369b59063470310ebbd8/statuses":
+			fmt.Fprintf(w, "[]")
+		case "/api/v1/repos/foo/bar/statuses/8a9156325322a124e55a369b59063470310ebbd8":
+			fmt.Fprintf(w, "{}")
 		default:
 			t.Logf("unknown %s request at %s", r.Method, r.URL.Path)
 		}
@@ -83,22 +87,53 @@ func TestGitea_Post(t *testing.T) {
 	g, err := NewGitea("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar", "foobar", nil)
 	assert.Nil(t, err)
 
-	event := eventv1.Event{
-		InvolvedObject: corev1.ObjectReference{
-			Kind:      "Kustomization",
-			Namespace: "flux-system",
-			Name:      "podinfo-repo",
+	for _, tt := range []struct {
+		name  string
+		event eventv1.Event
+	}{
+		{
+			name: "revision key",
+			event: eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "Kustomization",
+					Namespace: "flux-system",
+					Name:      "podinfo-repo",
+				},
+				Severity: "info",
+				Timestamp: metav1.Time{
+					Time: time.Now(),
+				},
+				Metadata: map[string]string{
+					eventv1.MetaRevisionKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
+				},
+				Message: "Service/podinfo/podinfo configured",
+				Reason:  "",
+			},
 		},
-		Severity: "info",
-		Timestamp: metav1.Time{
-			Time: time.Now(),
+		{
+			name: "origin revision key",
+			event: eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					Kind:      "Kustomization",
+					Namespace: "flux-system",
+					Name:      "podinfo-repo",
+				},
+				Severity: "info",
+				Timestamp: metav1.Time{
+					Time: time.Now(),
+				},
+				Metadata: map[string]string{
+					eventv1.MetaRevisionKey:       "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
+					eventv1.MetaOriginRevisionKey: "main@sha1:8a9156325322a124e55a369b59063470310ebbd8",
+				},
+				Message: "Service/podinfo/podinfo configured",
+				Reason:  "",
+			},
 		},
-		Metadata: map[string]string{
-			eventv1.MetaRevisionKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
-		},
-		Message: "Service/podinfo/podinfo configured",
-		Reason:  "",
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			err := g.Post(context.Background(), tt.event)
+			assert.NoError(t, err)
+		})
 	}
-	err = g.Post(context.Background(), event)
-	assert.NoError(t, err)
 }

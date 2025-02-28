@@ -109,7 +109,9 @@ The supported alerting providers are:
 | [WebEx](#webex)                                         | `webex`          |
 | [NATS](#nats)                                           | `nats`           |
 
-The supported providers for [Git commit status updates](#git-commit-status-updates) are:
+#### Types supporting Git commit status updates
+
+The providers supporting [Git commit status updates](#git-commit-status-updates) are:
 
 | Provider                                                     | Type              |
 |--------------------------------------------------------------|-------------------|
@@ -917,10 +919,13 @@ and [TLS certificates](#tls-certificates).
 
 ###### Prometheus Alertmanager example
 
-To configure a Provider for Prometheus Alertmanager, create a Secret with [the
-`address`](#address-example) set to the Prometheus Alertmanager [HTTP API
+To configure a Provider for Prometheus Alertmanager, authentication can be done using either Basic Authentication or a Bearer Token. 
+Both methods are supported, but using authentication is optional based on your setup.
+
+Basic Authentication: 
+Create a Secret with [the `address`](#address-example) set to the Prometheus Alertmanager [HTTP API
 URL](https://prometheus.io/docs/alerting/latest/https/#http-traffic)
-including Basic Auth credentials, and a `alertmanager` Provider with a [Secret
+including Basic Auth credentials, and an `alertmanager` Provider with a [Secret
 reference](#secret-reference).
 
 ```yaml
@@ -941,7 +946,33 @@ metadata:
   name: alertmanager-address
   namespace: default
 stringData:
-    address: https://username:password@<alertmanager-url>/api/v2/alerts/"
+    address: https://<username>:<password>@<alertmanager-hostport>/api/v2/alerts/
+```
+Bearer Token Authentication:
+Create a Secret with [the `token`](#token-example), and an `alertmanager` Provider with a [Secret
+reference](#secret-reference) and the Prometheus Alertmanager [HTTP API
+URL](https://prometheus.io/docs/alerting/latest/https/#http-traffic) set directly in the `.spec.address` field.
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: alertmanager
+  namespace: default
+spec:
+  type: alertmanager
+  address: https://<alertmanager-hostport>/api/v2/alerts/
+  secretRef:
+    name: alertmanager-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-token
+  namespace: default
+stringData:
+    token: <token>
 ```
 
 ##### Webex
@@ -1238,6 +1269,11 @@ spec:
   secretRef:
     name: grafana-token
 ```
+
+Besides the tag `flux` and the tag containing the reporting controller (e.g. `source-controller`),
+the event metadata is also included as tags of the form `${metadataKey}: ${metadataValue}`, and
+the tags `kind: ${event.InvolvedObject.Kind}`, `name: ${event.InvolvedObject.Name}` and
+`namespace: ${event.InvolvedObject.Namespace}` are also included.
 
 ### GitHub dispatch
 
@@ -1544,15 +1580,19 @@ kubectl create secret generic github-token --from-literal=token=<GITHUB-TOKEN>
 #### GitLab
 
 When `.spec.type` is set to `gitlab`, the referenced secret must contain a key called `token` with the value set to a
-[GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html).
+[GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html). If available group and project access tokens can also be used.
 
-The token must have permissions to update the commit status for the GitLab repository specified in `.spec.address`.
+The token must have permissions to update the commit status for the GitLab repository specified in `.spec.address` (grant it the `api` scope).
 
 You can create the secret with `kubectl` like this:
 
 ```shell
 kubectl create secret generic gitlab-token --from-literal=token=<GITLAB-TOKEN>
 ```
+
+For gitlab.com and current self-hosted gitlab installations that support only the Gitlab v4 API you need to use the project ID in the address instead of the project name.
+Use an address like `https://gitlab.com/1234` (with `1234` being the project ID).
+You can find out the ID by opening the project in the browser and clicking on the three dot button in the top right corner. The menu that opens shows the project ID.
 
 #### Gitea
 

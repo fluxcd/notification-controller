@@ -161,7 +161,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Summary holds a short description of the impact and affected cluster.</p>
+<p>Summary holds a short description of the impact and affected cluster.
+Deprecated: Use EventMetadata instead.</p>
 </td>
 </tr>
 <tr>
@@ -492,7 +493,8 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Summary holds a short description of the impact and affected cluster.</p>
+<p>Summary holds a short description of the impact and affected cluster.
+Deprecated: Use EventMetadata instead.</p>
 </td>
 </tr>
 <tr>

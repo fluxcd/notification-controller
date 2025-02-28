@@ -17,6 +17,7 @@ limitations under the License.
 package server
 
 import (
+	"bytes"
 	"context"
 	"crypto/hmac"
 	"crypto/sha1"
@@ -46,8 +47,11 @@ import (
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
-var (
-	WebhookPathIndexKey = ".metadata.webhookPath"
+const (
+	WebhookPathIndexKey string = ".metadata.webhookPath"
+
+	// maxRequestSizeBytes is the maximum size of a request to the API server
+	maxRequestSizeBytes = 3 * 1024 * 1024
 )
 
 // defaultFluxAPIVersions is a map of Flux API kinds to their API versions.
@@ -70,68 +74,156 @@ func IndexReceiverWebhookPath(o client.Object) []string {
 	return nil
 }
 
-func (s *ReceiverServer) handlePayload() func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.Background()
-		digest := url.PathEscape(strings.TrimPrefix(r.RequestURI, apiv1.ReceiverWebhookPath))
+func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	digest := url.PathEscape(strings.TrimPrefix(r.RequestURI, apiv1.ReceiverWebhookPath))
 
-		s.logger.Info(fmt.Sprintf("handling request: %s", digest))
+	s.logger.Info(fmt.Sprintf("handling request: %s", digest))
 
-		var allReceivers apiv1.ReceiverList
-		err := s.kubeClient.List(ctx, &allReceivers, client.MatchingFields{
-			WebhookPathIndexKey: r.RequestURI,
-		}, client.Limit(1))
-		if err != nil {
-			s.logger.Error(err, "unable to list receivers")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+	var allReceivers apiv1.ReceiverList
+	err := s.kubeClient.List(ctx, &allReceivers, client.MatchingFields{
+		WebhookPathIndexKey: r.RequestURI,
+	}, client.Limit(1))
+	if err != nil {
+		s.logger.Error(err, "unable to list receivers")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-		if len(allReceivers.Items) == 0 {
-			w.WriteHeader(http.StatusNotFound)
-			return
-		}
+	if len(allReceivers.Items) == 0 {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
 
-		receiver := allReceivers.Items[0]
-		logger := s.logger.WithValues(
-			"reconciler kind", apiv1.ReceiverKind,
-			"name", receiver.Name,
-			"namespace", receiver.Namespace)
+	receiver := allReceivers.Items[0]
+	logger := s.logger.WithValues(
+		"reconciler kind", apiv1.ReceiverKind,
+		"name", receiver.Name,
+		"namespace", receiver.Namespace)
 
-		if receiver.Spec.Suspend || !conditions.IsReady(&receiver) {
-			err := errors.New("unable to process request")
-			if receiver.Spec.Suspend {
-				logger.Error(err, "receiver is suspended")
-			} else {
-				logger.Error(err, "receiver is not ready")
-			}
-			w.WriteHeader(http.StatusServiceUnavailable)
-			return
-		}
-
-		if err := s.validate(ctx, receiver, r); err != nil {
-			logger.Error(err, "unable to validate payload")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		var withErrors bool
-		for _, resource := range receiver.Spec.Resources {
-			if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace); err != nil {
-				logger.Error(err, "unable to request reconciliation")
-				withErrors = true
-			}
-		}
-
-		if withErrors {
-			w.WriteHeader(http.StatusInternalServerError)
+	if receiver.Spec.Suspend || !conditions.IsReady(&receiver) {
+		err := errors.New("unable to process request")
+		if receiver.Spec.Suspend {
+			logger.Error(err, "receiver is suspended")
 		} else {
-			w.WriteHeader(http.StatusOK)
+			logger.Error(err, "receiver is not ready")
 		}
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
+	if err := s.validate(ctx, receiver, r); err != nil {
+		logger.Error(err, "unable to validate payload")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	resourceFilter := func(ctx context.Context, o client.Object) (*bool, error) {
+		accept := true
+		return &accept, nil
+	}
+	if receiver.Spec.ResourceFilter != "" {
+		resourceFilter, err = newResourceFilter(receiver.Spec.ResourceFilter, r)
+		if err != nil {
+			logger.Error(err, "unable to create resource filter")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+
+	var withErrors bool
+	for _, resource := range receiver.Spec.Resources {
+		if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace, resourceFilter); err != nil {
+			logger.Error(err, "unable to request reconciliation", "resource", resource)
+			withErrors = true
+		}
+	}
+
+	if withErrors {
+		w.WriteHeader(http.StatusInternalServerError)
+	} else {
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
+func (s *ReceiverServer) notifySingleResource(ctx context.Context, logger logr.Logger, resource *metav1.PartialObjectMetadata, resourceFilter resourceFilter) error {
+	objectKey := client.ObjectKeyFromObject(resource)
+	if err := s.kubeClient.Get(ctx, objectKey, resource); err != nil {
+		return fmt.Errorf("unable to read %s %q error: %w", resource.Kind, objectKey, err)
+	}
+
+	return s.notifyResource(ctx, logger, resource, resourceFilter)
+}
+
+func (s *ReceiverServer) notifyResource(ctx context.Context, logger logr.Logger, resource *metav1.PartialObjectMetadata, resourceFilter resourceFilter) error {
+	accept, err := resourceFilter(ctx, resource)
+	if err != nil {
+		return err
+	}
+	if !*accept {
+		logger.V(1).Info(fmt.Sprintf("resource '%s/%s.%s' NOT annotated because CEL expression returned false", resource.Kind, resource.Name, resource.Namespace))
+		return nil
+	}
+
+	if err := s.annotate(ctx, resource); err != nil {
+		return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, resource.Namespace, err)
+	} else {
+		logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
+			resource.Kind, resource.Name, resource.Namespace))
+	}
+
+	return nil
+}
+
+func (s *ReceiverServer) notifyDynamicResources(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, namespace, group, version string, resourceFilter resourceFilter) error {
+	if resource.MatchLabels == nil {
+		return fmt.Errorf("matchLabels field not set when using wildcard '*' as name")
+	}
+
+	logger.V(1).Info(fmt.Sprintf("annotate resources by matchLabel for kind %q in %q",
+		resource.Kind, namespace), "matchLabels", resource.MatchLabels)
+
+	var resources metav1.PartialObjectMetadataList
+	resources.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   group,
+		Kind:    resource.Kind,
+		Version: version,
+	})
+
+	if err := s.kubeClient.List(ctx, &resources,
+		client.InNamespace(namespace),
+		client.MatchingLabels(resource.MatchLabels),
+	); err != nil {
+		return fmt.Errorf("failed listing resources in namespace %q by matching labels %q: %w", namespace, resource.MatchLabels, err)
+	}
+
+	if len(resources.Items) == 0 {
+		noObjectsFoundErr := fmt.Errorf("no %q resources found with matching labels %q' in %q namespace", resource.Kind, resource.MatchLabels, namespace)
+		logger.Error(noObjectsFoundErr, "error annotating resources")
+		return nil
+	}
+
+	for i := range resources.Items {
+		if err := s.notifyResource(ctx, logger, &resources.Items[i], resourceFilter); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, r *http.Request) error {
+	// Validate payload size before doing anything else in case we are being DDoSed.
+	b, err := io.ReadAll(io.LimitReader(r.Body, maxRequestSizeBytes+1))
+	if err != nil {
+		return fmt.Errorf("failed to read request body: %w", err)
+	}
+	if len(b) > maxRequestSizeBytes {
+		return fmt.Errorf("request body exceeds the maximum size of %d bytes", maxRequestSizeBytes)
+	}
+	r.Body = io.NopCloser(bytes.NewReader(b))
+
+	// Fetch the token.
 	token, err := s.token(ctx, receiver)
 	if err != nil {
 		return fmt.Errorf("unable to read token, error: %w", err)
@@ -155,9 +247,10 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		if err != nil {
 			return fmt.Errorf("unable to validate HMAC signature: %s", err)
 		}
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.GitHubReceiver:
-		_, err := github.ValidatePayload(r, []byte(token))
+		b, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
 			return fmt.Errorf("the GitHub signature header is invalid, err: %w", err)
 		}
@@ -172,11 +265,12 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the GitHub event '%s' is not authorised", event)
+				return fmt.Errorf("the GitHub event %q is not authorised", event)
 			}
 		}
 
 		logger.Info(fmt.Sprintf("handling GitHub event: %s", event))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.GitLabReceiver:
 		if r.Header.Get("X-Gitlab-Token") != token {
@@ -193,7 +287,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the GitLab event '%s' is not authorised", event)
+				return fmt.Errorf("the GitLab event %q is not authorised", event)
 			}
 		}
 
@@ -225,14 +319,15 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the CDEvent '%s' is not authorised", event)
+				return fmt.Errorf("the CDEvent %q is not authorised", event)
 			}
 		}
 
 		logger.Info(fmt.Sprintf("handling CDEvent: %s", event))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.BitbucketReceiver:
-		_, err := github.ValidatePayload(r, []byte(token))
+		b, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
 			return fmt.Errorf("the Bitbucket server signature header is invalid, err: %w", err)
 		}
@@ -247,11 +342,12 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the Bitbucket server event '%s' is not authorised", event)
+				return fmt.Errorf("the Bitbucket server event %q is not authorised", event)
 			}
 		}
 
 		logger.Info(fmt.Sprintf("handling Bitbucket server event: %s", event))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.QuayReceiver:
 		type payload struct {
@@ -259,12 +355,18 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 			UpdatedTags []string `json:"updated_tags"`
 		}
 
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("unable to read request body: %s", err)
+		}
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			return fmt.Errorf("cannot decode Quay webhook payload")
+			return fmt.Errorf("cannot decode Quay webhook payload: %w", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling Quay event from %s", p.DockerUrl))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.HarborReceiver:
 		if r.Header.Get("Authorization") != token {
@@ -282,12 +384,18 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				URL string `json:"repo_url"`
 			} `json:"repository"`
 		}
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("unable to read request body: %s", err)
+		}
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 			return fmt.Errorf("cannot decode DockerHub webhook payload")
 		}
 
 		logger.Info(fmt.Sprintf("handling DockerHub event from %s for tag %s", p.Repository.URL, p.PushData.Tag))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.GCRReceiver:
 		const tokenIndex = len("Bearer ")
@@ -309,23 +417,30 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 
 		err := authenticateGCRRequest(&http.Client{}, r.Header.Get("Authorization"), tokenIndex)
 		if err != nil {
-			return fmt.Errorf("cannot authenticate GCR request: %s", err)
+			return fmt.Errorf("cannot authenticate GCR request: %w", err)
 		}
 
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			return fmt.Errorf("cannot decode GCR webhook payload")
+			return fmt.Errorf("cannot decode GCR webhook payload: %w", err)
 		}
-
+		// The GCR payload is a Google PubSub event with the GCR event wrapped
+		// inside (in base64 JSON).
 		raw, _ := base64.StdEncoding.DecodeString(p.Message.Data)
 
 		var d data
 		err = json.Unmarshal(raw, &d)
 		if err != nil {
-			return fmt.Errorf("cannot decode GCR webhook body")
+			return fmt.Errorf("cannot decode GCR webhook body: %w", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling GCR event from %s for tag %s", d.Digest, d.Tag))
+		encodedPayload, err := json.Marshal(d)
+		if err != nil {
+			return fmt.Errorf("cannot decode GCR webhook body: %w", err)
+		}
+		// This only puts the unwrapped event into the payload.
+		r.Body = io.NopCloser(bytes.NewReader(encodedPayload))
 		return nil
 	case apiv1.NexusReceiver:
 		signature := r.Header.Get("X-Nexus-Webhook-Signature")
@@ -335,7 +450,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
-			return fmt.Errorf("cannot read Nexus payload. error: %s", err)
+			return fmt.Errorf("cannot read Nexus payload. error: %w", err)
 		}
 
 		if !verifyHmacSignature([]byte(token), signature, b) {
@@ -347,10 +462,11 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		}
 		var p payload
 		if err := json.Unmarshal(b, &p); err != nil {
-			return fmt.Errorf("cannot decode Nexus webhook payload: %s", err)
+			return fmt.Errorf("cannot decode Nexus webhook payload: %w", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling Nexus event from %s", p.RepositoryName))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.ACRReceiver:
 		type target struct {
@@ -363,16 +479,23 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 			Target target `json:"target"`
 		}
 
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			return fmt.Errorf("unable to read request body: %s", err)
+		}
+		r.Body = io.NopCloser(bytes.NewReader(b))
+
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 			return fmt.Errorf("cannot decode ACR webhook payload: %s", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling ACR event from %s for tag %s", p.Target.Repository, p.Target.Tag))
+		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	}
 
-	return fmt.Errorf("recevier type '%s' not supported", receiver.Spec.Type)
+	return fmt.Errorf("recevier type %q not supported", receiver.Spec.Type)
 }
 
 func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (string, error) {
@@ -385,29 +508,32 @@ func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (st
 	var secret corev1.Secret
 	err := s.kubeClient.Get(ctx, secretName, &secret)
 	if err != nil {
-		return "", fmt.Errorf("unable to read token from secret '%s' error: %w", secretName, err)
+		return "", fmt.Errorf("unable to read token from secret %q error: %w", secretName, err)
 	}
 
 	if val, ok := secret.Data["token"]; ok {
 		token = string(val)
 	} else {
-		return "", fmt.Errorf("invalid '%s' secret data: required field 'token'", secretName)
+		return "", fmt.Errorf("invalid %q secret data: required field 'token'", secretName)
 	}
 
 	return token, nil
 }
 
 // requestReconciliation requests reconciliation of all the resources matching the given CrossNamespaceObjectReference by annotating them accordingly.
-func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, defaultNamespace string) error {
+func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.Logger, resource apiv1.CrossNamespaceObjectReference, defaultNamespace string, resourceFilter resourceFilter) error {
 	namespace := defaultNamespace
 	if resource.Namespace != "" {
+		if s.noCrossNamespaceRefs && resource.Namespace != defaultNamespace {
+			return fmt.Errorf("cross-namespace references are not allowed")
+		}
 		namespace = resource.Namespace
 	}
 
 	apiVersion := resource.APIVersion
 	if apiVersion == "" {
 		if defaultFluxAPIVersions[resource.Kind] == "" {
-			return fmt.Errorf("apiVersion must be specified for kind '%s'", resource.Kind)
+			return fmt.Errorf("apiVersion must be specified for kind %q", resource.Kind)
 		}
 		apiVersion = defaultFluxAPIVersions[resource.Kind]
 	}
@@ -415,43 +541,7 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 	group, version := getGroupVersion(apiVersion)
 
 	if resource.Name == "*" {
-		if resource.MatchLabels == nil {
-			return fmt.Errorf("matchLabels field not set when using wildcard '*' as name")
-		}
-
-		logger.V(1).Info(fmt.Sprintf("annotate resources by matchLabel for kind '%s' in '%s'",
-			resource.Kind, namespace), "matchLabels", resource.MatchLabels)
-
-		var resources metav1.PartialObjectMetadataList
-		resources.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   group,
-			Kind:    resource.Kind,
-			Version: version,
-		})
-
-		if err := s.kubeClient.List(ctx, &resources,
-			client.InNamespace(namespace),
-			client.MatchingLabels(resource.MatchLabels),
-		); err != nil {
-			return fmt.Errorf("failed listing resources in namespace %q by matching labels %q: %w", namespace, resource.MatchLabels, err)
-		}
-
-		if len(resources.Items) == 0 {
-			noObjectsFoundErr := fmt.Errorf("no '%s' resources found with matching labels '%s' in '%s' namespace", resource.Kind, resource.MatchLabels, namespace)
-			logger.Error(noObjectsFoundErr, "error annotating resources")
-			return nil
-		}
-
-		for i, resource := range resources.Items {
-			if err := s.annotate(ctx, &resources.Items[i]); err != nil {
-				return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
-			} else {
-				logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
-					resource.Kind, resource.Name, namespace))
-			}
-		}
-
-		return nil
+		return s.notifyDynamicResources(ctx, logger, resource, namespace, group, version, resourceFilter)
 	}
 
 	u := &metav1.PartialObjectMetadata{}
@@ -460,25 +550,10 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 		Kind:    resource.Kind,
 		Version: version,
 	})
+	u.SetNamespace(namespace)
+	u.SetName(resource.Name)
 
-	objectKey := client.ObjectKey{
-		Namespace: namespace,
-		Name:      resource.Name,
-	}
-
-	if err := s.kubeClient.Get(ctx, objectKey, u); err != nil {
-		return fmt.Errorf("unable to read %s '%s' error: %w", resource.Kind, objectKey, err)
-	}
-
-	err := s.annotate(ctx, u)
-	if err != nil {
-		return fmt.Errorf("failed to annotate resource: '%s/%s.%s': %w", resource.Kind, resource.Name, namespace, err)
-	} else {
-		logger.Info(fmt.Sprintf("resource '%s/%s.%s' annotated",
-			resource.Kind, resource.Name, namespace))
-	}
-
-	return nil
+	return s.notifySingleResource(ctx, logger, u, resourceFilter)
 }
 
 func (s *ReceiverServer) annotate(ctx context.Context, resource *metav1.PartialObjectMetadata) error {
@@ -493,7 +568,7 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource *metav1.PartialO
 	resource.SetAnnotations(sourceAnnotations)
 
 	if err := s.kubeClient.Patch(ctx, resource, patch); err != nil {
-		return fmt.Errorf("unable to annotate %s '%s' error: %w", resource.Kind, client.ObjectKey{
+		return fmt.Errorf("unable to annotate %s %q error: %w", resource.Kind, client.ObjectKey{
 			Namespace: resource.Namespace,
 			Name:      resource.Name,
 		}, err)
