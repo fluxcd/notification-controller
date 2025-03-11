@@ -23,18 +23,24 @@ import (
 )
 
 func TestNewBitbucketBasic(t *testing.T) {
-	b, err := NewBitbucket("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://bitbucket.org/foo/bar", "foo:bar", nil)
+	b, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar", "foo:bar", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, b.Owner, "foo")
 	assert.Equal(t, b.Repo, "bar")
+	assert.Equal(t, b.CommitStatus, "kustomization/gitops-system/0c9c2e41")
+}
+
+func TestNewBitbucketEmptyCommitStatus(t *testing.T) {
+	_, err := NewBitbucket("", "https://bitbucket.org/foo/bar", "foo:bar", nil)
+	assert.NotNil(t, err)
 }
 
 func TestNewBitbucketInvalidUrl(t *testing.T) {
-	_, err := NewBitbucket("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://bitbucket.org/foo/bar/baz", "foo:bar", nil)
+	_, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar/baz", "foo:bar", nil)
 	assert.NotNil(t, err)
 }
 
 func TestNewBitbucketInvalidToken(t *testing.T) {
-	_, err := NewBitbucket("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://bitbucket.org/foo/bar", "bar", nil)
+	_, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar", "bar", nil)
 	assert.NotNil(t, err)
 }

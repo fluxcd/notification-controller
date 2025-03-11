@@ -37,7 +37,7 @@ import (
 
 // BitbucketServer is a notifier for BitBucket Server and Data Center.
 type BitbucketServer struct {
-	ProviderUID     string
+	CommitStatus    string
 	Url             *url.URL
 	ProviderAddress string
 	Username        string
@@ -81,10 +81,15 @@ type bbServerBuildStatusSetRequest struct {
 }
 
 // NewBitbucketServer creates and returns a new BitbucketServer notifier.
-func NewBitbucketServer(providerUID string, addr string, token string, certPool *x509.CertPool, username string, password string) (*BitbucketServer, error) {
+func NewBitbucketServer(commitStatus string, addr string, token string, certPool *x509.CertPool, username string, password string) (*BitbucketServer, error) {
 	url, err := parseBitbucketServerGitAddress(addr)
 	if err != nil {
 		return nil, err
+	}
+
+	// this should never happen
+	if commitStatus == "" {
+		return nil, errors.New("commit status cannot be empty")
 	}
 
 	httpClient := retryablehttp.NewClient()
@@ -107,7 +112,7 @@ func NewBitbucketServer(providerUID string, addr string, token string, certPool 
 	}
 
 	return &BitbucketServer{
-		ProviderUID:     providerUID,
+		CommitStatus:    commitStatus,
 		Url:             url,
 		ProviderAddress: addr,
 		Token:           token,
@@ -138,7 +143,7 @@ func (b BitbucketServer) Post(ctx context.Context, event eventv1.Event) error {
 
 	name, desc := formatNameAndDescription(event)
 	name = name + " [" + desc + "]" //Bitbucket server displays this data on browser. Thus adding description here.
-	id := generateCommitStatusID(b.ProviderUID, event)
+	id := b.CommitStatus
 	// key has a limitation of 40 characters in bitbucket api
 	key := sha1String(id)
 

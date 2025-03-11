@@ -788,8 +788,211 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			}
 			provider := apiv1beta3.Provider{Spec: *tt.providerSpec}
 
-			_, _, err := createNotifier(context.TODO(), builder.Build(), provider)
+			_, _, err := createNotifier(context.TODO(), builder.Build(), &provider, "")
 			g.Expect(err != nil).To(Equal(tt.wantErr))
+		})
+	}
+}
+
+func TestCreateCommitStatus(t *testing.T) {
+	tests := []struct {
+		name             string
+		provider         apiv1beta3.Provider
+		notification     eventv1.Event
+		alert            *apiv1beta3.Alert
+		wantCommitStatus string
+		wantErr          bool
+	}{
+		{
+			name: "non-git provider: slack",
+			provider: apiv1beta3.Provider{
+				Spec: apiv1beta3.ProviderSpec{
+					Type: "slack",
+				},
+			},
+			wantCommitStatus: "",
+		},
+		{
+			name: "non-git provider: msteams",
+			provider: apiv1beta3.Provider{
+				Spec: apiv1beta3.ProviderSpec{
+					Type: "msteams",
+				},
+			},
+			wantCommitStatus: "",
+		},
+		{
+			name: "git provider without commit status expression",
+			provider: apiv1beta3.Provider{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+				},
+				Spec: apiv1beta3.ProviderSpec{
+					Type: "github",
+				},
+			},
+			notification: eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Reason: "ApplySucceeded",
+			},
+			wantCommitStatus: "kustomization/gitops-system/0c9c2e41",
+		},
+		{
+			name: "gitlab provider without commit status expression",
+			provider: apiv1beta3.Provider{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+				},
+				Spec: apiv1beta3.ProviderSpec{
+					Type: "gitlab",
+				},
+			},
+			notification: eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "HelmRelease",
+					Name: "gitops-system",
+				},
+				Reason: "ApplySucceeded",
+			},
+			wantCommitStatus: "helmrelease/gitops-system/0c9c2e41",
+		},
+		{
+			name: "git provider with commit status expression",
+			provider: apiv1beta3.Provider{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+				},
+				Spec: apiv1beta3.ProviderSpec{
+					Type:             "github",
+					CommitStatusExpr: "event.involvedObject.kind + '/' + event.involvedObject.name + '/' + event.metadata.environment + '/' + provider.metadata.uid",
+				},
+			},
+			notification: eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Reason: "ApplySucceeded",
+				Metadata: map[string]string{
+					"environment": "production",
+				},
+			},
+			alert: &apiv1beta3.Alert{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-alert",
+				},
+			},
+			wantCommitStatus: "Kustomization/gitops-system/production/0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		},
+		{
+			name: "git provider with commit status expression using first value of provider UID",
+			provider: apiv1beta3.Provider{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+				},
+				Spec: apiv1beta3.ProviderSpec{
+					Type:             "github",
+					CommitStatusExpr: "event.involvedObject.kind + '/' + event.involvedObject.name + '/' + event.metadata.environment + '/' + provider.metadata.uid.split('-').first().value()",
+				},
+			},
+			notification: eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Metadata: map[string]string{
+					"environment": "production",
+				},
+			},
+			alert: &apiv1beta3.Alert{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-alert",
+				},
+			},
+			wantCommitStatus: "Kustomization/gitops-system/production/0c9c2e41",
+		},
+		{
+			name: "git provider with commit status expression using event, alert, and provider",
+			provider: apiv1beta3.Provider{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+				},
+				Spec: apiv1beta3.ProviderSpec{
+					Type:             "github",
+					CommitStatusExpr: "event.involvedObject.kind + '/' + event.involvedObject.name + '/' + event.metadata.environment + '/' + provider.metadata.uid + '/' + alert.metadata.name",
+				},
+			},
+			notification: eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Metadata: map[string]string{
+					"environment": "production",
+				},
+			},
+			alert: &apiv1beta3.Alert{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-alert",
+				},
+			},
+			wantCommitStatus: "Kustomization/gitops-system/production/0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a/test-alert",
+		},
+		{
+			name: "git provider with invalid commit status expression referencing non-existent event metadata",
+			notification: eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Metadata: map[string]string{
+					"foo": "bar",
+				},
+			},
+			provider: apiv1beta3.Provider{
+				Spec: apiv1beta3.ProviderSpec{
+					Type:             "github",
+					CommitStatusExpr: "event.involvedObject.kind + '/' + event.involvedObject.name + '/' + event.metadata.notfound + '/' + provider.metadata.uid",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "git provider with invalid commit status expression",
+			notification: eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Metadata: map[string]string{
+					"foo": "bar",
+				},
+			},
+			provider: apiv1beta3.Provider{
+				Spec: apiv1beta3.ProviderSpec{
+					Type:             "github",
+					CommitStatusExpr: "event.involvedObject.kind == 'Kustomization'",
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// Create fake objects and event server.
+			scheme := runtime.NewScheme()
+			g.Expect(apiv1beta3.AddToScheme(scheme)).ToNot(HaveOccurred())
+			g.Expect(corev1.AddToScheme(scheme)).ToNot(HaveOccurred())
+
+			commitStatus, err := createCommitStatus(context.TODO(), &tt.provider, &tt.notification, tt.alert)
+			g.Expect(err != nil).To(Equal(tt.wantErr))
+			g.Expect(commitStatus).To(Equal(tt.wantCommitStatus))
 		})
 	}
 }

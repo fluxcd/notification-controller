@@ -55,6 +55,7 @@ const (
 )
 
 // ProviderSpec defines the desired state of the Provider.
+// +kubebuilder:validation:XValidation:rule="self.type == 'github' || self.type == 'gitlab' || self.type == 'gitea' || self.type == 'bitbucketserver' || self.type == 'bitbucket' || self.type == 'azuredevops' || !has(self.commitStatusExpr)", message="spec.commitStatusExpr is only supported for the 'github', 'gitlab', 'gitea', 'bitbucketserver', 'bitbucket', 'azuredevops' provider types"
 type ProviderSpec struct {
 	// Type specifies which Provider implementation to use.
 	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;bitbucketserver;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;pagerduty;datadog;nats
@@ -119,6 +120,14 @@ type ProviderSpec struct {
 	// events handling for this Provider.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
+
+	// CommitStatusExpr is a CEL expression that evaluates to a string value
+	// that can be used to generate a custom commit status message for use
+	// with eligible Provider types (github, gitlab, gitea, bitbucketserver,
+	// bitbucket, azuredevops). Supported variables are: event, provider,
+	// and alert.
+	// +optional
+	CommitStatusExpr string `json:"commitStatusExpr,omitempty"`
 }
 
 // +genclient

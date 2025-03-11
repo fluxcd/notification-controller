@@ -30,12 +30,12 @@ import (
 )
 
 func Fuzz_GitLab(f *testing.F) {
-	f.Add("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "token", "org/repo", "revision/abce1", "error", "", []byte{}, []byte(`[{"sha":"abce1","status":"failed","name":"/","description":""}]`))
-	f.Add("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[{"sha":"abce1","status":"failed","name":"/","description":""}]`))
-	f.Add("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "token", "org/repo", "revision/abce1", "info", "Progressing", []byte{}, []byte{})
-	f.Add("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[]`))
+	f.Add("kustomization/gitops-system/0c9c2e41", "token", "org/repo", "revision/abce1", "error", "", []byte{}, []byte(`[{"sha":"abce1","status":"failed","name":"/","description":""}]`))
+	f.Add("kustomization/gitops-system/0c9c2e41", "token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[{"sha":"abce1","status":"failed","name":"/","description":""}]`))
+	f.Add("kustomization/gitops-system/0c9c2e41", "token", "org/repo", "revision/abce1", "info", "Progressing", []byte{}, []byte{})
+	f.Add("kustomization/gitops-system/0c9c2e41", "token", "org/repo", "revision/abce1", "info", "", []byte{}, []byte(`[]`))
 
-	f.Fuzz(func(t *testing.T, uuid, token, urlSuffix, revision, severity, reason string, seed, response []byte) {
+	f.Fuzz(func(t *testing.T, commitStatus, token, urlSuffix, revision, severity, reason string, seed, response []byte) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Write(response)
 			io.Copy(io.Discard, r.Body)
@@ -46,7 +46,7 @@ func Fuzz_GitLab(f *testing.F) {
 		var cert x509.CertPool
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
-		gitLab, err := NewGitLab(uuid, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert)
+		gitLab, err := NewGitLab(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert)
 		if err != nil {
 			return
 		}

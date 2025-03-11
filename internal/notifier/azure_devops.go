@@ -40,14 +40,14 @@ type azureDevOpsClient interface {
 
 // AzureDevOps is an Azure DevOps notifier.
 type AzureDevOps struct {
-	Project     string
-	Repo        string
-	ProviderUID string
-	Client      azureDevOpsClient
+	Project      string
+	Repo         string
+	CommitStatus string
+	Client       azureDevOpsClient
 }
 
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
-func NewAzureDevOps(providerUID string, addr string, token string, certPool *x509.CertPool) (*AzureDevOps, error) {
+func NewAzureDevOps(commitStatus string, addr string, token string, certPool *x509.CertPool) (*AzureDevOps, error) {
 	if len(token) == 0 {
 		return nil, errors.New("azure devops token cannot be empty")
 	}
@@ -55,6 +55,11 @@ func NewAzureDevOps(providerUID string, addr string, token string, certPool *x50
 	host, id, err := parseGitAddress(addr)
 	if err != nil {
 		return nil, err
+	}
+
+	// this should never happen
+	if commitStatus == "" {
+		return nil, errors.New("commit status cannot be empty")
 	}
 
 	comp := strings.Split(id, "/")
@@ -77,10 +82,10 @@ func NewAzureDevOps(providerUID string, addr string, token string, certPool *x50
 		Client: *client,
 	}
 	return &AzureDevOps{
-		Project:     proj,
-		Repo:        repo,
-		ProviderUID: providerUID,
-		Client:      gitClient,
+		Project:      proj,
+		Repo:         repo,
+		CommitStatus: commitStatus,
+		Client:       gitClient,
 	}, nil
 }
 
@@ -108,7 +113,7 @@ func (a AzureDevOps) Post(ctx context.Context, event eventv1.Event) error {
 	g := commitStatusGenre(event)
 
 	_, desc := formatNameAndDescription(event)
-	id := generateCommitStatusID(a.ProviderUID, event)
+	id := a.CommitStatus
 	createArgs := git.CreateCommitStatusArgs{
 		Project:      &a.Project,
 		RepositoryId: &a.Repo,

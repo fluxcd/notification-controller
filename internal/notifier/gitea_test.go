@@ -57,7 +57,7 @@ func TestNewGiteaBasic(t *testing.T) {
 	srv := newTestServer(t)
 	defer srv.Close()
 
-	g, err := NewGitea("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar", "foobar", nil)
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "foobar", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
@@ -68,7 +68,7 @@ func TestNewGiteaInvalidUrl(t *testing.T) {
 	srv := newTestServer(t)
 	defer srv.Close()
 
-	_, err := NewGitea("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar/baz", "foobar", nil)
+	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar/baz", "foobar", nil)
 	assert.ErrorContains(t, err, "invalid repository id")
 }
 
@@ -76,15 +76,23 @@ func TestNewGiteaEmptyToken(t *testing.T) {
 	srv := newTestServer(t)
 	defer srv.Close()
 
-	_, err := NewGitea("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar", "", nil)
+	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", nil)
 	assert.ErrorContains(t, err, "gitea token cannot be empty")
+}
+
+func TestNewGiteaEmptyCommitStatus(t *testing.T) {
+	srv := newTestServer(t)
+	defer srv.Close()
+
+	_, err := NewGitea("", srv.URL+"/foo/bar", "foobar", nil)
+	assert.ErrorContains(t, err, "commit status cannot be empty")
 }
 
 func TestGitea_Post(t *testing.T) {
 	srv := newTestServer(t)
 	defer srv.Close()
 
-	g, err := NewGitea("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar", "foobar", nil)
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "foobar", nil)
 	assert.Nil(t, err)
 
 	for _, tt := range []struct {
