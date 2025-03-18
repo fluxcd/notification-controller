@@ -27,19 +27,24 @@ import (
 )
 
 func TestNewAzureDevOpsBasic(t *testing.T) {
-	a, err := NewAzureDevOps("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://dev.azure.com/foo/bar/_git/baz", "foo", nil)
+	a, err := NewAzureDevOps("kustomization/gitops-system/0c9c2e41", "https://dev.azure.com/foo/bar/_git/baz", "foo", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, a.Project, "bar")
 	assert.Equal(t, a.Repo, "baz")
 }
 
 func TestNewAzureDevOpsInvalidUrl(t *testing.T) {
-	_, err := NewAzureDevOps("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://dev.azure.com/foo/bar/baz", "foo", nil)
+	_, err := NewAzureDevOps("kustomization/gitops-system/0c9c2e41", "https://dev.azure.com/foo/bar/baz", "foo", nil)
 	assert.NotNil(t, err)
 }
 
 func TestNewAzureDevOpsMissingToken(t *testing.T) {
-	_, err := NewAzureDevOps("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://dev.azure.com/foo/bar/baz", "", nil)
+	_, err := NewAzureDevOps("kustomization/gitops-system/0c9c2e41", "https://dev.azure.com/foo/bar/baz", "", nil)
+	assert.NotNil(t, err)
+}
+
+func TestNewAzureDevOpsEmptyCommitStatus(t *testing.T) {
+	_, err := NewAzureDevOps("", "https://dev.azure.com/foo/bar/_git/baz", "foo", nil)
 	assert.NotNil(t, err)
 }
 
@@ -160,7 +165,7 @@ func TestAzureDevOps_Post(t *testing.T) {
 
 	for _, tt := range postTests {
 		t.Run(tt.name, func(t *testing.T) {
-			a, err := NewAzureDevOps("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com/foo/bar/_git/baz", "foo", nil)
+			a, err := NewAzureDevOps("kustomization/gitops-system/0c9c2e41", "https://example.com/foo/bar/_git/baz", "foo", nil)
 			fakeClient := &fakeDevOpsClient{}
 			a.Client = fakeClient
 			assert.Nil(t, err)

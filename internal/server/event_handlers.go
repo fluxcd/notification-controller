@@ -251,19 +251,48 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, nil, "", 0, nil
 	}
 
-	sender, token, err := createNotifier(ctx, s.kubeClient, provider)
+	// Create a copy of the event and combine event metadata
+	notification := *event.DeepCopy()
+	s.combineEventMetadata(ctx, &notification, alert)
+
+	// Create a commit status for the given provider and event, if applicable.
+	commitStatus, err := createCommitStatus(ctx, &provider, &notification, alert)
+	if err != nil {
+		return nil, nil, "", 0, fmt.Errorf("failed to create commit status: %w", err)
+	}
+
+	sender, token, err := createNotifier(ctx, s.kubeClient, &provider, commitStatus)
 	if err != nil {
 		return nil, nil, "", 0, fmt.Errorf("failed to initialize notifier for provider '%s': %w", provider.Name, err)
 	}
 
-	notification := *event.DeepCopy()
-	s.combineEventMetadata(ctx, &notification, alert)
-
 	return sender, &notification, token, provider.GetTimeout(), nil
 }
 
+// createCommitStatus creates a commit status for the given provider and event.
+// If the provider has a commitStatusExpr, it will be used to compute a commit status.
+// Otherwise, a default commit status will be generated using the Provider UID and event metadata.
+// If the provider is not a git provider, the commit status will be an empty string.
+// If the commitStatusExpr fails to compile or is invalid, an error will be returned.
+func createCommitStatus(ctx context.Context, provider *apiv1beta3.Provider, event *eventv1.Event, alert *apiv1beta3.Alert) (commitStatus string, err error) {
+	if !isGitProvider(provider.Spec.Type) {
+		return "", nil
+	}
+
+	if provider.Spec.CommitStatusExpr != "" {
+		commitStatus, err = newCommitStatus(ctx, provider.Spec.CommitStatusExpr, event, alert, provider)
+		if err != nil {
+			return "", fmt.Errorf("failed to evaluate the spec.commitStatusExpr CEL expression for the event: %w", err)
+		}
+	} else {
+		commitStatus = generateDefaultCommitStatus(string(provider.UID), *event)
+	}
+
+	return commitStatus, nil
+}
+
 // createNotifier returns a notifier.Interface for the given Provider.
-func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv1beta3.Provider) (notifier.Interface, string, error) {
+func createNotifier(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider, commitStatus string) (notifier.Interface, string, error) {
 	logger := log.FromContext(ctx)
 
 	webhook := provider.Spec.Address
@@ -272,6 +301,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 	token := ""
 	password := ""
 	headers := make(map[string]string)
+
 	if provider.Spec.SecretRef != nil {
 		var secret corev1.Secret
 		secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.SecretRef.Name}
@@ -353,7 +383,41 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 		return nil, "", fmt.Errorf("provider has no address")
 	}
 
-	factory := notifier.NewFactory(webhook, proxy, username, provider.Spec.Channel, token, headers, certPool, password, string(provider.UID))
+	options := []notifier.Option{}
+
+	if commitStatus != "" {
+		options = append(options, notifier.WithCommitStatus(commitStatus))
+	}
+
+	if proxy != "" {
+		options = append(options, notifier.WithProxyURL(proxy))
+	}
+
+	if username != "" {
+		options = append(options, notifier.WithUsername(username))
+	}
+
+	if provider.Spec.Channel != "" {
+		options = append(options, notifier.WithChannel(provider.Spec.Channel))
+	}
+
+	if token != "" {
+		options = append(options, notifier.WithToken(token))
+	}
+
+	if len(headers) > 0 {
+		options = append(options, notifier.WithHeaders(headers))
+	}
+
+	if certPool != nil {
+		options = append(options, notifier.WithCertPool(certPool))
+	}
+
+	if password != "" {
+		options = append(options, notifier.WithPassword(password))
+	}
+
+	factory := notifier.NewFactory(webhook, options...)
 	sender, err := factory.Notifier(provider.Spec.Type)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to initialize notifier: %w", err)

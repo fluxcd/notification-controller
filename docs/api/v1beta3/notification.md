@@ -378,6 +378,22 @@ bool
 events handling for this Provider.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>commitStatusExpr</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CommitStatusExpr is a CEL expression that evaluates to a string value
+that can be used to generate a custom commit status message for use
+with eligible Provider types (github, gitlab, gitea, bitbucketserver,
+bitbucket, azuredevops). Supported variables are: event, provider,
+and alert.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -665,6 +681,22 @@ bool
 <em>(Optional)</em>
 <p>Suspend tells the controller to suspend subsequent
 events handling for this Provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>commitStatusExpr</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CommitStatusExpr is a CEL expression that evaluates to a string value
+that can be used to generate a custom commit status message for use
+with eligible Provider types (github, gitlab, gitea, bitbucketserver,
+bitbucket, azuredevops). Supported variables are: event, provider,
+and alert.</p>
 </td>
 </tr>
 </tbody>

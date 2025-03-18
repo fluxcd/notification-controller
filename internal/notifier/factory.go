@@ -64,42 +64,92 @@ type notifierMap map[string]factoryFunc
 type factoryFunc func(opts notifierOptions) (Interface, error)
 
 type notifierOptions struct {
-	URL         string
-	ProxyURL    string
-	Username    string
-	Channel     string
-	Token       string
-	Headers     map[string]string
-	CertPool    *x509.CertPool
-	Password    string
-	ProviderUID string
+	URL          string
+	ProxyURL     string
+	Username     string
+	Channel      string
+	Token        string
+	Headers      map[string]string
+	CertPool     *x509.CertPool
+	Password     string
+	CommitStatus string
 }
 
 type Factory struct {
 	notifierOptions
 }
 
-func NewFactory(url string,
-	proxy string,
-	username string,
-	channel string,
-	token string,
-	headers map[string]string,
-	certPool *x509.CertPool,
-	password string,
-	providerUID string) *Factory {
+// Option represents a functional option for configuring a notifier.
+type Option func(*notifierOptions)
+
+// WithProxyURL sets the proxy URL for the notifier.
+func WithProxyURL(url string) Option {
+	return func(o *notifierOptions) {
+		o.ProxyURL = url
+	}
+}
+
+// WithUsername sets the username for the notifier.
+func WithUsername(username string) Option {
+	return func(o *notifierOptions) {
+		o.Username = username
+	}
+}
+
+// WithChannel sets the channel for the notifier.
+func WithChannel(channel string) Option {
+	return func(o *notifierOptions) {
+		o.Channel = channel
+	}
+}
+
+// WithToken sets the token for the notifier.
+func WithToken(token string) Option {
+	return func(o *notifierOptions) {
+		o.Token = token
+	}
+}
+
+// WithHeaders sets the headers for the notifier.
+func WithHeaders(headers map[string]string) Option {
+	return func(o *notifierOptions) {
+		o.Headers = headers
+	}
+}
+
+// WithCertPool sets the certificate pool for the notifier.
+func WithCertPool(certPool *x509.CertPool) Option {
+	return func(o *notifierOptions) {
+		o.CertPool = certPool
+	}
+}
+
+// WithPassword sets the password for the notifier.
+func WithPassword(password string) Option {
+	return func(o *notifierOptions) {
+		o.Password = password
+	}
+}
+
+// WithCommitStatus sets the custom commit status for the notifier.
+func WithCommitStatus(commitStatus string) Option {
+	return func(o *notifierOptions) {
+		o.CommitStatus = commitStatus
+	}
+}
+
+// NewFactory creates a new notifier factory with the given URL and optional configurations.
+func NewFactory(url string, opts ...Option) *Factory {
+	options := notifierOptions{
+		URL: url,
+	}
+
+	for _, opt := range opts {
+		opt(&options)
+	}
+
 	return &Factory{
-		notifierOptions: notifierOptions{
-			URL:         url,
-			ProxyURL:    proxy,
-			Username:    username,
-			Channel:     channel,
-			Token:       token,
-			Headers:     headers,
-			CertPool:    certPool,
-			Password:    password,
-			ProviderUID: providerUID,
-		},
+		notifierOptions: options,
 	}
 }
 
@@ -208,7 +258,7 @@ func gitHubNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitHub(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool)
+	return NewGitHub(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool)
 }
 
 func gitHubDispatchNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -222,24 +272,24 @@ func gitLabNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitLab(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool)
+	return NewGitLab(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool)
 }
 
 func giteaNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitea(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool)
+	return NewGitea(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool)
 }
 
 func bitbucketServerNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewBitbucketServer(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool, opts.Username, opts.Password)
+	return NewBitbucketServer(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool, opts.Username, opts.Password)
 }
 
 func bitbucketNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewBitbucket(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool)
+	return NewBitbucket(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool)
 }
 
 func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewAzureDevOps(opts.ProviderUID, opts.URL, opts.Token, opts.CertPool)
+	return NewAzureDevOps(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool)
 }

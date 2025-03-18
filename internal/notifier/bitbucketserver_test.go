@@ -35,7 +35,7 @@ import (
 )
 
 func TestNewBitbucketServerBasicNoContext(t *testing.T) {
-	b, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
+	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
 	assert.Nil(t, err)
 	assert.Equal(t, b.Username, "dummyuser")
 	assert.Equal(t, b.Password, "testpassword")
@@ -44,7 +44,7 @@ func TestNewBitbucketServerBasicNoContext(t *testing.T) {
 }
 
 func TestNewBitbucketServerBasicWithContext(t *testing.T) {
-	b, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/context/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
+	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
 	assert.Nil(t, err)
 	assert.Equal(t, b.Username, "dummyuser")
 	assert.Equal(t, b.Password, "testpassword")
@@ -53,72 +53,72 @@ func TestNewBitbucketServerBasicWithContext(t *testing.T) {
 }
 
 func TestBitbucketServerApiPathNoContext(t *testing.T) {
-	b, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
+	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
 	assert.Nil(t, err)
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
 	assert.Equal(t, u, "https://example.com:7990/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds")
 }
 
 func TestBitbucketServerApiPathOneWordContext(t *testing.T) {
-	b, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/context1/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
+	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context1/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
 	assert.Nil(t, err)
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
 	assert.Equal(t, u, "https://example.com:7990/context1/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds")
 }
 
 func TestBitbucketServerApiPathMultipleWordContext(t *testing.T) {
-	b, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/context1/context2/context3/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
+	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context1/context2/context3/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
 	assert.Nil(t, err)
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
 	assert.Equal(t, u, "https://example.com:7990/context1/context2/context3/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds")
 }
 
 func TestBitbucketServerApiPathOneWordScmInContext(t *testing.T) {
-	b, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/scm/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
+	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
 	assert.Nil(t, err)
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
 	assert.Equal(t, u, "https://example.com:7990/scm/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds")
 }
 
 func TestBitbucketServerApiPathMultipleWordScmInContext(t *testing.T) {
-	b, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/scm/context2/scm/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
+	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/context2/scm/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
 	assert.Nil(t, err)
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
 	assert.Equal(t, u, "https://example.com:7990/scm/context2/scm/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds")
 }
 
 func TestBitbucketServerApiPathScmAlreadyRemovedInInput(t *testing.T) {
-	_, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/context1/context2/context3/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
+	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context1/context2/context3/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "could not parse git address: supplied provider address is not http(s) git clone url")
 }
 
 func TestBitbucketServerSshAddress(t *testing.T) {
-	_, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "ssh://git@mybitbucket:2222/ap/fluxcd-sandbox.git", "", nil, "", "")
+	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "ssh://git@mybitbucket:2222/ap/fluxcd-sandbox.git", "", nil, "", "")
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "could not parse git address: unsupported scheme type in address: ssh. Must be http or https")
 }
 
 func TestNewBitbucketServerToken(t *testing.T) {
-	b, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
 	assert.Nil(t, err)
 	assert.Equal(t, b.Token, "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP")
 }
 
 func TestNewBitbucketServerInvalidCreds(t *testing.T) {
-	_, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/scm/projectfoo/repobar.git", "", nil, "", "")
+	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "", nil, "", "")
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "invalid credentials, expected to be one of username/password or API Token")
 }
 
 func TestNewBitbucketServerInvalidRepo(t *testing.T) {
-	_, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/scm/projectfoo/repobar/invalid.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar/invalid.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
 	assert.NotNil(t, err)
 	assert.Equal(t, err.Error(), "could not parse git address: invalid repository id \"projectfoo/repobar/invalid\"")
 }
 
 func TestPostBitbucketServerMissingRevision(t *testing.T) {
-	b, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
 	assert.Nil(t, err)
 
 	//Validate missing revision
@@ -129,8 +129,14 @@ func TestPostBitbucketServerMissingRevision(t *testing.T) {
 	assert.Equal(t, err.Error(), "missing revision metadata")
 }
 
+func TestNewBitbucketServerEmptyCommitStatus(t *testing.T) {
+	_, err := NewBitbucketServer("", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	assert.NotNil(t, err)
+	assert.Equal(t, err.Error(), "commit status cannot be empty")
+}
+
 func TestPostBitbucketServerBadCommitHash(t *testing.T) {
-	b, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
 	assert.Nil(t, err)
 
 	//Validate extract commit hash
@@ -143,7 +149,7 @@ func TestPostBitbucketServerBadCommitHash(t *testing.T) {
 }
 
 func TestPostBitbucketServerBadBitbucketState(t *testing.T) {
-	b, err := NewBitbucketServer("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
 	assert.Nil(t, err)
 
 	//Validate conversion to bitbucket state
@@ -182,14 +188,14 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 		password       string
 		token          string
 		event          eventv1.Event
-		provideruid    string
+		commitStatus   string
 		key            string
 		uriHash        string
 	}{
 		{
-			name:        "Validate Token Auth ",
-			token:       "goodtoken",
-			provideruid: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			name:         "Validate Token Auth ",
+			token:        "goodtoken",
+			commitStatus: "kustomization/gitops-system/0c9c2e41",
 			headers: map[string]string{
 				"Authorization":     "Bearer goodtoken",
 				"x-atlassian-token": "no-check",
@@ -198,15 +204,13 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			event: generateTestEventKustomization("info", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("info", map[string]string{
-				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			key:     sha1String("kustomization/gitops-system/0c9c2e41"),
 			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 		{
-			name:        "Event with origin revision",
-			token:       "goodtoken",
-			provideruid: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			name:         "Event with origin revision",
+			token:        "goodtoken",
+			commitStatus: "kustomization/gitops-system/0c9c2e41",
 			headers: map[string]string{
 				"Authorization":     "Bearer goodtoken",
 				"x-atlassian-token": "no-check",
@@ -216,16 +220,14 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				eventv1.MetaRevisionKey:       "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 				eventv1.MetaOriginRevisionKey: "main@sha1:e7c17dd8b8384bbc84b7e7385394cb7f48332b2d",
 			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("info", map[string]string{
-				eventv1.MetaRevisionKey: "main@sha1:e7c17dd8b8384bbc84b7e7385394cb7f48332b2d",
-			}))),
+			key:     sha1String("kustomization/gitops-system/0c9c2e41"),
 			uriHash: "e7c17dd8b8384bbc84b7e7385394cb7f48332b2d",
 		},
 		{
-			name:        "Validate Basic Auth and Post State=Successful",
-			username:    "hello",
-			password:    "password",
-			provideruid: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			name:         "Validate Basic Auth and Post State=Successful",
+			username:     "hello",
+			password:     "password",
+			commitStatus: "kustomization/gitops-system/0c9c2e41",
 			headers: map[string]string{
 				"Authorization":     "Basic " + base64.StdEncoding.EncodeToString([]byte("hello"+":"+"password")),
 				"x-atlassian-token": "no-check",
@@ -234,16 +236,14 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			event: generateTestEventKustomization("info", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("info", map[string]string{
-				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			key:     sha1String("kustomization/gitops-system/0c9c2e41"),
 			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 		{
-			name:        "Validate Post State=Failed",
-			username:    "hello",
-			password:    "password",
-			provideruid: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			name:         "Validate Post State=Failed",
+			username:     "hello",
+			password:     "password",
+			commitStatus: "kustomization/gitops-system/0c9c2e41",
 			headers: map[string]string{
 				"Authorization":     "Basic " + base64.StdEncoding.EncodeToString([]byte("hello"+":"+"password")),
 				"x-atlassian-token": "no-check",
@@ -252,9 +252,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			event: generateTestEventKustomization("error", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
-				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			key:     sha1String("kustomization/gitops-system/0c9c2e41"),
 			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 		{
@@ -263,7 +261,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			errorString:    "could not get existing commit status: could not unmarshal json response body for duplicate commit status: unexpected end of JSON input",
 			username:       "hello",
 			password:       "password",
-			provideruid:    "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			commitStatus:   "kustomization/gitops-system/0c9c2e41",
 			headers: map[string]string{
 				"Authorization":     "Basic " + base64.StdEncoding.EncodeToString([]byte("hello"+":"+"password")),
 				"x-atlassian-token": "no-check",
@@ -272,9 +270,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			event: generateTestEventKustomization("error", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
-				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			key:     sha1String("kustomization/gitops-system/0c9c2e41"),
 			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 		{
@@ -283,7 +279,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			errorString:    "could not get existing commit status: failed api call to check duplicate commit status: 400 - Bad Request",
 			username:       "hello",
 			password:       "password",
-			provideruid:    "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			commitStatus:   "kustomization/gitops-system/0c9c2e41",
 			headers: map[string]string{
 				"Authorization":     "Basic " + base64.StdEncoding.EncodeToString([]byte("hello"+":"+"password")),
 				"x-atlassian-token": "no-check",
@@ -292,9 +288,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			event: generateTestEventKustomization("error", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
-				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			key:     sha1String("kustomization/gitops-system/0c9c2e41"),
 			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 		{
@@ -303,7 +297,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			errorString:    "could not post build status: could not post build commit status: 401 - Unauthorized",
 			username:       "hello",
 			password:       "password",
-			provideruid:    "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			commitStatus:   "kustomization/gitops-system/0c9c2e41",
 			headers: map[string]string{
 				"Authorization":     "Basic " + base64.StdEncoding.EncodeToString([]byte("hello"+":"+"password")),
 				"x-atlassian-token": "no-check",
@@ -312,16 +306,14 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			event: generateTestEventKustomization("error", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("error", map[string]string{
-				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			key:     sha1String("kustomization/gitops-system/0c9c2e41"),
 			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 		{
-			name:        "Validate duplicate commit status successful match",
-			username:    "hello",
-			password:    "password",
-			provideruid: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			name:         "Validate duplicate commit status successful match",
+			username:     "hello",
+			password:     "password",
+			commitStatus: "kustomization/gitops-system/0c9c2e41",
 			headers: map[string]string{
 				"Authorization":     "Basic " + base64.StdEncoding.EncodeToString([]byte("hello"+":"+"password")),
 				"x-atlassian-token": "no-check",
@@ -330,9 +322,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			event: generateTestEventKustomization("info", map[string]string{
 				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 			}),
-			key: sha1String(generateCommitStatusID("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", generateTestEventKustomization("info", map[string]string{
-				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
-			}))),
+			key:     sha1String("kustomization/gitops-system/0c9c2e41"),
 			uriHash: "5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 		},
 	}
@@ -367,7 +357,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 						jsondata, _ := json.Marshal(&bbServerBuildStatus{
 							Name:        name,
 							Description: desc,
-							Key:         sha1String(generateCommitStatusID(tt.provideruid, tt.event)),
+							Key:         sha1String(tt.commitStatus),
 							State:       "SUCCESSFUL",
 							Url:         "https://example.com:7990/scm/projectfoo/repobar.git",
 						})
@@ -450,7 +440,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				}
 			}))
 			defer ts.Close()
-			c, err := NewBitbucketServer(tt.provideruid, ts.URL+"/scm/projectfoo/repobar.git", tt.token, nil, tt.username, tt.password)
+			c, err := NewBitbucketServer(tt.commitStatus, ts.URL+"/scm/projectfoo/repobar.git", tt.token, nil, tt.username, tt.password)
 			require.NoError(t, err)
 			err = c.Post(context.TODO(), tt.event)
 			if tt.testFailReason == "" {

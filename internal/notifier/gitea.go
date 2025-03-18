@@ -34,20 +34,25 @@ import (
 )
 
 type Gitea struct {
-	BaseURL     string
-	Token       string
-	Owner       string
-	Repo        string
-	ProviderUID string
-	Client      *gitea.Client
-	Debug       bool
+	BaseURL      string
+	Token        string
+	Owner        string
+	Repo         string
+	CommitStatus string
+	Client       *gitea.Client
+	Debug        bool
 }
 
 var _ Interface = &Gitea{}
 
-func NewGitea(providerUID string, addr string, token string, certPool *x509.CertPool) (*Gitea, error) {
+func NewGitea(commitStatus string, addr string, token string, certPool *x509.CertPool) (*Gitea, error) {
 	if len(token) == 0 {
 		return nil, errors.New("gitea token cannot be empty")
+	}
+
+	// this should never happen
+	if commitStatus == "" {
+		return nil, errors.New("commit status cannot be empty")
 	}
 
 	host, id, err := parseGitAddress(addr)
@@ -79,13 +84,13 @@ func NewGitea(providerUID string, addr string, token string, certPool *x509.Cert
 	}
 
 	return &Gitea{
-		BaseURL:     host,
-		Token:       token,
-		Owner:       idComponents[0],
-		Repo:        idComponents[1],
-		ProviderUID: providerUID,
-		Client:      client,
-		Debug:       os.Getenv("NOTIFIER_GITEA_DEBUG") == "true",
+		BaseURL:      host,
+		Token:        token,
+		Owner:        idComponents[0],
+		Repo:         idComponents[1],
+		CommitStatus: commitStatus,
+		Client:       client,
+		Debug:        os.Getenv("NOTIFIER_GITEA_DEBUG") == "true",
 	}, nil
 }
 
@@ -104,7 +109,7 @@ func (g *Gitea) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	_, desc := formatNameAndDescription(event)
-	id := generateCommitStatusID(g.ProviderUID, event)
+	id := g.CommitStatus
 
 	status := gitea.CreateStatusOption{
 		State:       state,

@@ -460,6 +460,14 @@ spec:
                   should be posted.
                 maxLength: 2048
                 type: string
+              commitStatusExpr:
+                description: |-
+                  CommitStatusExpr is a CEL expression that evaluates to a string value
+                  that can be used to generate a custom commit status message for use
+                  with eligible Provider types (github, gitlab, gitea, bitbucketserver,
+                  bitbucket, azuredevops). Supported variables are: event, provider,
+                  and alert.
+                type: string
               interval:
                 description: |-
                   Interval at which to reconcile the Provider with its Secret references.
@@ -529,6 +537,12 @@ spec:
             required:
             - type
             type: object
+            x-kubernetes-validations:
+            - message: spec.commitStatusExpr is only supported for the 'github', 'gitlab',
+                'gitea', 'bitbucketserver', 'bitbucket', 'azuredevops' provider types
+              rule: self.type == 'github' || self.type == 'gitlab' || self.type ==
+                'gitea' || self.type == 'bitbucketserver' || self.type == 'bitbucket'
+                || self.type == 'azuredevops' || !has(self.commitStatusExpr)
         type: object
     served: true
     storage: true

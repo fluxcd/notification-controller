@@ -34,13 +34,13 @@ import (
 )
 
 type GitHub struct {
-	Owner       string
-	Repo        string
-	ProviderUID string
-	Client      *github.Client
+	Owner        string
+	Repo         string
+	CommitStatus string
+	Client       *github.Client
 }
 
-func NewGitHub(providerUID string, addr string, token string, certPool *x509.CertPool) (*GitHub, error) {
+func NewGitHub(commitStatus string, addr string, token string, certPool *x509.CertPool) (*GitHub, error) {
 	if len(token) == 0 {
 		return nil, errors.New("github token cannot be empty")
 	}
@@ -58,6 +58,11 @@ func NewGitHub(providerUID string, addr string, token string, certPool *x509.Cer
 	comp := strings.Split(id, "/")
 	if len(comp) != 2 {
 		return nil, fmt.Errorf("invalid repository id %q", id)
+	}
+
+	// this should never happen
+	if commitStatus == "" {
+		return nil, errors.New("commit status cannot be empty")
 	}
 
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
@@ -82,10 +87,10 @@ func NewGitHub(providerUID string, addr string, token string, certPool *x509.Cer
 	}
 
 	return &GitHub{
-		Owner:       comp[0],
-		Repo:        comp[1],
-		ProviderUID: providerUID,
-		Client:      client,
+		Owner:        comp[0],
+		Repo:         comp[1],
+		CommitStatus: commitStatus,
+		Client:       client,
 	}, nil
 }
 
@@ -110,7 +115,7 @@ func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	_, desc := formatNameAndDescription(event)
-	id := generateCommitStatusID(g.ProviderUID, event)
+	id := g.CommitStatus
 	status := &github.RepoStatus{
 		State:       &state,
 		Context:     &id,

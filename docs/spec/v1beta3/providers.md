@@ -1639,3 +1639,30 @@ You can create the secret with `kubectl` like this:
 ```shell
 kubectl create secret generic azuredevops-token --from-literal=token=<AZURE-TOKEN>
 ```
+
+#### Custom Commit Status Messages
+
+Git providers supporting commit status updates can use a CEL expression to build a custom commit status message by setting the optional field `spec.commitStatusExpr`:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: github-status
+  namespace: flux-system
+spec:
+  type: github
+  address: https://github.com/my-gh-org/my-gh-repo
+  secretRef:
+    name: github-token
+  commitStatusExpr: "(event.involvedObject.kind + '/' + event.involvedObject.name + '/' + event.metadata.foo + '/' + provider.metadata.uid.split('-').first().value()).lowerAscii()"
+```
+
+The CEL expression can access the following variables:
+- `event`: The Flux event object containing metadata about the reconciliation
+- `provider`: The Provider object
+- `alert`: The Alert object
+
+If the `spec.commitStatusExpr` field is not specified, the notification-controller will use a default commit status message based on the involved object kind, name, and a truncated provider UID to generate a commit status (e.g. `kustomization/gitops-system/0c9c2e41`).
+
+A useful tool for building and testing CEL expressions is the [CEL Playground](https://playcel.undistro.io/).

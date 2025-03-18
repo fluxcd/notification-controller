@@ -24,28 +24,35 @@ import (
 )
 
 func TestNewGitHubBasic(t *testing.T) {
-	g, err := NewGitHub("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://github.com/foo/bar", "foobar", nil)
+	g, err := NewGitHub("kustomization/gitops-system/0c9c2e41", "https://github.com/foo/bar", "foobar", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
 	assert.Equal(t, g.Client.BaseURL.Host, "api.github.com")
+	assert.Equal(t, g.CommitStatus, "kustomization/gitops-system/0c9c2e41")
 }
 
 func TestNewEmterpriseGitHubBasic(t *testing.T) {
-	g, err := NewGitHub("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://foobar.com/foo/bar", "foobar", nil)
+	g, err := NewGitHub("kustomization/gitops-system/0c9c2e41", "https://foobar.com/foo/bar", "foobar", nil)
 	assert.Nil(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
 	assert.Equal(t, g.Client.BaseURL.Host, "foobar.com")
+	assert.Equal(t, g.CommitStatus, "kustomization/gitops-system/0c9c2e41")
 }
 
 func TestNewGitHubInvalidUrl(t *testing.T) {
-	_, err := NewGitHub("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://github.com/foo/bar/baz", "foobar", nil)
+	_, err := NewGitHub("kustomization/gitops-system/0c9c2e41", "https://github.com/foo/bar/baz", "foobar", nil)
 	assert.NotNil(t, err)
 }
 
 func TestNewGitHubEmptyToken(t *testing.T) {
-	_, err := NewGitHub("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://github.com/foo/bar", "", nil)
+	_, err := NewGitHub("kustomization/gitops-system/0c9c2e41", "https://github.com/foo/bar", "", nil)
+	assert.NotNil(t, err)
+}
+
+func TestNewGitHubEmptyCommitStatus(t *testing.T) {
+	_, err := NewGitHub("", "https://github.com/foo/bar", "foobar", nil)
 	assert.NotNil(t, err)
 }
 

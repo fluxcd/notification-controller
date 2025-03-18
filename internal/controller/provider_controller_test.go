@@ -117,3 +117,85 @@ func TestProviderReconciler(t *testing.T) {
 		return false
 	}, timeout).Should(BeTrue())
 }
+
+func TestProviderReconciler_APIServerValidation(t *testing.T) {
+	tests := []struct {
+		name             string
+		providerType     string
+		commitStatusExpr string
+		err              string
+	}{
+		{
+			name:             "github provider types can create providers with commitStatusExpr",
+			providerType:     "github",
+			commitStatusExpr: "event.metadata.namespace + '/' + event.metadata.name + '/' + provider.metadata.uid",
+		},
+		{
+			name:             "gitlab provider types can create providers with commitStatusExpr",
+			providerType:     "gitlab",
+			commitStatusExpr: "event.metadata.namespace + '/' + event.metadata.name + '/' + provider.metadata.uid",
+		},
+		{
+			name:             "gitea provider types can create providers with commitStatusExpr",
+			providerType:     "gitea",
+			commitStatusExpr: "event.metadata.namespace + '/' + event.metadata.name + '/' + provider.metadata.uid",
+		},
+		{
+			name:             "bitbucketserver provider types can create providers with commitStatusExpr",
+			providerType:     "bitbucketserver",
+			commitStatusExpr: "event.metadata.namespace + '/' + event.metadata.name + '/' + provider.metadata.uid",
+		},
+		{
+			name:             "bitbucket provider types can create providers with commitStatusExpr",
+			providerType:     "bitbucket",
+			commitStatusExpr: "event.metadata.namespace + '/' + event.metadata.name + '/' + provider.metadata.uid",
+		},
+		{
+			name:             "azuredevops provider types can create providers with commitStatusExpr",
+			providerType:     "azuredevops",
+			commitStatusExpr: "event.metadata.namespace + '/' + event.metadata.name + '/' + provider.metadata.uid",
+		},
+		{
+			name:             "unsupported provider types cannot create providers with commitStatusExpr",
+			providerType:     "slack",
+			commitStatusExpr: "event.metadata.namespace + '/' + event.metadata.name + '/' + provider.metadata.uid",
+			err:              "spec.commitStatusExpr is only supported for the 'github', 'gitlab', 'gitea', 'bitbucketserver', 'bitbucket', 'azuredevops' provider types",
+		},
+		{
+			name:             "github provider types can create providers without commitStatusExpr",
+			providerType:     "github",
+			commitStatusExpr: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			obj := &apiv1beta3.Provider{
+				ObjectMeta: metav1.ObjectMeta{
+					GenerateName: "provider-reconcile-",
+					Namespace:    "default",
+				},
+				Spec: apiv1beta3.ProviderSpec{
+					Type:             tt.providerType,
+					CommitStatusExpr: tt.commitStatusExpr,
+				},
+			}
+
+			err := testEnv.Create(ctx, obj)
+			if err == nil {
+				defer func() {
+					err := testEnv.Delete(ctx, obj)
+					g.Expect(err).ToNot(HaveOccurred())
+				}()
+			}
+
+			if tt.err != "" {
+				g.Expect(err.Error()).To(ContainSubstring(tt.err))
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
