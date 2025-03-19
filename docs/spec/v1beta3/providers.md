@@ -550,8 +550,9 @@ The Event will be formatted into a message string, with the metadata attached
 as a list of key-value pairs.
 
 The Provider's [Channel](#channel) is used to set the receiver of the message.
-This can be a unique identifier (`-1234567890`) for the target chat, or
-the username (`@username`) of the target channel.
+This can be a unique identifier (`-1234567890`) for the target chat,
+a unique identifier with the topic identifier (`-1234567890:1`) for the forum chat,
+or the username (`@username`) of the target channel.
 
 This Provider type does not support the configuration of a [proxy URL](#https-proxy)
 or [TLS certificates](#tls-certificates).
@@ -573,7 +574,7 @@ metadata:
 spec:
   type: telegram
   address: https://api.telegram.org
-  channel: "@fluxcd" # or "-1557265138" (channel id)
+  channel: "@fluxcd" # or "-1557265138" (channel id) or "-1552289257:1" (forum chat id with topic id)
   secretRef:
     name: telegram-token
 ```
