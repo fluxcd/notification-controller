@@ -368,7 +368,8 @@ and use `https://api.telegram.org/` as the api url.
  --from-literal=address=https://api.telegram.org
 ```
 
-Also note that `spec.channel` can be a unique identifier for the target chat
+Also note that `spec.channel` can be a unique identifier for the target chat,
+a unique identifier with the topic identifier for the forum chat
 or username of the target channel (in the format @channelusername)
 
 ```yaml
@@ -379,7 +380,7 @@ metadata:
   namespace: flux-system
 spec:
   type: telegram
-  channel: "@fluxtest" # or "-1557265138" (channel id)
+  channel: "@fluxtest" # or "-1557265138" (channel id) or "-1552289257:1" (forum chat id with topic id)
   secretRef:
     name: telegram-token
 ```
