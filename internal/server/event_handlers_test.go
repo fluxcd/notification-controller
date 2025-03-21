@@ -788,7 +788,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			}
 			provider := apiv1beta3.Provider{Spec: *tt.providerSpec}
 
-			_, _, err := createNotifier(context.TODO(), builder.Build(), &provider, "")
+			_, _, err := createNotifier(context.TODO(), builder.Build(), &provider, "", nil)
 			g.Expect(err != nil).To(Equal(tt.wantErr))
 		})
 	}

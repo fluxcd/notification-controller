@@ -21,6 +21,8 @@ import (
 	"fmt"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1beta3"
+
+	pkgcache "github.com/fluxcd/pkg/cache"
 )
 
 var (
@@ -64,15 +66,19 @@ type notifierMap map[string]factoryFunc
 type factoryFunc func(opts notifierOptions) (Interface, error)
 
 type notifierOptions struct {
-	URL          string
-	ProxyURL     string
-	Username     string
-	Channel      string
-	Token        string
-	Headers      map[string]string
-	CertPool     *x509.CertPool
-	Password     string
-	CommitStatus string
+	URL               string
+	ProxyURL          string
+	Username          string
+	Channel           string
+	Token             string
+	Headers           map[string]string
+	CertPool          *x509.CertPool
+	Password          string
+	CommitStatus      string
+	ProviderName      string
+	ProviderNamespace string
+	SecretData        map[string][]byte
+	TokenCache        *pkgcache.TokenCache
 }
 
 type Factory struct {
@@ -135,6 +141,34 @@ func WithPassword(password string) Option {
 func WithCommitStatus(commitStatus string) Option {
 	return func(o *notifierOptions) {
 		o.CommitStatus = commitStatus
+	}
+}
+
+// WithProviderName sets the provider name for the notifier.
+func WithProviderName(name string) Option {
+	return func(o *notifierOptions) {
+		o.ProviderName = name
+	}
+}
+
+// WithProviderNamespace sets the provider namespace for the notifier.
+func WithProviderNamespace(namespace string) Option {
+	return func(o *notifierOptions) {
+		o.ProviderNamespace = namespace
+	}
+}
+
+// WithSecretData sets the secret data for the notifier.
+func WithSecretData(data map[string][]byte) Option {
+	return func(o *notifierOptions) {
+		o.SecretData = data
+	}
+}
+
+// WithTokenCache sets the token cache for the notifier.
+func WithTokenCache(cache *pkgcache.TokenCache) Option {
+	return func(o *notifierOptions) {
+		o.TokenCache = cache
 	}
 }
 
@@ -258,14 +292,14 @@ func gitHubNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitHub(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool)
+	return NewGitHub(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool, opts.ProxyURL, opts.ProviderName, opts.ProviderNamespace, opts.SecretData, opts.TokenCache)
 }
 
 func gitHubDispatchNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitHubDispatch(opts.URL, opts.Token, opts.CertPool)
+	return NewGitHubDispatch(opts.URL, opts.Token, opts.CertPool, opts.ProxyURL, opts.ProviderName, opts.ProviderNamespace, opts.SecretData, opts.TokenCache)
 }
 
 func gitLabNotifierFunc(opts notifierOptions) (Interface, error) {

@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	pkgcache "github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/masktoken"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
@@ -261,7 +262,7 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, nil, "", 0, fmt.Errorf("failed to create commit status: %w", err)
 	}
 
-	sender, token, err := createNotifier(ctx, s.kubeClient, &provider, commitStatus)
+	sender, token, err := createNotifier(ctx, s.kubeClient, &provider, commitStatus, s.tokenCache)
 	if err != nil {
 		return nil, nil, "", 0, fmt.Errorf("failed to initialize notifier for provider '%s': %w", provider.Name, err)
 	}
@@ -292,7 +293,7 @@ func createCommitStatus(ctx context.Context, provider *apiv1beta3.Provider, even
 }
 
 // createNotifier returns a notifier.Interface for the given Provider.
-func createNotifier(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider, commitStatus string) (notifier.Interface, string, error) {
+func createNotifier(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider, commitStatus string, tokenCache *pkgcache.TokenCache) (notifier.Interface, string, error) {
 	logger := log.FromContext(ctx)
 
 	webhook := provider.Spec.Address
@@ -301,9 +302,8 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 	token := ""
 	password := ""
 	headers := make(map[string]string)
-
+	var secret corev1.Secret
 	if provider.Spec.SecretRef != nil {
-		var secret corev1.Secret
 		secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.SecretRef.Name}
 
 		err := kubeClient.Get(ctx, secretName, &secret)
@@ -415,6 +415,22 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 
 	if password != "" {
 		options = append(options, notifier.WithPassword(password))
+	}
+
+	if provider.Name != "" {
+		options = append(options, notifier.WithProviderName(provider.Name))
+	}
+
+	if provider.Namespace != "" {
+		options = append(options, notifier.WithProviderNamespace(provider.Namespace))
+	}
+
+	if secret.Data != nil {
+		options = append(options, notifier.WithSecretData(secret.Data))
+	}
+
+	if tokenCache != nil {
+		options = append(options, notifier.WithTokenCache(tokenCache))
 	}
 
 	factory := notifier.NewFactory(webhook, options...)

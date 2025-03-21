@@ -1300,14 +1300,18 @@ spec:
   type: githubdispatch
   address: https://github.com/stefanprodan/podinfo
   secretRef:
-    name: api-token
+    name: auth-secret
 ```
 
 The `address` is the address of your repository where you want to send webhooks to trigger GitHub workflows.
 
-GitHub uses personal access tokens for authentication with its API:
+GitHub uses [personal access
+tokens]((https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token))
+or [GitHub
+app]((https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation))
+for authentication with its API:
 
-* [GitHub personal access token](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token)
+#### GitHub personal access token
 
 The provider requires a secret in the same format, with the personal access token as the value for the token key:
 
@@ -1316,11 +1320,18 @@ The provider requires a secret in the same format, with the personal access toke
 apiVersion: v1
 kind: Secret
 metadata:
-  name: api-token
+  name: auth-secret
   namespace: default
 stringData:
   token: <personal-access-tokens>
 ```
+
+#### GitHub App
+
+To use Github App authentication, make sure the GitHub App is registered and
+installed with the necessary permissions and the github app secret is created as
+described
+[here](https://fluxcd.io/flux/components/source/gitrepositories/#github).
 
 #### Setting up a GitHub workflow
 
@@ -1539,16 +1550,31 @@ spec:
 
 #### GitHub
 
-When `.spec.type` is set to `github`, the referenced secret must contain a key called `token` with the value set to a
-[GitHub personal access token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
+When `.spec.type` is set to `github`, the referenced secret can contain a
+personal access token OR github app details. 
 
-The token must have permissions to update the commit status for the GitHub repository specified in `.spec.address`.
+##### Personal Access Token
+
+To use personal access tokens, the secret must contain a key called `token` with
+the value set to a [GitHub personal access
+token](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token).
+The token must have permissions to update the commit status for the GitHub
+repository specified in `.spec.address`.
 
 You can create the secret with `kubectl` like this:
 
 ```shell
 kubectl create secret generic github-token --from-literal=token=<GITHUB-TOKEN>
 ```
+
+##### GitHub App
+
+To use [Github App
+authentication](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation),
+make sure the GitHub App is registered and installed with the necessary
+permissions to update the commit status and the github app secret is created as
+described
+[here](https://fluxcd.io/flux/components/source/gitrepositories/#github).
 
 #### GitLab
 

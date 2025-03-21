@@ -18,19 +18,14 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
-	"net/url"
-	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	pkgcache "github.com/fluxcd/pkg/cache"
 
 	"github.com/google/go-github/v64/github"
-	"golang.org/x/oauth2"
 )
 
 type GitHubDispatch struct {
@@ -39,51 +34,16 @@ type GitHubDispatch struct {
 	Client *github.Client
 }
 
-func NewGitHubDispatch(addr string, token string, certPool *x509.CertPool) (*GitHubDispatch, error) {
-	if len(token) == 0 {
-		return nil, errors.New("github token cannot be empty")
-	}
-
-	host, id, err := parseGitAddress(addr)
+func NewGitHubDispatch(addr string, token string, certPool *x509.CertPool, proxyURL string, providerName string, providerNamespace string, secretData map[string][]byte, tokenCache *pkgcache.TokenCache) (*GitHubDispatch, error) {
+	repoInfo, err := getRepoInfoAndGithubClient(addr, token, certPool, proxyURL, providerName, providerNamespace, secretData, tokenCache)
 	if err != nil {
 		return nil, err
-	}
-
-	baseUrl, err := url.Parse(host)
-	if err != nil {
-		return nil, err
-	}
-
-	comp := strings.Split(id, "/")
-	if len(comp) != 2 {
-		return nil, fmt.Errorf("invalid repository id %q", id)
-	}
-
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-	tc := oauth2.NewClient(context.Background(), ts)
-	client := github.NewClient(tc)
-	if baseUrl.Host != "github.com" {
-		if certPool != nil {
-			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs: certPool,
-				},
-			}
-			hc := &http.Client{Transport: tr}
-			ctx := context.WithValue(context.Background(), oauth2.HTTPClient, hc)
-			tc = oauth2.NewClient(ctx, ts)
-		}
-
-		client, err = github.NewEnterpriseClient(host, host, tc)
-		if err != nil {
-			return nil, fmt.Errorf("could not create enterprise GitHub client: %v", err)
-		}
 	}
 
 	return &GitHubDispatch{
-		Owner:  comp[0],
-		Repo:   comp[1],
-		Client: client,
+		Owner:  repoInfo.owner,
+		Repo:   repoInfo.repo,
+		Client: repoInfo.client,
 	}, nil
 }
 
