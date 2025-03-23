@@ -69,18 +69,16 @@ func NewGitea(commitStatus string, addr string, token string, certPool *x509.Cer
 		return nil, fmt.Errorf("invalid repository id %q", id)
 	}
 
-	client, err := gitea.NewClient(host, gitea.SetToken(token))
-	if err != nil {
-		return nil, fmt.Errorf("failed creating Gitea client: %w", err)
+	tr := &http.Transport{}
+	if certPool != nil {
+		tr.TLSClientConfig = &tls.Config{
+			RootCAs: certPool,
+		}
 	}
 
-	if certPool != nil {
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: certPool,
-			},
-		}
-		client.SetHTTPClient(&http.Client{Transport: tr})
+	client, err := gitea.NewClient(host, gitea.SetToken(token), gitea.SetHTTPClient(&http.Client{Transport: tr}))
+	if err != nil {
+		return nil, fmt.Errorf("failed creating Gitea client: %w", err)
 	}
 
 	return &Gitea{
