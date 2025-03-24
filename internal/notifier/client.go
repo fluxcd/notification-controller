@@ -32,29 +32,118 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-type requestOptFunc func(*retryablehttp.Request)
+type postOptions struct {
+	proxy             string
+	certPool          *x509.CertPool
+	requestModifier   func(*retryablehttp.Request)
+	responseValidator func(statusCode int, body []byte) error
+}
 
-func postMessage(ctx context.Context, address, proxy string, certPool *x509.CertPool, payload interface{}, reqOpts ...requestOptFunc) error {
+type postOption func(*postOptions)
+
+func postMessage(ctx context.Context, address string, payload interface{}, opts ...postOption) error {
+	options := &postOptions{
+		// Default validateResponse function verifies that the response status code is 200, 202 or 201.
+		responseValidator: func(statusCode int, body []byte) error {
+			if statusCode == http.StatusOK ||
+				statusCode == http.StatusAccepted ||
+				statusCode == http.StatusCreated {
+				return nil
+			}
+
+			return fmt.Errorf("request failed with status code %d, %s", statusCode, string(body))
+		},
+	}
+
+	for _, o := range opts {
+		o(options)
+	}
+
+	httpClient, err := newHTTPClient(options)
+	if err != nil {
+		return err
+	}
+
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("marshalling notification payload failed: %w", err)
+	}
+
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, address, data)
+	if err != nil {
+		return fmt.Errorf("failed to create a new request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if options.requestModifier != nil {
+		options.requestModifier(req)
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	if err := options.responseValidator(resp.StatusCode, body); err != nil {
+		return fmt.Errorf("request failed: %w", err)
+	}
+
+	return nil
+}
+
+func withProxy(proxy string) postOption {
+	return func(opts *postOptions) {
+		opts.proxy = proxy
+	}
+}
+
+func withCertPool(certPool *x509.CertPool) postOption {
+	return func(opts *postOptions) {
+		opts.certPool = certPool
+	}
+}
+
+func withRequestModifier(reqModifier func(*retryablehttp.Request)) postOption {
+	return func(opts *postOptions) {
+		opts.requestModifier = reqModifier
+	}
+}
+
+func withResponseValidator(respValidator func(statusCode int, body []byte) error) postOption {
+	return func(opts *postOptions) {
+		opts.responseValidator = respValidator
+	}
+}
+
+func newHTTPClient(opts *postOptions) (*retryablehttp.Client, error) {
 	httpClient := retryablehttp.NewClient()
-	if certPool != nil {
+	if opts.certPool != nil {
 		httpClient.HTTPClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs: certPool,
+				RootCAs: opts.certPool,
 			},
 		}
 	}
 
-	if proxy != "" {
-		proxyURL, err := url.Parse(proxy)
+	if opts.proxy != "" {
+		proxyURL, err := url.Parse(opts.proxy)
 		if err != nil {
-			return fmt.Errorf("unable to parse proxy URL '%s', error: %w", proxy, err)
+			return nil, fmt.Errorf("unable to parse proxy URL: %w", err)
 		}
+
 		var tlsConfig *tls.Config
-		if certPool != nil {
+		if opts.certPool != nil {
 			tlsConfig = &tls.Config{
-				RootCAs: certPool,
+				RootCAs: opts.certPool,
 			}
 		}
+
 		httpClient.HTTPClient.Transport = &http.Transport{
 			Proxy:           http.ProxyURL(proxyURL),
 			TLSClientConfig: tlsConfig,
@@ -79,34 +168,5 @@ func postMessage(ctx context.Context, address, proxy string, certPool *x509.Cert
 	httpClient.RetryMax = 4
 	httpClient.Logger = nil
 
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("marshalling notification payload failed: %w", err)
-	}
-
-	req, err := retryablehttp.NewRequest(http.MethodPost, address, data)
-	if err != nil {
-		return fmt.Errorf("failed to create a new request: %w", err)
-	}
-	if ctx != nil {
-		req = req.WithContext(ctx)
-	}
-	req.Header.Set("Content-Type", "application/json")
-	for _, o := range reqOpts {
-		o(req)
-	}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusCreated {
-		b, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("unable to read response body, %s", err)
-		}
-		return fmt.Errorf("request failed with status code %d, %s", resp.StatusCode, string(b))
-	}
-
-	return nil
+	return httpClient, nil
 }

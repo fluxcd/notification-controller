@@ -58,3 +58,18 @@ func TestSlack_PostUpdate(t *testing.T) {
 	err = slack.Post(context.TODO(), event)
 	require.NoError(t, err)
 }
+
+func TestSlack_ValidateResponse(t *testing.T) {
+	body := []byte(`{
+  "ok": true
+}`)
+	err := validateSlackResponse(http.StatusOK, body)
+	require.NoError(t, err)
+
+	body = []byte(`{
+  "ok": false,
+  "error": "too_many_attachments"
+}`)
+	err = validateSlackResponse(http.StatusOK, body)
+	require.ErrorContains(t, err, "Slack responded with error: too_many_attachments")
+}
