@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -31,30 +32,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// newTestServer returns an HTTP server mimicking parts of Gitea's API so that tests don't
+// newTestHTTPServer returns an HTTP server mimicking parts of Gitea's API so that tests don't
 // need to rely on 3rd-party components to be available (like the try.gitea.io server).
-func newTestServer(t *testing.T) *httptest.Server {
+func newTestHTTPServer(t *testing.T) *httptest.Server {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/v1/version":
-			fmt.Fprintf(w, `{"version":"1.18.3"}`)
-		case "/api/v1/repos/foo/bar/commits/69b59063470310ebbd88a9156325322a124e55a3/statuses":
-			fmt.Fprintf(w, "[]")
-		case "/api/v1/repos/foo/bar/statuses/69b59063470310ebbd88a9156325322a124e55a3":
-			fmt.Fprintf(w, "{}")
-		case "/api/v1/repos/foo/bar/commits/8a9156325322a124e55a369b59063470310ebbd8/statuses":
-			fmt.Fprintf(w, "[]")
-		case "/api/v1/repos/foo/bar/statuses/8a9156325322a124e55a369b59063470310ebbd8":
-			fmt.Fprintf(w, "{}")
-		default:
-			t.Logf("unknown %s request at %s", r.Method, r.URL.Path)
-		}
+		handleTestRequest(t, w, r)
 	}))
 	return srv
 }
 
+// newTestHTTPSServer returns an HTTPS server mimicking parts of Gitea's API so that tests don't
+// need to rely on 3rd-party components to be available (like the try.gitea.io server).
+func newTestHTTPSServer(t *testing.T) *httptest.Server {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handleTestRequest(t, w, r)
+	}))
+	return srv
+}
+
+func handleTestRequest(t *testing.T, w http.ResponseWriter, r *http.Request) {
+	switch r.URL.Path {
+	case "/api/v1/version":
+		fmt.Fprintf(w, `{"version":"1.18.3"}`)
+	case "/api/v1/repos/foo/bar/commits/69b59063470310ebbd88a9156325322a124e55a3/statuses":
+		fmt.Fprintf(w, "[]")
+	case "/api/v1/repos/foo/bar/statuses/69b59063470310ebbd88a9156325322a124e55a3":
+		fmt.Fprintf(w, "{}")
+	case "/api/v1/repos/foo/bar/commits/8a9156325322a124e55a369b59063470310ebbd8/statuses":
+		fmt.Fprintf(w, "[]")
+	case "/api/v1/repos/foo/bar/statuses/8a9156325322a124e55a369b59063470310ebbd8":
+		fmt.Fprintf(w, "{}")
+	default:
+		t.Logf("unknown %s request at %s", r.Method, r.URL.Path)
+	}
+}
+
 func TestNewGiteaBasic(t *testing.T) {
-	srv := newTestServer(t)
+	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
 	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "foobar", nil)
@@ -64,8 +78,33 @@ func TestNewGiteaBasic(t *testing.T) {
 	assert.Equal(t, g.BaseURL, srv.URL)
 }
 
+func TestNewGiteaWithCertPool(t *testing.T) {
+	srv := newTestHTTPSServer(t)
+	defer srv.Close()
+
+	certpool := x509.NewCertPool()
+	certpool.AddCert(srv.Certificate())
+
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "foobar", certpool)
+	assert.NoError(t, err)
+	assert.Equal(t, g.Owner, "foo")
+	assert.Equal(t, g.Repo, "bar")
+	assert.Equal(t, g.BaseURL, srv.URL)
+}
+
+func TestNewGiteaNoCertificate(t *testing.T) {
+	srv := newTestHTTPSServer(t)
+	defer srv.Close()
+
+	certpool := x509.NewCertPool()
+
+	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "foobar", certpool)
+	assert.Error(t, err)
+	assert.ErrorContains(t, err, "tls: failed to verify certificate: x509: certificate signed by unknown authority")
+}
+
 func TestNewGiteaInvalidUrl(t *testing.T) {
-	srv := newTestServer(t)
+	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
 	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar/baz", "foobar", nil)
@@ -73,7 +112,7 @@ func TestNewGiteaInvalidUrl(t *testing.T) {
 }
 
 func TestNewGiteaEmptyToken(t *testing.T) {
-	srv := newTestServer(t)
+	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
 	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", nil)
@@ -81,7 +120,7 @@ func TestNewGiteaEmptyToken(t *testing.T) {
 }
 
 func TestNewGiteaEmptyCommitStatus(t *testing.T) {
-	srv := newTestServer(t)
+	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
 	_, err := NewGitea("", srv.URL+"/foo/bar", "foobar", nil)
@@ -89,7 +128,7 @@ func TestNewGiteaEmptyCommitStatus(t *testing.T) {
 }
 
 func TestGitea_Post(t *testing.T) {
-	srv := newTestServer(t)
+	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
 	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "foobar", nil)
