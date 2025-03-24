@@ -33,16 +33,25 @@ import (
 )
 
 type messageOptions struct {
-	proxy    string
-	certPool *x509.CertPool
-	reqOpts  []requestOptFunc
+	proxy            string
+	certPool         *x509.CertPool
+	reqOpts          []requestOptFunc
+	validateResponse func(*http.Response) bool
 }
 type requestOptFunc func(*retryablehttp.Request)
 
 type messageOption func(*messageOptions)
 
 func postMessage(ctx context.Context, address string, payload interface{}, options ...messageOption) error {
-	opts := &messageOptions{}
+	opts := &messageOptions{
+		// Default validateResponse function varifies that the response status code is 200, 202 or 201.
+		validateResponse: func(resp *http.Response) bool {
+			return resp.StatusCode == http.StatusOK ||
+				resp.StatusCode == http.StatusAccepted ||
+				resp.StatusCode == http.StatusCreated
+		},
+	}
+
 	for _, o := range options {
 		o(opts)
 	}
@@ -61,6 +70,7 @@ func postMessage(ctx context.Context, address string, payload interface{}, optio
 	if err != nil {
 		return fmt.Errorf("failed to create a new request: %w", err)
 	}
+
 	if ctx != nil {
 		req = req.WithContext(ctx)
 	}
@@ -68,12 +78,14 @@ func postMessage(ctx context.Context, address string, payload interface{}, optio
 	for _, o := range opts.reqOpts {
 		o(req)
 	}
+
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
+	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusAccepted && resp.StatusCode != http.StatusCreated {
+	if !opts.validateResponse(resp) {
 		b, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return fmt.Errorf("unable to read response body, %s", err)
@@ -99,6 +111,12 @@ func withCertPool(certPool *x509.CertPool) messageOption {
 func withRequestOption(reqOpt requestOptFunc) messageOption {
 	return func(opts *messageOptions) {
 		opts.reqOpts = append(opts.reqOpts, reqOpt)
+	}
+}
+
+func withValidateResponse(validateResponse func(*http.Response) bool) messageOption {
+	return func(opts *messageOptions) {
+		opts.validateResponse = validateResponse
 	}
 }
 

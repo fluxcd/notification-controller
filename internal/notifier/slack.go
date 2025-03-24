@@ -17,9 +17,13 @@ limitations under the License.
 package notifier
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -118,16 +122,48 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 
 	payload.Attachments = []SlackAttachment{a}
 
-	err := postMessage(
-		ctx, s.URL, payload, withProxy(s.ProxyURL), withCertPool(s.CertPool),
+	messageOpts := []messageOption{
+		withProxy(s.ProxyURL),
+		withCertPool(s.CertPool),
 		withRequestOption(func(request *retryablehttp.Request) {
 			if s.Token != "" {
 				request.Header.Add("Authorization", "Bearer "+s.Token)
 			}
 		}),
-	)
+	}
+	if s.URL == "https://slack.com/api/chat.postMessage" {
+		messageOpts = append(messageOpts, withValidateResponse(s.validateResponse))
+	}
+
+	err := postMessage(ctx, s.URL, payload, messageOpts...)
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
 	return nil
+}
+
+// validateResponse validates that a chat.postMessage API response is successful.
+// chat.postMessage API always returns 200 OK.
+// See https://api.slack.com/methods/chat.postMessage.
+//
+// On the other hand, incoming webhooks return more expressive HTTP status codes.
+// See https://api.slack.com/messaging/webhooks#handling_errors.
+func (s *Slack) validateResponse(resp *http.Response) bool {
+	// Clone resp.Body so it can be read again in postMessage error handling.
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false
+	}
+	resp.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	type slackResponse struct {
+		Ok bool `json:"ok"`
+	}
+	slackResp := slackResponse{}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return false
+	}
+
+	return slackResp.Ok
 }
