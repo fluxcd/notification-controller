@@ -137,13 +137,17 @@ func (s *Alertmanager) Post(ctx context.Context, event eventv1.Event) error {
 		},
 	}
 
-	var opts []requestOptFunc
-	if s.Token != "" {
-		opts = append(opts, func(request *retryablehttp.Request) {
-			request.Header.Add("Authorization", "Bearer "+s.Token)
-		})
+	opts := []messageOption{
+		withProxy(s.ProxyURL),
+		withCertPool(s.CertPool),
 	}
-	err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload, opts...)
+	if s.Token != "" {
+		opts = append(opts,
+			withRequestOption(func(request *retryablehttp.Request) {
+				request.Header.Add("Authorization", "Bearer "+s.Token)
+			}))
+	}
+	err := postMessage(ctx, s.URL, payload, opts...)
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}

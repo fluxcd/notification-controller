@@ -161,7 +161,7 @@ func (s *MSTeams) Post(ctx context.Context, event eventv1.Event) error {
 		payload = buildMSTeamsAdaptiveCardPayload(&event, objName)
 	}
 
-	err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload)
+	err := postMessage(ctx, s.URL, payload, withProxy(s.ProxyURL), withCertPool(s.CertPool))
 	if err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}

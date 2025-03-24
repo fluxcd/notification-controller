@@ -55,14 +55,14 @@ func (p *PagerDuty) Post(ctx context.Context, event eventv1.Event) error {
 		return nil
 	}
 	e := toPagerDutyV2Event(event, p.RoutingKey)
-	err := postMessage(ctx, p.Endpoint+"/v2/enqueue", p.ProxyURL, p.CertPool, e)
+	err := postMessage(ctx, p.Endpoint+"/v2/enqueue", e, withProxy(p.ProxyURL), withCertPool(p.CertPool))
 	if err != nil {
 		return fmt.Errorf("failed sending event: %w", err)
 	}
 	// Send a change event for info events
 	if event.Severity == eventv1.EventSeverityInfo {
 		ce := toPagerDutyChangeEvent(event, p.RoutingKey)
-		err = postMessage(ctx, p.Endpoint+"/v2/change/enqueue", p.ProxyURL, p.CertPool, ce)
+		err = postMessage(ctx, p.Endpoint+"/v2/change/enqueue", ce, withProxy(p.ProxyURL), withCertPool(p.CertPool))
 		if err != nil {
 			return fmt.Errorf("failed sending change event: %w", err)
 		}
