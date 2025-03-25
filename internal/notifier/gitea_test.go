@@ -35,36 +35,32 @@ import (
 // newTestHTTPServer returns an HTTP server mimicking parts of Gitea's API so that tests don't
 // need to rely on 3rd-party components to be available (like the try.gitea.io server).
 func newTestHTTPServer(t *testing.T) *httptest.Server {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleTestRequest(t, w, r)
-	}))
-	return srv
+	return httptest.NewServer(newGiteaStubHandler(t))
 }
 
 // newTestHTTPSServer returns an HTTPS server mimicking parts of Gitea's API so that tests don't
 // need to rely on 3rd-party components to be available (like the try.gitea.io server).
 func newTestHTTPSServer(t *testing.T) *httptest.Server {
-	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleTestRequest(t, w, r)
-	}))
-	return srv
+	return httptest.NewTLSServer(newGiteaStubHandler(t))
 }
 
-func handleTestRequest(t *testing.T, w http.ResponseWriter, r *http.Request) {
-	switch r.URL.Path {
-	case "/api/v1/version":
-		fmt.Fprintf(w, `{"version":"1.18.3"}`)
-	case "/api/v1/repos/foo/bar/commits/69b59063470310ebbd88a9156325322a124e55a3/statuses":
-		fmt.Fprintf(w, "[]")
-	case "/api/v1/repos/foo/bar/statuses/69b59063470310ebbd88a9156325322a124e55a3":
-		fmt.Fprintf(w, "{}")
-	case "/api/v1/repos/foo/bar/commits/8a9156325322a124e55a369b59063470310ebbd8/statuses":
-		fmt.Fprintf(w, "[]")
-	case "/api/v1/repos/foo/bar/statuses/8a9156325322a124e55a369b59063470310ebbd8":
-		fmt.Fprintf(w, "{}")
-	default:
-		t.Logf("unknown %s request at %s", r.Method, r.URL.Path)
-	}
+func newGiteaStubHandler(t *testing.T) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/version":
+			fmt.Fprintf(w, `{"version":"1.18.3"}`)
+		case "/api/v1/repos/foo/bar/commits/69b59063470310ebbd88a9156325322a124e55a3/statuses":
+			fmt.Fprintf(w, "[]")
+		case "/api/v1/repos/foo/bar/statuses/69b59063470310ebbd88a9156325322a124e55a3":
+			fmt.Fprintf(w, "{}")
+		case "/api/v1/repos/foo/bar/commits/8a9156325322a124e55a369b59063470310ebbd8/statuses":
+			fmt.Fprintf(w, "[]")
+		case "/api/v1/repos/foo/bar/statuses/8a9156325322a124e55a369b59063470310ebbd8":
+			fmt.Fprintf(w, "{}")
+		default:
+			t.Logf("unknown %s request at %s", r.Method, r.URL.Path)
+		}
+	})
 }
 
 func TestNewGiteaBasic(t *testing.T) {
