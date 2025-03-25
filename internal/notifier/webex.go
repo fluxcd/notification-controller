@@ -108,9 +108,12 @@ func (s *Webex) Post(ctx context.Context, event eventv1.Event) error {
 		Markdown: s.CreateMarkdown(&event),
 	}
 
-	if err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload, func(request *retryablehttp.Request) {
-		request.Header.Add("Authorization", "Bearer "+s.Token)
-	}); err != nil {
+	if err := postMessage(
+		ctx, s.URL, payload, withProxy(s.ProxyURL), withCertPool(s.CertPool),
+		withRequestOption(func(request *retryablehttp.Request) {
+			request.Header.Add("Authorization", "Bearer "+s.Token)
+		}),
+	); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
 	return nil
