@@ -313,7 +313,7 @@ func giteaNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitea(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool)
+	return NewGitea(opts.CommitStatus, opts.URL, opts.ProxyURL, opts.Token, opts.CertPool)
 }
 
 func bitbucketServerNotifierFunc(opts notifierOptions) (Interface, error) {
