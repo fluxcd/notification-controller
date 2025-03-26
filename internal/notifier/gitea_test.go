@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	testproxy "github.com/fluxcd/notification-controller/tests/proxy"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -101,11 +102,11 @@ func TestNewGiteaNoCertificate(t *testing.T) {
 
 func TestNewGiteaWithProxyURL(t *testing.T) {
 	srv := newTestHTTPServer(t)
-	proxy := newTestHTTPProxyServer(t)
 	defer srv.Close()
-	defer proxy.Close()
+	proxyAddr, _ := testproxy.New(t)
+	proxyURL := fmt.Sprintf("http://%s", proxyAddr)
 
-	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", proxy.URL, "foobar", nil)
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", proxyURL, "foobar", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
@@ -119,10 +120,10 @@ func TestNewGiteaWithProxyURLAndCertPool(t *testing.T) {
 	certPool := x509.NewCertPool()
 	certPool.AddCert(srv.Certificate())
 
-	proxy := newTestHTTPProxyServer(t)
-	defer proxy.Close()
+	proxyAddr, _ := testproxy.New(t)
+	proxyURL := fmt.Sprintf("http://%s", proxyAddr)
 
-	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", proxy.URL, "foobar", certPool)
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", proxyURL, "foobar", certPool)
 	assert.NoError(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
