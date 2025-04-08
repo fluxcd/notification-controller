@@ -296,7 +296,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider apiv
 			proxy = strings.TrimSpace(string(val))
 			_, err := url.Parse(proxy)
 			if err != nil {
-				return nil, "", fmt.Errorf("invalid proxy in secret '%s': %w", proxy, err)
+				return nil, "", fmt.Errorf("invalid 'proxy' in secret '%s/%s'", secret.Namespace, secret.Name)
 			}
 		}
 
