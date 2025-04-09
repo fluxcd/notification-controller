@@ -15,6 +15,7 @@ require (
 	github.com/cdevents/sdk-go v0.4.1
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/containrrr/shoutrrr v0.8.0
+	github.com/elazarl/goproxy v1.7.2
 	github.com/fluxcd/cli-utils v0.36.0-flux.12
 	github.com/fluxcd/notification-controller/api v1.5.0
 	github.com/fluxcd/pkg/apis/event v0.16.0
