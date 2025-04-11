@@ -65,11 +65,20 @@ func (m *Matrix) Post(ctx context.Context, event eventv1.Event) error {
 		MsgType: "m.text",
 	}
 
-	err = postMessage(ctx, fullURL, "", m.CertPool, payload, func(request *retryablehttp.Request) {
-		request.Method = http.MethodPut
-		request.Header.Add("Authorization", "Bearer "+m.Token)
-	})
-	if err != nil {
+	if err := postMessage(
+		ctx,
+		fullURL,
+		payload,
+		&postOption{
+			certPool: m.CertPool,
+			requestModifiers: []requestModifier{
+				func(request *retryablehttp.Request) {
+					request.Method = http.MethodPut
+					request.Header.Add("Authorization", "Bearer "+m.Token)
+				},
+			},
+		},
+	); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
 

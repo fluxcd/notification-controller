@@ -142,8 +142,7 @@ func (s *GoogleChat) Post(ctx context.Context, event eventv1.Event) error {
 		Cards: []GoogleChatCard{card},
 	}
 
-	err := postMessage(ctx, s.URL, s.ProxyURL, nil, payload)
-	if err != nil {
+	if err := postMessage(ctx, s.URL, payload, &postOption{proxy: s.ProxyURL}); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
 

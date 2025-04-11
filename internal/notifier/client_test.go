@@ -45,7 +45,7 @@ func Test_postMessage(t *testing.T) {
 		require.Equal(t, "success", payload["status"])
 	}))
 	defer ts.Close()
-	err := postMessage(context.Background(), ts.URL, "", nil, map[string]string{"status": "success"})
+	err := postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, nil)
 	require.NoError(t, err)
 }
 
@@ -56,7 +56,7 @@ func Test_postMessage_timeout(t *testing.T) {
 	defer ts.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	err := postMessage(ctx, ts.URL, "", nil, map[string]string{"status": "success"})
+	err := postMessage(ctx, ts.URL, map[string]string{"status": "success"}, nil)
 	require.Error(t, err, "context deadline exceeded")
 }
 
@@ -77,7 +77,7 @@ func Test_postSelfSignedCert(t *testing.T) {
 	require.NoError(t, err)
 	certpool := x509.NewCertPool()
 	certpool.AddCert(cert)
-	err = postMessage(context.Background(), ts.URL, "", certpool, map[string]string{"status": "success"})
+	err = postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, &postOption{certPool: certpool})
 	require.NoError(t, err)
 }
 
