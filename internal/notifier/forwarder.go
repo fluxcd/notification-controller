@@ -77,20 +77,29 @@ func (f *Forwarder) Post(ctx context.Context, event eventv1.Event) error {
 		}
 		sig = fmt.Sprintf("sha256=%s", sign(eventJSON, f.HMACKey))
 	}
-	err := postMessage(
-		ctx, f.URL, event, withProxy(f.ProxyURL), withCertPool(f.CertPool),
-		withRequestOption(func(req *retryablehttp.Request) {
-			req.Header.Set(NotificationHeader, event.ReportingController)
-			for key, val := range f.Headers {
-				req.Header.Set(key, val)
-			}
-			if sig != "" {
-				req.Header.Set("X-Signature", sig)
-			}
-		}))
 
-	if err != nil {
+	if err := postMessage(
+		ctx,
+		f.URL,
+		event,
+		&postOption{
+			proxy:    f.ProxyURL,
+			certPool: f.CertPool,
+			requestModifiers: []requestModifier{
+				func(req *retryablehttp.Request) {
+					req.Header.Set(NotificationHeader, event.ReportingController)
+					for key, val := range f.Headers {
+						req.Header.Set(key, val)
+					}
+					if sig != "" {
+						req.Header.Set("X-Signature", sig)
+					}
+				},
+			},
+		},
+	); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
+
 	return nil
 }

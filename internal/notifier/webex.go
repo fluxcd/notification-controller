@@ -109,10 +109,18 @@ func (s *Webex) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	if err := postMessage(
-		ctx, s.URL, payload, withProxy(s.ProxyURL), withCertPool(s.CertPool),
-		withRequestOption(func(request *retryablehttp.Request) {
-			request.Header.Add("Authorization", "Bearer "+s.Token)
-		}),
+		ctx,
+		s.URL,
+		payload,
+		&postOption{
+			proxy:    s.ProxyURL,
+			certPool: s.CertPool,
+			requestModifiers: []requestModifier{
+				func(request *retryablehttp.Request) {
+					request.Header.Add("Authorization", "Bearer "+s.Token)
+				},
+			},
+		},
 	); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}

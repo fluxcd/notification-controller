@@ -54,19 +54,35 @@ func (p *PagerDuty) Post(ctx context.Context, event eventv1.Event) error {
 	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) || event.HasReason(meta.ProgressingReason) {
 		return nil
 	}
-	e := toPagerDutyV2Event(event, p.RoutingKey)
-	err := postMessage(ctx, p.Endpoint+"/v2/enqueue", e, withProxy(p.ProxyURL), withCertPool(p.CertPool))
-	if err != nil {
+
+	if err := postMessage(
+		ctx,
+		p.Endpoint+"/v2/enqueue",
+		toPagerDutyV2Event(event, p.RoutingKey),
+		&postOption{
+
+			proxy:    p.ProxyURL,
+			certPool: p.CertPool,
+		},
+	); err != nil {
 		return fmt.Errorf("failed sending event: %w", err)
 	}
+
 	// Send a change event for info events
 	if event.Severity == eventv1.EventSeverityInfo {
-		ce := toPagerDutyChangeEvent(event, p.RoutingKey)
-		err = postMessage(ctx, p.Endpoint+"/v2/change/enqueue", ce, withProxy(p.ProxyURL), withCertPool(p.CertPool))
-		if err != nil {
+		if err := postMessage(
+			ctx,
+			p.Endpoint+"/v2/change/enqueue",
+			toPagerDutyChangeEvent(event, p.RoutingKey),
+			&postOption{
+				proxy:    p.ProxyURL,
+				certPool: p.CertPool,
+			},
+		); err != nil {
 			return fmt.Errorf("failed sending change event: %w", err)
 		}
 	}
+
 	return nil
 }
 
