@@ -32,16 +32,16 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
-type postOption struct {
+type postOptions struct {
 	proxy             string
 	certPool          *x509.CertPool
 	requestModifier   func(*retryablehttp.Request)
 	responseValidator func(*http.Response) error
 }
 
-func postMessage(ctx context.Context, address string, payload interface{}, opt *postOption) error {
+func postMessage(ctx context.Context, address string, payload interface{}, opt *postOptions) error {
 	if opt == nil {
-		opt = &postOption{}
+		opt = &postOptions{}
 	}
 	if opt.responseValidator == nil {
 		// Default validateResponse function verifies that the response status code is 200, 202 or 201.
@@ -93,7 +93,7 @@ func postMessage(ctx context.Context, address string, payload interface{}, opt *
 	return nil
 }
 
-func newHTTPClient(opt *postOption) (*retryablehttp.Client, error) {
+func newHTTPClient(opt *postOptions) (*retryablehttp.Client, error) {
 	httpClient := retryablehttp.NewClient()
 	if opt.certPool != nil {
 		httpClient.HTTPClient.Transport = &http.Transport{

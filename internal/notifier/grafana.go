@@ -88,7 +88,7 @@ func (g *Grafana) Post(ctx context.Context, event eventv1.Event) error {
 		ctx,
 		g.URL,
 		payload,
-		&postOption{
+		&postOptions{
 			proxy:    g.ProxyURL,
 			certPool: g.CertPool,
 			requestModifier: func(req *retryablehttp.Request) {

@@ -122,7 +122,7 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 
 	payload.Attachments = []SlackAttachment{a}
 
-	postOpt := &postOption{
+	postOpt := &postOptions{
 		proxy:    s.ProxyURL,
 		certPool: s.CertPool,
 		requestModifier: func(request *retryablehttp.Request) {
@@ -158,7 +158,7 @@ func (s *Slack) validateResponse(resp *http.Response) error {
 	resp.Body = io.NopCloser(bytes.NewBuffer(body))
 
 	type slackResponse struct {
-		Ok bool `json:"ok"`
+		Ok    bool   `json:"ok"`
 		Error string `json:"error"`
 	}
 	slackResp := slackResponse{}

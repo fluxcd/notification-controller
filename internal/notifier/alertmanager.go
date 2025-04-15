@@ -137,7 +137,7 @@ func (s *Alertmanager) Post(ctx context.Context, event eventv1.Event) error {
 		},
 	}
 
-	postOpt := &postOption{
+	postOpt := &postOptions{
 		proxy:    s.ProxyURL,
 		certPool: s.CertPool,
 	}

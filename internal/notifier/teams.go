@@ -165,7 +165,7 @@ func (s *MSTeams) Post(ctx context.Context, event eventv1.Event) error {
 		ctx,
 		s.URL,
 		payload,
-		&postOption{
+		&postOptions{
 			proxy:    s.ProxyURL,
 			certPool: s.CertPool,
 		},

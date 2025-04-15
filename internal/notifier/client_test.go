@@ -77,7 +77,7 @@ func Test_postSelfSignedCert(t *testing.T) {
 	require.NoError(t, err)
 	certpool := x509.NewCertPool()
 	certpool.AddCert(cert)
-	err = postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, &postOption{certPool: certpool})
+	err = postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, &postOptions{certPool: certpool})
 	require.NoError(t, err)
 }
 

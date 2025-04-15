@@ -82,7 +82,7 @@ func (f *Forwarder) Post(ctx context.Context, event eventv1.Event) error {
 		ctx,
 		f.URL,
 		event,
-		&postOption{
+		&postOptions{
 			proxy:    f.ProxyURL,
 			certPool: f.CertPool,
 			requestModifier: func(req *retryablehttp.Request) {

@@ -69,7 +69,7 @@ func (m *Matrix) Post(ctx context.Context, event eventv1.Event) error {
 		ctx,
 		fullURL,
 		payload,
-		&postOption{
+		&postOptions{
 			certPool: m.CertPool,
 			requestModifier: func(request *retryablehttp.Request) {
 				request.Method = http.MethodPut
