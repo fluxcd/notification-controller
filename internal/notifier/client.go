@@ -36,7 +36,7 @@ type postOption struct {
 	proxy             string
 	certPool          *x509.CertPool
 	requestModifier   func(*retryablehttp.Request)
-	responseValidator func(*http.Response) bool
+	responseValidator func(*http.Response) error
 }
 
 func postMessage(ctx context.Context, address string, payload interface{}, opt *postOption) error {
@@ -45,10 +45,14 @@ func postMessage(ctx context.Context, address string, payload interface{}, opt *
 	}
 	if opt.responseValidator == nil {
 		// Default validateResponse function verifies that the response status code is 200, 202 or 201.
-		opt.responseValidator = func(resp *http.Response) bool {
-			return resp.StatusCode == http.StatusOK ||
+		opt.responseValidator = func(resp *http.Response) error {
+			if resp.StatusCode == http.StatusOK ||
 				resp.StatusCode == http.StatusAccepted ||
-				resp.StatusCode == http.StatusCreated
+				resp.StatusCode == http.StatusCreated {
+				return nil
+			}
+
+			return fmt.Errorf("request failed with status %s", resp.Status)
 		}
 	}
 
@@ -78,12 +82,12 @@ func postMessage(ctx context.Context, address string, payload interface{}, opt *
 	}
 	defer resp.Body.Close()
 
-	if !opt.responseValidator(resp) {
-		b, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("unable to read response body, %s", err)
+	if err := opt.responseValidator(resp); err != nil {
+		if body, bodyErr := io.ReadAll(resp.Body); bodyErr != nil {
+			return fmt.Errorf("request failed: %w", err)
+		} else {
+			return fmt.Errorf("request failed: error: %w, response: %s", err, string(body))
 		}
-		return fmt.Errorf("request failed with status code %d, %s", resp.StatusCode, string(b))
 	}
 
 	return nil

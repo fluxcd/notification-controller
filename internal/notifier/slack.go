@@ -148,22 +148,26 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 //
 // On the other hand, incoming webhooks return more expressive HTTP status codes.
 // See https://api.slack.com/messaging/webhooks#handling_errors.
-func (s *Slack) validateResponse(resp *http.Response) bool {
+func (s *Slack) validateResponse(resp *http.Response) error {
 	// Clone resp.Body so it can be read again in postMessage error handling.
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return false
+		return fmt.Errorf("unable to read response body: %w", err)
 	}
 	resp.Body = io.NopCloser(bytes.NewBuffer(body))
 
 	type slackResponse struct {
 		Ok bool `json:"ok"`
+		Error string `json:"error"`
 	}
 	slackResp := slackResponse{}
 	if err := json.Unmarshal(body, &resp); err != nil {
-		return false
+		return fmt.Errorf("unable to unmarshal response body: %w", err)
 	}
 
-	return slackResp.Ok
+	if slackResp.Ok {
+		return nil
+	}
+	return fmt.Errorf("Slack responded with error: %s", slackResp.Error)
 }
