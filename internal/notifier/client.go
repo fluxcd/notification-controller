@@ -63,14 +63,11 @@ func postMessage(ctx context.Context, address string, payload interface{}, opt *
 		return fmt.Errorf("marshalling notification payload failed: %w", err)
 	}
 
-	req, err := retryablehttp.NewRequest(http.MethodPost, address, data)
+	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, address, data)
 	if err != nil {
 		return fmt.Errorf("failed to create a new request: %w", err)
 	}
 
-	if ctx != nil {
-		req = req.WithContext(ctx)
-	}
 	req.Header.Set("Content-Type", "application/json")
 	for _, o := range opt.requestModifiers {
 		o(req)
