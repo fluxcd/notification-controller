@@ -71,11 +71,9 @@ func (m *Matrix) Post(ctx context.Context, event eventv1.Event) error {
 		payload,
 		&postOption{
 			certPool: m.CertPool,
-			requestModifiers: []requestModifier{
-				func(request *retryablehttp.Request) {
-					request.Method = http.MethodPut
-					request.Header.Add("Authorization", "Bearer "+m.Token)
-				},
+			requestModifier: func(request *retryablehttp.Request) {
+				request.Method = http.MethodPut
+				request.Header.Add("Authorization", "Bearer "+m.Token)
 			},
 		},
 	); err != nil {

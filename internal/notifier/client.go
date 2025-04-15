@@ -35,10 +35,9 @@ import (
 type postOption struct {
 	proxy             string
 	certPool          *x509.CertPool
-	requestModifiers  []requestModifier
+	requestModifier   func(*retryablehttp.Request)
 	responseValidator func(*http.Response) bool
 }
-type requestModifier func(*retryablehttp.Request)
 
 func postMessage(ctx context.Context, address string, payload interface{}, opt *postOption) error {
 	if opt == nil {
@@ -69,8 +68,8 @@ func postMessage(ctx context.Context, address string, payload interface{}, opt *
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	for _, o := range opt.requestModifiers {
-		o(req)
+	if opt.requestModifier != nil {
+		opt.requestModifier(req)
 	}
 
 	resp, err := httpClient.Do(req)

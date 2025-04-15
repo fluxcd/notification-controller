@@ -142,10 +142,9 @@ func (s *Alertmanager) Post(ctx context.Context, event eventv1.Event) error {
 		certPool: s.CertPool,
 	}
 	if s.Token != "" {
-		postOpt.requestModifiers = append(postOpt.requestModifiers,
-			func(request *retryablehttp.Request) {
-				request.Header.Add("Authorization", "Bearer "+s.Token)
-			})
+		postOpt.requestModifier = func(request *retryablehttp.Request) {
+			request.Header.Add("Authorization", "Bearer "+s.Token)
+		}
 	}
 
 	if err := postMessage(ctx, s.URL, payload, postOpt); err != nil {

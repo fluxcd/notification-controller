@@ -85,16 +85,14 @@ func (f *Forwarder) Post(ctx context.Context, event eventv1.Event) error {
 		&postOption{
 			proxy:    f.ProxyURL,
 			certPool: f.CertPool,
-			requestModifiers: []requestModifier{
-				func(req *retryablehttp.Request) {
-					req.Header.Set(NotificationHeader, event.ReportingController)
-					for key, val := range f.Headers {
-						req.Header.Set(key, val)
-					}
-					if sig != "" {
-						req.Header.Set("X-Signature", sig)
-					}
-				},
+			requestModifier: func(req *retryablehttp.Request) {
+				req.Header.Set(NotificationHeader, event.ReportingController)
+				for key, val := range f.Headers {
+					req.Header.Set(key, val)
+				}
+				if sig != "" {
+					req.Header.Set("X-Signature", sig)
+				}
 			},
 		},
 	); err != nil {

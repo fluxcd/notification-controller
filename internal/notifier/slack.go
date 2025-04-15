@@ -125,12 +125,10 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 	postOpt := &postOption{
 		proxy:    s.ProxyURL,
 		certPool: s.CertPool,
-		requestModifiers: []requestModifier{
-			func(request *retryablehttp.Request) {
-				if s.Token != "" {
-					request.Header.Add("Authorization", "Bearer "+s.Token)
-				}
-			},
+		requestModifier: func(request *retryablehttp.Request) {
+			if s.Token != "" {
+				request.Header.Add("Authorization", "Bearer "+s.Token)
+			}
 		},
 	}
 	if s.URL == "https://slack.com/api/chat.postMessage" {

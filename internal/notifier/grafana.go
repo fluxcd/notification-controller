@@ -91,15 +91,13 @@ func (g *Grafana) Post(ctx context.Context, event eventv1.Event) error {
 		&postOption{
 			proxy:    g.ProxyURL,
 			certPool: g.CertPool,
-			requestModifiers: []requestModifier{
-				func(req *retryablehttp.Request) {
-					if (g.Username != "" && g.Password != "") && g.Token == "" {
-						req.Header.Add("Authorization", "Basic "+basicAuth(g.Username, g.Password))
-					}
-					if g.Token != "" {
-						req.Header.Add("Authorization", "Bearer "+g.Token)
-					}
-				},
+			requestModifier: func(req *retryablehttp.Request) {
+				if (g.Username != "" && g.Password != "") && g.Token == "" {
+					req.Header.Add("Authorization", "Basic "+basicAuth(g.Username, g.Password))
+				}
+				if g.Token != "" {
+					req.Header.Add("Authorization", "Bearer "+g.Token)
+				}
 			},
 		},
 	); err != nil {

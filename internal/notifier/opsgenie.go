@@ -85,10 +85,8 @@ func (s *Opsgenie) Post(ctx context.Context, event eventv1.Event) error {
 		&postOption{
 			proxy:    s.ProxyURL,
 			certPool: s.CertPool,
-			requestModifiers: []requestModifier{
-				func(req *retryablehttp.Request) {
-					req.Header.Set("Authorization", "GenieKey "+s.ApiKey)
-				},
+			requestModifier: func(req *retryablehttp.Request) {
+				req.Header.Set("Authorization", "GenieKey "+s.ApiKey)
 			},
 		},
 	); err != nil {

@@ -115,10 +115,8 @@ func (s *Webex) Post(ctx context.Context, event eventv1.Event) error {
 		&postOption{
 			proxy:    s.ProxyURL,
 			certPool: s.CertPool,
-			requestModifiers: []requestModifier{
-				func(request *retryablehttp.Request) {
-					request.Header.Add("Authorization", "Bearer "+s.Token)
-				},
+			requestModifier: func(request *retryablehttp.Request) {
+				request.Header.Add("Authorization", "Bearer "+s.Token)
 			},
 		},
 	); err != nil {
