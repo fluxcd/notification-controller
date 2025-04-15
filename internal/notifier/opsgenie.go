@@ -82,13 +82,11 @@ func (s *Opsgenie) Post(ctx context.Context, event eventv1.Event) error {
 		ctx,
 		s.URL,
 		payload,
-		&postOptions{
-			proxy:    s.ProxyURL,
-			certPool: s.CertPool,
-			requestModifier: func(req *retryablehttp.Request) {
-				req.Header.Set("Authorization", "GenieKey "+s.ApiKey)
-			},
-		},
+		withProxy(s.ProxyURL),
+		withCertPool(s.CertPool),
+		withRequestModifier(func(req *retryablehttp.Request) {
+			req.Header.Set("Authorization", "GenieKey "+s.ApiKey)
+		}),
 	); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}

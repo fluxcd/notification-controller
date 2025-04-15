@@ -39,13 +39,12 @@ type postOptions struct {
 	responseValidator func(*http.Response) error
 }
 
-func postMessage(ctx context.Context, address string, payload interface{}, opt *postOptions) error {
-	if opt == nil {
-		opt = &postOptions{}
-	}
-	if opt.responseValidator == nil {
+type postOption func(*postOptions)
+
+func postMessage(ctx context.Context, address string, payload interface{}, opts ...postOption) error {
+	options := &postOptions{
 		// Default validateResponse function verifies that the response status code is 200, 202 or 201.
-		opt.responseValidator = func(resp *http.Response) error {
+		responseValidator: func(resp *http.Response) error {
 			if resp.StatusCode == http.StatusOK ||
 				resp.StatusCode == http.StatusAccepted ||
 				resp.StatusCode == http.StatusCreated {
@@ -53,10 +52,14 @@ func postMessage(ctx context.Context, address string, payload interface{}, opt *
 			}
 
 			return fmt.Errorf("request failed with status %s", resp.Status)
-		}
+		},
 	}
 
-	httpClient, err := newHTTPClient(opt)
+	for _, o := range opts {
+		o(options)
+	}
+
+	httpClient, err := newHTTPClient(options)
 	if err != nil {
 		return err
 	}
@@ -72,8 +75,8 @@ func postMessage(ctx context.Context, address string, payload interface{}, opt *
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	if opt.requestModifier != nil {
-		opt.requestModifier(req)
+	if options.requestModifier != nil {
+		options.requestModifier(req)
 	}
 
 	resp, err := httpClient.Do(req)
@@ -82,7 +85,7 @@ func postMessage(ctx context.Context, address string, payload interface{}, opt *
 	}
 	defer resp.Body.Close()
 
-	if err := opt.responseValidator(resp); err != nil {
+	if err := options.responseValidator(resp); err != nil {
 		if body, bodyErr := io.ReadAll(resp.Body); bodyErr != nil {
 			return fmt.Errorf("request failed: %w", err)
 		} else {
@@ -93,26 +96,50 @@ func postMessage(ctx context.Context, address string, payload interface{}, opt *
 	return nil
 }
 
-func newHTTPClient(opt *postOptions) (*retryablehttp.Client, error) {
+func withProxy(proxy string) postOption {
+	return func(opts *postOptions) {
+		opts.proxy = proxy
+	}
+}
+
+func withCertPool(certPool *x509.CertPool) postOption {
+	return func(opts *postOptions) {
+		opts.certPool = certPool
+	}
+}
+
+func withRequestModifier(reqModifier func(*retryablehttp.Request)) postOption {
+	return func(opts *postOptions) {
+		opts.requestModifier = reqModifier
+	}
+}
+
+func withResponseValidator(respValidator func(*http.Response) error) postOption {
+	return func(opts *postOptions) {
+		opts.responseValidator = respValidator
+	}
+}
+
+func newHTTPClient(opts *postOptions) (*retryablehttp.Client, error) {
 	httpClient := retryablehttp.NewClient()
-	if opt.certPool != nil {
+	if opts.certPool != nil {
 		httpClient.HTTPClient.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				RootCAs: opt.certPool,
+				RootCAs: opts.certPool,
 			},
 		}
 	}
 
-	if opt.proxy != "" {
-		proxyURL, err := url.Parse(opt.proxy)
+	if opts.proxy != "" {
+		proxyURL, err := url.Parse(opts.proxy)
 		if err != nil {
-			return nil, fmt.Errorf("unable to parse proxy URL '%s', error: %w", opt.proxy, err)
+			return nil, fmt.Errorf("unable to parse proxy URL '%s', error: %w", opts.proxy, err)
 		}
 
 		var tlsConfig *tls.Config
-		if opt.certPool != nil {
+		if opts.certPool != nil {
 			tlsConfig = &tls.Config{
-				RootCAs: opt.certPool,
+				RootCAs: opts.certPool,
 			}
 		}
 

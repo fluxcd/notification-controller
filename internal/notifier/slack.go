@@ -122,20 +122,20 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 
 	payload.Attachments = []SlackAttachment{a}
 
-	postOpt := &postOptions{
-		proxy:    s.ProxyURL,
-		certPool: s.CertPool,
-		requestModifier: func(request *retryablehttp.Request) {
+	opts := []postOption{
+		withProxy(s.ProxyURL),
+		withCertPool(s.CertPool),
+		withRequestModifier(func(request *retryablehttp.Request) {
 			if s.Token != "" {
 				request.Header.Add("Authorization", "Bearer "+s.Token)
 			}
-		},
+		}),
 	}
 	if s.URL == "https://slack.com/api/chat.postMessage" {
-		postOpt.responseValidator = s.validateResponse
+		opts = append(opts, withResponseValidator(s.validateResponse))
 	}
 
-	if err := postMessage(ctx, s.URL, payload, postOpt); err != nil {
+	if err := postMessage(ctx, s.URL, payload, opts...); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
 

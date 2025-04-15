@@ -83,17 +83,8 @@ func (s *Rocket) Post(ctx context.Context, event eventv1.Event) error {
 
 	payload.Attachments = []SlackAttachment{a}
 
-	if err := postMessage(
-		ctx,
-		s.URL,
-		payload,
-		&postOptions{
-			proxy:    s.ProxyURL,
-			certPool: s.CertPool,
-		},
-	); err != nil {
+	if err := postMessage(ctx, s.URL, payload, withProxy(s.ProxyURL), withCertPool(s.CertPool)); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
-
 	return nil
 }
