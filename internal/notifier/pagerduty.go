@@ -55,12 +55,19 @@ func (p *PagerDuty) Post(ctx context.Context, event eventv1.Event) error {
 		return nil
 	}
 
+	opts := []postOption{}
+	if p.ProxyURL != "" {
+		opts = append(opts, withProxy(p.ProxyURL))
+	}
+	if p.CertPool != nil {
+		opts = append(opts, withCertPool(p.CertPool))
+	}
+
 	if err := postMessage(
 		ctx,
 		p.Endpoint+"/v2/enqueue",
 		toPagerDutyV2Event(event, p.RoutingKey),
-		withProxy(p.ProxyURL),
-		withCertPool(p.CertPool),
+		opts...,
 	); err != nil {
 		return fmt.Errorf("failed sending event: %w", err)
 	}
@@ -71,8 +78,7 @@ func (p *PagerDuty) Post(ctx context.Context, event eventv1.Event) error {
 			ctx,
 			p.Endpoint+"/v2/change/enqueue",
 			toPagerDutyChangeEvent(event, p.RoutingKey),
-			withProxy(p.ProxyURL),
-			withCertPool(p.CertPool),
+			opts...,
 		); err != nil {
 			return fmt.Errorf("failed sending change event: %w", err)
 		}

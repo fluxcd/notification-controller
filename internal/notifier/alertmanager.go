@@ -137,9 +137,12 @@ func (s *Alertmanager) Post(ctx context.Context, event eventv1.Event) error {
 		},
 	}
 
-	opts := []postOption{
-		withProxy(s.ProxyURL),
-		withCertPool(s.CertPool),
+	opts := []postOption{}
+	if s.ProxyURL != "" {
+		opts = append(opts, withProxy(s.ProxyURL))
+	}
+	if s.CertPool != nil {
+		opts = append(opts, withCertPool(s.CertPool))
 	}
 	if s.Token != "" {
 		opts = append(opts, withRequestModifier(func(request *retryablehttp.Request) {
