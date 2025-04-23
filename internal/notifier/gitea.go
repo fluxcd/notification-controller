@@ -45,7 +45,7 @@ type Gitea struct {
 
 var _ Interface = &Gitea{}
 
-func NewGitea(commitStatus string, addr string, token string, certPool *x509.CertPool) (*Gitea, error) {
+func NewGitea(commitStatus string, addr string, proxyURL string, token string, certPool *x509.CertPool) (*Gitea, error) {
 	if len(token) == 0 {
 		return nil, errors.New("gitea token cannot be empty")
 	}
@@ -74,6 +74,14 @@ func NewGitea(commitStatus string, addr string, token string, certPool *x509.Cer
 		tr.TLSClientConfig = &tls.Config{
 			RootCAs: certPool,
 		}
+	}
+
+	if proxyURL != "" {
+		parsedProxyURL, err := url.Parse(proxyURL)
+		if err != nil {
+			return nil, errors.New("invalid proxy URL")
+		}
+		tr.Proxy = http.ProxyURL(parsedProxyURL)
 	}
 
 	client, err := gitea.NewClient(host, gitea.SetToken(token), gitea.SetHTTPClient(&http.Client{Transport: tr}))

@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/x509"
 	"fmt"
+	testproxy "github.com/fluxcd/notification-controller/tests/proxy"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -35,43 +36,39 @@ import (
 // newTestHTTPServer returns an HTTP server mimicking parts of Gitea's API so that tests don't
 // need to rely on 3rd-party components to be available (like the try.gitea.io server).
 func newTestHTTPServer(t *testing.T) *httptest.Server {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleTestRequest(t, w, r)
-	}))
-	return srv
+	return httptest.NewServer(newGiteaStubHandler(t))
 }
 
 // newTestHTTPSServer returns an HTTPS server mimicking parts of Gitea's API so that tests don't
 // need to rely on 3rd-party components to be available (like the try.gitea.io server).
 func newTestHTTPSServer(t *testing.T) *httptest.Server {
-	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		handleTestRequest(t, w, r)
-	}))
-	return srv
+	return httptest.NewTLSServer(newGiteaStubHandler(t))
 }
 
-func handleTestRequest(t *testing.T, w http.ResponseWriter, r *http.Request) {
-	switch r.URL.Path {
-	case "/api/v1/version":
-		fmt.Fprintf(w, `{"version":"1.18.3"}`)
-	case "/api/v1/repos/foo/bar/commits/69b59063470310ebbd88a9156325322a124e55a3/statuses":
-		fmt.Fprintf(w, "[]")
-	case "/api/v1/repos/foo/bar/statuses/69b59063470310ebbd88a9156325322a124e55a3":
-		fmt.Fprintf(w, "{}")
-	case "/api/v1/repos/foo/bar/commits/8a9156325322a124e55a369b59063470310ebbd8/statuses":
-		fmt.Fprintf(w, "[]")
-	case "/api/v1/repos/foo/bar/statuses/8a9156325322a124e55a369b59063470310ebbd8":
-		fmt.Fprintf(w, "{}")
-	default:
-		t.Logf("unknown %s request at %s", r.Method, r.URL.Path)
-	}
+func newGiteaStubHandler(t *testing.T) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/version":
+			fmt.Fprintf(w, `{"version":"1.18.3"}`)
+		case "/api/v1/repos/foo/bar/commits/69b59063470310ebbd88a9156325322a124e55a3/statuses":
+			fmt.Fprintf(w, "[]")
+		case "/api/v1/repos/foo/bar/statuses/69b59063470310ebbd88a9156325322a124e55a3":
+			fmt.Fprintf(w, "{}")
+		case "/api/v1/repos/foo/bar/commits/8a9156325322a124e55a369b59063470310ebbd8/statuses":
+			fmt.Fprintf(w, "[]")
+		case "/api/v1/repos/foo/bar/statuses/8a9156325322a124e55a369b59063470310ebbd8":
+			fmt.Fprintf(w, "{}")
+		default:
+			t.Logf("unknown %s request at %s", r.Method, r.URL.Path)
+		}
+	})
 }
 
 func TestNewGiteaBasic(t *testing.T) {
 	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
-	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "foobar", nil)
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", "foobar", nil)
 	assert.NoError(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
@@ -82,10 +79,10 @@ func TestNewGiteaWithCertPool(t *testing.T) {
 	srv := newTestHTTPSServer(t)
 	defer srv.Close()
 
-	certpool := x509.NewCertPool()
-	certpool.AddCert(srv.Certificate())
+	certPool := x509.NewCertPool()
+	certPool.AddCert(srv.Certificate())
 
-	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "foobar", certpool)
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", "foobar", certPool)
 	assert.NoError(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
@@ -96,26 +93,61 @@ func TestNewGiteaNoCertificate(t *testing.T) {
 	srv := newTestHTTPSServer(t)
 	defer srv.Close()
 
-	certpool := x509.NewCertPool()
+	certPool := x509.NewCertPool()
 
-	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "foobar", certpool)
+	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", "foobar", certPool)
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "tls: failed to verify certificate: x509: certificate signed by unknown authority")
+}
+
+func TestNewGiteaWithProxyURL(t *testing.T) {
+	srv := newTestHTTPServer(t)
+	defer srv.Close()
+	proxyAddr, _ := testproxy.New(t)
+	proxyURL := fmt.Sprintf("http://%s", proxyAddr)
+
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", proxyURL, "foobar", nil)
+	assert.NoError(t, err)
+	assert.Equal(t, g.Owner, "foo")
+	assert.Equal(t, g.Repo, "bar")
+	assert.Equal(t, g.BaseURL, srv.URL)
+}
+
+func TestNewGiteaWithProxyURLAndCertPool(t *testing.T) {
+	srv := newTestHTTPSServer(t)
+	defer srv.Close()
+
+	certPool := x509.NewCertPool()
+	certPool.AddCert(srv.Certificate())
+
+	proxyAddr, _ := testproxy.New(t)
+	proxyURL := fmt.Sprintf("http://%s", proxyAddr)
+
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", proxyURL, "foobar", certPool)
+	assert.NoError(t, err)
+	assert.Equal(t, g.Owner, "foo")
+	assert.Equal(t, g.Repo, "bar")
+	assert.Equal(t, g.BaseURL, srv.URL)
 }
 
 func TestNewGiteaInvalidUrl(t *testing.T) {
 	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
-	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar/baz", "foobar", nil)
+	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar/baz", "", "foobar", nil)
 	assert.ErrorContains(t, err, "invalid repository id")
+}
+
+func TestNewGiteaInvalidProxyUrl(t *testing.T) {
+	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", "/foo/bar", "wrong\nURL", "foobar", nil)
+	assert.ErrorContains(t, err, "invalid proxy URL")
 }
 
 func TestNewGiteaEmptyToken(t *testing.T) {
 	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
-	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", nil)
+	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", "", nil)
 	assert.ErrorContains(t, err, "gitea token cannot be empty")
 }
 
@@ -123,7 +155,7 @@ func TestNewGiteaEmptyCommitStatus(t *testing.T) {
 	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
-	_, err := NewGitea("", srv.URL+"/foo/bar", "foobar", nil)
+	_, err := NewGitea("", srv.URL+"/foo/bar", "", "foobar", nil)
 	assert.ErrorContains(t, err, "commit status cannot be empty")
 }
 
@@ -131,7 +163,7 @@ func TestGitea_Post(t *testing.T) {
 	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
-	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "foobar", nil)
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", "foobar", nil)
 	assert.Nil(t, err)
 
 	for _, tt := range []struct {
