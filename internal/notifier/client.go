@@ -51,7 +51,12 @@ func postMessage(ctx context.Context, address string, payload interface{}, opts 
 				return nil
 			}
 
-			return fmt.Errorf("request failed with status %s", resp.Status)
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("%s, unable to read response body: %w", resp.Status, err)
+			}
+
+			return fmt.Errorf("%s, %s", resp.Status, string(body))
 		},
 	}
 
@@ -86,11 +91,7 @@ func postMessage(ctx context.Context, address string, payload interface{}, opts 
 	defer resp.Body.Close()
 
 	if err := options.responseValidator(resp); err != nil {
-		if body, bodyErr := io.ReadAll(resp.Body); bodyErr != nil {
-			return fmt.Errorf("request failed: %w", err)
-		} else {
-			return fmt.Errorf("request failed: error: %w, response: %s", err, string(body))
-		}
+		return fmt.Errorf("request failed: %w", err)
 	}
 
 	return nil
