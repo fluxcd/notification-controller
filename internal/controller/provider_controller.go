@@ -28,6 +28,7 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	"github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/runtime/patch"
 )
 
@@ -42,11 +43,12 @@ type ProviderReconciler struct {
 	kuberecorder.EventRecorder
 
 	ControllerName string
+	TokenCache     *cache.TokenCache
 }
 
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&apiv1beta3.Provider{}, builder.WithPredicates(finalizerPredicate{})).
+		For(&apiv1beta3.Provider{}, builder.WithPredicates(finalizerPredicate{observeDeletion: true})).
 		Complete(r)
 }
 
@@ -58,15 +60,16 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Early return if no migration is needed.
-	if !controllerutil.ContainsFinalizer(obj, apiv1.NotificationFinalizer) {
-		return ctrl.Result{}, nil
-	}
-
 	// Examine if the object is under deletion.
 	var delete bool
 	if !obj.ObjectMeta.DeletionTimestamp.IsZero() {
 		delete = true
+		r.TokenCache.DeleteEventsForObject(apiv1beta3.ProviderKind, obj.GetName(), obj.GetNamespace())
+	}
+
+	// Early return if no migration is needed.
+	if !controllerutil.ContainsFinalizer(obj, apiv1.NotificationFinalizer) {
+		return ctrl.Result{}, nil
 	}
 
 	// Skip if it's suspend and not being deleted.
