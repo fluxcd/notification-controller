@@ -28,6 +28,7 @@ import (
 // that have the flux finalizer.
 type finalizerPredicate struct {
 	predicate.Funcs
+	observeDeletion bool
 }
 
 // Create allows events for objects with flux finalizer that have beed created.
@@ -45,6 +46,6 @@ func (finalizerPredicate) Update(e event.UpdateEvent) bool {
 
 // Delete allows events for objects with flux finalizer that have been marked
 // for deletion.
-func (finalizerPredicate) Delete(e event.DeleteEvent) bool {
-	return controllerutil.ContainsFinalizer(e.Object, apiv1.NotificationFinalizer)
+func (f finalizerPredicate) Delete(e event.DeleteEvent) bool {
+	return f.observeDeletion || controllerutil.ContainsFinalizer(e.Object, apiv1.NotificationFinalizer)
 }
