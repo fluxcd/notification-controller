@@ -22,6 +22,9 @@ import (
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
+// OperationPost is the operation name used in cache event metrics
+const OperationPost = "post"
+
 type Interface interface {
 	Post(ctx context.Context, event eventv1.Event) error
 }

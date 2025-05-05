@@ -108,6 +108,13 @@ type ProviderSpec struct {
 	// +optional
 	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
 
+	// ServiceAccountName is the name of the service account used to
+	// authenticate with services from cloud providers. An error is thrown if a
+	// static credential is also defined inside the Secret referenced by the
+	// SecretRef.
+	// +optional
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+
 	// CertSecretRef specifies the Secret containing
 	// a PEM-encoded CA certificate (in the `ca.crt` key).
 	// +optional

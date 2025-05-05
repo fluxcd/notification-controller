@@ -350,6 +350,21 @@ credentials for this Provider.</p>
 </tr>
 <tr>
 <td>
+<code>serviceAccountName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountName is the name of the service account used to
+authenticate with services from cloud providers. An error is thrown if a
+static credential is also defined inside the Secret referenced by the
+SecretRef.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>certSecretRef</code><br>
 <em>
 <a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
@@ -651,6 +666,21 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 <em>(Optional)</em>
 <p>SecretRef specifies the Secret containing the authentication
 credentials for this Provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountName</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountName is the name of the service account used to
+authenticate with services from cloud providers. An error is thrown if a
+static credential is also defined inside the Secret referenced by the
+SecretRef.</p>
 </td>
 </tr>
 <tr>
