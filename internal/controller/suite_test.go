@@ -82,9 +82,8 @@ func TestMain(m *testing.M) {
 	}
 
 	if err := (&ProviderReconciler{
-		Client:         testEnv,
-		ControllerName: controllerName,
-		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
+		Client:        testEnv,
+		EventRecorder: testEnv.GetEventRecorderFor(controllerName),
 	}).SetupWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Failed to start ProviderReconciler: %v", err))
 	}
