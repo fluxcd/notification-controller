@@ -47,7 +47,7 @@ func TestNewAzureEventHub(t *testing.T) {
 			endpointURL:       "azure-nc-eventhub",
 			token:             "",
 			eventHubNamespace: "namespace",
-			err:               errors.New("failed to create a eventhub using managed identity failed to get token for azure event hub: failed to create default access token: ManagedIdentityCredential: failed to authenticate a system assigned identity. The endpoint responded with {\"error\":\"invalid_request\",\"error_description\":\"Identity not found\"}"),
+			err:               errors.New("failed to create a eventhub using managed identity failed to get token for azure event hub: failed to create provider access token for the controlller: ManagedIdentityCredential: failed to authenticate a system assigned identity. The endpoint responded with {\"error\":\"invalid_request\",\"error_description\":\"Identity not found\"}"),
 		},
 		{
 			name:               "SAS auth with serviceAccountName set",
