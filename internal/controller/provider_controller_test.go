@@ -52,61 +52,29 @@ func TestProviderReconciler(t *testing.T) {
 	}
 	providerKey := client.ObjectKeyFromObject(provider)
 
-	// Remove finalizer at create.
-
-	provider.ObjectMeta.Finalizers = append(provider.ObjectMeta.Finalizers, "foo.bar", apiv1.NotificationFinalizer)
+	// Create without finalizer.
 	provider.Spec = apiv1beta3.ProviderSpec{
-		Type: "slack",
+		Type: "generic",
 	}
 	g.Expect(testEnv.Create(ctx, provider)).ToNot(HaveOccurred())
 
+	// Should eventually have finalizer.
 	g.Eventually(func() bool {
 		_ = testEnv.Get(ctx, providerKey, provider)
-		return !controllerutil.ContainsFinalizer(provider, apiv1.NotificationFinalizer)
+		return controllerutil.ContainsFinalizer(provider, apiv1.NotificationFinalizer)
 	}, timeout, time.Second).Should(BeTrue())
 
-	// Remove finalizer at update.
-
+	// Remove finalizer.
 	patchHelper, err := patch.NewHelper(provider, testEnv.Client)
 	g.Expect(err).ToNot(HaveOccurred())
-	provider.ObjectMeta.Finalizers = append(provider.ObjectMeta.Finalizers, apiv1.NotificationFinalizer)
+	controllerutil.RemoveFinalizer(provider, apiv1.NotificationFinalizer)
 	g.Expect(patchHelper.Patch(ctx, provider)).ToNot(HaveOccurred())
 
+	// Should eventually have finalizer again.
 	g.Eventually(func() bool {
 		_ = testEnv.Get(ctx, providerKey, provider)
-		return !controllerutil.ContainsFinalizer(provider, apiv1.NotificationFinalizer)
-	}, timeout, time.Second).Should(BeTrue())
-
-	// Remove finalizer at delete.
-
-	patchHelper, err = patch.NewHelper(provider, testEnv.Client)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	// Suspend the provider to prevent finalizer from getting removed.
-	// Ensure only flux finalizer is set to allow the object to be garbage
-	// collected at the end.
-	// NOTE: Suspending and updating finalizers are done separately here as
-	// doing them in a single patch results in flaky test where the finalizer
-	// update doesn't gets registered with the kube-apiserver, resulting in
-	// timeout waiting for finalizer to appear on the object below.
-	provider.Spec.Suspend = true
-	g.Expect(patchHelper.Patch(ctx, provider)).ToNot(HaveOccurred())
-	g.Eventually(func() bool {
-		_ = k8sClient.Get(ctx, providerKey, provider)
-		return provider.Spec.Suspend == true
-	}, timeout).Should(BeTrue())
-
-	patchHelper, err = patch.NewHelper(provider, testEnv.Client)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	// Add finalizer and verify that finalizer exists on the object using a live
-	// client.
-	provider.ObjectMeta.Finalizers = []string{apiv1.NotificationFinalizer}
-	g.Expect(patchHelper.Patch(ctx, provider)).ToNot(HaveOccurred())
-	g.Eventually(func() bool {
-		_ = k8sClient.Get(ctx, providerKey, provider)
 		return controllerutil.ContainsFinalizer(provider, apiv1.NotificationFinalizer)
-	}, timeout).Should(BeTrue())
+	}, timeout, time.Second).Should(BeTrue())
 
 	// Delete the object and verify.
 	g.Expect(testEnv.Delete(ctx, provider)).ToNot(HaveOccurred())

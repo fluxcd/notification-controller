@@ -196,10 +196,9 @@ func main() {
 	}
 
 	if err = (&controller.ProviderReconciler{
-		Client:         mgr.GetClient(),
-		ControllerName: controllerName,
-		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
-		TokenCache:     tokenCache,
+		Client:        mgr.GetClient(),
+		EventRecorder: mgr.GetEventRecorderFor(controllerName),
+		TokenCache:    tokenCache,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Provider")
 		os.Exit(1)
