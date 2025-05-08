@@ -17,9 +17,13 @@ limitations under the License.
 package notifier
 
 import (
+	"bytes"
 	"context"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -118,13 +122,56 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 
 	payload.Attachments = []SlackAttachment{a}
 
-	err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload, func(request *retryablehttp.Request) {
-		if s.Token != "" {
-			request.Header.Add("Authorization", "Bearer "+s.Token)
-		}
-	})
-	if err != nil {
+	opts := []postOption{
+		withRequestModifier(func(request *retryablehttp.Request) {
+			if s.Token != "" {
+				request.Header.Add("Authorization", "Bearer "+s.Token)
+			}
+		}),
+	}
+	if s.ProxyURL != "" {
+		opts = append(opts, withProxy(s.ProxyURL))
+	}
+	if s.CertPool != nil {
+		opts = append(opts, withCertPool(s.CertPool))
+	}
+	if s.URL == "https://slack.com/api/chat.postMessage" {
+		opts = append(opts, withResponseValidator(s.validateResponse))
+	}
+
+	if err := postMessage(ctx, s.URL, payload, opts...); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
+
 	return nil
+}
+
+// validateResponse validates that a chat.postMessage API response is successful.
+// chat.postMessage API always returns 200 OK.
+// See https://api.slack.com/methods/chat.postMessage.
+//
+// On the other hand, incoming webhooks return more expressive HTTP status codes.
+// See https://api.slack.com/messaging/webhooks#handling_errors.
+func (s *Slack) validateResponse(resp *http.Response) error {
+	// Clone resp.Body so it can be read again in postMessage error handling.
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("unable to read response body: %w", err)
+	}
+	resp.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	type slackResponse struct {
+		Ok    bool   `json:"ok"`
+		Error string `json:"error"`
+	}
+	slackResp := slackResponse{}
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return fmt.Errorf("unable to unmarshal response body: %w", err)
+	}
+
+	if slackResp.Ok {
+		return nil
+	}
+	return fmt.Errorf("Slack responded with error: %s", slackResp.Error)
 }
