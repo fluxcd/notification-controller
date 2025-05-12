@@ -383,7 +383,9 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		return nil, "", fmt.Errorf("provider has no address")
 	}
 
-	options := []notifier.Option{}
+	options := []notifier.Option{
+		notifier.WithTokenClient(kubeClient),
+	}
 
 	if commitStatus != "" {
 		options = append(options, notifier.WithCommitStatus(commitStatus))
@@ -433,7 +435,11 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		options = append(options, notifier.WithTokenCache(tokenCache))
 	}
 
-	factory := notifier.NewFactory(webhook, options...)
+	if provider.Spec.ServiceAccountName != "" {
+		options = append(options, notifier.WithServiceAccount(provider.Spec.ServiceAccountName))
+	}
+
+	factory := notifier.NewFactory(ctx, webhook, options...)
 	sender, err := factory.Notifier(provider.Spec.Type)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to initialize notifier: %w", err)

@@ -1414,13 +1414,59 @@ jobs:
 
 ### Azure Event Hub
 
-The Azure Event Hub supports two authentication methods, [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application)
-and [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature) based.
+The Azure Event Hub provider supports the following authentication methods, 
+- [Managed
+  Identity](https://learn.microsoft.com/en-us/azure/event-hubs/authenticate-managed-identity)
+- [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application)
+- [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature)
+  based.
+
+#### Managed Identity
+
+Managed identity authentication can be setup using Azure Workload identity. 
+
+##### Pre-requisites
+
+- Ensure Workload Identity is properly [set up on your
+  cluster](https://learn.microsoft.com/en-us/azure/aks/workload-identity-deploy-cluster#create-an-aks-cluster).
+
+##### Configure workload identity
+
+- Create a managed identity to access Azure Event Hub. 
+- Grant the managed identity the necessary permissions to send events to Azure
+  Event hub as described
+  [here](https://learn.microsoft.com/en-us/azure/event-hubs/authenticate-managed-identity#to-assign-azure-roles-using-the-azure-portal).
+
+- Establish a federated identity credential between the managed identity and the
+  service account to be used for authentication. Ensure the federated credential
+  uses the correct namespace and name of the service account. For more details,
+  please refer to this
+  [guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html#6-establish-federated-identity-credential-between-the-identity-and-the-service-account-issuer--subject).
+
+##### Single tenant approach
+
+This approach uses the notification-controller service account for setting up
+authentication.
+
+- In the default installation, the notification-controller service account is
+  located in the `flux-system` namespace with name `notification-controller`.
+
+- Configure workload identity with notification-controller as described in the
+  docs [here](/flux/installation/configuration/workload-identity/).
+
+##### Multi-tenant approach
+
+For multi-tenant clusters, set  `.spec.serviceAccountName` of the provider to
+the service account to be used for authentication. Ensure that the service
+account has the
+[annotations](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview?tabs=dotnet#service-account-annotations)
+for the client-id and tenant-id of the managed identity. 
 
 #### JWT based auth
 
-In JWT we use 3 input values. Channel, token and address.
-We perform the following translation to match we the data we need to communicate with Azure Event Hub.
+In JWT we use 3 input values. Channel, token and address. We perform the
+following translation to match we the data we need to communicate with Azure
+Event Hub.
 
 - channel = Azure Event Hub namespace
 - address = Azure Event Hub name 
@@ -1450,11 +1496,13 @@ stringData:
 ```
 
 The controller doesn't take any responsibility for the JWT token to be updated.
-You need to use a secondary tool to make sure that the token in the secret is renewed.
+You need to use a secondary tool to make sure that the token in the secret is
+renewed.
 
-If you want to make a easy test assuming that you have setup a Azure Enterprise application and you called it
-event-hub you can follow most of the bellow commands. You will need to provide the `client_secret` that you got
-when generating the Azure Enterprise Application.
+If you want to make a easy test assuming that you have setup a Azure Enterprise
+application and you called it event-hub you can follow most of the bellow
+commands. You will need to provide the `client_secret` that you got when
+generating the Azure Enterprise Application.
 
 ```shell
 export AZURE_CLIENT=$(az ad app list --filter "startswith(displayName,'event-hub')" --query '[].appId' |jq -r '.[0]')
@@ -1497,8 +1545,8 @@ stringData:
 ```
 
 Assuming that you have created the Azure event hub and namespace you should be
-able to use a similar command to get your connection string. This will give
-you the default Root SAS, which is NOT supposed to be used in production.
+able to use a similar command to get your connection string. This will give you
+the default Root SAS, which is NOT supposed to be used in production.
 
 ```shell
 az eventhubs namespace authorization-rule keys list --resource-group <rg-name> --namespace-name <namespace-name> --name RootManageSharedAccessKey -o tsv --query primaryConnectionString

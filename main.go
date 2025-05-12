@@ -75,7 +75,7 @@ func init() {
 
 func main() {
 	const (
-		tokenCacheDefaultMaxSize = 0
+		tokenCacheDefaultMaxSize = 100
 	)
 
 	var (
@@ -182,10 +182,23 @@ func main() {
 
 	metricsH := helper.NewMetrics(mgr, metrics.MustMakeRecorder(), apiv1.NotificationFinalizer)
 
+	var tokenCache *pkgcache.TokenCache
+	if tokenCacheOptions.MaxSize > 0 {
+		var err error
+		tokenCache, err = pkgcache.NewTokenCache(tokenCacheOptions.MaxSize,
+			pkgcache.WithMaxDuration(tokenCacheOptions.MaxDuration),
+			pkgcache.WithMetricsRegisterer(ctrlmetrics.Registry),
+			pkgcache.WithMetricsPrefix("gotk_token_"))
+		if err != nil {
+			setupLog.Error(err, "unable to create token cache")
+			os.Exit(1)
+		}
+	}
+
 	if err = (&controller.ProviderReconciler{
-		Client:         mgr.GetClient(),
-		ControllerName: controllerName,
-		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
+		Client:        mgr.GetClient(),
+		EventRecorder: mgr.GetEventRecorderFor(controllerName),
+		TokenCache:    tokenCache,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Provider")
 		os.Exit(1)
@@ -220,19 +233,6 @@ func main() {
 	if err != nil {
 		setupLog.Error(err, "unable to create middleware store")
 		os.Exit(1)
-	}
-
-	var tokenCache *pkgcache.TokenCache
-	if tokenCacheOptions.MaxSize > 0 {
-		var err error
-		tokenCache, err = pkgcache.NewTokenCache(tokenCacheOptions.MaxSize,
-			pkgcache.WithMaxDuration(tokenCacheOptions.MaxDuration),
-			pkgcache.WithMetricsRegisterer(ctrlmetrics.Registry),
-			pkgcache.WithMetricsPrefix("gotk_token_"))
-		if err != nil {
-			setupLog.Error(err, "unable to create token cache")
-			os.Exit(1)
-		}
 	}
 
 	setupLog.Info("starting event server", "addr", eventsAddr)

@@ -17,10 +17,21 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
 
 	"github.com/Azure/azure-amqp-common-go/v4/auth"
 	eventhub "github.com/Azure/azure-event-hubs-go/v3"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	pkgauth "github.com/fluxcd/pkg/auth"
+	"github.com/fluxcd/pkg/auth/azure"
+	"github.com/fluxcd/pkg/cache"
+	pkgcache "github.com/fluxcd/pkg/cache"
+
+	"github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
 // AzureEventHub holds the eventhub client
@@ -29,20 +40,30 @@ type AzureEventHub struct {
 }
 
 // NewAzureEventHub creates a eventhub client
-func NewAzureEventHub(endpointURL, token, eventHubNamespace string) (*AzureEventHub, error) {
+func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace, proxy, serviceAccountName, providerName, providerNamespace string, tokenClient client.Client, tokenCache *pkgcache.TokenCache) (*AzureEventHub, error) {
 	var hub *eventhub.Hub
 	var err error
 
-	// token should only be defined if JWT is used
-	if token != "" {
-		hub, err = newJWTHub(endpointURL, token, eventHubNamespace)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create a eventhub using JWT %v", err)
-		}
-	} else {
+	if err := validateAuthOptions(endpointURL, token, serviceAccountName); err != nil {
+		return nil, fmt.Errorf("invalid authentication options: %v", err)
+	}
+
+	if isSASAuth(endpointURL) {
 		hub, err = newSASHub(endpointURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create a eventhub using SAS %v", err)
+		}
+	} else {
+		// if token doesn't exist, try to create a new token using managed identity
+		if token == "" {
+			token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName, providerName, providerNamespace, tokenClient, tokenCache)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create a eventhub using managed identity %v", err)
+			}
+		}
+		hub, err = newJWTHub(endpointURL, token, eventHubNamespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create a eventhub using authentication token %v", err)
 		}
 	}
 
@@ -115,4 +136,71 @@ func newSASHub(address string) (*eventhub.Hub, error) {
 	}
 
 	return hub, nil
+}
+
+// newManagedIdentityToken is used to attempt credential-free authentication.
+func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, providerName, providerNamespace string, tokenClient client.Client, tokenCache *pkgcache.TokenCache) (string, error) {
+	opts := []pkgauth.Option{pkgauth.WithScopes(azure.ScopeEventHubs)}
+	if proxy != "" {
+		proxyURL, err := url.Parse(proxy)
+		if err != nil {
+			return "", fmt.Errorf("error parsing proxy URL : %w", err)
+		}
+		opts = append(opts, pkgauth.WithProxyURL(*proxyURL))
+	}
+
+	if serviceAccountName != "" {
+		serviceAccount := types.NamespacedName{
+			Name:      serviceAccountName,
+			Namespace: providerNamespace,
+		}
+		opts = append(opts, pkgauth.WithServiceAccount(serviceAccount, tokenClient))
+	}
+
+	if tokenCache != nil {
+		involvedObject := cache.InvolvedObject{
+			Kind:      v1beta3.ProviderKind,
+			Name:      providerName,
+			Namespace: providerNamespace,
+			Operation: OperationPost,
+		}
+		opts = append(opts, pkgauth.WithCache(*tokenCache, involvedObject))
+	}
+
+	token, err := pkgauth.GetToken(ctx, azure.Provider{}, opts...)
+	if err != nil {
+		return "", fmt.Errorf("failed to get token for azure event hub: %w", err)
+	}
+
+	return token.(*azure.Token).AccessToken.Token, nil
+}
+
+// validateAuthOptions checks if the authentication options are valid
+func validateAuthOptions(endpointURL, token, serviceAccountName string) error {
+	if isSASAuth(endpointURL) {
+		if err := validateSASAuth(token, serviceAccountName); err != nil {
+			return err
+		}
+	} else if serviceAccountName != "" && token != "" {
+		return fmt.Errorf("serviceAccountName and jwt token authentication cannot be set at the same time")
+	}
+
+	return nil
+}
+
+// isSASAuth checks if the endpoint URL contains SAS authentication parameters
+func isSASAuth(endpointURL string) bool {
+	return strings.Contains(endpointURL, "SharedAccessKey")
+}
+
+// validateSASAuth checks if SAS authentication is used correctly
+func validateSASAuth(token, serviceAccountName string) error {
+	if serviceAccountName != "" {
+		return fmt.Errorf("serviceAccountName and SAS authentication cannot be set at the same time")
+	}
+	if token != "" {
+		return fmt.Errorf("jwt token and SAS authentication cannot be set at the same time")
+	}
+
+	return nil
 }

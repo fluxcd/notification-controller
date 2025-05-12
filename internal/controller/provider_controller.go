@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 
-	corev1 "k8s.io/api/core/v1"
 	kuberecorder "k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -28,12 +27,16 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	"github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/runtime/patch"
+
+	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=providers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+// +kubebuilder:rbac:groups="",resources=serviceaccounts/token,verbs=create
 
 // ProviderReconciler reconciles a Provider object to migrate it to static
 // Provider.
@@ -41,38 +44,19 @@ type ProviderReconciler struct {
 	client.Client
 	kuberecorder.EventRecorder
 
-	ControllerName string
+	TokenCache *cache.TokenCache
 }
 
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&apiv1beta3.Provider{}, builder.WithPredicates(finalizerPredicate{})).
+		For(&apiv1beta3.Provider{}, builder.WithPredicates(providerPredicate{})).
 		Complete(r)
 }
 
 func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, retErr error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	obj := &apiv1beta3.Provider{}
 	if err := r.Get(ctx, req.NamespacedName, obj); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	// Early return if no migration is needed.
-	if !controllerutil.ContainsFinalizer(obj, apiv1.NotificationFinalizer) {
-		return ctrl.Result{}, nil
-	}
-
-	// Examine if the object is under deletion.
-	var delete bool
-	if !obj.ObjectMeta.DeletionTimestamp.IsZero() {
-		delete = true
-	}
-
-	// Skip if it's suspend and not being deleted.
-	if obj.Spec.Suspend && !delete {
-		log.Info("reconciliation is suspended for this object")
-		return ctrl.Result{}, nil
 	}
 
 	patcher, err := patch.NewHelper(obj, r.Client)
@@ -86,11 +70,29 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 		}
 	}()
 
-	// Remove the notification-controller finalizer.
-	controllerutil.RemoveFinalizer(obj, apiv1.NotificationFinalizer)
+	// Examine if the object is under deletion.
+	if !obj.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(obj)
+	}
 
-	log.Info("removed finalizer from Provider to migrate to static Provider")
-	r.Event(obj, corev1.EventTypeNormal, "Migration", "removed finalizer from Provider to migrate to static Provider")
+	// Add finalizer if it doesn't exist.
+	if !controllerutil.ContainsFinalizer(obj, apiv1.NotificationFinalizer) {
+		controllerutil.AddFinalizer(obj, apiv1.NotificationFinalizer)
+	}
 
 	return
+}
+
+// reconcileDelete handles the deletion of the object.
+// It cleans up the caches and removes the finalizer.
+func (r *ProviderReconciler) reconcileDelete(obj *apiv1beta3.Provider) (ctrl.Result, error) {
+	// Remove our finalizer from the list
+	controllerutil.RemoveFinalizer(obj, apiv1.NotificationFinalizer)
+
+	// Cleanup caches.
+	r.TokenCache.DeleteEventsForObject(apiv1beta3.ProviderKind,
+		obj.GetName(), obj.GetNamespace(), notifier.OperationPost)
+
+	// Stop reconciliation as the object is being deleted
+	return ctrl.Result{}, nil
 }
