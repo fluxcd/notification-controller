@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	"github.com/fluxcd/pkg/auth"
 	pkgcache "github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/masktoken"
 
@@ -80,7 +81,12 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		// Dispatch notifications.
 		for i := range alerts {
 			alert := &alerts[i]
-			alertLogger := eventLogger.WithValues(alert.Kind, client.ObjectKeyFromObject(alert))
+			alertLogger := eventLogger.WithValues(
+				"alert", map[string]string{
+					"name":         alert.Name,
+					"namespace":    alert.Namespace,
+					"providerName": alert.Spec.ProviderRef.Name,
+				})
 			ctx := log.IntoContext(ctx, alertLogger)
 			if err := s.dispatchNotification(ctx, event, alert); err != nil {
 				alertLogger.Error(err, "failed to dispatch notification")
@@ -250,6 +256,13 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 	// Skip if the provider is suspended.
 	if provider.Spec.Suspend {
 		return nil, nil, "", 0, nil
+	}
+
+	// Check object-level workload identity feature gate.
+	if provider.Spec.ServiceAccountName != "" && !auth.IsObjectLevelWorkloadIdentityEnabled() {
+		return nil, nil, "", 0, fmt.Errorf(
+			"to use spec.serviceAccountName for provider authentication please enable the %s feature gate in the controller",
+			auth.FeatureGateObjectLevelWorkloadIdentity)
 	}
 
 	// Create a copy of the event and combine event metadata
