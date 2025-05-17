@@ -3,7 +3,7 @@ module github.com/fluxcd/notification-controller/api
 go 1.24.0
 
 require (
-	github.com/fluxcd/pkg/apis/meta v1.11.0
+	github.com/fluxcd/pkg/apis/meta v1.12.0
 	k8s.io/apimachinery v0.33.0
 	sigs.k8s.io/controller-runtime v0.20.4
 )
