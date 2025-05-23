@@ -35,6 +35,7 @@ import (
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
+	"github.com/fluxcd/pkg/auth"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
@@ -405,16 +406,18 @@ func TestGetNotificationParams(t *testing.T) {
 	testEvent := &eventv1.Event{InvolvedObject: involvedObj}
 
 	tests := []struct {
-		name               string
-		alertNamespace     string
-		alertSummary       string
-		alertEventMetadata map[string]string
-		providerNamespace  string
-		providerSuspended  bool
-		secretNamespace    string
-		noCrossNSRefs      bool
-		eventMetadata      map[string]string
-		wantErr            bool
+		name                   string
+		alertNamespace         string
+		alertSummary           string
+		alertEventMetadata     map[string]string
+		providerNamespace      string
+		providerSuspended      bool
+		providerServiceAccount string
+		secretNamespace        string
+		noCrossNSRefs          bool
+		enableObjLevelWI       bool
+		eventMetadata          map[string]string
+		wantErr                bool
 	}{
 		{
 			name:              "event src and alert in diff NS",
@@ -463,6 +466,18 @@ func TestGetNotificationParams(t *testing.T) {
 				"ccc": "ddd",
 			},
 		},
+		{
+			name:                   "object level workload identity feature gate disabled",
+			providerServiceAccount: "foo",
+			enableObjLevelWI:       false,
+			wantErr:                true,
+		},
+		{
+			name:                   "object level workload identity feature gate enabled",
+			providerServiceAccount: "foo",
+			enableObjLevelWI:       true,
+			wantErr:                false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -489,11 +504,16 @@ func TestGetNotificationParams(t *testing.T) {
 				provider.Namespace = tt.providerNamespace
 			}
 			provider.Spec.Suspend = tt.providerSuspended
+			provider.Spec.ServiceAccountName = tt.providerServiceAccount
 			if tt.secretNamespace != "" {
 				secret.Namespace = tt.secretNamespace
 			}
 			if tt.eventMetadata != nil {
 				event.Metadata = tt.eventMetadata
+			}
+
+			if tt.enableObjLevelWI {
+				t.Setenv(auth.EnvVarEnableObjectLevelWorkloadIdentity, "true")
 			}
 
 			// Create fake objects and event server.
