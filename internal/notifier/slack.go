@@ -19,6 +19,7 @@ package notifier
 import (
 	"context"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strings"
@@ -118,13 +119,49 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 
 	payload.Attachments = []SlackAttachment{a}
 
-	err := postMessage(ctx, s.URL, s.ProxyURL, s.CertPool, payload, func(request *retryablehttp.Request) {
-		if s.Token != "" {
-			request.Header.Add("Authorization", "Bearer "+s.Token)
-		}
-	})
-	if err != nil {
+	opts := []postOption{
+		withRequestModifier(func(request *retryablehttp.Request) {
+			if s.Token != "" {
+				request.Header.Add("Authorization", "Bearer "+s.Token)
+			}
+		}),
+	}
+	if s.ProxyURL != "" {
+		opts = append(opts, withProxy(s.ProxyURL))
+	}
+	if s.CertPool != nil {
+		opts = append(opts, withCertPool(s.CertPool))
+	}
+	if s.URL == "https://slack.com/api/chat.postMessage" {
+		opts = append(opts, withResponseValidator(validateSlackResponse))
+	}
+
+	if err := postMessage(ctx, s.URL, payload, opts...); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
+
 	return nil
+}
+
+// validateSlackResponse validates that a chat.postMessage API response is successful.
+// chat.postMessage API always returns 200 OK.
+// See https://api.slack.com/methods/chat.postMessage.
+//
+// On the other hand, incoming webhooks return more expressive HTTP status codes.
+// See https://api.slack.com/messaging/webhooks#handling_errors.
+func validateSlackResponse(_ int, body []byte) error {
+	type slackResponse struct {
+		Ok    bool   `json:"ok"`
+		Error string `json:"error"`
+	}
+
+	slackResp := slackResponse{}
+	if err := json.Unmarshal(body, &slackResp); err != nil {
+		return fmt.Errorf("unable to unmarshal response body: %w", err)
+	}
+
+	if slackResp.Ok {
+		return nil
+	}
+	return fmt.Errorf("Slack responded with error: %s", slackResp.Error)
 }

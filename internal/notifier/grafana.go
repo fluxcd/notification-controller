@@ -84,15 +84,24 @@ func (g *Grafana) Post(ctx context.Context, event eventv1.Event) error {
 		Tags: sfields,
 	}
 
-	err := postMessage(ctx, g.URL, g.ProxyURL, g.CertPool, payload, func(request *retryablehttp.Request) {
-		if (g.Username != "" && g.Password != "") && g.Token == "" {
-			request.Header.Add("Authorization", "Basic "+basicAuth(g.Username, g.Password))
-		}
-		if g.Token != "" {
-			request.Header.Add("Authorization", "Bearer "+g.Token)
-		}
-	})
-	if err != nil {
+	opts := []postOption{
+		withRequestModifier(func(req *retryablehttp.Request) {
+			if (g.Username != "" && g.Password != "") && g.Token == "" {
+				req.Header.Add("Authorization", "Basic "+basicAuth(g.Username, g.Password))
+			}
+			if g.Token != "" {
+				req.Header.Add("Authorization", "Bearer "+g.Token)
+			}
+		}),
+	}
+	if g.ProxyURL != "" {
+		opts = append(opts, withProxy(g.ProxyURL))
+	}
+	if g.CertPool != nil {
+		opts = append(opts, withCertPool(g.CertPool))
+	}
+
+	if err := postMessage(ctx, g.URL, payload, opts...); err != nil {
 		return fmt.Errorf("postMessage failed: %w", err)
 	}
 	return nil

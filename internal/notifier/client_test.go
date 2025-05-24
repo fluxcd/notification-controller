@@ -20,13 +20,16 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	"github.com/hashicorp/go-retryablehttp"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -45,7 +48,7 @@ func Test_postMessage(t *testing.T) {
 		require.Equal(t, "success", payload["status"])
 	}))
 	defer ts.Close()
-	err := postMessage(context.Background(), ts.URL, "", nil, map[string]string{"status": "success"})
+	err := postMessage(context.Background(), ts.URL, map[string]string{"status": "success"})
 	require.NoError(t, err)
 }
 
@@ -56,7 +59,7 @@ func Test_postMessage_timeout(t *testing.T) {
 	defer ts.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	err := postMessage(ctx, ts.URL, "", nil, map[string]string{"status": "success"})
+	err := postMessage(ctx, ts.URL, map[string]string{"status": "success"})
 	require.Error(t, err, "context deadline exceeded")
 }
 
@@ -77,8 +80,40 @@ func Test_postSelfSignedCert(t *testing.T) {
 	require.NoError(t, err)
 	certpool := x509.NewCertPool()
 	certpool.AddCert(cert)
-	err = postMessage(context.Background(), ts.URL, "", certpool, map[string]string{"status": "success"})
+	err = postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, withCertPool(certpool))
 	require.NoError(t, err)
+}
+
+func Test_postMessage_requestModifier(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		require.Equal(t, "Bearer token", r.Header.Get("Authorization"))
+	}))
+	defer ts.Close()
+
+	err := postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, withRequestModifier(func(req *retryablehttp.Request) {
+		req.Header.Set("Authorization", "Bearer token")
+	}))
+	require.NoError(t, err)
+}
+
+func Test_postMessage_responseValidator(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Default response validator determines success, but the custom validator below will determine failure .
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("error: bad request"))
+	}))
+	defer ts.Close()
+
+	err := postMessage(context.Background(), ts.URL, map[string]string{"status": "success"})
+	require.NoError(t, err)
+
+	err = postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, withResponseValidator(func(_ int, body []byte) error {
+		if strings.HasPrefix(string(body), "error:") {
+			return errors.New(string(body))
+		}
+		return nil
+	}))
+	require.ErrorContains(t, err, "request failed: error: bad request")
 }
 
 func testEvent() eventv1.Event {
