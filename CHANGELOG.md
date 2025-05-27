@@ -2,6 +2,71 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.6.0
+
+**Release date:** 2025-05-27
+
+This minor release comes with various bug fixes and improvements.
+
+### Provider
+
+The `azureeventhub` provider now supports workload identity both
+at the controller and object levels. For object level, the
+`.spec.serviceAccountName` field can be set to the name of a
+service account in the same namespace that was configured with
+a Managed Identity.
+For object level to work, the controller feature gate
+`ObjectLevelWorkloadIdentity` must be enabled. See a complete guide
+[here](https://fluxcd.io/flux/integrations/azure/).
+
+The `github` and `githubdispatch` providers now support authenticating
+with a GitHub App. See docs
+[here](https://fluxcd.io/flux/components/notification/providers/#github)
+and
+[here](https://fluxcd.io/flux/components/notification/providers/#github-dispatch).
+
+For commit status providers it is now possible to define a custom
+status string by defining a CEL expression in the `.spec.commitStatusExpr`
+field. The variables `event`, `alert` and `provider` are available
+for the CEL expression. See
+[docs](https://fluxcd.io/flux/components/notification/providers/#custom-commit-status-messages).
+
+### General updates
+
+In addition, the Kubernetes dependencies have been updated to v1.33 and
+various other controller dependencies have been updated to their latest
+version. The controller is now built with Go 1.24.
+
+Fixes:
+- Fix Slack chat.postMessage error handling
+  [#1086](https://github.com/fluxcd/notification-controller/pull/1086)
+- Fix pass 'certPool' to Gitea client on creation
+  [#1084](https://github.com/fluxcd/notification-controller/pull/1084)
+- CrossNamespaceObjectReference: Fix MaxLength validation to kubernetes max size of 253
+  [#1108](https://github.com/fluxcd/notification-controller/pull/1108)
+- Sanitize proxy error logging
+  [#1093](https://github.com/fluxcd/notification-controller/pull/1093)
+
+Improvements:
+- [RFC-0010] Workload Identity support for `azureeventhub` provider
+  [#1106](https://github.com/fluxcd/notification-controller/pull/1106)
+  [#1116](https://github.com/fluxcd/notification-controller/pull/1116)
+  [#1120](https://github.com/fluxcd/notification-controller/pull/1120)
+  [#1109](https://github.com/fluxcd/notification-controller/pull/1109)
+  [#1112](https://github.com/fluxcd/notification-controller/pull/1112)
+- GitHub App authentication support for `github` and `githubdispatch`
+  [#1058](https://github.com/fluxcd/notification-controller/pull/1058)
+- Support CEL expressions to construct commit statuses
+  [#1068](https://github.com/fluxcd/notification-controller/pull/1068)
+- Add proxy support to `gitea` provider
+  [#1087](https://github.com/fluxcd/notification-controller/pull/1087)
+- Various dependency updates
+  [#1101](https://github.com/fluxcd/notification-controller/pull/1101)
+  [#1119](https://github.com/fluxcd/notification-controller/pull/1119)
+  [#1118](https://github.com/fluxcd/notification-controller/pull/1118)
+  [#1113](https://github.com/fluxcd/notification-controller/pull/1113)
+  [#1104](https://github.com/fluxcd/notification-controller/pull/1104)
+
 ## 1.5.0
 
 **Release date:** 2025-02-13
