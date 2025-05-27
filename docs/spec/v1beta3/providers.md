@@ -1456,11 +1456,14 @@ authentication.
 
 ##### Multi-tenant approach
 
-For multi-tenant clusters, set  `.spec.serviceAccountName` of the provider to
+For multi-tenant clusters, set `.spec.serviceAccountName` of the provider to
 the service account to be used for authentication. Ensure that the service
 account has the
 [annotations](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview?tabs=dotnet#service-account-annotations)
-for the client-id and tenant-id of the managed identity. 
+for the client-id and tenant-id of the managed identity.
+
+For a complete guide on how to set up authentication for an Azure Event Hub,
+see the integration [docs](/flux/integrations/azure/).
 
 #### JWT based auth
 
