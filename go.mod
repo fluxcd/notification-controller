@@ -17,7 +17,7 @@ require (
 	github.com/containrrr/shoutrrr v0.8.0
 	github.com/elazarl/goproxy v1.7.2
 	github.com/fluxcd/cli-utils v0.36.0-flux.13
-	github.com/fluxcd/notification-controller/api v1.5.0
+	github.com/fluxcd/notification-controller/api v1.6.0
 	github.com/fluxcd/pkg/apis/event v0.17.0
 	github.com/fluxcd/pkg/apis/meta v1.12.0
 	github.com/fluxcd/pkg/auth v0.16.0
