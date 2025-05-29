@@ -1305,10 +1305,8 @@ spec:
 
 The `address` is the address of your repository where you want to send webhooks to trigger GitHub workflows.
 
-GitHub uses [personal access
-tokens]((https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token))
-or [GitHub
-app]((https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation))
+GitHub uses [personal access tokens](https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/creating-a-personal-access-token)
+or [GitHub app](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation)
 for authentication with its API:
 
 #### GitHub personal access token
