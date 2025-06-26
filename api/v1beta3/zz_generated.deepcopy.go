@@ -196,6 +196,11 @@ func (in *ProviderSpec) DeepCopyInto(out *ProviderSpec) {
 		*out = new(metav1.Duration)
 		**out = **in
 	}
+	if in.ProxySecretRef != nil {
+		in, out := &in.ProxySecretRef, &out.ProxySecretRef
+		*out = new(meta.LocalObjectReference)
+		**out = **in
+	}
 	if in.SecretRef != nil {
 		in, out := &in.SecretRef, &out.SecretRef
 		*out = new(meta.LocalObjectReference)

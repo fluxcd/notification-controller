@@ -548,13 +548,15 @@ func TestGetNotificationParams(t *testing.T) {
 func TestCreateNotifier(t *testing.T) {
 	secretName := "foo-secret"
 	certSecretName := "cert-secret"
+	proxySecretName := "proxy-secret"
 	tests := []struct {
-		name           string
-		providerSpec   *apiv1beta3.ProviderSpec
-		secretType     corev1.SecretType
-		secretData     map[string][]byte
-		certSecretData map[string][]byte
-		wantErr        bool
+		name            string
+		providerSpec    *apiv1beta3.ProviderSpec
+		secretType      corev1.SecretType
+		secretData      map[string][]byte
+		certSecretData  map[string][]byte
+		proxySecretData map[string][]byte
+		wantErr         bool
 	}{
 		{
 			name: "no address, no secret ref",
@@ -578,6 +580,7 @@ func TestCreateNotifier(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		// TODO: Remove deprecated secret proxy key tests when Provider v1 is released.
 		{
 			name: "reference to secret with valid address, proxy, headers",
 			providerSpec: &apiv1beta3.ProviderSpec{
@@ -625,6 +628,7 @@ func TestCreateNotifier(t *testing.T) {
 				"address": []byte("https://example.com"),
 			},
 		},
+		// TODO: Remove deprecated spec.proxy field tests when Provider v1 is released.
 		{
 			name: "invalid spec proxy overridden by valid secret ref proxy",
 			providerSpec: &apiv1beta3.ProviderSpec{
@@ -780,6 +784,60 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			},
 			wantErr: false,
 		},
+		{
+			name: "proxy from ProxySecretRef",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				Type:           "generic",
+				Address:        "https://example.com",
+				ProxySecretRef: &meta.LocalObjectReference{Name: proxySecretName},
+			},
+			proxySecretData: map[string][]byte{
+				"address": []byte("http://proxy.example.com:8080"),
+			},
+		},
+		{
+			name: "proxy from ProxySecretRef with authentication",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				Type:           "generic",
+				Address:        "https://example.com",
+				ProxySecretRef: &meta.LocalObjectReference{Name: proxySecretName},
+			},
+			proxySecretData: map[string][]byte{
+				"address":  []byte("http://proxy.example.com:8080"),
+				"username": []byte("proxyuser"),
+				"password": []byte("proxypass"),
+			},
+		},
+		{
+			name: "ProxySecretRef reference to non-existing secret",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				Type:           "generic",
+				Address:        "https://example.com",
+				ProxySecretRef: &meta.LocalObjectReference{Name: "non-existing"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "ProxySecretRef missing address field",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				Type:           "generic",
+				Address:        "https://example.com",
+				ProxySecretRef: &meta.LocalObjectReference{Name: proxySecretName},
+			},
+			proxySecretData: map[string][]byte{
+				"username": []byte("proxyuser"),
+			},
+			wantErr: true,
+		},
+		// TODO: Remove deprecated spec.proxy field tests when Provider v1 is released.
+		{
+			name: "deprecated spec.proxy field",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				Type:    "generic",
+				Address: "https://example.com",
+				Proxy:   "http://proxy.example.com:8080",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -803,6 +861,13 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 					ObjectMeta: metav1.ObjectMeta{Name: certSecretName},
 					Type:       tt.secretType,
 					Data:       tt.certSecretData,
+				}
+				builder.WithObjects(secret)
+			}
+			if tt.proxySecretData != nil {
+				secret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: proxySecretName},
+					Data:       tt.proxySecretData,
 				}
 				builder.WithObjects(secret)
 			}
