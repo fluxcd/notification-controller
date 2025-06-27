@@ -475,10 +475,25 @@ spec:
                 pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
                 type: string
               proxy:
-                description: Proxy the HTTP/S address of the proxy server.
+                description: |-
+                  Proxy the HTTP/S address of the proxy server.
+                  Deprecated: Use ProxySecretRef instead. Will be removed in v1.
                 maxLength: 2048
                 pattern: ^(http|https)://.*$
                 type: string
+              proxySecretRef:
+                description: |-
+                  ProxySecretRef specifies the Secret containing the proxy configuration
+                  for this Provider. The Secret should contain an 'address' key with the
+                  HTTP/S address of the proxy server. Optional 'username' and 'password'
+                  keys can be provided for proxy authentication.
+                properties:
+                  name:
+                    description: Name of the referent.
+                    type: string
+                required:
+                - name
+                type: object
               secretRef:
                 description: |-
                   SecretRef specifies the Secret containing the authentication

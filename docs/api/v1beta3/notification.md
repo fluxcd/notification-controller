@@ -330,7 +330,25 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Proxy the HTTP/S address of the proxy server.</p>
+<p>Proxy the HTTP/S address of the proxy server.
+Deprecated: Use ProxySecretRef instead. Will be removed in v1.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>proxySecretRef</code><br>
+<em>
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+github.com/fluxcd/pkg/apis/meta.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProxySecretRef specifies the Secret containing the proxy configuration
+for this Provider. The Secret should contain an &lsquo;address&rsquo; key with the
+HTTP/S address of the proxy server. Optional &lsquo;username&rsquo; and &lsquo;password&rsquo;
+keys can be provided for proxy authentication.</p>
 </td>
 </tr>
 <tr>
@@ -650,7 +668,25 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Proxy the HTTP/S address of the proxy server.</p>
+<p>Proxy the HTTP/S address of the proxy server.
+Deprecated: Use ProxySecretRef instead. Will be removed in v1.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>proxySecretRef</code><br>
+<em>
+<a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
+github.com/fluxcd/pkg/apis/meta.LocalObjectReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProxySecretRef specifies the Secret containing the proxy configuration
+for this Provider. The Secret should contain an &lsquo;address&rsquo; key with the
+HTTP/S address of the proxy server. Optional &lsquo;username&rsquo; and &lsquo;password&rsquo;
+keys can be provided for proxy authentication.</p>
 </td>
 </tr>
 <tr>

@@ -40,6 +40,7 @@ import (
 	"github.com/fluxcd/pkg/auth"
 	pkgcache "github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/masktoken"
+	"github.com/fluxcd/pkg/runtime/secrets"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
@@ -311,7 +312,11 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 
 	webhook := provider.Spec.Address
 	username := provider.Spec.Username
-	proxy := provider.Spec.Proxy
+	// TODO: Remove deprecated proxy handling when Provider v1 is released.
+	deprecatedProxy := provider.Spec.Proxy
+	if deprecatedProxy != "" {
+		log.FromContext(ctx).Error(nil, "warning: spec.proxy is deprecated, please use spec.proxySecretRef instead. Support for this field will be removed in v1.")
+	}
 	token := ""
 	password := ""
 	headers := make(map[string]string)
@@ -336,11 +341,12 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		}
 
 		if val, ok := secret.Data["proxy"]; ok {
-			proxy = strings.TrimSpace(string(val))
-			_, err := url.Parse(proxy)
+			deprecatedProxy = strings.TrimSpace(string(val))
+			_, err := url.Parse(deprecatedProxy)
 			if err != nil {
 				return nil, "", fmt.Errorf("invalid 'proxy' in secret '%s/%s'", secret.Namespace, secret.Name)
 			}
+			log.FromContext(ctx).Error(nil, "warning: specifying proxy with 'proxy' key in the referenced secret is deprecated, use spec.proxySecretRef with 'address' key instead. Support for the 'proxy' key will be removed in v1.")
 		}
 
 		if val, ok := secret.Data["token"]; ok {
@@ -357,6 +363,17 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 				return nil, "", fmt.Errorf("failed to read headers from secret: %w", err)
 			}
 		}
+	}
+
+	var proxy string
+	if provider.Spec.ProxySecretRef != nil {
+		proxyURL, err := secrets.ProxyURLFromSecret(ctx, kubeClient, provider.Spec.ProxySecretRef.Name, provider.Namespace)
+		if err != nil {
+			return nil, "", fmt.Errorf("failed to get proxy URL from secret: %w", err)
+		}
+		proxy = proxyURL.String()
+	} else {
+		proxy = deprecatedProxy
 	}
 
 	var certPool *x509.CertPool
