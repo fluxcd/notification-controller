@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,10 +43,10 @@ func Fuzz_Slack(f *testing.F) {
 		}))
 		defer ts.Close()
 
-		var cert x509.CertPool
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+		var tlsConfig tls.Config
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		slack, err := NewSlack(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", token, &cert, username, channel)
+		slack, err := NewSlack(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", token, &tlsConfig, username, channel)
 		if err != nil {
 			return
 		}

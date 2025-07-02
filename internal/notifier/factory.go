@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 
@@ -69,14 +70,17 @@ type notifierMap map[string]factoryFunc
 type factoryFunc func(opts notifierOptions) (Interface, error)
 
 type notifierOptions struct {
-	Context            context.Context
-	URL                string
-	ProxyURL           string
-	Username           string
-	Channel            string
-	Token              string
-	Headers            map[string]string
+	Context  context.Context
+	URL      string
+	ProxyURL string
+	Username string
+	Channel  string
+	Token    string
+	Headers  map[string]string
+	// CertPool is kept for Git platform providers (GitHub, GitLab, etc.) that use third-party SDKs.
+	// TODO: Remove this field once all notifiers support client certificate authentication via TLSConfig.
 	CertPool           *x509.CertPool
+	TLSConfig          *tls.Config
 	Password           string
 	CommitStatus       string
 	ProviderName       string
@@ -133,6 +137,13 @@ func WithHeaders(headers map[string]string) Option {
 func WithCertPool(certPool *x509.CertPool) Option {
 	return func(o *notifierOptions) {
 		o.CertPool = certPool
+	}
+}
+
+// WithTLSConfig sets the TLS configuration for the notifier.
+func WithTLSConfig(tlsConfig *tls.Config) Option {
+	return func(o *notifierOptions) {
+		o.TLSConfig = tlsConfig
 	}
 }
 
@@ -230,15 +241,15 @@ func (f Factory) Notifier(provider string) (Interface, error) {
 }
 
 func genericNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewForwarder(opts.URL, opts.ProxyURL, opts.Headers, opts.CertPool, nil)
+	return NewForwarder(opts.URL, opts.ProxyURL, opts.Headers, opts.TLSConfig, nil)
 }
 
 func genericHMACNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewForwarder(opts.URL, opts.ProxyURL, opts.Headers, opts.CertPool, []byte(opts.Token))
+	return NewForwarder(opts.URL, opts.ProxyURL, opts.Headers, opts.TLSConfig, []byte(opts.Token))
 }
 
 func slackNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewSlack(opts.URL, opts.ProxyURL, opts.Token, opts.CertPool, opts.Username, opts.Channel)
+	return NewSlack(opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig, opts.Username, opts.Channel)
 }
 
 func discordNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -246,11 +257,11 @@ func discordNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func rocketNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewRocket(opts.URL, opts.ProxyURL, opts.CertPool, opts.Username, opts.Channel)
+	return NewRocket(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Username, opts.Channel)
 }
 
 func msteamsNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewMSTeams(opts.URL, opts.ProxyURL, opts.CertPool)
+	return NewMSTeams(opts.URL, opts.ProxyURL, opts.TLSConfig)
 }
 
 func googleChatNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -262,7 +273,7 @@ func googlePubSubNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func webexNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewWebex(opts.URL, opts.ProxyURL, opts.CertPool, opts.Channel, opts.Token)
+	return NewWebex(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Channel, opts.Token)
 }
 
 func sentryNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -282,23 +293,23 @@ func larkNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func matrixNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewMatrix(opts.URL, opts.Token, opts.Channel, opts.CertPool)
+	return NewMatrix(opts.URL, opts.Token, opts.Channel, opts.TLSConfig)
 }
 
 func opsgenieNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewOpsgenie(opts.URL, opts.ProxyURL, opts.CertPool, opts.Token)
+	return NewOpsgenie(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
 }
 
 func alertmanagerNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewAlertmanager(opts.URL, opts.ProxyURL, opts.CertPool, opts.Token)
+	return NewAlertmanager(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
 }
 
 func grafanaNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGrafana(opts.URL, opts.ProxyURL, opts.Token, opts.CertPool, opts.Username, opts.Password)
+	return NewGrafana(opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig, opts.Username, opts.Password)
 }
 
 func pagerDutyNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewPagerDuty(opts.URL, opts.ProxyURL, opts.CertPool, opts.Channel)
+	return NewPagerDuty(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Channel)
 }
 
 func dataDogNotifierFunc(opts notifierOptions) (Interface, error) {

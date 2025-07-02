@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/url"
@@ -28,10 +28,10 @@ import (
 )
 
 type Opsgenie struct {
-	URL      string
-	ProxyURL string
-	CertPool *x509.CertPool
-	ApiKey   string
+	URL       string
+	ProxyURL  string
+	TLSConfig *tls.Config
+	ApiKey    string
 }
 
 type OpsgenieAlert struct {
@@ -40,7 +40,7 @@ type OpsgenieAlert struct {
 	Details     map[string]string `json:"details"`
 }
 
-func NewOpsgenie(hookURL string, proxyURL string, certPool *x509.CertPool, token string) (*Opsgenie, error) {
+func NewOpsgenie(hookURL string, proxyURL string, tlsConfig *tls.Config, token string) (*Opsgenie, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Opsgenie hook URL %s: '%w'", hookURL, err)
@@ -51,10 +51,10 @@ func NewOpsgenie(hookURL string, proxyURL string, certPool *x509.CertPool, token
 	}
 
 	return &Opsgenie{
-		URL:      hookURL,
-		ProxyURL: proxyURL,
-		CertPool: certPool,
-		ApiKey:   token,
+		URL:       hookURL,
+		ProxyURL:  proxyURL,
+		ApiKey:    token,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -86,8 +86,8 @@ func (s *Opsgenie) Post(ctx context.Context, event eventv1.Event) error {
 	if s.ProxyURL != "" {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
-	if s.CertPool != nil {
-		opts = append(opts, withCertPool(s.CertPool))
+	if s.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(s.TLSConfig))
 	}
 
 	if err := postMessage(ctx, s.URL, payload, opts...); err != nil {

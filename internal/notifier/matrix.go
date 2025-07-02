@@ -3,7 +3,7 @@ package notifier
 import (
 	"context"
 	"crypto/sha1"
-	"crypto/x509"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,10 +15,10 @@ import (
 )
 
 type Matrix struct {
-	Token    string
-	URL      string
-	RoomId   string
-	CertPool *x509.CertPool
+	Token     string
+	URL       string
+	RoomId    string
+	TLSConfig *tls.Config
 }
 
 type MatrixPayload struct {
@@ -26,17 +26,17 @@ type MatrixPayload struct {
 	MsgType string `json:"msgtype"`
 }
 
-func NewMatrix(serverURL, token, roomId string, certPool *x509.CertPool) (*Matrix, error) {
+func NewMatrix(serverURL, token, roomId string, tlsConfig *tls.Config) (*Matrix, error) {
 	_, err := url.ParseRequestURI(serverURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Matrix homeserver URL %s: '%w'", serverURL, err)
 	}
 
 	return &Matrix{
-		URL:      serverURL,
-		RoomId:   roomId,
-		Token:    token,
-		CertPool: certPool,
+		URL:       serverURL,
+		RoomId:    roomId,
+		Token:     token,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -71,8 +71,8 @@ func (m *Matrix) Post(ctx context.Context, event eventv1.Event) error {
 			req.Header.Add("Authorization", "Bearer "+m.Token)
 		}),
 	}
-	if m.CertPool != nil {
-		opts = append(opts, withCertPool(m.CertPool))
+	if m.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(m.TLSConfig))
 	}
 
 	if err := postMessage(ctx, fullURL, payload, opts...); err != nil {

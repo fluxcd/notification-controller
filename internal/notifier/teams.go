@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"fmt"
 	"net/url"
 	"slices"
@@ -39,10 +39,10 @@ const (
 
 // MS Teams holds the incoming webhook URL
 type MSTeams struct {
-	URL      string
-	ProxyURL string
-	CertPool *x509.CertPool
-	Schema   int
+	URL       string
+	ProxyURL  string
+	Schema    int
+	TLSConfig *tls.Config
 }
 
 // MSTeamsPayload holds the message card data
@@ -121,17 +121,17 @@ type msAdaptiveCardFact struct {
 }
 
 // NewMSTeams validates the MS Teams URL and returns a MSTeams object
-func NewMSTeams(hookURL string, proxyURL string, certPool *x509.CertPool) (*MSTeams, error) {
+func NewMSTeams(hookURL string, proxyURL string, tlsConfig *tls.Config) (*MSTeams, error) {
 	u, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid MS Teams webhook URL %s: '%w'", hookURL, err)
 	}
 
 	provider := &MSTeams{
-		URL:      hookURL,
-		ProxyURL: proxyURL,
-		CertPool: certPool,
-		Schema:   msTeamsSchemaAdaptiveCard,
+		URL:       hookURL,
+		ProxyURL:  proxyURL,
+		Schema:    msTeamsSchemaAdaptiveCard,
+		TLSConfig: tlsConfig,
 	}
 
 	// Check if the webhook URL is the deprecated connector and update the schema accordingly.
@@ -165,8 +165,8 @@ func (s *MSTeams) Post(ctx context.Context, event eventv1.Event) error {
 	if s.ProxyURL != "" {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
-	if s.CertPool != nil {
-		opts = append(opts, withCertPool(s.CertPool))
+	if s.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(s.TLSConfig))
 	}
 
 	if err := postMessage(ctx, s.URL, payload, opts...); err != nil {

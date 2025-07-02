@@ -392,10 +392,13 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>CertSecretRef specifies the Secret containing
-a PEM-encoded CA certificate (in the <code>ca.crt</code> key).</p>
-<p>Note: Support for the <code>caFile</code> key has
-been deprecated.</p>
+<p>CertSecretRef specifies the Secret containing TLS certificates
+for secure communication.</p>
+<p>Supported configurations:
+- CA-only: Server authentication (provide ca.crt only)
+- mTLS: Mutual authentication (provide ca.crt + tls.crt + tls.key)
+- Client-only: Client authentication with system CA (provide tls.crt + tls.key only)</p>
+<p>Legacy keys &ldquo;caFile&rdquo;, &ldquo;certFile&rdquo;, &ldquo;keyFile&rdquo; are supported but deprecated. Use &ldquo;ca.crt&rdquo;, &ldquo;tls.crt&rdquo;, &ldquo;tls.key&rdquo; instead.</p>
 </td>
 </tr>
 <tr>
@@ -730,10 +733,13 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <em>(Optional)</em>
-<p>CertSecretRef specifies the Secret containing
-a PEM-encoded CA certificate (in the <code>ca.crt</code> key).</p>
-<p>Note: Support for the <code>caFile</code> key has
-been deprecated.</p>
+<p>CertSecretRef specifies the Secret containing TLS certificates
+for secure communication.</p>
+<p>Supported configurations:
+- CA-only: Server authentication (provide ca.crt only)
+- mTLS: Mutual authentication (provide ca.crt + tls.crt + tls.key)
+- Client-only: Client authentication with system CA (provide tls.crt + tls.key only)</p>
+<p>Legacy keys &ldquo;caFile&rdquo;, &ldquo;certFile&rdquo;, &ldquo;keyFile&rdquo; are supported but deprecated. Use &ldquo;ca.crt&rdquo;, &ldquo;tls.crt&rdquo;, &ldquo;tls.key&rdquo; instead.</p>
 </td>
 </tr>
 <tr>

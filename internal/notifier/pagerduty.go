@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"fmt"
 	"net/url"
 	"time"
@@ -33,10 +33,10 @@ type PagerDuty struct {
 	Endpoint   string
 	RoutingKey string
 	ProxyURL   string
-	CertPool   *x509.CertPool
+	TLSConfig  *tls.Config
 }
 
-func NewPagerDuty(endpoint string, proxyURL string, certPool *x509.CertPool, routingKey string) (*PagerDuty, error) {
+func NewPagerDuty(endpoint string, proxyURL string, tlsConfig *tls.Config, routingKey string) (*PagerDuty, error) {
 	URL, err := url.ParseRequestURI(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid PagerDuty endpoint URL %q: '%w'", endpoint, err)
@@ -45,7 +45,7 @@ func NewPagerDuty(endpoint string, proxyURL string, certPool *x509.CertPool, rou
 		Endpoint:   URL.Scheme + "://" + URL.Host,
 		RoutingKey: routingKey,
 		ProxyURL:   proxyURL,
-		CertPool:   certPool,
+		TLSConfig:  tlsConfig,
 	}, nil
 }
 
@@ -59,8 +59,8 @@ func (p *PagerDuty) Post(ctx context.Context, event eventv1.Event) error {
 	if p.ProxyURL != "" {
 		opts = append(opts, withProxy(p.ProxyURL))
 	}
-	if p.CertPool != nil {
-		opts = append(opts, withCertPool(p.CertPool))
+	if p.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(p.TLSConfig))
 	}
 
 	if err := postMessage(

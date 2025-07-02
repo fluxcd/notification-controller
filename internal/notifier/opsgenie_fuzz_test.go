@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -42,10 +42,10 @@ func Fuzz_OpsGenie(f *testing.F) {
 		}))
 		defer ts.Close()
 
-		var cert x509.CertPool
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+		var tlsConfig tls.Config
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		opsgenie, err := NewOpsgenie(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &cert, token)
+		opsgenie, err := NewOpsgenie(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &tlsConfig, token)
 		if err != nil {
 			return
 		}

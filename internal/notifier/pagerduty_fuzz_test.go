@@ -2,7 +2,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -32,10 +32,10 @@ func Fuzz_PagerDuty(f *testing.F) {
 		ts := httptest.NewServer(mux)
 		defer ts.Close()
 
-		var cert x509.CertPool
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+		var tlsConfig tls.Config
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		pd, err := NewPagerDuty(ts.URL, "", &cert, routingKey)
+		pd, err := NewPagerDuty(ts.URL, "", &tlsConfig, routingKey)
 		if err != nil {
 			return
 		}

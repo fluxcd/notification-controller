@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -32,10 +32,10 @@ import (
 )
 
 type Alertmanager struct {
-	URL      string
-	ProxyURL string
-	CertPool *x509.CertPool
-	Token    string
+	URL       string
+	ProxyURL  string
+	TLSConfig *tls.Config
+	Token     string
 }
 
 type AlertManagerAlert struct {
@@ -74,17 +74,17 @@ func (a *AlertManagerTime) UnmarshalJSON(jsonRepr []byte) error {
 	return nil
 }
 
-func NewAlertmanager(hookURL string, proxyURL string, certPool *x509.CertPool, token string) (*Alertmanager, error) {
+func NewAlertmanager(hookURL string, proxyURL string, tlsConfig *tls.Config, token string) (*Alertmanager, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Alertmanager URL %s: '%w'", hookURL, err)
 	}
 
 	return &Alertmanager{
-		URL:      hookURL,
-		ProxyURL: proxyURL,
-		CertPool: certPool,
-		Token:    token,
+		URL:       hookURL,
+		ProxyURL:  proxyURL,
+		Token:     token,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -141,8 +141,8 @@ func (s *Alertmanager) Post(ctx context.Context, event eventv1.Event) error {
 	if s.ProxyURL != "" {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
-	if s.CertPool != nil {
-		opts = append(opts, withCertPool(s.CertPool))
+	if s.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(s.TLSConfig))
 	}
 	if s.Token != "" {
 		opts = append(opts, withRequestModifier(func(request *retryablehttp.Request) {

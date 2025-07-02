@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
@@ -80,7 +81,8 @@ func Test_postSelfSignedCert(t *testing.T) {
 	require.NoError(t, err)
 	certpool := x509.NewCertPool()
 	certpool.AddCert(cert)
-	err = postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, withCertPool(certpool))
+	tlsConfig := &tls.Config{RootCAs: certpool}
+	err = postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, withTLSConfig(tlsConfig))
 	require.NoError(t, err)
 }
 

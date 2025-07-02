@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -42,10 +42,10 @@ func Fuzz_Webex(f *testing.F) {
 		}))
 		defer ts.Close()
 
-		var cert x509.CertPool
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+		var tlsConfig tls.Config
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		webex, err := NewWebex(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &cert, channel, token)
+		webex, err := NewWebex(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &tlsConfig, channel, token)
 		if err != nil {
 			return
 		}
