@@ -18,7 +18,6 @@ package server
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
@@ -306,79 +305,123 @@ func createCommitStatus(ctx context.Context, provider *apiv1beta3.Provider, even
 	return commitStatus, nil
 }
 
-// createNotifier returns a notifier.Interface for the given Provider.
+// extractAuthFromSecret extracts notification-controller specific fields from the provider's secret
+// that are not handled by pkg/runtime/secrets (address, proxy, token, headers).
+// StandardizedSecret fields like BasicAuth, TLS, and ProxySecretRef are handled separately.
+func extractAuthFromSecret(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider) ([]notifier.Option, map[string][]byte, error) {
+	options := []notifier.Option{}
+
+	secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.SecretRef.Name}
+	var secret corev1.Secret
+	if err := kubeClient.Get(ctx, secretName, &secret); err != nil {
+		return nil, nil, fmt.Errorf("failed to read secret: %w", err)
+	}
+
+	if val, ok := secret.Data["address"]; ok {
+		if len(val) > 2048 {
+			return nil, nil, fmt.Errorf("invalid address in secret: address exceeds maximum length of %d bytes", 2048)
+		}
+	}
+
+	if val, ok := secret.Data["proxy"]; ok {
+		deprecatedProxy := strings.TrimSpace(string(val))
+		if _, err := url.Parse(deprecatedProxy); err != nil {
+			return nil, nil, fmt.Errorf("invalid 'proxy' in secret '%s'", secretName.String())
+		}
+		log.FromContext(ctx).Error(nil, "warning: specifying proxy with 'proxy' key in the referenced secret is deprecated, use spec.proxySecretRef with 'address' key instead. Support for the 'proxy' key will be removed in v1.")
+		options = append(options, notifier.WithProxyURL(deprecatedProxy))
+	}
+
+	if val, ok := secret.Data[secrets.TokenKey]; ok {
+		options = append(options, notifier.WithToken(strings.TrimSpace(string(val))))
+	}
+
+	if h, ok := secret.Data["headers"]; ok {
+		headers := make(map[string]string)
+		if err := yaml.Unmarshal(h, &headers); err != nil {
+			return nil, nil, fmt.Errorf("failed to read headers from secret: %w", err)
+		}
+		options = append(options, notifier.WithHeaders(headers))
+	}
+
+	return options, secret.Data, nil
+}
+
+// createNotifier constructs a notifier interface from the provider configuration,
+// handling authentication, proxy settings, and TLS configuration.
 func createNotifier(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider, commitStatus string, tokenCache *pkgcache.TokenCache) (notifier.Interface, string, error) {
+	options := []notifier.Option{
+		notifier.WithTokenClient(kubeClient),
+		notifier.WithProviderName(provider.Name),
+		notifier.WithProviderNamespace(provider.Namespace),
+	}
+
+	if commitStatus != "" {
+		options = append(options, notifier.WithCommitStatus(commitStatus))
+	}
+
+	if provider.Spec.Channel != "" {
+		options = append(options, notifier.WithChannel(provider.Spec.Channel))
+	}
+
+	if provider.Spec.Username != "" {
+		options = append(options, notifier.WithUsername(provider.Spec.Username))
+	}
+
+	if provider.Spec.ServiceAccountName != "" {
+		options = append(options, notifier.WithServiceAccount(provider.Spec.ServiceAccountName))
+	}
+
+	if tokenCache != nil {
+		options = append(options, notifier.WithTokenCache(tokenCache))
+	}
+
+	// TODO: Remove deprecated proxy handling when Provider v1 is released.
+	if provider.Spec.Proxy != "" {
+		log.FromContext(ctx).Error(nil, "warning: spec.proxy is deprecated, please use spec.proxySecretRef instead. Support for this field will be removed in v1.")
+		options = append(options, notifier.WithProxyURL(provider.Spec.Proxy))
+	}
 
 	webhook := provider.Spec.Address
-	username := provider.Spec.Username
-	// TODO: Remove deprecated proxy handling when Provider v1 is released.
-	deprecatedProxy := provider.Spec.Proxy
-	if deprecatedProxy != "" {
-		log.FromContext(ctx).Error(nil, "warning: spec.proxy is deprecated, please use spec.proxySecretRef instead. Support for this field will be removed in v1.")
-	}
-	token := ""
-	password := ""
-	headers := make(map[string]string)
-	var secret corev1.Secret
-	if provider.Spec.SecretRef != nil {
-		secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.SecretRef.Name}
+	var token string
+	var secretData map[string][]byte
 
-		err := kubeClient.Get(ctx, secretName, &secret)
+	if provider.Spec.SecretRef != nil {
+		secretOptions, sData, err := extractAuthFromSecret(ctx, kubeClient, provider)
 		if err != nil {
-			return nil, "", fmt.Errorf("failed to read secret: %w", err)
+			return nil, "", err
+		}
+		secretData = sData
+		options = append(options, secretOptions...)
+
+		if secretData != nil {
+			options = append(options, notifier.WithSecretData(secretData))
 		}
 
-		if val, ok := secret.Data["address"]; ok {
-			if len(val) > 2048 {
-				return nil, "", fmt.Errorf("invalid address in secret: address exceeds maximum length of %d bytes", 2048)
-			}
+		if val, ok := secretData["address"]; ok {
 			webhook = strings.TrimSpace(string(val))
 		}
-
-		if val, ok := secret.Data["password"]; ok {
-			password = strings.TrimSpace(string(val))
-		}
-
-		if val, ok := secret.Data["proxy"]; ok {
-			deprecatedProxy = strings.TrimSpace(string(val))
-			_, err := url.Parse(deprecatedProxy)
-			if err != nil {
-				return nil, "", fmt.Errorf("invalid 'proxy' in secret '%s/%s'", secret.Namespace, secret.Name)
-			}
-			log.FromContext(ctx).Error(nil, "warning: specifying proxy with 'proxy' key in the referenced secret is deprecated, use spec.proxySecretRef with 'address' key instead. Support for the 'proxy' key will be removed in v1.")
-		}
-
-		if val, ok := secret.Data["token"]; ok {
+		if val, ok := secretData[secrets.TokenKey]; ok {
 			token = strings.TrimSpace(string(val))
 		}
 
-		if val, ok := secret.Data["username"]; ok {
-			username = strings.TrimSpace(string(val))
-		}
-
-		if h, ok := secret.Data["headers"]; ok {
-			err := yaml.Unmarshal(h, &headers)
-			if err != nil {
-				return nil, "", fmt.Errorf("failed to read headers from secret: %w", err)
-			}
+		user, pass, err := secrets.BasicAuthFromSecret(ctx, kubeClient, provider.Spec.SecretRef.Name, provider.Namespace)
+		if err == nil {
+			options = append(options, notifier.WithUsername(user))
+			options = append(options, notifier.WithPassword(pass))
 		}
 	}
 
-	var proxy string
 	if provider.Spec.ProxySecretRef != nil {
 		proxyURL, err := secrets.ProxyURLFromSecret(ctx, kubeClient, provider.Spec.ProxySecretRef.Name, provider.Namespace)
 		if err != nil {
-			return nil, "", fmt.Errorf("failed to get proxy URL from secret: %w", err)
+			return nil, "", fmt.Errorf("failed to get proxy URL: %w", err)
 		}
-		proxy = proxyURL.String()
-	} else {
-		proxy = deprecatedProxy
+		options = append(options, notifier.WithProxyURL(proxyURL.String()))
 	}
 
-	var tlsConfig *tls.Config
 	if provider.Spec.CertSecretRef != nil {
-		var err error
-		tlsConfig, err = secrets.TLSConfigFromSecret(
+		tlsConfig, err := secrets.TLSConfigFromSecret(
 			ctx,
 			kubeClient,
 			provider.Spec.CertSecretRef.Name,
@@ -387,66 +430,11 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to get TLS config: %w", err)
 		}
+		options = append(options, notifier.WithTLSConfig(tlsConfig))
 	}
 
 	if webhook == "" {
 		return nil, "", fmt.Errorf("provider has no address")
-	}
-
-	options := []notifier.Option{
-		notifier.WithTokenClient(kubeClient),
-	}
-
-	if commitStatus != "" {
-		options = append(options, notifier.WithCommitStatus(commitStatus))
-	}
-
-	if proxy != "" {
-		options = append(options, notifier.WithProxyURL(proxy))
-	}
-
-	if username != "" {
-		options = append(options, notifier.WithUsername(username))
-	}
-
-	if provider.Spec.Channel != "" {
-		options = append(options, notifier.WithChannel(provider.Spec.Channel))
-	}
-
-	if token != "" {
-		options = append(options, notifier.WithToken(token))
-	}
-
-	if len(headers) > 0 {
-		options = append(options, notifier.WithHeaders(headers))
-	}
-
-	if tlsConfig != nil {
-		options = append(options, notifier.WithTLSConfig(tlsConfig))
-	}
-
-	if password != "" {
-		options = append(options, notifier.WithPassword(password))
-	}
-
-	if provider.Name != "" {
-		options = append(options, notifier.WithProviderName(provider.Name))
-	}
-
-	if provider.Namespace != "" {
-		options = append(options, notifier.WithProviderNamespace(provider.Namespace))
-	}
-
-	if secret.Data != nil {
-		options = append(options, notifier.WithSecretData(secret.Data))
-	}
-
-	if tokenCache != nil {
-		options = append(options, notifier.WithTokenCache(tokenCache))
-	}
-
-	if provider.Spec.ServiceAccountName != "" {
-		options = append(options, notifier.WithServiceAccount(provider.Spec.ServiceAccountName))
 	}
 
 	factory := notifier.NewFactory(ctx, webhook, options...)
