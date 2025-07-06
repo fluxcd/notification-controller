@@ -18,7 +18,6 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,10 +42,7 @@ func Fuzz_MSTeams(f *testing.F) {
 		}))
 		defer ts.Close()
 
-		var cert x509.CertPool
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
-
-		teams, err := NewMSTeams(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &cert)
+		teams, err := NewMSTeams(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", nil)
 		if err != nil {
 			return
 		}

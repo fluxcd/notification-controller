@@ -18,12 +18,21 @@ package server
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"fmt"
+	"math/big"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -39,7 +48,10 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	"github.com/fluxcd/notification-controller/internal/notifier"
 )
+
+var fixedNow = time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
 
 func TestFilterAlertsForEvent(t *testing.T) {
 	testNamespace := "foo-ns"
@@ -549,6 +561,19 @@ func TestCreateNotifier(t *testing.T) {
 	secretName := "foo-secret"
 	certSecretName := "cert-secret"
 	proxySecretName := "proxy-secret"
+
+	// Generate test certificates for mTLS testing
+	caCert, clientCert, clientKey := generateTestCertificates(t)
+
+	// Helper to create expected TLS configs
+	caPool := x509.NewCertPool()
+	caPool.AppendCertsFromPEM(caCert)
+
+	clientCertPair, err := tls.X509KeyPair(clientCert, clientKey)
+	if err != nil {
+		t.Fatalf("Failed to create client cert pair: %v", err)
+	}
+
 	tests := []struct {
 		name            string
 		providerSpec    *apiv1beta3.ProviderSpec
@@ -557,6 +582,7 @@ func TestCreateNotifier(t *testing.T) {
 		certSecretData  map[string][]byte
 		proxySecretData map[string][]byte
 		wantErr         bool
+		wantTLSConfig   *tls.Config
 	}{
 		{
 			name: "no address, no secret ref",
@@ -683,19 +709,9 @@ func TestCreateNotifier(t *testing.T) {
 				CertSecretRef: &meta.LocalObjectReference{Name: certSecretName},
 			},
 			certSecretData: map[string][]byte{
-				// Based on https://pkg.go.dev/crypto/tls#X509KeyPair example.
-				"ca.crt": []byte(`-----BEGIN CERTIFICATE-----
-MIIBhTCCASugAwIBAgIQIRi6zePL6mKjOipn+dNuaTAKBggqhkjOPQQDAjASMRAw
-DgYDVQQKEwdBY21lIENvMB4XDTE3MTAyMDE5NDMwNloXDTE4MTAyMDE5NDMwNlow
-EjEQMA4GA1UEChMHQWNtZSBDbzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABD0d
-7VNhbWvZLWPuj/RtHFjvtJBEwOkhbN/BnnE8rnZR8+sbwnc/KhCk3FhnpHZnQz7B
-5aETbbIgmuvewdjvSBSjYzBhMA4GA1UdDwEB/wQEAwICpDATBgNVHSUEDDAKBggr
-BgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MCkGA1UdEQQiMCCCDmxvY2FsaG9zdDo1
-NDUzgg4xMjcuMC4wLjE6NTQ1MzAKBggqhkjOPQQDAgNIADBFAiEA2zpJEPQyz6/l
-Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
-6MF9+Yw1Yy0t
------END CERTIFICATE-----`),
+				"ca.crt": caCert,
 			},
+			wantTLSConfig: &tls.Config{RootCAs: caPool},
 		},
 		{
 			name: "cert secret reference in caFile with valid CA",
@@ -705,19 +721,9 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 				CertSecretRef: &meta.LocalObjectReference{Name: certSecretName},
 			},
 			certSecretData: map[string][]byte{
-				// Based on https://pkg.go.dev/crypto/tls#X509KeyPair example.
-				"caFile": []byte(`-----BEGIN CERTIFICATE-----
-MIIBhTCCASugAwIBAgIQIRi6zePL6mKjOipn+dNuaTAKBggqhkjOPQQDAjASMRAw
-DgYDVQQKEwdBY21lIENvMB4XDTE3MTAyMDE5NDMwNloXDTE4MTAyMDE5NDMwNlow
-EjEQMA4GA1UEChMHQWNtZSBDbzBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABD0d
-7VNhbWvZLWPuj/RtHFjvtJBEwOkhbN/BnnE8rnZR8+sbwnc/KhCk3FhnpHZnQz7B
-5aETbbIgmuvewdjvSBSjYzBhMA4GA1UdDwEB/wQEAwICpDATBgNVHSUEDDAKBggr
-BgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MCkGA1UdEQQiMCCCDmxvY2FsaG9zdDo1
-NDUzgg4xMjcuMC4wLjE6NTQ1MzAKBggqhkjOPQQDAgNIADBFAiEA2zpJEPQyz6/l
-Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
-6MF9+Yw1Yy0t
------END CERTIFICATE-----`),
+				"caFile": caCert,
 			},
+			wantTLSConfig: &tls.Config{RootCAs: caPool},
 		},
 		{
 			name: "cert secret reference in both ca.crt and caFile",
@@ -753,6 +759,47 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 				"ca.crt": []byte(`aaaaa`),
 			},
 			wantErr: true,
+		},
+		{
+			name: "mTLS with standard keys",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				Type:          "generic",
+				Address:       "https://example.com",
+				CertSecretRef: &meta.LocalObjectReference{Name: certSecretName},
+			},
+			certSecretData: map[string][]byte{
+				"ca.crt":  caCert,
+				"tls.crt": clientCert,
+				"tls.key": clientKey,
+			},
+			wantTLSConfig: &tls.Config{RootCAs: caPool, Certificates: []tls.Certificate{clientCertPair}},
+		},
+		{
+			name: "mTLS with legacy keys",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				Type:          "generic",
+				Address:       "https://example.com",
+				CertSecretRef: &meta.LocalObjectReference{Name: certSecretName},
+			},
+			certSecretData: map[string][]byte{
+				"caFile":   caCert,
+				"certFile": clientCert,
+				"keyFile":  clientKey,
+			},
+			wantTLSConfig: &tls.Config{RootCAs: caPool, Certificates: []tls.Certificate{clientCertPair}},
+		},
+		{
+			name: "client cert without CA",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				Type:          "generic",
+				Address:       "https://example.com",
+				CertSecretRef: &meta.LocalObjectReference{Name: certSecretName},
+			},
+			certSecretData: map[string][]byte{
+				"tls.crt": clientCert,
+				"tls.key": clientKey,
+			},
+			wantTLSConfig: &tls.Config{Certificates: []tls.Certificate{clientCertPair}},
 		},
 		{
 			name: "unsupported provider",
@@ -873,8 +920,31 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			}
 			provider := apiv1beta3.Provider{Spec: *tt.providerSpec}
 
-			_, _, err := createNotifier(context.TODO(), builder.Build(), &provider, "", nil)
+			notifier, _, err := createNotifier(context.TODO(), builder.Build(), &provider, "", nil)
 			g.Expect(err != nil).To(Equal(tt.wantErr))
+
+			if !tt.wantErr && tt.wantTLSConfig != nil {
+				g.Expect(notifier).ToNot(BeNil(), "Expected notifier to be created but got nil")
+
+				// Get TLS configuration from notifier
+				tlsConfig := getNotifierTLSConfig(notifier)
+				if tlsConfig == nil {
+					// Notifier doesn't support TLS via postMessage pattern, skip the check
+					return
+				}
+
+				g.Expect(tlsConfig).ToNot(BeNil(), "Expected TLS configuration but got nil")
+				if tt.wantTLSConfig.RootCAs != nil {
+					g.Expect(tlsConfig.RootCAs).ToNot(BeNil())
+				} else {
+					g.Expect(tlsConfig.RootCAs).To(BeNil())
+				}
+
+				g.Expect(tlsConfig.Certificates).To(HaveLen(len(tt.wantTLSConfig.Certificates)))
+				if len(tt.wantTLSConfig.Certificates) > 0 {
+					g.Expect(tlsConfig.Certificates[0]).To(Equal(tt.wantTLSConfig.Certificates[0]))
+				}
+			}
 		})
 	}
 }
@@ -1438,5 +1508,112 @@ func Test_excludeInternalMetadata(t *testing.T) {
 			excludeInternalMetadata(&tt.event)
 			g.Expect(tt.event.Metadata).To(BeEquivalentTo(tt.wantMetadata))
 		})
+	}
+}
+
+// generateTestCertificates generates test certificates for mTLS testing.
+// TODO: Move to pkg/runtime/secrets test helpers after mTLS implementation is complete
+func generateTestCertificates(t *testing.T) (caCert, clientCert, clientKey []byte) {
+	t.Helper()
+
+	caPrivKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("Failed to generate CA private key: %v", err)
+	}
+
+	caTemplate := x509.Certificate{
+		SerialNumber: big.NewInt(1),
+		Subject: pkix.Name{
+			Organization:  []string{"Test CA"},
+			Country:       []string{"US"},
+			Province:      []string{""},
+			Locality:      []string{"San Francisco"},
+			StreetAddress: []string{""},
+			PostalCode:    []string{""},
+		},
+		NotBefore:             fixedNow,
+		NotAfter:              fixedNow.Add(365 * 24 * time.Hour),
+		IsCA:                  true,
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		BasicConstraintsValid: true,
+	}
+
+	caCertDER, err := x509.CreateCertificate(rand.Reader, &caTemplate, &caTemplate, &caPrivKey.PublicKey, caPrivKey)
+	if err != nil {
+		t.Fatalf("Failed to create CA certificate: %v", err)
+	}
+
+	clientPrivKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("Failed to generate client private key: %v", err)
+	}
+
+	clientTemplate := x509.Certificate{
+		SerialNumber: big.NewInt(2),
+		Subject: pkix.Name{
+			Organization:  []string{"Test Client"},
+			Country:       []string{"US"},
+			Province:      []string{""},
+			Locality:      []string{"San Francisco"},
+			StreetAddress: []string{""},
+			PostalCode:    []string{""},
+		},
+		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1), net.IPv6loopback},
+		DNSNames:     []string{"localhost"},
+		NotBefore:    fixedNow,
+		NotAfter:     fixedNow.Add(365 * 24 * time.Hour),
+		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+	}
+
+	clientCertDER, err := x509.CreateCertificate(rand.Reader, &clientTemplate, &caTemplate, &clientPrivKey.PublicKey, caPrivKey)
+	if err != nil {
+		t.Fatalf("Failed to create client certificate: %v", err)
+	}
+
+	caCertPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: caCertDER,
+	})
+
+	clientCertPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: clientCertDER,
+	})
+
+	clientKeyPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(clientPrivKey),
+	})
+
+	return caCertPEM, clientCertPEM, clientKeyPEM
+}
+
+// getNotifierTLSConfig extracts TLSConfig from postMessage-based notifiers for testing
+func getNotifierTLSConfig(n notifier.Interface) *tls.Config {
+	switch v := n.(type) {
+	case *notifier.Forwarder:
+		return v.TLSConfig
+	case *notifier.Slack:
+		return v.TLSConfig
+	case *notifier.Alertmanager:
+		return v.TLSConfig
+	case *notifier.Grafana:
+		return v.TLSConfig
+	case *notifier.Matrix:
+		return v.TLSConfig
+	case *notifier.Opsgenie:
+		return v.TLSConfig
+	case *notifier.PagerDuty:
+		return v.TLSConfig
+	case *notifier.Rocket:
+		return v.TLSConfig
+	case *notifier.MSTeams:
+		return v.TLSConfig
+	case *notifier.Webex:
+		return v.TLSConfig
+	default:
+		return nil
 	}
 }

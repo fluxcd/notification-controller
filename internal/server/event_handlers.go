@@ -18,7 +18,7 @@ package server
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
@@ -308,7 +308,6 @@ func createCommitStatus(ctx context.Context, provider *apiv1beta3.Provider, even
 
 // createNotifier returns a notifier.Interface for the given Provider.
 func createNotifier(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider, commitStatus string, tokenCache *pkgcache.TokenCache) (notifier.Interface, string, error) {
-	logger := log.FromContext(ctx)
 
 	webhook := provider.Spec.Address
 	username := provider.Spec.Username
@@ -376,36 +375,17 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		proxy = deprecatedProxy
 	}
 
-	var certPool *x509.CertPool
+	var tlsConfig *tls.Config
 	if provider.Spec.CertSecretRef != nil {
-		var secret corev1.Secret
-		secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.CertSecretRef.Name}
-
-		err := kubeClient.Get(ctx, secretName, &secret)
+		var err error
+		tlsConfig, err = secrets.TLSConfigFromSecret(
+			ctx,
+			kubeClient,
+			provider.Spec.CertSecretRef.Name,
+			provider.Namespace,
+		)
 		if err != nil {
-			return nil, "", fmt.Errorf("failed to read cert secret: %w", err)
-		}
-
-		switch secret.Type {
-		case corev1.SecretTypeOpaque, corev1.SecretTypeTLS, "":
-		default:
-			return nil, "", fmt.Errorf("cannot use Secret '%s' to get TLS certificate: invalid Secret type: '%s'", secret.Name, secret.Type)
-		}
-
-		caFile, ok := secret.Data["ca.crt"]
-		if !ok {
-			// TODO: Drop support for "caFile" field in v1 Provider API.
-			caFile, ok = secret.Data["caFile"]
-			if !ok {
-				return nil, "", fmt.Errorf("no 'ca.crt' key found in Secret '%s'", secret.Name)
-			}
-			logger.Info("warning: specifying CA cert via 'caFile' is deprecated, please use 'ca.crt' instead")
-		}
-
-		certPool = x509.NewCertPool()
-		ok = certPool.AppendCertsFromPEM(caFile)
-		if !ok {
-			return nil, "", fmt.Errorf("could not append to cert pool")
+			return nil, "", fmt.Errorf("failed to get TLS config: %w", err)
 		}
 	}
 
@@ -441,8 +421,8 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		options = append(options, notifier.WithHeaders(headers))
 	}
 
-	if certPool != nil {
-		options = append(options, notifier.WithCertPool(certPool))
+	if tlsConfig != nil {
+		options = append(options, notifier.WithTLSConfig(tlsConfig))
 	}
 
 	if password != "" {

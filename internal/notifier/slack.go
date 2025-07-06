@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -30,12 +30,12 @@ import (
 
 // Slack holds the hook URL
 type Slack struct {
-	URL      string
-	ProxyURL string
-	Token    string
-	Username string
-	Channel  string
-	CertPool *x509.CertPool
+	URL       string
+	ProxyURL  string
+	Token     string
+	Username  string
+	Channel   string
+	TLSConfig *tls.Config
 }
 
 // SlackPayload holds the channel and attachments
@@ -64,19 +64,19 @@ type SlackField struct {
 }
 
 // NewSlack validates the Slack URL and returns a Slack object
-func NewSlack(hookURL string, proxyURL string, token string, certPool *x509.CertPool, username string, channel string) (*Slack, error) {
+func NewSlack(hookURL string, proxyURL string, token string, tlsConfig *tls.Config, username string, channel string) (*Slack, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Slack hook URL %s: '%w'", hookURL, err)
 	}
 
 	return &Slack{
-		Channel:  channel,
-		Username: username,
-		URL:      hookURL,
-		ProxyURL: proxyURL,
-		Token:    token,
-		CertPool: certPool,
+		Channel:   channel,
+		Username:  username,
+		URL:       hookURL,
+		ProxyURL:  proxyURL,
+		Token:     token,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -129,8 +129,8 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 	if s.ProxyURL != "" {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
-	if s.CertPool != nil {
-		opts = append(opts, withCertPool(s.CertPool))
+	if s.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(s.TLSConfig))
 	}
 	if s.URL == "https://slack.com/api/chat.postMessage" {
 		opts = append(opts, withResponseValidator(validateSlackResponse))

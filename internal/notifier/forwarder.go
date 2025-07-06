@@ -20,7 +20,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/sha256"
-	"crypto/x509"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -37,14 +37,14 @@ const NotificationHeader = "gotk-component"
 // Forwarder is an implementation of the notification Interface that posts the
 // body as an HTTP request using an optional proxy.
 type Forwarder struct {
-	URL      string
-	ProxyURL string
-	Headers  map[string]string
-	CertPool *x509.CertPool
-	HMACKey  []byte
+	URL       string
+	ProxyURL  string
+	Headers   map[string]string
+	TLSConfig *tls.Config
+	HMACKey   []byte
 }
 
-func NewForwarder(hookURL string, proxyURL string, headers map[string]string, certPool *x509.CertPool, hmacKey []byte) (*Forwarder, error) {
+func NewForwarder(hookURL string, proxyURL string, headers map[string]string, tlsConfig *tls.Config, hmacKey []byte) (*Forwarder, error) {
 	if _, err := url.ParseRequestURI(hookURL); err != nil {
 		return nil, fmt.Errorf("invalid hook URL %s: %w", hookURL, err)
 	}
@@ -54,11 +54,11 @@ func NewForwarder(hookURL string, proxyURL string, headers map[string]string, ce
 	}
 
 	return &Forwarder{
-		URL:      hookURL,
-		ProxyURL: proxyURL,
-		Headers:  headers,
-		CertPool: certPool,
-		HMACKey:  hmacKey,
+		URL:       hookURL,
+		ProxyURL:  proxyURL,
+		Headers:   headers,
+		HMACKey:   hmacKey,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -92,8 +92,8 @@ func (f *Forwarder) Post(ctx context.Context, event eventv1.Event) error {
 	if f.ProxyURL != "" {
 		opts = append(opts, withProxy(f.ProxyURL))
 	}
-	if f.CertPool != nil {
-		opts = append(opts, withCertPool(f.CertPool))
+	if f.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(f.TLSConfig))
 	}
 
 	if err := postMessage(ctx, f.URL, event, opts...); err != nil {

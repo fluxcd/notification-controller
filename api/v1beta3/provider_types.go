@@ -123,12 +123,17 @@ type ProviderSpec struct {
 	// +optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 
-	// CertSecretRef specifies the Secret containing
-	// a PEM-encoded CA certificate (in the `ca.crt` key).
-	// +optional
+	// CertSecretRef specifies the Secret containing TLS certificates
+	// for secure communication.
 	//
-	// Note: Support for the `caFile` key has
-	// been deprecated.
+	// Supported configurations:
+	// - CA-only: Server authentication (provide ca.crt only)
+	// - mTLS: Mutual authentication (provide ca.crt + tls.crt + tls.key)
+	// - Client-only: Client authentication with system CA (provide tls.crt + tls.key only)
+	//
+	// Legacy keys "caFile", "certFile", "keyFile" are supported but deprecated. Use "ca.crt", "tls.crt", "tls.key" instead.
+	//
+	// +optional
 	CertSecretRef *meta.LocalObjectReference `json:"certSecretRef,omitempty"`
 
 	// Suspend tells the controller to suspend subsequent

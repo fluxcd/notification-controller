@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -41,13 +41,13 @@ func Fuzz_Forwarder(f *testing.F) {
 		}))
 		defer ts.Close()
 
-		var cert x509.CertPool
-		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
+		var tlsConfig tls.Config
+		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
 		header := make(map[string]string)
 		_ = fuzz.NewConsumer(seed).FuzzMap(&header)
 
-		forwarder, err := NewForwarder(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", header, &cert, hmacKey)
+		forwarder, err := NewForwarder(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", header, &tlsConfig, hmacKey)
 		if err != nil {
 			return
 		}

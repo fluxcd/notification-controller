@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"fmt"
 	"net/url"
 	"strings"
@@ -28,26 +28,26 @@ import (
 
 // Rocket holds the hook URL
 type Rocket struct {
-	URL      string
-	ProxyURL string
-	Username string
-	Channel  string
-	CertPool *x509.CertPool
+	URL       string
+	ProxyURL  string
+	Username  string
+	Channel   string
+	TLSConfig *tls.Config
 }
 
 // NewRocket validates the Rocket URL and returns a Rocket object
-func NewRocket(hookURL string, proxyURL string, certPool *x509.CertPool, username string, channel string) (*Rocket, error) {
+func NewRocket(hookURL string, proxyURL string, tlsConfig *tls.Config, username string, channel string) (*Rocket, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Rocket hook URL %s: '%w'", hookURL, err)
 	}
 
 	return &Rocket{
-		Channel:  channel,
-		URL:      hookURL,
-		ProxyURL: proxyURL,
-		Username: username,
-		CertPool: certPool,
+		Channel:   channel,
+		URL:       hookURL,
+		ProxyURL:  proxyURL,
+		Username:  username,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -87,8 +87,8 @@ func (s *Rocket) Post(ctx context.Context, event eventv1.Event) error {
 	if s.ProxyURL != "" {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
-	if s.CertPool != nil {
-		opts = append(opts, withCertPool(s.CertPool))
+	if s.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(s.TLSConfig))
 	}
 
 	if err := postMessage(ctx, s.URL, payload, opts...); err != nil {

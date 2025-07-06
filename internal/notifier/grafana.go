@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"fmt"
 	"net/url"
 	"strings"
@@ -28,12 +28,12 @@ import (
 )
 
 type Grafana struct {
-	URL      string
-	Token    string
-	ProxyURL string
-	CertPool *x509.CertPool
-	Username string
-	Password string
+	URL       string
+	Token     string
+	ProxyURL  string
+	TLSConfig *tls.Config
+	Username  string
+	Password  string
 }
 
 // GraphitePayload represents a Grafana API annotation in Graphite format
@@ -44,19 +44,19 @@ type GraphitePayload struct {
 }
 
 // NewGrafana validates the Grafana URL and returns a Grafana object
-func NewGrafana(URL string, proxyURL string, token string, certPool *x509.CertPool, username string, password string) (*Grafana, error) {
+func NewGrafana(URL string, proxyURL string, token string, tlsConfig *tls.Config, username string, password string) (*Grafana, error) {
 	_, err := url.ParseRequestURI(URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Grafana URL %s", URL)
 	}
 
 	return &Grafana{
-		URL:      URL,
-		ProxyURL: proxyURL,
-		Token:    token,
-		CertPool: certPool,
-		Username: username,
-		Password: password,
+		URL:       URL,
+		ProxyURL:  proxyURL,
+		Token:     token,
+		Username:  username,
+		Password:  password,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -97,8 +97,8 @@ func (g *Grafana) Post(ctx context.Context, event eventv1.Event) error {
 	if g.ProxyURL != "" {
 		opts = append(opts, withProxy(g.ProxyURL))
 	}
-	if g.CertPool != nil {
-		opts = append(opts, withCertPool(g.CertPool))
+	if g.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(g.TLSConfig))
 	}
 
 	if err := postMessage(ctx, g.URL, payload, opts...); err != nil {

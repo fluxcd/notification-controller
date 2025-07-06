@@ -284,7 +284,7 @@ field](https://api.slack.com/methods/chat.postMessage#arg_username) to the
 payload, defaulting to the name of the reporting controller.
 
 This Provider type supports the configuration of a [proxy URL](#https-proxy)
-and/or [TLS certificates](#tls-certificates).
+and/or [certificate secret reference](#certificate-secret-reference).
 
 ###### Slack example
 
@@ -363,7 +363,7 @@ In both cases the Event metadata is attached as facts, and the involved object a
 The severity of the Event is used to set the color of the message.
 
 This Provider type supports the configuration of a [proxy URL](#https-proxy)
-and/or [TLS certificates](#tls-certificates), but lacks support for
+and/or [certificate secret reference](#certificate-secret-reference), but lacks support for
 configuring a [Channel](#channel). This can be configured during the
 creation of the Incoming Webhook Workflow in Microsoft Teams.
 
@@ -403,7 +403,7 @@ The Event will be formatted into a [DataDog Event](https://docs.datadoghq.com/ap
 API endpoint of the provided DataDog [Address](#address).
 
 This Provider type supports the configuration of a [proxy URL](#https-proxy)
-and/or [TLS certificates](#tls-certificates).
+and/or [certificate secret reference](#certificate-secret-reference).
 
 The metadata of the Event is included in the DataDog event as extra tags.
 
@@ -459,7 +459,7 @@ The Event will be formatted into a [Slack message](#slack) and send to the
 `/slack` endpoint of the provided Discord [Address](#address).
 
 This Provider type supports the configuration of a [proxy URL](#https-proxy)
-and/or [TLS certificates](#tls-certificates), but lacks support for
+and/or [certificate secret reference](#certificate-secret-reference), but lacks support for
 configuring a [Channel](#channel). This can be configured [during the creation
 of the address](https://discord.com/developers/docs/resources/webhook#create-webhook)
 
@@ -507,7 +507,7 @@ The Provider's [Channel](#channel) is used to set the `environment` on the
 Sentry client.
 
 This Provider type supports the configuration of
-[TLS certificates](#tls-certificates).
+[certificate secret reference](#certificate-secret-reference).
 
 ###### Sentry example
 
@@ -555,7 +555,7 @@ a unique identifier with the topic identifier (`-1234567890:1`) for the forum ch
 or the username (`@username`) of the target channel.
 
 This Provider type does not support the configuration of a [proxy URL](#https-proxy)
-or [TLS certificates](#tls-certificates).
+or [certificate secret reference](#certificate-secret-reference).
 
 ###### Telegram example
 
@@ -623,7 +623,7 @@ The Event will be formatted into a [Lark Message card](https://open.larksuite.co
 with the metadata written to the message string.
 
 This Provider type does not support the configuration of a [proxy URL](#https-proxy)
-or [TLS certificates](#tls-certificates).
+or [certificate secret reference](#certificate-secret-reference).
 
 ###### Lark example
 
@@ -660,7 +660,7 @@ The Event will be formatted into a [Slack message](#slack) and send as a
 payload the provided Rocket [Address](#address).
 
 This Provider type does support the configuration of a [proxy URL](#https-proxy)
-and [TLS certificates](#tls-certificates).
+and [certificate secret reference](#certificate-secret-reference).
 
 ###### Rocket example
 
@@ -742,7 +742,7 @@ You can optionally add [attributes](https://cloud.google.com/pubsub/docs/samples
 to the Pub/Sub message using a [`headers` key in the referenced Secret](#http-headers-example).
 
 This Provider type does not support the configuration of a [proxy URL](#https-proxy)
-or [TLS certificates](#tls-certificates).
+or [certificate secret reference](#certificate-secret-reference).
 
 ###### Google Pub/Sub with JSON Credentials and Custom Headers Example
 
@@ -788,7 +788,7 @@ with the metadata added to the [`details` field](https://docs.opsgenie.com/docs/
 as a list of key-value pairs.
 
 This Provider type does support the configuration of a [proxy URL](#https-proxy)
-and [TLS certificates](#tls-certificates).
+and [certificate secret reference](#certificate-secret-reference).
 
 ###### Opsgenie example
 
@@ -831,7 +831,7 @@ The provider will also send [Change Events](https://developer.pagerduty.com/api-
 for `info` level `Severity`, which will be displayed in the PagerDuty service's timeline to track changes.
 
 This Provider type supports the configuration of a [proxy URL](#https-proxy)
-and [TLS certificates](#tls-certificates).
+and [certificate secret reference](#certificate-secret-reference).
 
 The [Channel](#channel) is used to set the routing key to send the event to the appropriate integration.
 
@@ -916,7 +916,7 @@ global:
 ```
 
 This Provider type does support the configuration of a [proxy URL](#https-proxy)
-and [TLS certificates](#tls-certificates).
+and [certificate secret reference](#certificate-secret-reference).
 
 ###### Prometheus Alertmanager example
 
@@ -988,7 +988,7 @@ The [Channel](#channel) is used to set the ID of the room to send the message
 to.
 
 This Provider type does support the configuration of a [proxy URL](#https-proxy)
-and [TLS certificates](#tls-certificates).
+and [certificate secret reference](#certificate-secret-reference).
 
 ###### Webex example
 
@@ -1184,11 +1184,36 @@ stringData:
   proxy: "http://username:password@proxy_url:proxy_port"
 ```
 
-### TLS certificates
+### Certificate secret reference
 
 `.spec.certSecretRef` is an optional field to specify a name reference to a
-Secret in the same namespace as the Provider, containing the TLS CA certificate.
-The secret must be of type `kubernetes.io/tls` or `Opaque`.
+Secret in the same namespace as the Provider, containing TLS certificates for
+secure communication. The secret must be of type `kubernetes.io/tls` or `Opaque`.
+
+#### Supported configurations
+
+- **CA-only**: Server authentication (provide `ca.crt` only)
+- **mTLS**: Client certificate authentication (provide `tls.crt` + `tls.key`, optionally with `ca.crt`)
+
+#### Providers supporting client certificate authentication
+
+The following webhook-based providers support client certificate authentication:
+
+| Provider Type        | Description                    |
+|---------------------|--------------------------------|
+| `alertmanager`      | Prometheus Alertmanager        |
+| `discord`           | Discord webhooks               |
+| `forwarder`         | Generic forwarder              |
+| `grafana`           | Grafana annotations API        |
+| `matrix`            | Matrix rooms                   |
+| `msteams`           | Microsoft Teams                |
+| `opsgenie`          | Opsgenie alerts                |
+| `pagerduty`         | PagerDuty events               |
+| `rocket`            | Rocket.Chat                    |
+| `slack`             | Slack API                      |
+| `webex`             | Webex messages                 |
+
+Support for client certificate authentication is being expanded to additional providers over time.
 
 #### Example
 

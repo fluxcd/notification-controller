@@ -19,14 +19,11 @@ package notifier
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/url"
-	"runtime"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -34,7 +31,7 @@ import (
 
 type postOptions struct {
 	proxy             string
-	certPool          *x509.CertPool
+	tlsConfig         *tls.Config
 	requestModifier   func(*retryablehttp.Request)
 	responseValidator func(statusCode int, body []byte) error
 }
@@ -103,9 +100,9 @@ func withProxy(proxy string) postOption {
 	}
 }
 
-func withCertPool(certPool *x509.CertPool) postOption {
+func withTLSConfig(tlsConfig *tls.Config) postOption {
 	return func(opts *postOptions) {
-		opts.certPool = certPool
+		opts.tlsConfig = tlsConfig
 	}
 }
 
@@ -123,12 +120,11 @@ func withResponseValidator(respValidator func(statusCode int, body []byte) error
 
 func newHTTPClient(opts *postOptions) (*retryablehttp.Client, error) {
 	httpClient := retryablehttp.NewClient()
-	if opts.certPool != nil {
-		httpClient.HTTPClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: opts.certPool,
-			},
-		}
+
+	transport := httpClient.HTTPClient.Transport.(*http.Transport)
+
+	if opts.tlsConfig != nil {
+		transport.TLSClientConfig = opts.tlsConfig
 	}
 
 	if opts.proxy != "" {
@@ -136,27 +132,7 @@ func newHTTPClient(opts *postOptions) (*retryablehttp.Client, error) {
 		if err != nil {
 			return nil, fmt.Errorf("unable to parse proxy URL: %w", err)
 		}
-
-		var tlsConfig *tls.Config
-		if opts.certPool != nil {
-			tlsConfig = &tls.Config{
-				RootCAs: opts.certPool,
-			}
-		}
-
-		httpClient.HTTPClient.Transport = &http.Transport{
-			Proxy:           http.ProxyURL(proxyURL),
-			TLSClientConfig: tlsConfig,
-			DialContext: (&net.Dialer{
-				Timeout:   15 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}).DialContext,
-			MaxIdleConns:          100,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-			MaxIdleConnsPerHost:   runtime.GOMAXPROCS(0) + 1,
-		}
+		transport.Proxy = http.ProxyURL(proxyURL)
 	}
 
 	// Disable the timeout for the HTTP client,

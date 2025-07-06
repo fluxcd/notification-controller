@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"fmt"
 	"net/url"
 	"strings"
@@ -51,9 +51,8 @@ type Webex struct {
 	Token string
 
 	// optional: use a proxy as needed
-	ProxyURL string
-	// optional: x509 cert is no longer needed to post to a webex space
-	CertPool *x509.CertPool
+	ProxyURL  string
+	TLSConfig *tls.Config
 }
 
 // WebexPayload holds the message text
@@ -63,7 +62,7 @@ type WebexPayload struct {
 }
 
 // NewWebex validates the Webex URL and returns a Webex object
-func NewWebex(hookURL, proxyURL string, certPool *x509.CertPool, channel string, token string) (*Webex, error) {
+func NewWebex(hookURL, proxyURL string, tlsConfig *tls.Config, channel string, token string) (*Webex, error) {
 
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
@@ -71,11 +70,11 @@ func NewWebex(hookURL, proxyURL string, certPool *x509.CertPool, channel string,
 	}
 
 	return &Webex{
-		URL:      hookURL,
-		ProxyURL: proxyURL,
-		CertPool: certPool,
-		RoomId:   channel,
-		Token:    token,
+		URL:       hookURL,
+		ProxyURL:  proxyURL,
+		RoomId:    channel,
+		Token:     token,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -116,8 +115,8 @@ func (s *Webex) Post(ctx context.Context, event eventv1.Event) error {
 	if s.ProxyURL != "" {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
-	if s.CertPool != nil {
-		opts = append(opts, withCertPool(s.CertPool))
+	if s.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(s.TLSConfig))
 	}
 
 	if err := postMessage(ctx, s.URL, payload, opts...); err != nil {
