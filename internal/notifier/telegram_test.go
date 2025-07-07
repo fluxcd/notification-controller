@@ -31,22 +31,21 @@ import (
 
 func TestTelegram_Post(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, "/sendMessage", r.URL.Path)
+		require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
 		b, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 
-		var payload = WebexPayload{}
+		var payload TelegramPayload
 		err = json.Unmarshal(b, &payload)
 		require.NoError(t, err)
-	}))
-	defer ts.Close()
 
-	telegram, err := NewTelegram("channel", "token")
-	require.NoError(t, err)
+		require.Equal(t, "channel", payload.ChatID)
+		require.Equal(t, "MarkdownV2", payload.ParseMode)
 
-	telegram.send = func(url, message string) error {
-		require.Equal(t, "telegram://token@telegram?channels=channel&parseMode=markDownv2", url)
-
-		lines := strings.Split(message, "\n")
+		lines := strings.Split(payload.Text, "\n")
 		require.Len(t, lines, 5)
 		slices.Sort(lines[2:4])
 		require.Equal(t, "*💫 gitrepository/webapp/gitops\\-system*", lines[0])
@@ -57,8 +56,12 @@ func TestTelegram_Post(t *testing.T) {
 			"",
 		}, lines[2:])
 
-		return nil
-	}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	telegram, err := NewTelegram(ts.URL, "", "channel", "token")
+	require.NoError(t, err)
 
 	ev := testEvent()
 	ev.Metadata["kubernetes.io/somekey"] = "some.value"

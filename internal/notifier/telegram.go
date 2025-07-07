@@ -4,27 +4,50 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
-	"github.com/containrrr/shoutrrr"
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
+const (
+	defaultTelegramBaseURL = "https://api.telegram.org/bot%s"
+	sendMessageMethodName  = "sendMessage"
+)
+
 type Telegram struct {
-	Channel string
-	Token   string
-	send    func(url string, message string) error // this allows the send function to be overridden for testing
+	URL      string
+	ProxyURL string
+	Channel  string
+	Token    string
 }
 
-func NewTelegram(channel, token string) (*Telegram, error) {
+// TelegramPayload represents the payload sent to Telegram Bot API
+// Reference: https://core.telegram.org/bots/api#sendmessage
+type TelegramPayload struct {
+	ChatID    string `json:"chat_id"`    // Unique identifier for the target chat
+	Text      string `json:"text"`       // Text of the message to be sent
+	ParseMode string `json:"parse_mode"` // Mode for parsing entities in the message text
+}
+
+func NewTelegram(apiURL, proxyURL, channel, token string) (*Telegram, error) {
 	if channel == "" {
 		return nil, errors.New("empty Telegram channel")
 	}
 
+	if token == "" {
+		return nil, errors.New("empty Telegram token")
+	}
+
+	if apiURL == "" {
+		apiURL = fmt.Sprintf(defaultTelegramBaseURL, token)
+	}
+
 	return &Telegram{
-		Channel: channel,
-		Token:   token,
-		send:    shoutrrr.Send,
+		URL:      apiURL,
+		ProxyURL: proxyURL,
+		Channel:  channel,
+		Token:    token,
 	}, nil
 }
 
@@ -46,9 +69,24 @@ func (t *Telegram) Post(ctx context.Context, event eventv1.Event) error {
 		metadata = metadata + fmt.Sprintf("\\- *%s*: %s\n", escapeString(k), escapeString(v))
 	}
 	message := fmt.Sprintf("*%s*\n%s\n%s", escapeString(heading), escapeString(event.Message), metadata)
-	url := fmt.Sprintf("telegram://%s@telegram?channels=%s&parseMode=markDownv2", t.Token, t.Channel)
-	err := t.send(url, message)
-	return err
+
+	payload := TelegramPayload{
+		ChatID:    t.Channel,
+		Text:      message,
+		ParseMode: "MarkdownV2", // https://core.telegram.org/bots/api#markdownv2-style
+	}
+
+	apiURL, err := url.JoinPath(t.URL, sendMessageMethodName)
+	if err != nil {
+		return fmt.Errorf("failed to construct API URL: %w", err)
+	}
+
+	var opts []postOption
+	if t.ProxyURL != "" {
+		opts = append(opts, withProxy(t.ProxyURL))
+	}
+
+	return postMessage(ctx, apiURL, payload, opts...)
 }
 
 // The telegram API requires that some special characters are escaped

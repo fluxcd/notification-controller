@@ -285,7 +285,7 @@ func azureEventHubNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func telegramNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewTelegram(opts.Channel, opts.Token)
+	return NewTelegram(opts.URL, opts.ProxyURL, opts.Channel, opts.Token)
 }
 
 func larkNotifierFunc(opts notifierOptions) (Interface, error) {
