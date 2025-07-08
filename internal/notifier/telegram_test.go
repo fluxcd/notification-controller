@@ -60,11 +60,27 @@ func TestTelegram_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	telegram, err := NewTelegram(ts.URL, "", "channel", "token")
+	telegram, err := NewTelegram("", "", "channel", "token")
 	require.NoError(t, err)
+
+	telegram.URL = ts.URL
 
 	ev := testEvent()
 	ev.Metadata["kubernetes.io/somekey"] = "some.value"
 	err = telegram.Post(context.TODO(), ev)
 	require.NoError(t, err)
+}
+
+func TestTelegram_NewTelegram_IgnoresAddress(t *testing.T) {
+	telegram, err := NewTelegram("https://api.telegram.org", "", "channel", "token")
+	require.NoError(t, err)
+	require.Equal(t, "https://api.telegram.org/bottoken", telegram.URL)
+
+	telegram2, err := NewTelegram("https://custom.example.com", "", "channel", "token")
+	require.NoError(t, err)
+	require.Equal(t, "https://api.telegram.org/bottoken", telegram2.URL)
+
+	telegram3, err := NewTelegram("", "", "channel", "token")
+	require.NoError(t, err)
+	require.Equal(t, "https://api.telegram.org/bottoken", telegram3.URL)
 }

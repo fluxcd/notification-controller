@@ -39,9 +39,9 @@ func NewTelegram(apiURL, proxyURL, channel, token string) (*Telegram, error) {
 		return nil, errors.New("empty Telegram token")
 	}
 
-	if apiURL == "" {
-		apiURL = fmt.Sprintf(defaultTelegramBaseURL, token)
-	}
+	// Note: Always ignore apiURL parameter for backward compatibility.
+	// The address field was ignored until v1.6.0.
+	apiURL = fmt.Sprintf(defaultTelegramBaseURL, token)
 
 	return &Telegram{
 		URL:      apiURL,
