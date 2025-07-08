@@ -554,8 +554,7 @@ This can be a unique identifier (`-1234567890`) for the target chat,
 a unique identifier with the topic identifier (`-1234567890:1`) for the forum chat,
 or the username (`@username`) of the target channel.
 
-This Provider type does not support the configuration of a [proxy URL](#https-proxy)
-or [certificate secret reference](#certificate-secret-reference).
+This Provider type does not support the configuration of a [certificate secret reference](#certificate-secret-reference).
 
 ###### Telegram example
 
