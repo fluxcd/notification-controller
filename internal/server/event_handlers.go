@@ -389,10 +389,6 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		}
 	}
 
-	if webhook == "" {
-		return nil, "", fmt.Errorf("provider has no address")
-	}
-
 	options := []notifier.Option{
 		notifier.WithTokenClient(kubeClient),
 	}

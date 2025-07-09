@@ -589,7 +589,7 @@ func TestCreateNotifier(t *testing.T) {
 			providerSpec: &apiv1beta3.ProviderSpec{
 				Type: "slack",
 			},
-			wantErr: true,
+			wantErr: false, // Returns NopNotifier when URL is empty
 		},
 		{
 			name: "valid address, no secret ref",
@@ -884,6 +884,18 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 				Address: "https://example.com",
 				Proxy:   "http://proxy.example.com:8080",
 			},
+		},
+		{
+			name: "provider type that does not require address field",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				// Telegram generates URLs internally, so address field is not required
+				Type: "telegram",
+			},
+			secretData: map[string][]byte{
+				"channel": []byte("test-channel"),
+				"token":   []byte("test-token"),
+			},
+			wantErr: false,
 		},
 	}
 
