@@ -60,10 +60,10 @@ func TestTelegram_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	telegram, err := NewTelegram("", "", "channel", "token")
+	telegram, err := NewTelegram("", "channel", "token")
 	require.NoError(t, err)
 
-	telegram.URL = ts.URL
+	telegram.url = ts.URL
 
 	ev := testEvent()
 	ev.Metadata["kubernetes.io/somekey"] = "some.value"
@@ -72,15 +72,15 @@ func TestTelegram_Post(t *testing.T) {
 }
 
 func TestTelegram_NewTelegram_IgnoresAddress(t *testing.T) {
-	telegram, err := NewTelegram("https://api.telegram.org", "", "channel", "token")
+	telegram, err := NewTelegram("", "channel", "token")
 	require.NoError(t, err)
-	require.Equal(t, "https://api.telegram.org/bottoken", telegram.URL)
+	require.Equal(t, "https://api.telegram.org/bottoken", telegram.url)
 
-	telegram2, err := NewTelegram("https://custom.example.com", "", "channel", "token")
+	telegram2, err := NewTelegram("", "channel", "token")
 	require.NoError(t, err)
-	require.Equal(t, "https://api.telegram.org/bottoken", telegram2.URL)
+	require.Equal(t, "https://api.telegram.org/bottoken", telegram2.url)
 
-	telegram3, err := NewTelegram("", "", "channel", "token")
+	telegram3, err := NewTelegram("", "channel", "token")
 	require.NoError(t, err)
-	require.Equal(t, "https://api.telegram.org/bottoken", telegram3.URL)
+	require.Equal(t, "https://api.telegram.org/bottoken", telegram3.url)
 }

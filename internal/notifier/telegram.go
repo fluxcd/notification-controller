@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	defaultTelegramBaseURL = "https://api.telegram.org/bot%s"
-	sendMessageMethodName  = "sendMessage"
+	telegramBaseURL       = "https://api.telegram.org/bot%s"
+	sendMessageMethodName = "sendMessage"
 )
 
 type Telegram struct {
-	URL      string
+	url      string
 	ProxyURL string
 	Channel  string
 	Token    string
@@ -30,7 +30,7 @@ type TelegramPayload struct {
 	ParseMode string `json:"parse_mode"` // Mode for parsing entities in the message text
 }
 
-func NewTelegram(apiURL, proxyURL, channel, token string) (*Telegram, error) {
+func NewTelegram(proxyURL, channel, token string) (*Telegram, error) {
 	if channel == "" {
 		return nil, errors.New("empty Telegram channel")
 	}
@@ -41,10 +41,8 @@ func NewTelegram(apiURL, proxyURL, channel, token string) (*Telegram, error) {
 
 	// Note: Always ignore apiURL parameter for backward compatibility.
 	// The address field was ignored until v1.6.0.
-	apiURL = fmt.Sprintf(defaultTelegramBaseURL, token)
-
 	return &Telegram{
-		URL:      apiURL,
+		url:      fmt.Sprintf(telegramBaseURL, token),
 		ProxyURL: proxyURL,
 		Channel:  channel,
 		Token:    token,
@@ -76,7 +74,7 @@ func (t *Telegram) Post(ctx context.Context, event eventv1.Event) error {
 		ParseMode: "MarkdownV2", // https://core.telegram.org/bots/api#markdownv2-style
 	}
 
-	apiURL, err := url.JoinPath(t.URL, sendMessageMethodName)
+	apiURL, err := url.JoinPath(t.url, sendMessageMethodName)
 	if err != nil {
 		return fmt.Errorf("failed to construct API URL: %w", err)
 	}
