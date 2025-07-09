@@ -544,7 +544,7 @@ stringData:
 ##### Telegram
 
 When `.spec.type` is set to `telegram`, the controller will send a payload for
-an [Event](events.md#event-structure) to the provided Telegram [Address](#address).
+an [Event](events.md#event-structure) to the Telegram Bot API.
 
 The Event will be formatted into a message string, with the metadata attached
 as a list of key-value pairs.
@@ -556,12 +556,14 @@ or the username (`@username`) of the target channel.
 
 This Provider type does not support the configuration of a [certificate secret reference](#certificate-secret-reference).
 
+**Note:** The Telegram provider always ignores the `address` field and uses the default 
+Telegram Bot API endpoint (`https://api.telegram.org`).
+
 ###### Telegram example
 
 To configure a Provider for Telegram, create a Secret with [the `token`](#token-example)
 obtained from [the BotFather](https://core.telegram.org/bots#how-do-i-create-a-bot),
-and a `telegram` Provider with a [Secret reference](#secret-reference), and the
-`address` set to `https://api.telegram.org`.
+and a `telegram` Provider with a [Secret reference](#secret-reference).
 
 ```yaml
 ---
@@ -572,7 +574,6 @@ metadata:
   namespace: default
 spec:
   type: telegram
-  address: https://api.telegram.org
   channel: "@fluxcd" # or "-1557265138" (channel id) or "-1552289257:1" (forum chat id with topic id)
   secretRef:
     name: telegram-token

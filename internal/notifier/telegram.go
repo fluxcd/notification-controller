@@ -11,12 +11,12 @@ import (
 )
 
 const (
-	defaultTelegramBaseURL = "https://api.telegram.org/bot%s"
-	sendMessageMethodName  = "sendMessage"
+	telegramBaseURL       = "https://api.telegram.org/bot%s"
+	sendMessageMethodName = "sendMessage"
 )
 
 type Telegram struct {
-	URL      string
+	url      string
 	ProxyURL string
 	Channel  string
 	Token    string
@@ -39,10 +39,8 @@ func NewTelegram(proxyURL, channel, token string) (*Telegram, error) {
 		return nil, errors.New("empty Telegram token")
 	}
 
-	apiURL := fmt.Sprintf(defaultTelegramBaseURL, token)
-
 	return &Telegram{
-		URL:      apiURL,
+		url:      fmt.Sprintf(telegramBaseURL, token),
 		ProxyURL: proxyURL,
 		Channel:  channel,
 		Token:    token,
@@ -74,7 +72,7 @@ func (t *Telegram) Post(ctx context.Context, event eventv1.Event) error {
 		ParseMode: "MarkdownV2", // https://core.telegram.org/bots/api#markdownv2-style
 	}
 
-	apiURL, err := url.JoinPath(t.URL, sendMessageMethodName)
+	apiURL, err := url.JoinPath(t.url, sendMessageMethodName)
 	if err != nil {
 		return fmt.Errorf("failed to construct API URL: %w", err)
 	}

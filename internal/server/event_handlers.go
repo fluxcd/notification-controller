@@ -358,7 +358,6 @@ func extractAuthFromSecret(ctx context.Context, kubeClient client.Client, provid
 // handling authentication, proxy settings, and TLS configuration.
 func createNotifier(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider,
 	commitStatus string, tokenCache *cache.TokenCache) (notifier.Interface, string, error) {
-
 	options := []notifier.Option{
 		notifier.WithTokenClient(kubeClient),
 		notifier.WithProviderName(provider.Name),
@@ -439,11 +438,11 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		options = append(options, notifier.WithTLSConfig(tlsConfig))
 	}
 
-	if webhook == "" {
-		return nil, "", fmt.Errorf("provider has no address")
+	if webhook != "" {
+		options = append(options, notifier.WithURL(webhook))
 	}
 
-	factory := notifier.NewFactory(ctx, webhook, options...)
+	factory := notifier.NewFactory(ctx, options...)
 	sender, err := factory.Notifier(provider.Spec.Type)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to initialize notifier: %w", err)

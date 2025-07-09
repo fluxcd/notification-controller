@@ -179,6 +179,10 @@ func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, pro
 
 // validateAuthOptions checks if the authentication options are valid
 func validateAuthOptions(endpointURL, token, serviceAccountName string) error {
+	if endpointURL == "" {
+		return fmt.Errorf("endpoint URL cannot be empty")
+	}
+
 	if isSASAuth(endpointURL) {
 		if err := validateSASAuth(token, serviceAccountName); err != nil {
 			return err

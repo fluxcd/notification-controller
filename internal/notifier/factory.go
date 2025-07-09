@@ -203,11 +203,17 @@ func WithServiceAccount(serviceAccountName string) Option {
 	}
 }
 
-// NewFactory creates a new notifier factory with the given URL and optional configurations.
-func NewFactory(ctx context.Context, url string, opts ...Option) *Factory {
+// WithURL sets the webhook URL for the notifier.
+func WithURL(url string) Option {
+	return func(o *notifierOptions) {
+		o.URL = url
+	}
+}
+
+// NewFactory creates a new notifier factory with optional configurations.
+func NewFactory(ctx context.Context, opts ...Option) *Factory {
 	options := notifierOptions{
 		Context: ctx,
-		URL:     url,
 	}
 
 	for _, opt := range opts {
@@ -220,24 +226,12 @@ func NewFactory(ctx context.Context, url string, opts ...Option) *Factory {
 }
 
 func (f Factory) Notifier(provider string) (Interface, error) {
-	if f.URL == "" {
-		return &NopNotifier{}, nil
+	notifier, ok := notifiers[provider]
+	if !ok {
+		return nil, fmt.Errorf("provider %s not supported", provider)
 	}
 
-	var (
-		n   Interface
-		err error
-	)
-	if notifier, ok := notifiers[provider]; ok {
-		n, err = notifier(f.notifierOptions)
-	} else {
-		err = fmt.Errorf("provider %s not supported", provider)
-	}
-
-	if err != nil {
-		n = &NopNotifier{}
-	}
-	return n, err
+	return notifier(f.notifierOptions)
 }
 
 func genericNotifierFunc(opts notifierOptions) (Interface, error) {
