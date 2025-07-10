@@ -344,6 +344,13 @@ func extractAuthFromSecret(ctx context.Context, kubeClient client.Client, provid
 		options = append(options, notifier.WithHeaders(headers))
 	}
 
+	if user, ok := secret.Data["username"]; ok {
+		if pass, ok := secret.Data["password"]; ok {
+			options = append(options, notifier.WithUsername(strings.TrimSpace(string(user))))
+			options = append(options, notifier.WithPassword(strings.TrimSpace(string(pass))))
+		}
+	}
+
 	return options, secret.Data, nil
 }
 
@@ -403,12 +410,6 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		}
 		if val, ok := secretData[secrets.TokenKey]; ok {
 			token = strings.TrimSpace(string(val))
-		}
-
-		user, pass, err := secrets.BasicAuthFromSecret(ctx, kubeClient, provider.Spec.SecretRef.Name, provider.Namespace)
-		if err == nil {
-			options = append(options, notifier.WithUsername(user))
-			options = append(options, notifier.WithPassword(pass))
 		}
 	}
 
