@@ -26,7 +26,7 @@ import (
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
-	pkgcache "github.com/fluxcd/pkg/cache"
+	"github.com/fluxcd/pkg/cache"
 )
 
 type GitHub struct {
@@ -36,13 +36,17 @@ type GitHub struct {
 	Client       *github.Client
 }
 
-func NewGitHub(commitStatus string, addr string, token string, certPool *x509.CertPool, proxyURL string, providerName string, providerNamespace string, secretData map[string][]byte, tokenCache *pkgcache.TokenCache) (*GitHub, error) {
+func NewGitHub(commitStatus string, addr string, token string, certPool *x509.CertPool,
+	proxyURL string, providerName string, providerNamespace string, secretData map[string][]byte,
+	tokenCache *cache.TokenCache) (*GitHub, error) {
+
 	// this should never happen
 	if commitStatus == "" {
 		return nil, errors.New("commit status cannot be empty")
 	}
 
-	repoInfo, err := getRepoInfoAndGithubClient(addr, token, certPool, proxyURL, providerName, providerNamespace, secretData, tokenCache)
+	repoInfo, err := getRepoInfoAndGithubClient(addr, token, certPool,
+		proxyURL, providerName, providerNamespace, secretData, tokenCache)
 	if err != nil {
 		return nil, err
 	}

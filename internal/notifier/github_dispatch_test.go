@@ -65,7 +65,7 @@ func TestNewGithubDispatchProvider(t *testing.T) {
 	kp, _ := ssh.GenerateKeyPair(ssh.RSA_4096)
 	expiresAt := time.Now().UTC().Add(time.Hour)
 
-	var tests = []struct {
+	for _, tt := range []struct {
 		name       string
 		secretData map[string][]byte
 		wantErr    error
@@ -85,7 +85,7 @@ func TestNewGithubDispatchProvider(t *testing.T) {
 				"githubAppInstallationID": []byte(installationID),
 				"githubAppPrivateKey":     kp.PrivateKey,
 			},
-			wantErr: errors.New("app ID must be provided to use github app authentication"),
+			wantErr: errors.New("github token or github app details must be specified"),
 		},
 		{
 			name: "provider with missing app installation ID in options ",
@@ -111,32 +111,32 @@ func TestNewGithubDispatchProvider(t *testing.T) {
 				"githubAppPrivateKey":     kp.PrivateKey,
 			},
 		},
-	}
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			handler := func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				var response []byte
+				var err error
+				response, err = json.Marshal(&authgithub.AppToken{Token: "access-token", ExpiresAt: expiresAt})
+				assert.Nil(t, err)
+				w.Write(response)
+			}
+			srv := httptest.NewServer(http.HandlerFunc(handler))
+			t.Cleanup(func() {
+				srv.Close()
+			})
 
-	for _, tt := range tests {
-		handler := func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-			var response []byte
-			var err error
-			response, err = json.Marshal(&authgithub.AppToken{Token: "access-token", ExpiresAt: expiresAt})
-			assert.Nil(t, err)
-			w.Write(response)
-		}
-		srv := httptest.NewServer(http.HandlerFunc(handler))
-		t.Cleanup(func() {
-			srv.Close()
+			if len(tt.secretData) > 0 {
+				tt.secretData["githubAppBaseURL"] = []byte(srv.URL)
+			}
+			_, err := NewGitHubDispatch("https://github.com/foo/bar", "", nil, "", "foo", "bar", tt.secretData, nil)
+			if tt.wantErr != nil {
+				assert.NotNil(t, err)
+				assert.Equal(t, tt.wantErr, err)
+			} else {
+				assert.Nil(t, err)
+			}
 		})
-
-		if tt.secretData != nil && len(tt.secretData) > 0 {
-			tt.secretData["githubAppBaseURL"] = []byte(srv.URL)
-		}
-		_, err := NewGitHubDispatch("https://github.com/foo/bar", "", nil, "", "foo", "bar", tt.secretData, nil)
-		if tt.wantErr != nil {
-			assert.NotNil(t, err)
-			assert.Equal(t, tt.wantErr, err)
-		} else {
-			assert.Nil(t, err)
-		}
 	}
 }
 

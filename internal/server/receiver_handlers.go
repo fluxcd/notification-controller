@@ -445,7 +445,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 	case apiv1.NexusReceiver:
 		signature := r.Header.Get("X-Nexus-Webhook-Signature")
 		if len(signature) == 0 {
-			return fmt.Errorf("Nexus signature is missing from header")
+			return fmt.Errorf("the Nexus signature is missing from header")
 		}
 
 		b, err := io.ReadAll(r.Body)
@@ -583,7 +583,7 @@ func authenticateGCRRequest(c *http.Client, bearer string, tokenIndex int) (err 
 	}
 
 	if len(bearer) < tokenIndex {
-		return fmt.Errorf("Authorization header is missing or malformed: %v", bearer)
+		return fmt.Errorf("the Authorization header is missing or malformed: %v", bearer)
 	}
 
 	token := bearer[tokenIndex:]

@@ -26,13 +26,13 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/fluxcd/notification-controller/api/v1beta3"
-	pkgcache "github.com/fluxcd/pkg/cache"
-	"github.com/fluxcd/pkg/git/github"
-	authgithub "github.com/fluxcd/pkg/git/github"
+	gogithub "github.com/google/go-github/v64/github"
 	"golang.org/x/oauth2"
 
-	gogithub "github.com/google/go-github/v64/github"
+	"github.com/fluxcd/pkg/cache"
+	"github.com/fluxcd/pkg/git/github"
+
+	"github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
 // repoInfo is an internal type encapsulating owner, repo and client
@@ -43,20 +43,13 @@ type repoInfo struct {
 }
 
 // getGitHubAppOptions constructs the github app authentication options.
-func getGitHubAppOptions(providerName, providerNamespace, proxy string, secretData map[string][]byte, tokenCache *pkgcache.TokenCache) ([]github.OptFunc, error) {
-	githubOpts := []github.OptFunc{}
-	if val, ok := secretData[github.AppIDKey]; ok {
-		githubOpts = append(githubOpts, github.WithAppID(string(val)))
+func getGitHubAppOptions(providerName, providerNamespace, proxy string,
+	secretData map[string][]byte, tokenCache *cache.TokenCache) ([]github.OptFunc, error) {
+
+	githubOpts := []github.OptFunc{
+		github.WithAppData(secretData),
 	}
-	if val, ok := secretData[github.AppInstallationIDKey]; ok {
-		githubOpts = append(githubOpts, github.WithInstllationID(string(val)))
-	}
-	if val, ok := secretData[github.AppPrivateKey]; ok {
-		githubOpts = append(githubOpts, github.WithPrivateKey(val))
-	}
-	if val, ok := secretData[github.AppBaseUrlKey]; ok {
-		githubOpts = append(githubOpts, github.WithAppBaseURL(string(val)))
-	}
+
 	if len(githubOpts) > 0 && proxy != "" {
 		proxyURL, err := url.Parse(proxy)
 		if err != nil {
@@ -64,26 +57,31 @@ func getGitHubAppOptions(providerName, providerNamespace, proxy string, secretDa
 		}
 		githubOpts = append(githubOpts, github.WithProxyURL(proxyURL))
 	}
+
 	if len(githubOpts) > 0 && tokenCache != nil {
-		githubOpts = append(githubOpts, github.WithCache(tokenCache, v1beta3.ProviderKind, providerName, providerNamespace, OperationPost))
+		githubOpts = append(githubOpts, github.WithCache(tokenCache,
+			v1beta3.ProviderKind, providerName, providerNamespace, OperationPost))
 	}
 
 	return githubOpts, nil
 }
 
 // getRepoInfoAndGithubClient gets the github client and repository info used by Github and GithubDispatch providers
-func getRepoInfoAndGithubClient(addr string, token string, certPool *x509.CertPool, proxyURL string, providerName string, providerNamespace string, secretData map[string][]byte, tokenCache *pkgcache.TokenCache) (*repoInfo, error) {
+func getRepoInfoAndGithubClient(addr string, token string, certPool *x509.CertPool,
+	proxyURL string, providerName string, providerNamespace string,
+	secretData map[string][]byte, tokenCache *cache.TokenCache) (*repoInfo, error) {
+
 	if len(token) == 0 {
+		if _, ok := secretData[github.KeyAppID]; !ok {
+			return nil, errors.New("github token or github app details must be specified")
+		}
+
 		githubOpts, err := getGitHubAppOptions(providerName, providerNamespace, proxyURL, secretData, tokenCache)
 		if err != nil {
 			return nil, err
 		}
 
-		if len(githubOpts) == 0 {
-			return nil, errors.New("github token or github app details must be specified")
-		}
-
-		client, err := authgithub.New(githubOpts...)
+		client, err := github.New(githubOpts...)
 		if err != nil {
 			return nil, err
 		}

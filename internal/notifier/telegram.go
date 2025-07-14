@@ -30,7 +30,7 @@ type TelegramPayload struct {
 	ParseMode string `json:"parse_mode"` // Mode for parsing entities in the message text
 }
 
-func NewTelegram(apiURL, proxyURL, channel, token string) (*Telegram, error) {
+func NewTelegram(proxyURL, channel, token string) (*Telegram, error) {
 	if channel == "" {
 		return nil, errors.New("empty Telegram channel")
 	}
@@ -39,9 +39,7 @@ func NewTelegram(apiURL, proxyURL, channel, token string) (*Telegram, error) {
 		return nil, errors.New("empty Telegram token")
 	}
 
-	// Note: Always ignore apiURL parameter for backward compatibility.
-	// The address field was ignored until v1.6.0.
-	apiURL = fmt.Sprintf(defaultTelegramBaseURL, token)
+	apiURL := fmt.Sprintf(defaultTelegramBaseURL, token)
 
 	return &Telegram{
 		URL:      apiURL,
