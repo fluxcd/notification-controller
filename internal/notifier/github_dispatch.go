@@ -23,7 +23,7 @@ import (
 	"fmt"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
-	pkgcache "github.com/fluxcd/pkg/cache"
+	"github.com/fluxcd/pkg/cache"
 
 	"github.com/google/go-github/v64/github"
 )
@@ -34,8 +34,12 @@ type GitHubDispatch struct {
 	Client *github.Client
 }
 
-func NewGitHubDispatch(addr string, token string, certPool *x509.CertPool, proxyURL string, providerName string, providerNamespace string, secretData map[string][]byte, tokenCache *pkgcache.TokenCache) (*GitHubDispatch, error) {
-	repoInfo, err := getRepoInfoAndGithubClient(addr, token, certPool, proxyURL, providerName, providerNamespace, secretData, tokenCache)
+func NewGitHubDispatch(addr string, token string, certPool *x509.CertPool, proxyURL string,
+	providerName string, providerNamespace string, secretData map[string][]byte,
+	tokenCache *cache.TokenCache) (*GitHubDispatch, error) {
+
+	repoInfo, err := getRepoInfoAndGithubClient(addr, token, certPool,
+		proxyURL, providerName, providerNamespace, secretData, tokenCache)
 	if err != nil {
 		return nil, err
 	}

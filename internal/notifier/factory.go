@@ -24,7 +24,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	pkgcache "github.com/fluxcd/pkg/cache"
+	"github.com/fluxcd/pkg/cache"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1beta3"
 )
@@ -87,7 +87,7 @@ type notifierOptions struct {
 	ProviderNamespace  string
 	SecretData         map[string][]byte
 	ServiceAccountName string
-	TokenCache         *pkgcache.TokenCache
+	TokenCache         *cache.TokenCache
 	TokenClient        client.Client
 }
 
@@ -183,7 +183,7 @@ func WithSecretData(data map[string][]byte) Option {
 }
 
 // WithTokenCache sets the token cache for the notifier.
-func WithTokenCache(cache *pkgcache.TokenCache) Option {
+func WithTokenCache(cache *cache.TokenCache) Option {
 	return func(o *notifierOptions) {
 		o.TokenCache = cache
 	}
@@ -285,7 +285,7 @@ func azureEventHubNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func telegramNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewTelegram(opts.URL, opts.ProxyURL, opts.Channel, opts.Token)
+	return NewTelegram(opts.ProxyURL, opts.Channel, opts.Token)
 }
 
 func larkNotifierFunc(opts notifierOptions) (Interface, error) {

@@ -20,16 +20,15 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/Azure/azure-amqp-common-go/v4/auth"
+	azauth "github.com/Azure/azure-amqp-common-go/v4/auth"
 	eventhub "github.com/Azure/azure-event-hubs-go/v3"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
-	pkgauth "github.com/fluxcd/pkg/auth"
+	"github.com/fluxcd/pkg/auth"
 	"github.com/fluxcd/pkg/auth/azure"
 	"github.com/fluxcd/pkg/cache"
-	pkgcache "github.com/fluxcd/pkg/cache"
 
 	"github.com/fluxcd/notification-controller/api/v1beta3"
 )
@@ -40,7 +39,9 @@ type AzureEventHub struct {
 }
 
 // NewAzureEventHub creates a eventhub client
-func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace, proxy, serviceAccountName, providerName, providerNamespace string, tokenClient client.Client, tokenCache *pkgcache.TokenCache) (*AzureEventHub, error) {
+func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace, proxy,
+	serviceAccountName, providerName, providerNamespace string, tokenClient client.Client,
+	tokenCache *cache.TokenCache) (*AzureEventHub, error) {
 	var hub *eventhub.Hub
 	var err error
 
@@ -109,9 +110,9 @@ func NewJWTProvider(jwt string) *PureJWT {
 }
 
 // GetToken uses a JWT token, we assume that we will get new tokens when needed, thus no Expiry defined
-func (j *PureJWT) GetToken(uri string) (*auth.Token, error) {
-	return &auth.Token{
-		TokenType: auth.CBSTokenTypeJWT,
+func (j *PureJWT) GetToken(uri string) (*azauth.Token, error) {
+	return &azauth.Token{
+		TokenType: azauth.CBSTokenTypeJWT,
 		Token:     j.jwt,
 		Expiry:    "",
 	}, nil
@@ -139,14 +140,15 @@ func newSASHub(address string) (*eventhub.Hub, error) {
 }
 
 // newManagedIdentityToken is used to attempt credential-free authentication.
-func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, providerName, providerNamespace string, tokenClient client.Client, tokenCache *pkgcache.TokenCache) (string, error) {
-	opts := []pkgauth.Option{pkgauth.WithScopes(azure.ScopeEventHubs)}
+func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, providerName,
+	providerNamespace string, tokenClient client.Client, tokenCache *cache.TokenCache) (string, error) {
+	opts := []auth.Option{auth.WithScopes(azure.ScopeEventHubs)}
 	if proxy != "" {
 		proxyURL, err := url.Parse(proxy)
 		if err != nil {
 			return "", fmt.Errorf("error parsing proxy URL : %w", err)
 		}
-		opts = append(opts, pkgauth.WithProxyURL(*proxyURL))
+		opts = append(opts, auth.WithProxyURL(*proxyURL))
 	}
 
 	if serviceAccountName != "" {
@@ -154,7 +156,7 @@ func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, pro
 			Name:      serviceAccountName,
 			Namespace: providerNamespace,
 		}
-		opts = append(opts, pkgauth.WithServiceAccount(serviceAccount, tokenClient))
+		opts = append(opts, auth.WithServiceAccount(serviceAccount, tokenClient))
 	}
 
 	if tokenCache != nil {
@@ -164,10 +166,10 @@ func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, pro
 			Namespace: providerNamespace,
 			Operation: OperationPost,
 		}
-		opts = append(opts, pkgauth.WithCache(*tokenCache, involvedObject))
+		opts = append(opts, auth.WithCache(*tokenCache, involvedObject))
 	}
 
-	token, err := pkgauth.GetToken(ctx, azure.Provider{}, opts...)
+	token, err := auth.GetAccessToken(ctx, azure.Provider{}, opts...)
 	if err != nil {
 		return "", fmt.Errorf("failed to get token for azure event hub: %w", err)
 	}

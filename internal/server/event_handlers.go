@@ -37,7 +37,7 @@ import (
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/auth"
-	pkgcache "github.com/fluxcd/pkg/cache"
+	"github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/masktoken"
 	"github.com/fluxcd/pkg/runtime/secrets"
 
@@ -332,7 +332,7 @@ func extractAuthFromSecret(ctx context.Context, kubeClient client.Client, provid
 		options = append(options, notifier.WithProxyURL(deprecatedProxy))
 	}
 
-	if val, ok := secret.Data[secrets.TokenKey]; ok {
+	if val, ok := secret.Data[secrets.KeyToken]; ok {
 		options = append(options, notifier.WithToken(strings.TrimSpace(string(val))))
 	}
 
@@ -356,7 +356,9 @@ func extractAuthFromSecret(ctx context.Context, kubeClient client.Client, provid
 
 // createNotifier constructs a notifier interface from the provider configuration,
 // handling authentication, proxy settings, and TLS configuration.
-func createNotifier(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider, commitStatus string, tokenCache *pkgcache.TokenCache) (notifier.Interface, string, error) {
+func createNotifier(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider,
+	commitStatus string, tokenCache *cache.TokenCache) (notifier.Interface, string, error) {
+
 	options := []notifier.Option{
 		notifier.WithTokenClient(kubeClient),
 		notifier.WithProviderName(provider.Name),
@@ -408,13 +410,17 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		if val, ok := secretData["address"]; ok {
 			webhook = strings.TrimSpace(string(val))
 		}
-		if val, ok := secretData[secrets.TokenKey]; ok {
+		if val, ok := secretData[secrets.KeyToken]; ok {
 			token = strings.TrimSpace(string(val))
 		}
 	}
 
 	if provider.Spec.ProxySecretRef != nil {
-		proxyURL, err := secrets.ProxyURLFromSecret(ctx, kubeClient, provider.Spec.ProxySecretRef.Name, provider.Namespace)
+		secretRef := types.NamespacedName{
+			Name:      provider.Spec.ProxySecretRef.Name,
+			Namespace: provider.GetNamespace(),
+		}
+		proxyURL, err := secrets.ProxyURLFromSecretRef(ctx, kubeClient, secretRef)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to get proxy URL: %w", err)
 		}
@@ -422,12 +428,11 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 	}
 
 	if provider.Spec.CertSecretRef != nil {
-		tlsConfig, err := secrets.TLSConfigFromSecret(
-			ctx,
-			kubeClient,
-			provider.Spec.CertSecretRef.Name,
-			provider.Namespace,
-		)
+		secretRef := types.NamespacedName{
+			Name:      provider.Spec.CertSecretRef.Name,
+			Namespace: provider.GetNamespace(),
+		}
+		tlsConfig, err := secrets.TLSConfigFromSecretRef(ctx, kubeClient, secretRef)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to get TLS config: %w", err)
 		}
