@@ -351,5 +351,7 @@ func bitbucketNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewAzureDevOps(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool)
+	return NewAzureDevOps(opts.Context, opts.CommitStatus, opts.URL, opts.Token,
+		opts.CertPool, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName,
+		opts.ProviderNamespace, opts.TokenClient, opts.TokenCache)
 }

@@ -26,9 +26,12 @@ import (
 
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
+	"github.com/fluxcd/pkg/auth/azure"
+	"github.com/fluxcd/pkg/cache"
 )
 
 const genre string = "fluxcd"
@@ -47,9 +50,17 @@ type AzureDevOps struct {
 }
 
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
-func NewAzureDevOps(commitStatus string, addr string, token string, certPool *x509.CertPool) (*AzureDevOps, error) {
+func NewAzureDevOps(ctx context.Context, commitStatus string, addr string, token string,
+	certPool *x509.CertPool, proxy, serviceAccountName, providerName, providerNamespace string,
+	tokenClient client.Client, tokenCache *cache.TokenCache) (*AzureDevOps, error) {
+	var err error
+
 	if len(token) == 0 {
-		return nil, errors.New("azure devops token cannot be empty")
+		// if token doesn't exist, try to create a new token using managed identity
+		token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName, providerName, providerNamespace, azure.ScopeDevOps, tokenClient, tokenCache)
+		if err != nil {
+			return nil, fmt.Errorf("failed to acquire azure devops token: %w", err)
+		}
 	}
 
 	host, id, err := parseGitAddress(addr)

@@ -17,32 +17,30 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
+	"os"
 	"strings"
 
-	azauth "github.com/Azure/azure-amqp-common-go/v4/auth"
-	eventhub "github.com/Azure/azure-event-hubs-go/v3"
-	"k8s.io/apimachinery/pkg/types"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	eventhub "github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
-	"github.com/fluxcd/pkg/auth"
 	"github.com/fluxcd/pkg/auth/azure"
 	"github.com/fluxcd/pkg/cache"
-
-	"github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
 // AzureEventHub holds the eventhub client
 type AzureEventHub struct {
-	Hub *eventhub.Hub
+	ProducerClient *eventhub.ProducerClient
 }
 
 // NewAzureEventHub creates a eventhub client
 func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace, proxy,
 	serviceAccountName, providerName, providerNamespace string, tokenClient client.Client,
 	tokenCache *cache.TokenCache) (*AzureEventHub, error) {
-	var hub *eventhub.Hub
+	var client *eventhub.ProducerClient
 	var err error
 
 	if err := validateAuthOptions(endpointURL, token, serviceAccountName); err != nil {
@@ -50,26 +48,29 @@ func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace
 	}
 
 	if isSASAuth(endpointURL) {
-		hub, err = newSASHub(endpointURL)
+		client, err = newSASHub(endpointURL)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create a eventhub using SAS %v", err)
+			return nil, fmt.Errorf("failed to create a eventhub using SAS: %w", err)
 		}
 	} else {
 		// if token doesn't exist, try to create a new token using managed identity
 		if token == "" {
-			token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName, providerName, providerNamespace, tokenClient, tokenCache)
+			token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName, providerName,
+				providerNamespace, azure.ScopeEventHubs, tokenClient, tokenCache)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create a eventhub using managed identity %v", err)
+				return nil, fmt.Errorf("failed to create a eventhub using managed identity: %w", err)
 			}
+		} else {
+			log.FromContext(ctx).Error(nil, "warning: static JWT authentication is deprecated and will be removed in the future, prefer workload identity: https://fluxcd.io/flux/components/notification/providers/#managed-identity")
 		}
-		hub, err = newJWTHub(endpointURL, token, eventHubNamespace)
+		client, err = newJWTHub(endpointURL, token, eventHubNamespace)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create a eventhub using authentication token %v", err)
+			return nil, fmt.Errorf("failed to create a eventhub using authentication token: %w", err)
 		}
 	}
 
 	return &AzureEventHub{
-		Hub: hub,
+		ProducerClient: client,
 	}, nil
 }
 
@@ -85,12 +86,22 @@ func (e *AzureEventHub) Post(ctx context.Context, event eventv1.Event) error {
 		return fmt.Errorf("unable to marshall event: %w", err)
 	}
 
-	err = e.Hub.Send(ctx, eventhub.NewEvent(eventBytes))
+	eventBatch, err := e.ProducerClient.NewEventDataBatch(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to create event data batch: %w", err)
+	}
+
+	err = eventBatch.AddEventData(&eventhub.EventData{Body: eventBytes}, nil)
+	if err != nil {
+		return fmt.Errorf("failed to add event data to batch: %w", err)
+	}
+
+	err = e.ProducerClient.SendEventDataBatch(ctx, eventBatch, nil)
 	if err != nil {
 		return fmt.Errorf("failed to send msg: %w", err)
 	}
 
-	err = e.Hub.Close(ctx)
+	err = e.ProducerClient.Close(ctx)
 	if err != nil {
 		return fmt.Errorf("unable to close connection: %w", err)
 	}
@@ -103,26 +114,24 @@ type PureJWT struct {
 }
 
 // NewJWTProvider create a pureJWT method
-func NewJWTProvider(jwt string) *PureJWT {
+func NewJWTProvider(jwt string) azcore.TokenCredential {
 	return &PureJWT{
 		jwt: jwt,
 	}
 }
 
 // GetToken uses a JWT token, we assume that we will get new tokens when needed, thus no Expiry defined
-func (j *PureJWT) GetToken(uri string) (*azauth.Token, error) {
-	return &azauth.Token{
-		TokenType: azauth.CBSTokenTypeJWT,
-		Token:     j.jwt,
-		Expiry:    "",
+func (j *PureJWT) GetToken(ctx context.Context, options policy.TokenRequestOptions) (azcore.AccessToken, error) {
+	return azcore.AccessToken{
+		Token: j.jwt,
 	}, nil
 }
 
 // newJWTHub used when address is a JWT token
-func newJWTHub(eventhubName, token, eventHubNamespace string) (*eventhub.Hub, error) {
+func newJWTHub(eventhubName, token, eventHubNamespace string) (*eventhub.ProducerClient, error) {
 	provider := NewJWTProvider(token)
-
-	hub, err := eventhub.NewHub(eventHubNamespace, eventhubName, provider)
+	fullyQualifiedNamespace := ensureFullyQualifiedNamespace(eventHubNamespace)
+	hub, err := eventhub.NewProducerClient(fullyQualifiedNamespace, eventhubName, provider, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -130,51 +139,13 @@ func newJWTHub(eventhubName, token, eventHubNamespace string) (*eventhub.Hub, er
 }
 
 // newSASHub used when address is a SAS ConnectionString
-func newSASHub(address string) (*eventhub.Hub, error) {
-	hub, err := eventhub.NewHubFromConnectionString(address)
+func newSASHub(address string) (*eventhub.ProducerClient, error) {
+	client, err := eventhub.NewProducerClientFromConnectionString(address, "", nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return hub, nil
-}
-
-// newManagedIdentityToken is used to attempt credential-free authentication.
-func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, providerName,
-	providerNamespace string, tokenClient client.Client, tokenCache *cache.TokenCache) (string, error) {
-	opts := []auth.Option{auth.WithScopes(azure.ScopeEventHubs)}
-	if proxy != "" {
-		proxyURL, err := url.Parse(proxy)
-		if err != nil {
-			return "", fmt.Errorf("error parsing proxy URL : %w", err)
-		}
-		opts = append(opts, auth.WithProxyURL(*proxyURL))
-	}
-
-	if serviceAccountName != "" {
-		serviceAccount := types.NamespacedName{
-			Name:      serviceAccountName,
-			Namespace: providerNamespace,
-		}
-		opts = append(opts, auth.WithServiceAccount(serviceAccount, tokenClient))
-	}
-
-	if tokenCache != nil {
-		involvedObject := cache.InvolvedObject{
-			Kind:      v1beta3.ProviderKind,
-			Name:      providerName,
-			Namespace: providerNamespace,
-			Operation: OperationPost,
-		}
-		opts = append(opts, auth.WithCache(*tokenCache, involvedObject))
-	}
-
-	token, err := auth.GetAccessToken(ctx, azure.Provider{}, opts...)
-	if err != nil {
-		return "", fmt.Errorf("failed to get token for azure event hub: %w", err)
-	}
-
-	return token.(*azure.Token).AccessToken.Token, nil
+	return client, nil
 }
 
 // validateAuthOptions checks if the authentication options are valid
@@ -209,4 +180,25 @@ func validateSASAuth(token, serviceAccountName string) error {
 	}
 
 	return nil
+}
+
+// getEventHubSuffixFromAuthorityHost maps AZURE_AUTHORITY_HOST to the correct suffix
+func getEventHubSuffixFromAuthorityHost() string {
+	authorityHost := os.Getenv("AZURE_AUTHORITY_HOST")
+	switch {
+	case strings.Contains(authorityHost, "chinacloudapi.cn"):
+		return ".servicebus.chinacloudapi.cn"
+	case strings.Contains(authorityHost, "microsoftonline.us"):
+		return ".servicebus.usgovcloudapi.net"
+	default:
+		return ".servicebus.windows.net"
+	}
+}
+
+// ensureFullyQualifiedNamespace appends suffix if not already present
+func ensureFullyQualifiedNamespace(namespace string) string {
+	if strings.Contains(namespace, ".servicebus.") {
+		return namespace // already fully qualified
+	}
+	return namespace + getEventHubSuffixFromAuthorityHost()
 }
