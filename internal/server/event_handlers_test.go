@@ -585,13 +585,6 @@ func TestCreateNotifier(t *testing.T) {
 		wantTLSConfig   *tls.Config
 	}{
 		{
-			name: "no address, no secret ref",
-			providerSpec: &apiv1beta3.ProviderSpec{
-				Type: "slack",
-			},
-			wantErr: true,
-		},
-		{
 			name: "valid address, no secret ref",
 			providerSpec: &apiv1beta3.ProviderSpec{
 				Type:    "slack",
@@ -884,6 +877,19 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 				Address: "https://example.com",
 				Proxy:   "http://proxy.example.com:8080",
 			},
+		},
+		{
+			name: "provider type that does not require address field",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				// Telegram generates URLs internally, so address field is not required
+				Type:      "telegram",
+				Channel:   "test-channel",
+				SecretRef: &meta.LocalObjectReference{Name: secretName},
+			},
+			secretData: map[string][]byte{
+				"token": []byte("test-token"),
+			},
+			wantErr: false,
 		},
 	}
 

@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -25,15 +26,42 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewSentry(t *testing.T) {
-	s, err := NewSentry(nil, "https://test@localhost/1", "foo")
-	require.NoError(t, err)
-	assert.Equal(t, s.Client.Options().Dsn, "https://test@localhost/1")
-	assert.Equal(t, s.Client.Options().Environment, "foo")
+	tests := []struct {
+		name        string
+		dsn         string
+		environment string
+		err         error
+	}{
+		{
+			name:        "valid DSN",
+			dsn:         "https://test@localhost/1",
+			environment: "foo",
+			err:         nil,
+		},
+		{
+			name:        "empty DSN",
+			dsn:         "",
+			environment: "foo",
+			err:         errors.New("DSN cannot be empty"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s, err := NewSentry(nil, tt.dsn, tt.environment)
+			if tt.err != nil {
+				assert.Error(t, err)
+				assert.Equal(t, tt.err, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, s.Client.Options().Dsn, tt.dsn)
+				assert.Equal(t, s.Client.Options().Environment, tt.environment)
+			}
+		})
+	}
 }
 
 func TestToSentryEvent(t *testing.T) {

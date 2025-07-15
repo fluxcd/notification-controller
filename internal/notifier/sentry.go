@@ -34,6 +34,10 @@ type Sentry struct {
 
 // NewSentry creates a Sentry client from the provided Data Source Name (DSN)
 func NewSentry(certPool *x509.CertPool, dsn string, environment string) (*Sentry, error) {
+	if dsn == "" {
+		return nil, fmt.Errorf("DSN cannot be empty")
+	}
+
 	tr := &http.Transport{}
 	if certPool != nil {
 		tr = &http.Transport{

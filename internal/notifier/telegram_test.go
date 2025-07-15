@@ -63,7 +63,7 @@ func TestTelegram_Post(t *testing.T) {
 	telegram, err := NewTelegram("", "channel", "token")
 	require.NoError(t, err)
 
-	telegram.URL = ts.URL
+	telegram.url = ts.URL
 
 	ev := testEvent()
 	ev.Metadata["kubernetes.io/somekey"] = "some.value"

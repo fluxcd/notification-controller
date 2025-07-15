@@ -72,6 +72,13 @@ func TestNewAzureEventHub(t *testing.T) {
 			eventHubNamespace:  "namespace",
 			err:                errors.New("invalid authentication options: serviceAccountName and jwt token authentication cannot be set at the same time"),
 		},
+		{
+			name:              "empty endpoint URL",
+			endpointURL:       "",
+			token:             "test-token",
+			eventHubNamespace: "namespace",
+			err:               errors.New("invalid authentication options: endpoint URL cannot be empty"),
+		},
 	}
 
 	for _, tt := range tests {
