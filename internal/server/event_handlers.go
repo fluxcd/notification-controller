@@ -217,6 +217,7 @@ func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.E
 	go func(n notifier.Interface, e eventv1.Event) {
 		pctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
+		pctx = notifier.WithAlertMetadata(pctx, alert.ObjectMeta)
 		if err := n.Post(pctx, e); err != nil {
 			maskedErrStr, maskErr := masktoken.MaskTokenFromString(err.Error(), token)
 			if maskErr != nil {
