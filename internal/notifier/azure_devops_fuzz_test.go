@@ -54,7 +54,7 @@ func Fuzz_AzureDevOps(f *testing.F) {
 		var cert x509.CertPool
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
-		azureDevOps, err := NewAzureDevOps(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert)
+		azureDevOps, err := NewAzureDevOps(context.TODO(), commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert, "", "", "", "", nil, nil)
 		if err != nil {
 			return
 		}

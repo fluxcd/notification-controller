@@ -1463,9 +1463,9 @@ jobs:
 The Azure Event Hub provider supports the following authentication methods, 
 - [Managed
   Identity](https://learn.microsoft.com/en-us/azure/event-hubs/authenticate-managed-identity)
-- [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application)
 - [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature)
   based.
+- [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application) (Deprecated)
 
 #### Managed Identity
 
@@ -1511,7 +1511,49 @@ for the client-id and tenant-id of the managed identity.
 For a complete guide on how to set up authentication for an Azure Event Hub,
 see the integration [docs](/flux/integrations/azure/).
 
-#### JWT based auth
+#### SAS based auth
+
+When using SAS auth, we only use the `address` field in the secret.
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: azure
+  namespace: default
+spec:
+  type: azureeventhub
+  secretRef:
+    name: azure-webhook
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azure-webhook
+  namespace: default
+stringData:
+  address: <SAS-URL>
+```
+
+Assuming that you have created the Azure event hub and namespace you should be
+able to use a similar command to get your connection string. This will give you
+the default Root SAS, which is NOT supposed to be used in production.
+
+```shell
+az eventhubs namespace authorization-rule keys list --resource-group <rg-name> --namespace-name <namespace-name> --name RootManageSharedAccessKey -o tsv --query primaryConnectionString
+# The output should look something like this:
+Endpoint=sb://fluxv2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=yoursaskeygeneatedbyazure;EntityPath=youreventhub
+```
+
+To create the needed secret:
+
+```shell
+kubectl create secret generic azure-webhook \
+--from-literal=address="Endpoint=sb://fluxv2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=yoursaskeygeneatedbyazure"
+```
+
+#### JWT based auth (Deprecated)
 
 In JWT we use 3 input values. Channel, token and address. We perform the
 following translation to match we the data we need to communicate with Azure
@@ -1566,48 +1608,6 @@ Use the output you got from `curl` and add it to your secret like bellow:
 ```shell
 kubectl create secret generic azure-token \
 --from-literal=token='A-valid-JWT-token'
-```
-
-#### SAS based auth
-
-When using SAS auth, we only use the `address` field in the secret.
-
-```yaml
----
-apiVersion: notification.toolkit.fluxcd.io/v1beta3
-kind: Provider
-metadata:
-  name: azure
-  namespace: default
-spec:
-  type: azureeventhub
-  secretRef:
-    name: azure-webhook
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: azure-webhook
-  namespace: default
-stringData:
-  address: <SAS-URL>
-```
-
-Assuming that you have created the Azure event hub and namespace you should be
-able to use a similar command to get your connection string. This will give you
-the default Root SAS, which is NOT supposed to be used in production.
-
-```shell
-az eventhubs namespace authorization-rule keys list --resource-group <rg-name> --namespace-name <namespace-name> --name RootManageSharedAccessKey -o tsv --query primaryConnectionString
-# The output should look something like this:
-Endpoint=sb://fluxv2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=yoursaskeygeneatedbyazure
-```
-
-To create the needed secret:
-
-```shell
-kubectl create secret generic azure-webhook \
---from-literal=address="Endpoint=sb://fluxv2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=yoursaskeygeneatedbyazure"
 ```
 
 ### Git Commit Status Updates
@@ -1753,7 +1753,37 @@ the repository specified in `.spec.address`.
 
 #### Azure DevOps
 
-When `.spec.type` is set to `azuredevops`, the referenced secret must contain a key called `token` with the value set to a
+The following authentication methods can be used when `.spec.type` is set to
+`azuredevops`. 
+
+- [Managed Identity](https://learn.microsoft.com/en-us/azure/event-hubs/authenticate-managed-identity)
+- [Personal Access Token](#pat)
+
+#### Managed Identity
+
+Managed Identity authentication can be setup using Azure Workload identity. 
+
+##### Pre-requisites
+
+- Ensure Workload Identity is properly 
+  [set up on your cluster](https://learn.microsoft.com/en-us/azure/aks/workload-identity-deploy-cluster#create-an-aks-cluster).
+
+##### Configure Workload Identity
+
+- Create a Managed Identity and grant the necessary permissions to list/update
+  commit status.
+- Establish a federated identity credential between the managed identity and the
+  service account to be used for authentication. Ensure the federated credential
+  uses the correct namespace and name of the service account. For more details,
+  please refer to this
+  [guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html#6-establish-federated-identity-credential-between-the-identity-and-the-service-account-issuer--subject).
+The service account used for authentication can be single-tenant
+(controller-level) or multi-tenant(object-level). For a complete guide on how to
+set up authentication, see the integration [docs](/flux/integrations/azure/).
+
+#### PAT
+
+The `.spec.secretRef` must contain a key called `token` with the value set to a
 [Azure DevOps personal access token](https://docs.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate?view=azure-devops&tabs=preview-page).
 
 The token must have permissions to update the commit status for the Azure DevOps repository specified in `.spec.address`.

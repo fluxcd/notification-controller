@@ -43,11 +43,18 @@ func TestNewAzureEventHub(t *testing.T) {
 			eventHubNamespace: "namespace",
 		},
 		{
+			name:              "SAS Authentication without entity path",
+			endpointURL:       "Endpoint=sb://example.com/;SharedAccessKeyName=keyName;SharedAccessKey=key",
+			token:             "",
+			eventHubNamespace: "namespace",
+			err:               errors.New("failed to create a eventhub using SAS: connection string does not contain an EntityPath. eventHub cannot be an empty string"),
+		},
+		{
 			name:              "Default Azure Credential",
 			endpointURL:       "azure-nc-eventhub",
 			token:             "",
 			eventHubNamespace: "namespace",
-			err:               errors.New("failed to create a eventhub using managed identity failed to get token for azure event hub: failed to create provider access token for the controller: ManagedIdentityCredential: failed to authenticate a system assigned identity. The endpoint responded with {\"error\":\"invalid_request\",\"error_description\":\"Identity not found\"}"),
+			err:               errors.New("failed to create a eventhub using managed identity: failed to get token: failed to create provider access token for the controller: ManagedIdentityCredential: failed to authenticate a system assigned identity. The endpoint responded with {\"error\":\"invalid_request\",\"error_description\":\"Identity not found\"}"),
 		},
 		{
 			name:               "SAS auth with serviceAccountName set",
@@ -86,7 +93,7 @@ func TestNewAzureEventHub(t *testing.T) {
 			client, err := NewAzureEventHub(context.TODO(), tt.endpointURL, tt.token, tt.eventHubNamespace, "", tt.serviceAccountName, "", "", nil, nil)
 			if tt.err != nil {
 				assert.Error(t, err)
-				assert.Equal(t, tt.err, err)
+				assert.ErrorContains(t, err, tt.err.Error())
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, client)
