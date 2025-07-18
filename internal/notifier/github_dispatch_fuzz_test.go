@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io"
@@ -46,7 +47,8 @@ func Fuzz_GitHub_Dispatch(f *testing.F) {
 		var cert x509.CertPool
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
-		dispatch, err := NewGitHubDispatch(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert, "", "", "", nil, nil)
+		tlsConfig := &tls.Config{RootCAs: &cert}
+		dispatch, err := NewGitHubDispatch(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, tlsConfig, "", "", "", nil, nil)
 		if err != nil {
 			return
 		}

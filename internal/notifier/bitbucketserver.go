@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -81,7 +80,7 @@ type bbServerBuildStatusSetRequest struct {
 }
 
 // NewBitbucketServer creates and returns a new BitbucketServer notifier.
-func NewBitbucketServer(commitStatus string, addr string, token string, certPool *x509.CertPool, username string, password string) (*BitbucketServer, error) {
+func NewBitbucketServer(commitStatus string, addr string, token string, tlsConfig *tls.Config, username string, password string) (*BitbucketServer, error) {
 	url, err := parseBitbucketServerGitAddress(addr)
 	if err != nil {
 		return nil, err
@@ -93,11 +92,9 @@ func NewBitbucketServer(commitStatus string, addr string, token string, certPool
 	}
 
 	httpClient := retryablehttp.NewClient()
-	if certPool != nil {
+	if tlsConfig != nil {
 		httpClient.HTTPClient.Transport = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: certPool,
-			},
+			TLSClientConfig: tlsConfig,
 		}
 	}
 

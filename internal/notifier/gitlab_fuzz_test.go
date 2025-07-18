@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io"
@@ -46,7 +47,8 @@ func Fuzz_GitLab(f *testing.F) {
 		var cert x509.CertPool
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
-		gitLab, err := NewGitLab(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert)
+		tlsConfig := &tls.Config{RootCAs: &cert}
+		gitLab, err := NewGitLab(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, tlsConfig)
 		if err != nil {
 			return
 		}

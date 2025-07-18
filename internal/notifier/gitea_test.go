@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	testproxy "github.com/fluxcd/notification-controller/tests/proxy"
@@ -81,8 +82,9 @@ func TestNewGiteaWithCertPool(t *testing.T) {
 
 	certPool := x509.NewCertPool()
 	certPool.AddCert(srv.Certificate())
+	tlsConfig := &tls.Config{RootCAs: certPool}
 
-	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", "foobar", certPool)
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", "foobar", tlsConfig)
 	assert.NoError(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")
@@ -94,8 +96,9 @@ func TestNewGiteaNoCertificate(t *testing.T) {
 	defer srv.Close()
 
 	certPool := x509.NewCertPool()
+	tlsConfig := &tls.Config{RootCAs: certPool}
 
-	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", "foobar", certPool)
+	_, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", "", "foobar", tlsConfig)
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "tls: failed to verify certificate: x509: certificate signed by unknown authority")
 }
@@ -119,11 +122,12 @@ func TestNewGiteaWithProxyURLAndCertPool(t *testing.T) {
 
 	certPool := x509.NewCertPool()
 	certPool.AddCert(srv.Certificate())
+	tlsConfig := &tls.Config{RootCAs: certPool}
 
 	proxyAddr, _ := testproxy.New(t)
 	proxyURL := fmt.Sprintf("http://%s", proxyAddr)
 
-	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", proxyURL, "foobar", certPool)
+	g, err := NewGitea("kustomization/gitops-system/0c9c2e41", srv.URL+"/foo/bar", proxyURL, "foobar", tlsConfig)
 	assert.NoError(t, err)
 	assert.Equal(t, g.Owner, "foo")
 	assert.Equal(t, g.Repo, "bar")

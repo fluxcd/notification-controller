@@ -305,9 +305,8 @@ func createCommitStatus(ctx context.Context, provider *apiv1beta3.Provider, even
 	return commitStatus, nil
 }
 
-// extractAuthFromSecret extracts notification-controller specific fields from the provider's secret
-// that are not handled by pkg/runtime/secrets (address, proxy, token, headers).
-// StandardizedSecret fields like BasicAuth, TLS, and ProxySecretRef are handled separately.
+// extractAuthFromSecret processes notification-controller specific keys (address, proxy, headers)
+// then uses runtime/secrets to handle standard authentication keys (token, username, password, etc.).
 func extractAuthFromSecret(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider) ([]notifier.Option, map[string][]byte, error) {
 	options := []notifier.Option{}
 
@@ -332,10 +331,6 @@ func extractAuthFromSecret(ctx context.Context, kubeClient client.Client, provid
 		options = append(options, notifier.WithProxyURL(deprecatedProxy))
 	}
 
-	if val, ok := secret.Data[secrets.KeyToken]; ok {
-		options = append(options, notifier.WithToken(strings.TrimSpace(string(val))))
-	}
-
 	if h, ok := secret.Data["headers"]; ok {
 		headers := make(map[string]string)
 		if err := yaml.Unmarshal(h, &headers); err != nil {
@@ -344,10 +339,16 @@ func extractAuthFromSecret(ctx context.Context, kubeClient client.Client, provid
 		options = append(options, notifier.WithHeaders(headers))
 	}
 
-	if user, ok := secret.Data["username"]; ok {
-		if pass, ok := secret.Data["password"]; ok {
-			options = append(options, notifier.WithUsername(strings.TrimSpace(string(user))))
-			options = append(options, notifier.WithPassword(strings.TrimSpace(string(pass))))
+	authMethods, err := secrets.AuthMethodsFromSecret(ctx, &secret)
+	if err == nil && authMethods != nil {
+		if authMethods.HasTokenAuth() {
+			options = append(options, notifier.WithToken(string(authMethods.Token)))
+		}
+		if authMethods.HasBasicAuth() {
+			options = append(options,
+				notifier.WithUsername(authMethods.Basic.Username),
+				notifier.WithPassword(authMethods.Basic.Password),
+			)
 		}
 	}
 

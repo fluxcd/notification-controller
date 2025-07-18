@@ -19,7 +19,6 @@ package notifier
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -67,7 +66,7 @@ func getGitHubAppOptions(providerName, providerNamespace, proxy string,
 }
 
 // getRepoInfoAndGithubClient gets the github client and repository info used by Github and GithubDispatch providers
-func getRepoInfoAndGithubClient(addr string, token string, certPool *x509.CertPool,
+func getRepoInfoAndGithubClient(addr string, token string, tlsConfig *tls.Config,
 	proxyURL string, providerName string, providerNamespace string,
 	secretData map[string][]byte, tokenCache *cache.TokenCache) (*repoInfo, error) {
 
@@ -112,11 +111,9 @@ func getRepoInfoAndGithubClient(addr string, token string, certPool *x509.CertPo
 	tc := oauth2.NewClient(context.Background(), ts)
 	client := gogithub.NewClient(tc)
 	if baseUrl.Host != "github.com" {
-		if certPool != nil {
+		if tlsConfig != nil {
 			tr := &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs: certPool,
-				},
+				TLSClientConfig: tlsConfig,
 			}
 			hc := &http.Client{Transport: tr}
 			ctx := context.WithValue(context.Background(), oauth2.HTTPClient, hc)

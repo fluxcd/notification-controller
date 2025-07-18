@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 
@@ -34,11 +34,11 @@ type GitHubDispatch struct {
 	Client *github.Client
 }
 
-func NewGitHubDispatch(addr string, token string, certPool *x509.CertPool, proxyURL string,
+func NewGitHubDispatch(addr string, token string, tlsConfig *tls.Config, proxyURL string,
 	providerName string, providerNamespace string, secretData map[string][]byte,
 	tokenCache *cache.TokenCache) (*GitHubDispatch, error) {
 
-	repoInfo, err := getRepoInfoAndGithubClient(addr, token, certPool,
+	repoInfo, err := getRepoInfoAndGithubClient(addr, token, tlsConfig,
 		proxyURL, providerName, providerNamespace, secretData, tokenCache)
 	if err != nil {
 		return nil, err
