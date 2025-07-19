@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"io"
@@ -45,7 +46,8 @@ func Fuzz_Bitbucket(f *testing.F) {
 		var cert x509.CertPool
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
-		bitbucket, err := NewBitbucket(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, &cert)
+		tlsConfig := &tls.Config{RootCAs: &cert}
+		bitbucket, err := NewBitbucket(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, tlsConfig)
 		if err != nil {
 			return
 		}

@@ -1197,13 +1197,20 @@ secure communication. The secret must be of type `kubernetes.io/tls` or `Opaque`
 
 #### Providers supporting client certificate authentication
 
-The following webhook-based providers support client certificate authentication:
+The following providers support client certificate authentication:
 
 | Provider Type        | Description                    |
 |---------------------|--------------------------------|
 | `alertmanager`      | Prometheus Alertmanager        |
+| `azuredevops`       | Azure DevOps                   |
+| `bitbucket`         | Bitbucket                      |
+| `bitbucketserver`   | BitBucket Server/Data Center   |
 | `discord`           | Discord webhooks               |
 | `forwarder`         | Generic forwarder              |
+| `gitea`             | Gitea                          |
+| `github`            | GitHub                         |
+| `githubdispatch`    | GitHub Dispatch                |
+| `gitlab`            | GitLab                         |
 | `grafana`           | Grafana annotations API        |
 | `matrix`            | Matrix rooms                   |
 | `msteams`           | Microsoft Teams                |

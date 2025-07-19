@@ -19,7 +19,6 @@ package notifier
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -36,7 +35,7 @@ type GitLab struct {
 	Client       *gitlab.Client
 }
 
-func NewGitLab(commitStatus string, addr string, token string, certPool *x509.CertPool) (*GitLab, error) {
+func NewGitLab(commitStatus string, addr string, token string, tlsConfig *tls.Config) (*GitLab, error) {
 	if len(token) == 0 {
 		return nil, errors.New("gitlab token cannot be empty")
 	}
@@ -52,11 +51,9 @@ func NewGitLab(commitStatus string, addr string, token string, certPool *x509.Ce
 	}
 
 	opts := []gitlab.ClientOptionFunc{gitlab.WithBaseURL(host)}
-	if certPool != nil {
+	if tlsConfig != nil {
 		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: certPool,
-			},
+			TLSClientConfig: tlsConfig,
 		}
 		hc := &http.Client{Transport: tr}
 		opts = append(opts, gitlab.WithHTTPClient(hc))

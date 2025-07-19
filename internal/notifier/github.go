@@ -18,7 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/x509"
+	"crypto/tls"
 	"errors"
 	"fmt"
 
@@ -36,7 +36,7 @@ type GitHub struct {
 	Client       *github.Client
 }
 
-func NewGitHub(commitStatus string, addr string, token string, certPool *x509.CertPool,
+func NewGitHub(commitStatus string, addr string, token string, tlsConfig *tls.Config,
 	proxyURL string, providerName string, providerNamespace string, secretData map[string][]byte,
 	tokenCache *cache.TokenCache) (*GitHub, error) {
 
@@ -45,7 +45,7 @@ func NewGitHub(commitStatus string, addr string, token string, certPool *x509.Ce
 		return nil, errors.New("commit status cannot be empty")
 	}
 
-	repoInfo, err := getRepoInfoAndGithubClient(addr, token, certPool,
+	repoInfo, err := getRepoInfoAndGithubClient(addr, token, tlsConfig,
 		proxyURL, providerName, providerNamespace, secretData, tokenCache)
 	if err != nil {
 		return nil, err

@@ -19,7 +19,6 @@ package notifier
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"strings"
@@ -51,10 +50,9 @@ type AzureDevOps struct {
 
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
 func NewAzureDevOps(ctx context.Context, commitStatus string, addr string, token string,
-	certPool *x509.CertPool, proxy, serviceAccountName, providerName, providerNamespace string,
+	tlsConfig *tls.Config, proxy, serviceAccountName, providerName, providerNamespace string,
 	tokenClient client.Client, tokenCache *cache.TokenCache) (*AzureDevOps, error) {
 	var err error
-
 	if len(token) == 0 {
 		// if token doesn't exist, try to create a new token using managed identity
 		token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName, providerName, providerNamespace, azure.ScopeDevOps, tokenClient, tokenCache)
@@ -83,10 +81,8 @@ func NewAzureDevOps(ctx context.Context, commitStatus string, addr string, token
 
 	orgURL := fmt.Sprintf("%v/%v", host, org)
 	connection := azuredevops.NewPatConnection(orgURL, token)
-	if certPool != nil {
-		connection.TlsConfig = &tls.Config{
-			RootCAs: certPool,
-		}
+	if tlsConfig != nil {
+		connection.TlsConfig = tlsConfig
 	}
 	client := connection.GetClientByUrl(orgURL)
 	gitClient := &git.ClientImpl{

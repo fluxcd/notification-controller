@@ -19,7 +19,6 @@ package notifier
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,7 +40,7 @@ type Bitbucket struct {
 }
 
 // NewBitbucket creates and returns a new Bitbucket notifier.
-func NewBitbucket(commitStatus string, addr string, token string, certPool *x509.CertPool) (*Bitbucket, error) {
+func NewBitbucket(commitStatus string, addr string, token string, tlsConfig *tls.Config) (*Bitbucket, error) {
 	if len(token) == 0 {
 		return nil, errors.New("bitbucket token cannot be empty")
 	}
@@ -71,11 +70,9 @@ func NewBitbucket(commitStatus string, addr string, token string, certPool *x509
 	repo := comp[1]
 
 	client := bitbucket.NewBasicAuth(username, password)
-	if certPool != nil {
+	if tlsConfig != nil {
 		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: certPool,
-			},
+			TLSClientConfig: tlsConfig,
 		}
 		hc := &http.Client{Transport: tr}
 		client.HttpClient = hc

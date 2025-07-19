@@ -318,40 +318,40 @@ func gitHubNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitHub(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool, opts.ProxyURL, opts.ProviderName, opts.ProviderNamespace, opts.SecretData, opts.TokenCache)
+	return NewGitHub(opts.CommitStatus, opts.URL, opts.Token, opts.TLSConfig, opts.ProxyURL, opts.ProviderName, opts.ProviderNamespace, opts.SecretData, opts.TokenCache)
 }
 
 func gitHubDispatchNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitHubDispatch(opts.URL, opts.Token, opts.CertPool, opts.ProxyURL, opts.ProviderName, opts.ProviderNamespace, opts.SecretData, opts.TokenCache)
+	return NewGitHubDispatch(opts.URL, opts.Token, opts.TLSConfig, opts.ProxyURL, opts.ProviderName, opts.ProviderNamespace, opts.SecretData, opts.TokenCache)
 }
 
 func gitLabNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitLab(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool)
+	return NewGitLab(opts.CommitStatus, opts.URL, opts.Token, opts.TLSConfig)
 }
 
 func giteaNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitea(opts.CommitStatus, opts.URL, opts.ProxyURL, opts.Token, opts.CertPool)
+	return NewGitea(opts.CommitStatus, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig)
 }
 
 func bitbucketServerNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewBitbucketServer(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool, opts.Username, opts.Password)
+	return NewBitbucketServer(opts.CommitStatus, opts.URL, opts.Token, opts.TLSConfig, opts.Username, opts.Password)
 }
 
 func bitbucketNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewBitbucket(opts.CommitStatus, opts.URL, opts.Token, opts.CertPool)
+	return NewBitbucket(opts.CommitStatus, opts.URL, opts.Token, opts.TLSConfig)
 }
 
 func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {
 	return NewAzureDevOps(opts.Context, opts.CommitStatus, opts.URL, opts.Token,
-		opts.CertPool, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName,
+		opts.TLSConfig, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName,
 		opts.ProviderNamespace, opts.TokenClient, opts.TokenCache)
 }

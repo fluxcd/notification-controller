@@ -19,7 +19,6 @@ package notifier
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -45,7 +44,7 @@ type Gitea struct {
 
 var _ Interface = &Gitea{}
 
-func NewGitea(commitStatus string, addr string, proxyURL string, token string, certPool *x509.CertPool) (*Gitea, error) {
+func NewGitea(commitStatus string, addr string, proxyURL string, token string, tlsConfig *tls.Config) (*Gitea, error) {
 	if len(token) == 0 {
 		return nil, errors.New("gitea token cannot be empty")
 	}
@@ -70,10 +69,8 @@ func NewGitea(commitStatus string, addr string, proxyURL string, token string, c
 	}
 
 	tr := &http.Transport{}
-	if certPool != nil {
-		tr.TLSClientConfig = &tls.Config{
-			RootCAs: certPool,
-		}
+	if tlsConfig != nil {
+		tr.TLSClientConfig = tlsConfig
 	}
 
 	if proxyURL != "" {
