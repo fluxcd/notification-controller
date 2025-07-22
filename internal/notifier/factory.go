@@ -271,7 +271,7 @@ func webexNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func sentryNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewSentry(opts.CertPool, opts.URL, opts.Channel)
+	return NewSentry(opts.TLSConfig, opts.URL, opts.Channel)
 }
 
 func azureEventHubNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -307,7 +307,7 @@ func pagerDutyNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func dataDogNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewDataDog(opts.URL, opts.ProxyURL, opts.CertPool, opts.Token)
+	return NewDataDog(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
 }
 
 func natsNotifierFunc(opts notifierOptions) (Interface, error) {

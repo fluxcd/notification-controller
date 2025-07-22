@@ -19,7 +19,6 @@ package notifier
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net/http"
 
@@ -33,17 +32,15 @@ type Sentry struct {
 }
 
 // NewSentry creates a Sentry client from the provided Data Source Name (DSN)
-func NewSentry(certPool *x509.CertPool, dsn string, environment string) (*Sentry, error) {
+func NewSentry(tlsConfig *tls.Config, dsn string, environment string) (*Sentry, error) {
 	if dsn == "" {
 		return nil, fmt.Errorf("DSN cannot be empty")
 	}
 
 	tr := &http.Transport{}
-	if certPool != nil {
+	if tlsConfig != nil {
 		tr = &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs: certPool,
-			},
+			TLSClientConfig: tlsConfig,
 		}
 	}
 	client, err := sentry.NewClient(sentry.ClientOptions{

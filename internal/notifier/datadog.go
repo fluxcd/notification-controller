@@ -19,7 +19,6 @@ package notifier
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -41,7 +40,7 @@ type DataDog struct {
 // url: The DataDog API endpoint to use. Examples: https://api.datadoghq.com, https://api.datadoghq.eu, etc.
 // token: The DataDog API key (not the application key).
 // headers: A map of extra tags to add to the event
-func NewDataDog(address string, proxyUrl string, certPool *x509.CertPool, token string) (*DataDog, error) {
+func NewDataDog(address string, proxyUrl string, tlsConfig *tls.Config, token string) (*DataDog, error) {
 	conf := datadog.NewConfiguration()
 
 	if token == "" {
@@ -56,7 +55,7 @@ func NewDataDog(address string, proxyUrl string, certPool *x509.CertPool, token 
 	conf.Host = baseUrl.Host
 	conf.Scheme = baseUrl.Scheme
 
-	if proxyUrl != "" || certPool != nil {
+	if proxyUrl != "" || tlsConfig != nil {
 		transport := &http.Transport{}
 
 		if proxyUrl != "" {
@@ -68,10 +67,8 @@ func NewDataDog(address string, proxyUrl string, certPool *x509.CertPool, token 
 			transport.Proxy = http.ProxyURL(proxy)
 		}
 
-		if certPool != nil {
-			transport.TLSClientConfig = &tls.Config{
-				RootCAs: certPool,
-			}
+		if tlsConfig != nil {
+			transport.TLSClientConfig = tlsConfig
 		}
 
 		conf.HTTPClient = &http.Client{
