@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"io"
 	"net/http"
@@ -33,7 +34,8 @@ func Fuzz_DataDog(f *testing.F) {
 		var cert x509.CertPool
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
-		dd, err := NewDataDog(ts.URL, "", &cert, apiKey)
+		tlsConfig := &tls.Config{RootCAs: &cert}
+		dd, err := NewDataDog(ts.URL, "", tlsConfig, apiKey)
 		if err != nil {
 			return
 		}

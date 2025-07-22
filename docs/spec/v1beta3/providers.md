@@ -1205,6 +1205,7 @@ The following providers support client certificate authentication:
 | `azuredevops`       | Azure DevOps                   |
 | `bitbucket`         | Bitbucket                      |
 | `bitbucketserver`   | BitBucket Server/Data Center   |
+| `datadog`           | DataDog                        |
 | `discord`           | Discord webhooks               |
 | `forwarder`         | Generic forwarder              |
 | `gitea`             | Gitea                          |
@@ -1217,6 +1218,7 @@ The following providers support client certificate authentication:
 | `opsgenie`          | Opsgenie alerts                |
 | `pagerduty`         | PagerDuty events               |
 | `rocket`            | Rocket.Chat                    |
+| `sentry`            | Sentry                         |
 | `slack`             | Slack API                      |
 | `webex`             | Webex messages                 |
 
