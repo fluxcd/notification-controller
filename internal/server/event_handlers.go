@@ -18,9 +18,6 @@ package server
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -30,15 +27,6 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
-	"go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -100,24 +88,11 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 					"providerName": alert.Spec.ProviderRef.Name,
 				})
 			ctx := log.IntoContext(ctx, alertLogger)
-			// OTEL processing
-			var provider apiv1beta3.Provider
-			providerName := types.NamespacedName{
-				Namespace: alert.Namespace,
-				Name:      alert.Spec.ProviderRef.Name,
-			}
-			if err := s.kubeClient.Get(ctx, providerName, &provider); err == nil {
-				s.processTracing(ctx, event, alert, &provider)
-			}
-
 			if err := s.dispatchNotification(ctx, event, alert); err != nil {
 				alertLogger.Error(err, "failed to dispatch notification")
 				s.Eventf(alert, corev1.EventTypeWarning, "NotificationDispatchFailed",
 					"failed to dispatch notification for %s: %s", involvedObjectString(event.InvolvedObject), err)
 			}
-			// else {
-
-			// }
 		}
 
 		w.WriteHeader(http.StatusAccepted)
@@ -229,6 +204,10 @@ func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, alert *
 // dispatchNotification constructs and sends notification from the given event
 // and alert data.
 func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) error {
+	ctx = context.WithValue(ctx, "alertUID", string(alert.UID))
+	ctx = context.WithValue(ctx, "alertName", alert.Name)
+	ctx = context.WithValue(ctx, "alertNamespace", alert.Namespace)
+
 	sender, notification, token, timeout, err := s.getNotificationParams(ctx, event, alert)
 	if err != nil {
 		return err
@@ -240,6 +219,9 @@ func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.E
 
 	go func(n notifier.Interface, e eventv1.Event) {
 		pctx, cancel := context.WithTimeout(context.Background(), timeout)
+		pctx = context.WithValue(pctx, "alertUID", ctx.Value("alertUID"))
+		pctx = context.WithValue(pctx, "alertName", ctx.Value("alertName"))
+		pctx = context.WithValue(pctx, "alertNamespace", ctx.Value("alertNamespace"))
 		defer cancel()
 		if err := n.Post(pctx, e); err != nil {
 			maskedErrStr, maskErr := masktoken.MaskTokenFromString(err.Error(), token)
@@ -633,183 +615,4 @@ func excludeInternalMetadata(event *eventv1.Event) {
 	for _, key := range excludeList {
 		delete(event.Metadata, key)
 	}
-}
-
-// Add this function to generate root span ID
-func generateRootSpanID(alertUID, sourceRevision string) string {
-	input := fmt.Sprintf("%s:%s", alertUID, sourceRevision)
-	hash := sha256.Sum256([]byte(input))
-	return hex.EncodeToString(hash[:])
-}
-
-// Add this function to check if provider supports OTLP
-func isOTLPProvider(providerType string) bool {
-	otlpProviders := []string{"jaeger", "tempo", "otlp", "generic"}
-	return slices.Contains(otlpProviders, providerType)
-}
-
-// Add this function to process tracing
-func (s *EventServer) processTracing(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert, provider *apiv1beta3.Provider) {
-
-	if isOTLPProvider(provider.Spec.Type) {
-		s.setupOTLPExporter(ctx, provider)
-		s.sendOTLPTrace(ctx, event, alert, provider)
-	} else {
-		s.logTraceWarning(ctx, event, alert)
-	}
-}
-
-// Add this function to send OTLP traces
-func (s *EventServer) sendOTLPTrace(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert, provider *apiv1beta3.Provider) {
-	revision, hasRevision := event.GetRevision()
-	if !hasRevision {
-		return
-	}
-
-	var spanCtx context.Context = ctx
-	spanID := generateRootSpanID(string(alert.UID), revision)
-	tracer := otel.Tracer("flux-notification-controller")
-
-	// If a source kind is considered a potential root span
-	if isSourceKind(event.InvolvedObject.Kind) {
-		if !s.spanExists(ctx, spanID, provider) {
-			spanCtx = context.Background() // Create root span
-		}
-	}
-
-	_, span := tracer.Start(spanCtx, event.InvolvedObject.Kind)
-	defer span.End()
-
-	span.SetAttributes(
-		semconv.ServiceName("flux-notification-controller"),
-		attribute.String("flux.trace.id", spanID),
-		attribute.String("flux.object.kind", event.InvolvedObject.Kind),
-		attribute.String("flux.object.name", event.InvolvedObject.Name),
-		attribute.String("flux.object.namespace", event.InvolvedObject.Namespace),
-		attribute.String("flux.event.reason", event.Reason),
-	)
-
-	span.AddEvent(event.Message, trace.WithTimestamp(event.Timestamp.Time))
-	if event.Severity == "error" {
-		span.SetStatus(codes.Error, event.Message)
-	}
-}
-
-func (s *EventServer) setupOTLPExporter(ctx context.Context, provider *apiv1beta3.Provider) {
-	httpOptions := []otlptracehttp.Option{otlptracehttp.WithEndpoint(provider.Spec.Address)}
-	grpcOptions := []otlptracegrpc.Option{otlptracegrpc.WithEndpoint(provider.Spec.Address)}
-
-	// NOTE: Posibly reuse extractAuthFromSecret()
-	// Add authentication if secretRef is set
-	if provider.Spec.SecretRef != nil {
-		var secret corev1.Secret
-		secretName := types.NamespacedName{
-			Namespace: provider.Namespace,
-			Name:      provider.Spec.SecretRef.Name,
-		}
-		if err := s.kubeClient.Get(ctx, secretName, &secret); err == nil {
-			var headers map[string]string
-			if token, ok := secret.Data["token"]; ok {
-				headers = map[string]string{"Authorization": "Bearer " + string(token)}
-
-			} else {
-				user, userOk := secret.Data["username"]
-				pass, passOk := secret.Data["password"]
-				if userOk && passOk {
-					auth := base64.StdEncoding.EncodeToString([]byte(string(user) + ":" + string(pass)))
-					headers = map[string]string{"Authorization": "Basic " + auth}
-				}
-			}
-			httpOptions = append(httpOptions, otlptracehttp.WithHeaders(headers))
-			grpcOptions = append(grpcOptions, otlptracegrpc.WithHeaders(headers))
-		}
-	}
-
-	var exporter *otlptrace.Exporter
-	var err error
-
-	if err != nil {
-		return
-	}
-
-	if strings.HasPrefix(provider.Spec.Address, "http") {
-		httpOptions = append(httpOptions, otlptracehttp.WithInsecure())
-		exporter, err = otlptracehttp.New(ctx, httpOptions...)
-	} else {
-		grpcOptions = append(grpcOptions, otlptracegrpc.WithInsecure())
-		exporter, err = otlptracegrpc.New(ctx, grpcOptions...)
-	}
-
-	if err != nil {
-		return
-	}
-
-	defer exporter.Shutdown(ctx)
-
-	tp := sdktrace.NewTracerProvider(sdktrace.WithBatcher(exporter))
-	otel.SetTracerProvider(tp)
-	defer tp.Shutdown(ctx)
-}
-
-// Query to get the spanID
-func (s *EventServer) spanExists(ctx context.Context, spanID string, provider *apiv1beta3.Provider) bool {
-	if !isOTLPProvider(provider.Spec.Type) {
-		return false
-	}
-
-	queryURL := fmt.Sprintf("%s/api/traces/%s", provider.Spec.Address, spanID)
-	req, err := http.NewRequestWithContext(ctx, "GET", queryURL, nil)
-	if err != nil {
-		return false
-	}
-
-	if provider.Spec.SecretRef != nil {
-		var secret corev1.Secret
-		secretName := types.NamespacedName{
-			Namespace: provider.Namespace,
-			Name:      provider.Spec.SecretRef.Name,
-		}
-		if err := s.kubeClient.Get(ctx, secretName, &secret); err == nil {
-			if token, ok := secret.Data["token"]; ok {
-				req.Header.Set("Authorization", "Bearer "+string(token))
-			} else {
-				user, userOk := secret.Data["username"]
-				pass, passOk := secret.Data["password"]
-				if userOk && passOk {
-					req.SetBasicAuth(string(user), string(pass))
-				}
-			}
-		}
-	}
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-
-	return resp.StatusCode == http.StatusOK
-}
-
-// Add this function to log trace warnings for non-OTLP providers
-func (s *EventServer) logTraceWarning(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) {
-	logger := log.FromContext(ctx)
-	spanType := "child"
-	if isSourceKind(event.InvolvedObject.Kind) {
-		spanType = "root"
-	}
-
-	logger.Info("trace information (provider does not support OTLP)",
-		"spanType", spanType,
-		"alertUID", string(alert.UID),
-		"eventReason", event.Reason,
-		"objectKind", event.InvolvedObject.Kind,
-		"objectName", event.InvolvedObject.Name,
-		"objectNamespace", event.InvolvedObject.Namespace,
-	)
-}
-
-func isSourceKind(kind string) bool {
-	sourceKinds := []string{"GitRepository", "OCIRepository", "HelmRepository", "Bucket"}
-	return slices.Contains(sourceKinds, kind)
 }
