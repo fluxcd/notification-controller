@@ -204,6 +204,10 @@ func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, alert *
 // dispatchNotification constructs and sends notification from the given event
 // and alert data.
 func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) error {
+	ctx = context.WithValue(ctx, "alertUID", string(alert.UID))
+	ctx = context.WithValue(ctx, "alertName", alert.Name)
+	ctx = context.WithValue(ctx, "alertNamespace", alert.Namespace)
+
 	sender, notification, token, timeout, err := s.getNotificationParams(ctx, event, alert)
 	if err != nil {
 		return err
@@ -215,6 +219,9 @@ func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.E
 
 	go func(n notifier.Interface, e eventv1.Event) {
 		pctx, cancel := context.WithTimeout(context.Background(), timeout)
+		pctx = context.WithValue(pctx, "alertUID", ctx.Value("alertUID"))
+		pctx = context.WithValue(pctx, "alertName", ctx.Value("alertName"))
+		pctx = context.WithValue(pctx, "alertNamespace", ctx.Value("alertNamespace"))
 		defer cancel()
 		if err := n.Post(pctx, e); err != nil {
 			maskedErrStr, maskErr := masktoken.MaskTokenFromString(err.Error(), token)
