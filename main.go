@@ -37,11 +37,12 @@ import (
 	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/auth"
 	pkgcache "github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/runtime/acl"
 	"github.com/fluxcd/pkg/runtime/client"
-	helper "github.com/fluxcd/pkg/runtime/controller"
+	runtimeCtrl "github.com/fluxcd/pkg/runtime/controller"
 	feathelper "github.com/fluxcd/pkg/runtime/features"
 	"github.com/fluxcd/pkg/runtime/leaderelection"
 	"github.com/fluxcd/pkg/runtime/logger"
@@ -85,16 +86,16 @@ func main() {
 		healthAddr            string
 		metricsAddr           string
 		concurrent            int
-		watchAllNamespaces    bool
 		rateLimitInterval     time.Duration
 		clientOptions         client.Options
 		logOptions            logger.Options
 		leaderElectionOptions leaderelection.Options
 		aclOptions            acl.Options
-		rateLimiterOptions    helper.RateLimiterOptions
+		rateLimiterOptions    runtimeCtrl.RateLimiterOptions
 		featureGates          feathelper.FeatureGates
 		exportHTTPPathMetrics bool
 		tokenCacheOptions     pkgcache.TokenFlags
+		watchOptions          runtimeCtrl.WatchOptions
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -102,10 +103,13 @@ func main() {
 	flag.StringVar(&healthAddr, "health-addr", ":9440", "The address the health endpoint binds to.")
 	flag.StringVar(&receiverAddr, "receiverAddr", ":9292", "The address the webhook receiver endpoint binds to.")
 	flag.IntVar(&concurrent, "concurrent", 4, "The number of concurrent notification reconciles.")
-	flag.BoolVar(&watchAllNamespaces, "watch-all-namespaces", true,
-		"Watch for custom resources in all namespaces, if set to false it will only watch the runtime namespace.")
 	flag.DurationVar(&rateLimitInterval, "rate-limit-interval", 5*time.Minute, "Interval in which rate limit has effect.")
 	flag.BoolVar(&exportHTTPPathMetrics, "export-http-path-metrics", false, "When enabled, the requests full path is included in the HTTP server metrics (risk as high cardinality")
+	// After implementing --watch-label-selector the following two bindings can be replaced by watchOptions.BindFlags().
+	flag.BoolVar(&watchOptions.AllNamespaces, "watch-all-namespaces", true,
+		"Watch for custom resources in all namespaces, if set to false it will only watch the runtime namespace.")
+	flag.CommandLine.StringVar(&watchOptions.ConfigsLabelSelector, "watch-configs-label-selector", meta.LabelKeyWatch+"="+meta.LabelValueWatchEnabled,
+		"Watch for ConfigMaps and Secrets with matching labels.")
 
 	clientOptions.BindFlags(flag.CommandLine)
 	logOptions.BindFlags(flag.CommandLine)
@@ -133,7 +137,7 @@ func main() {
 	}
 
 	watchNamespace := ""
-	if !watchAllNamespaces {
+	if !watchOptions.AllNamespaces {
 		watchNamespace = os.Getenv("RUNTIME_NAMESPACE")
 	}
 
@@ -189,7 +193,7 @@ func main() {
 
 	probes.SetupChecks(mgr, setupLog)
 
-	metricsH := helper.NewMetrics(mgr, metrics.MustMakeRecorder(), apiv1.NotificationFinalizer)
+	metricsH := runtimeCtrl.NewMetrics(mgr, metrics.MustMakeRecorder(), apiv1.NotificationFinalizer)
 
 	var tokenCache *pkgcache.TokenCache
 	if tokenCacheOptions.MaxSize > 0 {
@@ -202,6 +206,12 @@ func main() {
 			setupLog.Error(err, "unable to create token cache")
 			os.Exit(1)
 		}
+	}
+
+	watchConfigsPredicate, err := runtimeCtrl.GetWatchConfigsPredicate(watchOptions)
+	if err != nil {
+		setupLog.Error(err, "unable to configure watch configs label selector for controller")
+		os.Exit(1)
 	}
 
 	if err = (&controller.ProviderReconciler{
@@ -228,7 +238,8 @@ func main() {
 		Metrics:        metricsH,
 		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
 	}).SetupWithManagerAndOptions(mgr, controller.ReceiverReconcilerOptions{
-		RateLimiter: helper.GetRateLimiter(rateLimiterOptions),
+		RateLimiter:           runtimeCtrl.GetRateLimiter(rateLimiterOptions),
+		WatchConfigsPredicate: watchConfigsPredicate,
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Receiver")
 		os.Exit(1)

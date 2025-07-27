@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -55,12 +56,19 @@ type ReceiverReconciler struct {
 }
 
 type ReceiverReconcilerOptions struct {
-	RateLimiter workqueue.TypedRateLimiter[reconcile.Request]
+	RateLimiter           workqueue.TypedRateLimiter[reconcile.Request]
+	WatchConfigsPredicate predicate.Predicate
 }
 
 func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return r.SetupWithManagerAndOptions(mgr, ReceiverReconcilerOptions{})
+	return r.SetupWithManagerAndOptions(mgr, ReceiverReconcilerOptions{
+		WatchConfigsPredicate: predicate.Not(predicate.Funcs{}),
+	})
 }
+
+const (
+	secretRefIndex = ".metadata.secretRef"
+)
 
 func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts ReceiverReconcilerOptions) error {
 	// This index is used to list Receivers by their webhook path after the receiver server
@@ -69,14 +77,58 @@ func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts R
 		server.WebhookPathIndexKey, server.IndexReceiverWebhookPath); err != nil {
 		return err
 	}
+
+	// Index receivers by the secret reference, so that we can enqueue
+	// Receiver requests when the referenced Secret is changed.
+	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &apiv1.Receiver{},
+		secretRefIndex, func(obj client.Object) []string {
+			receiver := obj.(*apiv1.Receiver)
+			return []string{fmt.Sprintf("%s/%s", receiver.GetNamespace(), receiver.Spec.SecretRef.Name)}
+		}); err != nil {
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&apiv1.Receiver{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
 		)).
+		WatchesMetadata(
+			&corev1.Secret{},
+			handler.EnqueueRequestsFromMapFunc(r.enqueueRequestsForChangeOf),
+			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, opts.WatchConfigsPredicate),
+		).
 		WithOptions(controller.Options{
 			RateLimiter: opts.RateLimiter,
 		}).
 		Complete(r)
+}
+
+// enqueueRequestsForChangeOf enqueues Receiver requests for changes in referenced Secret objects.
+func (r *ReceiverReconciler) enqueueRequestsForChangeOf(ctx context.Context, obj client.Object) []reconcile.Request {
+	log := ctrl.LoggerFrom(ctx)
+
+	// List all Receivers that have the referenced Secret in their spec.
+	receivers := &apiv1.ReceiverList{}
+	if err := r.List(ctx, receivers, client.MatchingFields{
+		secretRefIndex: client.ObjectKeyFromObject(obj).String(),
+	}); err != nil {
+		log.Error(err, "failed to list Receivers for change of Secret",
+			"secretRef", map[string]string{
+				"name":      obj.GetName(),
+				"namespace": obj.GetNamespace(),
+			})
+		return nil
+	}
+
+	requests := make([]reconcile.Request, 0, len(receivers.Items))
+	for _, receiver := range receivers.Items {
+		requests = append(requests, reconcile.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      receiver.Name,
+				Namespace: receiver.Namespace,
+			},
+		})
+	}
+	return requests
 }
 
 // +kubebuilder:rbac:groups=notification.toolkit.fluxcd.io,resources=receivers,verbs=get;list;watch;create;update;patch;delete
