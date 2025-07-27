@@ -779,7 +779,7 @@ This token is used to salt the generated [webhook path](#webhook-path), and
 depending on the Receiver [type](#supported-receiver-types), to verify the
 authenticity of a request.
 
-#### Secret example
+Example:
 
 ```yaml
 ---
@@ -792,6 +792,21 @@ type: Opaque
 stringData:
   token: <random token>
 ```
+
+To trigger a reconciliation of the Receiver when changes occur in
+the referenced Secret, you can set the following label on the
+Secret:
+
+```yaml
+metadata:
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
+```
+
+An alternative to labeling every Secret is setting the
+`--watch-configs-label-selector=owner!=helm` flag in
+notification-controller, which allows watching all
+Secrets except for Helm storage Secrets.
 
 ### Interval
 

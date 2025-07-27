@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/fluxcd/cli-utils/pkg/kstatus/polling"
 	runtimeclient "github.com/fluxcd/pkg/runtime/client"
@@ -94,7 +95,8 @@ func TestMain(m *testing.M) {
 		ControllerName: controllerName,
 		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
 	}).SetupWithManagerAndOptions(testEnv, ReceiverReconcilerOptions{
-		RateLimiter: controller.GetDefaultRateLimiter(),
+		RateLimiter:           controller.GetDefaultRateLimiter(),
+		WatchConfigsPredicate: predicate.Not(predicate.Funcs{}),
 	}); err != nil {
 		panic(fmt.Sprintf("Failed to start ReceiverReconciler: %v", err))
 	}
