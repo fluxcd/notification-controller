@@ -295,7 +295,7 @@ func opsgenieNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func alertmanagerNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewAlertmanager(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
+	return NewAlertmanager(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token, opts.Username, opts.Password)
 }
 
 func grafanaNotifierFunc(opts notifierOptions) (Interface, error) {
