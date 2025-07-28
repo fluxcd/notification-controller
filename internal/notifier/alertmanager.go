@@ -36,6 +36,8 @@ type Alertmanager struct {
 	ProxyURL  string
 	TLSConfig *tls.Config
 	Token     string
+	Username  string
+	Password  string
 }
 
 type AlertManagerAlert struct {
@@ -74,7 +76,7 @@ func (a *AlertManagerTime) UnmarshalJSON(jsonRepr []byte) error {
 	return nil
 }
 
-func NewAlertmanager(hookURL string, proxyURL string, tlsConfig *tls.Config, token string) (*Alertmanager, error) {
+func NewAlertmanager(hookURL string, proxyURL string, tlsConfig *tls.Config, token, user, pass string) (*Alertmanager, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Alertmanager URL %s: '%w'", hookURL, err)
@@ -84,6 +86,8 @@ func NewAlertmanager(hookURL string, proxyURL string, tlsConfig *tls.Config, tok
 		URL:       hookURL,
 		ProxyURL:  proxyURL,
 		Token:     token,
+		Username:  user,
+		Password:  pass,
 		TLSConfig: tlsConfig,
 	}, nil
 }
@@ -147,6 +151,11 @@ func (s *Alertmanager) Post(ctx context.Context, event eventv1.Event) error {
 	if s.Token != "" {
 		opts = append(opts, withRequestModifier(func(request *retryablehttp.Request) {
 			request.Header.Add("Authorization", "Bearer "+s.Token)
+		}))
+	}
+	if s.Username != "" && s.Password != "" {
+		opts = append(opts, withRequestModifier(func(request *retryablehttp.Request) {
+			request.SetBasicAuth(s.Username, s.Password)
 		}))
 	}
 

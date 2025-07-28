@@ -38,7 +38,7 @@ func TestAlertmanager_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	alertmanager, err := NewAlertmanager(ts.URL, "", nil, "")
+	alertmanager, err := NewAlertmanager(ts.URL, "", nil, "", "", "")
 	require.NoError(t, err)
 
 	err = alertmanager.Post(context.TODO(), testEvent())

@@ -924,10 +924,9 @@ To configure a Provider for Prometheus Alertmanager, authentication can be done 
 Both methods are supported, but using authentication is optional based on your setup.
 
 Basic Authentication: 
-Create a Secret with [the `address`](#address-example) set to the Prometheus Alertmanager [HTTP API
-URL](https://prometheus.io/docs/alerting/latest/https/#http-traffic)
-including Basic Auth credentials, and an `alertmanager` Provider with a [Secret
-reference](#secret-reference).
+Create a Secret with [the `username` and `password`](#secret-reference) set to the Basic Auth
+credentials, and the [`.spec.address`](#address) field set to the Prometheus Alertmanager
+[HTTP API URL](https://prometheus.io/docs/alerting/latest/https/#http-traffic).
 
 ```yaml
 ---
@@ -938,17 +937,20 @@ metadata:
   namespace: default
 spec:
   type: alertmanager
+  address: https://<alertmanager-hostport>/api/v2/alerts/
   secretRef:
-    name: alertmanager-address
+    name: alertmanager-basic-auth
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: alertmanager-address
+  name: alertmanager-basic-auth
   namespace: default
 stringData:
-    address: https://<username>:<password>@<alertmanager-hostport>/api/v2/alerts/
+  username: <username>
+  password: <password>
 ```
+
 Bearer Token Authentication:
 Create a Secret with [the `token`](#token-example), and an `alertmanager` Provider with a [Secret
 reference](#secret-reference) and the Prometheus Alertmanager [HTTP API
@@ -973,7 +975,7 @@ metadata:
   name: alertmanager-token
   namespace: default
 stringData:
-    token: <token>
+  token: <token>
 ```
 
 ##### Webex
@@ -1100,6 +1102,7 @@ The Kubernetes secret can have any of the following keys:
 - `proxy` - overrides `.spec.proxy` (deprecated, use `.spec.proxySecretRef` instead. **Support for this key will be removed in v1**)
 - `token` - used for authentication
 - `username` - overrides `.spec.username`
+- `password` - used for authentication, often in combination with `username` (or `.spec.username`)
 - `headers` - HTTP headers values included in the POST request
 
 #### Address example
