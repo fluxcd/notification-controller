@@ -1195,10 +1195,17 @@ secure communication. The secret must be of type `kubernetes.io/tls` or `Opaque`
 
 #### Supported configurations
 
+- **Mutual TLS (mTLS)**: Client certificate authentication (provide `tls.crt` + `tls.key`, optionally with `ca.crt`)
 - **CA-only**: Server authentication (provide `ca.crt` only)
-- **mTLS**: Client certificate authentication (provide `tls.crt` + `tls.key`, optionally with `ca.crt`)
 
-#### Providers supporting client certificate authentication
+#### Mutual TLS Authentication
+
+Mutual TLS authentication allows for secure client-server communication using
+client certificates stored in Kubernetes secrets. Both `tls.crt` and `tls.key`
+must be specified together for client certificate authentication. The `ca.crt`
+field is optional but required when connecting to servers with self-signed certificates.
+
+##### Providers supporting client certificate authentication
 
 The following providers support client certificate authentication:
 
@@ -1227,10 +1234,49 @@ The following providers support client certificate authentication:
 
 Support for client certificate authentication is being expanded to additional providers over time.
 
-#### Example
+##### Example: mTLS Configuration
 
-To enable notification-controller to communicate with a provider API over HTTPS
-using a self-signed TLS certificate, set the `ca.crt` like so:
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: my-webhook-mtls
+  namespace: default
+spec:
+  type: generic
+  address: https://my-webhook.internal
+  certSecretRef:
+    name: my-mtls-certs
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-mtls-certs
+  namespace: default
+type: kubernetes.io/tls # or Opaque
+stringData:
+  tls.crt: |
+    -----BEGIN CERTIFICATE-----
+    <client certificate>
+    -----END CERTIFICATE-----
+  tls.key: |
+    -----BEGIN PRIVATE KEY-----
+    <client private key>
+    -----END PRIVATE KEY-----
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    <certificate authority certificate>
+    -----END CERTIFICATE-----
+```
+
+#### CA Certificate Authentication
+
+CA certificate authentication provides server authentication when connecting to
+HTTPS endpoints with self-signed or custom CA certificates. Only the `ca.crt`
+field is required for this configuration.
+
+##### Example: CA Certificate Configuration
 
 ```yaml
 ---
@@ -1253,7 +1299,9 @@ metadata:
 type: kubernetes.io/tls # or Opaque
 stringData:
   ca.crt: |
-    <--- CA Key --->
+    -----BEGIN CERTIFICATE-----
+    <certificate authority certificate>
+    -----END CERTIFICATE-----
 ```
 
 **Warning:** Support for the `caFile` key has been
