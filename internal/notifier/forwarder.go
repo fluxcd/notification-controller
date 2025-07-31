@@ -26,6 +26,7 @@ import (
 	"net/url"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/hashicorp/go-retryablehttp"
 )
@@ -94,6 +95,13 @@ func (f *Forwarder) Post(ctx context.Context, event eventv1.Event) error {
 	}
 	if f.TLSConfig != nil {
 		opts = append(opts, withTLSConfig(f.TLSConfig))
+	}
+
+	// Wrap it as a new notifier and post the traces
+	otelTraceNotifier := NewOTLPTracer(f.URL, f.ProxyURL, f.Headers, f.TLSConfig)
+	traceErr := otelTraceNotifier.Post(ctx, event)
+	if traceErr != nil {
+		log.FromContext(ctx).Error(nil, "warning: failed to send OTEL trace", traceErr)
 	}
 
 	if err := postMessage(ctx, f.URL, event, opts...); err != nil {
