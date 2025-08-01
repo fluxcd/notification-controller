@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"google.golang.org/api/option"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
@@ -32,11 +33,10 @@ func TestNewGooglePubSub(t *testing.T) {
 		name              string
 		projectID         string
 		topicID           string
-		jsonCreds         string
 		attrs             map[string]string
+		clientOpts        []option.ClientOption
 		expectedErr       error
 		expectedTopicName string
-		expectedJSONCreds []byte
 		expectedAttrs     map[string]string
 	}{
 		{
@@ -57,12 +57,11 @@ func TestNewGooglePubSub(t *testing.T) {
 			expectedTopicName: "projects/project-id/topics/topic-id",
 		},
 		{
-			name:              "json creds are stored properly",
+			name:              "client options are stored properly",
 			projectID:         "project-id",
 			topicID:           "topic-id",
 			expectedTopicName: "projects/project-id/topics/topic-id",
-			jsonCreds:         "json credentials",
-			expectedJSONCreds: []byte("json credentials"),
+			clientOpts:        []option.ClientOption{option.WithCredentialsJSON([]byte("json credentials"))},
 		},
 		{
 			name:              "non-empty attributes are stored properly",
@@ -85,8 +84,9 @@ func TestNewGooglePubSub(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			ctx := context.Background()
+			provider, err := NewGooglePubSub(ctx, tt.projectID, tt.topicID, tt.attrs, tt.clientOpts)
 
-			provider, err := NewGooglePubSub(tt.projectID, tt.topicID, tt.jsonCreds, tt.attrs)
 			if tt.expectedErr != nil {
 				g.Expect(err).To(Equal(tt.expectedErr))
 				g.Expect(provider).To(BeNil())
@@ -99,11 +99,10 @@ func TestNewGooglePubSub(t *testing.T) {
 				g.Expect(provider.topicName).To(Equal(tt.expectedTopicName))
 
 				g.Expect(provider.client).NotTo(BeNil())
+
 				client := provider.client.(*googlePubSubClient)
 				g.Expect(client).NotTo(BeNil())
-
-				g.Expect(client.projectID).To(Equal(tt.projectID))
-				g.Expect(client.jsonCreds).To(Equal(tt.expectedJSONCreds))
+				g.Expect(client.opts).To(Equal(tt.clientOpts))
 			}
 		})
 	}
