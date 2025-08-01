@@ -375,10 +375,17 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>ServiceAccountName is the name of the service account used to
-authenticate with services from cloud providers. An error is thrown if a
-static credential is also defined inside the Secret referenced by the
-SecretRef.</p>
+<p>ServiceAccountName is the name of the Kubernetes ServiceAccount used to
+authenticate with cloud provider services through workload identity.
+This enables multi-tenant authentication without storing static credentials.</p>
+<p>Supported provider types: azureeventhub, azuredevops, googlepubsub</p>
+<p>When specified, the controller will:
+1. Create an OIDC token for the specified ServiceAccount
+2. Exchange it for cloud provider credentials via STS
+3. Use the obtained credentials for API authentication</p>
+<p>When unspecified, controller-level authentication is used (single-tenant).</p>
+<p>An error is thrown if static credentials are also defined in SecretRef.
+This field requires the ObjectLevelWorkloadIdentity feature gate to be enabled.</p>
 </td>
 </tr>
 <tr>
@@ -716,10 +723,17 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>ServiceAccountName is the name of the service account used to
-authenticate with services from cloud providers. An error is thrown if a
-static credential is also defined inside the Secret referenced by the
-SecretRef.</p>
+<p>ServiceAccountName is the name of the Kubernetes ServiceAccount used to
+authenticate with cloud provider services through workload identity.
+This enables multi-tenant authentication without storing static credentials.</p>
+<p>Supported provider types: azureeventhub, azuredevops, googlepubsub</p>
+<p>When specified, the controller will:
+1. Create an OIDC token for the specified ServiceAccount
+2. Exchange it for cloud provider credentials via STS
+3. Use the obtained credentials for API authentication</p>
+<p>When unspecified, controller-level authentication is used (single-tenant).</p>
+<p>An error is thrown if static credentials are also defined in SecretRef.
+This field requires the ObjectLevelWorkloadIdentity feature gate to be enabled.</p>
 </td>
 </tr>
 <tr>

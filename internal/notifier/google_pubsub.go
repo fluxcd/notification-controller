@@ -23,7 +23,6 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
-	"google.golang.org/api/option"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -33,18 +32,13 @@ import (
 type (
 	// GooglePubSub holds a Google Pub/Sub client and target topic.
 	GooglePubSub struct {
-		topicID   string
-		attrs     map[string]string
-		topicName string
-
 		client interface {
-			publish(ctx context.Context, topicID string, eventPayload []byte, attrs map[string]string) (serverID string, err error)
+			publish(ctx context.Context, eventPayload []byte) error
 		}
 	}
 
 	googlePubSubClient struct {
-		projectID string
-		jsonCreds []byte
+		opts *notifierOptions
 	}
 )
 
@@ -52,33 +46,16 @@ type (
 var _ Interface = &GooglePubSub{}
 
 // NewGooglePubSub creates a Google Pub/Sub client tied to a specific
-// project and topic.
-//
-// The jsonCreds parameter is optional, and if len(jsonCreds) == 0 then the
-// automatic authentication methods of the Google libraries will take place,
-// and therefore methods like Workload Identity will be automatically attempted.
-//
-// The attrs paramter is optional, and if len(attrs) == 0 then no attributes will
-// be added to the Pub/Sub message.
-func NewGooglePubSub(projectID, topicID, jsonCreds string, attrs map[string]string) (*GooglePubSub, error) {
-	if projectID == "" {
+// project and topic using the provided client options.
+func NewGooglePubSub(opts *notifierOptions) (*GooglePubSub, error) {
+	if opts.URL == "" {
 		return nil, errors.New("GCP project ID cannot be empty")
 	}
-	if topicID == "" {
+	if opts.Channel == "" {
 		return nil, errors.New("GCP Pub/Sub topic ID cannot be empty")
 	}
-	if len(attrs) == 0 {
-		attrs = nil
-	}
-	return &GooglePubSub{
-		topicID:   topicID,
-		attrs:     attrs,
-		topicName: fmt.Sprintf("projects/%s/topics/%s", projectID, topicID),
-		client: &googlePubSubClient{
-			projectID: projectID,
-			jsonCreds: []byte(jsonCreds),
-		},
-	}, nil
+	client := &googlePubSubClient{opts}
+	return &GooglePubSub{client}, nil
 }
 
 // Post posts Flux events to a Google Pub/Sub topic.
@@ -93,28 +70,21 @@ func (g *GooglePubSub) Post(ctx context.Context, event eventv1.Event) error {
 		return fmt.Errorf("error json-marshaling event: %w", err)
 	}
 
-	serverID, err := g.client.publish(ctx, g.topicID, eventPayload, g.attrs)
-	if err != nil {
-		return fmt.Errorf("error publishing event to topic %s: %w", g.topicName, err)
-	}
-
-	// debug log
-	log.FromContext(ctx).V(1).Info("Event published to GCP Pub/Sub topic",
-		"topic", g.topicName,
-		"server message id", serverID)
-
-	return nil
+	return g.client.publish(ctx, eventPayload)
 }
 
-func (g *googlePubSubClient) publish(ctx context.Context, topicID string, eventPayload []byte, attrs map[string]string) (serverID string, err error) {
-	var opts []option.ClientOption
-	if len(g.jsonCreds) > 0 {
-		opts = append(opts, option.WithCredentialsJSON(g.jsonCreds))
-	}
-	var client *pubsub.Client
-	client, err = pubsub.NewClient(ctx, g.projectID, opts...)
+func (g *googlePubSubClient) publish(ctx context.Context, eventPayload []byte) error {
+	projectID := g.opts.URL
+	topicID := g.opts.Channel
+
+	// Build client.
+	opts, err := buildGCPClientOptions(ctx, *g.opts)
 	if err != nil {
-		return
+		return err
+	}
+	client, err := pubsub.NewClient(ctx, projectID, opts...)
+	if err != nil {
+		return err
 	}
 	defer func() {
 		if closeErr := client.Close(); closeErr != nil {
@@ -125,12 +95,28 @@ func (g *googlePubSubClient) publish(ctx context.Context, topicID string, eventP
 			}
 		}
 	}()
-	serverID, err = client.
+
+	// Publish the event to the topic.
+	attrs := g.opts.Headers
+	if len(attrs) == 0 {
+		attrs = nil
+	}
+	topic := fmt.Sprintf("projects/%s/topics/%s", projectID, topicID)
+	serverID, err := client.
 		Topic(topicID).
 		Publish(ctx, &pubsub.Message{
 			Data:       eventPayload,
 			Attributes: attrs,
 		}).
 		Get(ctx)
-	return
+	if err != nil {
+		return fmt.Errorf("error publishing to GCP Pub/Sub topic %s: %w", topic, err)
+	}
+
+	// Emit debug log.
+	log.FromContext(ctx).V(1).Info("Event published to GCP Pub/Sub topic",
+		"topic", topic,
+		"server message id", serverID)
+
+	return nil
 }
