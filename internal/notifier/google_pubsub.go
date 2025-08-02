@@ -44,7 +44,7 @@ type (
 
 	googlePubSubClient struct {
 		projectID string
-		jsonCreds []byte
+		opts      []option.ClientOption
 	}
 )
 
@@ -52,15 +52,9 @@ type (
 var _ Interface = &GooglePubSub{}
 
 // NewGooglePubSub creates a Google Pub/Sub client tied to a specific
-// project and topic.
-//
-// The jsonCreds parameter is optional, and if len(jsonCreds) == 0 then the
-// automatic authentication methods of the Google libraries will take place,
-// and therefore methods like Workload Identity will be automatically attempted.
-//
-// The attrs paramter is optional, and if len(attrs) == 0 then no attributes will
-// be added to the Pub/Sub message.
-func NewGooglePubSub(projectID, topicID, jsonCreds string, attrs map[string]string) (*GooglePubSub, error) {
+// project and topic using the provided client options.
+func NewGooglePubSub(ctx context.Context, projectID, topicID string, attrs map[string]string,
+	clientOpts []option.ClientOption) (*GooglePubSub, error) {
 	if projectID == "" {
 		return nil, errors.New("GCP project ID cannot be empty")
 	}
@@ -70,14 +64,17 @@ func NewGooglePubSub(projectID, topicID, jsonCreds string, attrs map[string]stri
 	if len(attrs) == 0 {
 		attrs = nil
 	}
+
+	client := &googlePubSubClient{
+		projectID: projectID,
+		opts:      clientOpts,
+	}
+
 	return &GooglePubSub{
 		topicID:   topicID,
 		attrs:     attrs,
 		topicName: fmt.Sprintf("projects/%s/topics/%s", projectID, topicID),
-		client: &googlePubSubClient{
-			projectID: projectID,
-			jsonCreds: []byte(jsonCreds),
-		},
+		client:    client,
 	}, nil
 }
 
@@ -107,12 +104,8 @@ func (g *GooglePubSub) Post(ctx context.Context, event eventv1.Event) error {
 }
 
 func (g *googlePubSubClient) publish(ctx context.Context, topicID string, eventPayload []byte, attrs map[string]string) (serverID string, err error) {
-	var opts []option.ClientOption
-	if len(g.jsonCreds) > 0 {
-		opts = append(opts, option.WithCredentialsJSON(g.jsonCreds))
-	}
 	var client *pubsub.Client
-	client, err = pubsub.NewClient(ctx, g.projectID, opts...)
+	client, err = pubsub.NewClient(ctx, g.projectID, g.opts...)
 	if err != nil {
 		return
 	}
