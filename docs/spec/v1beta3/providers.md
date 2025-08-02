@@ -778,6 +778,75 @@ stringData:
     attr2-name: attr2-value
 ```
 
+###### Google Pub/Sub with Workload Identity Example
+
+To configure a Provider for Google Pub/Sub authenticating with Workload Identity,
+create a Kubernetes ServiceAccount with the appropriate annotations, and a
+`googlepubsub` Provider with the ServiceAccount reference. This method eliminates
+the need for JSON credentials and enables multi-tenant authentication.
+
+**Single tenant approach**
+
+This approach uses the notification-controller service account for setting up
+authentication.
+
+- In the default installation, the notification-controller service account is
+  located in the `flux-system` namespace with name `notification-controller`.
+
+- Configure workload identity with notification-controller as described in the
+  docs [here](/flux/integrations/gcp/#for-google-cloud-pubsub).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: googlepubsub-controller-level
+  namespace: flux-system
+spec:
+  type: googlepubsub
+  address: <GCP Project ID>
+  channel: <Pub/Sub Topic ID>
+  # No serviceAccountName specified - uses controller's identity
+```
+
+**Multi-tenant approach**
+
+For multi-tenant clusters, set `.spec.serviceAccountName` of the provider to
+the service account to be used for authentication. Ensure that the service
+account has the appropriate annotations for GCP workload identity.
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: googlepubsub-tenant-a
+  namespace: tenant-a
+spec:
+  type: googlepubsub
+  address: <GCP Project ID>
+  channel: <Pub/Sub Topic ID>
+  serviceAccountName: tenant-a-pubsub-sa
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tenant-a-pubsub-sa
+  namespace: tenant-a
+  annotations:
+    # For GKE Workload Identity
+    iam.gke.io/gcp-service-account: tenant-a-pubsub@<GCP_PROJECT_ID>.iam.gserviceaccount.com
+    # For Workload Identity Federation (non-GKE)
+    gcp.auth.fluxcd.io/workload-identity-provider: projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/<POOL_ID>/providers/<PROVIDER_ID>
+```
+
+**Note:** Object-level authentication requires the `ObjectLevelWorkloadIdentity` feature gate to be enabled:
+
+```bash
+--feature-gates=ObjectLevelWorkloadIdentity=true
+```
+
 ##### Opsgenie
 
 When `.spec.type` is set to `opsgenie`, the controller will send a payload for
@@ -1837,9 +1906,71 @@ Managed Identity authentication can be setup using Azure Workload identity.
   uses the correct namespace and name of the service account. For more details,
   please refer to this
   [guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html#6-establish-federated-identity-credential-between-the-identity-and-the-service-account-issuer--subject).
-The service account used for authentication can be single-tenant
-(controller-level) or multi-tenant(object-level). For a complete guide on how to
-set up authentication, see the integration [docs](/flux/integrations/azure/).
+The service account used for authentication can be single-tenant or
+multi-tenant. For a complete guide on how to set up authentication, see the 
+integration [docs](/flux/integrations/azure/).
+
+##### Azure DevOps with Workload Identity Example
+
+**Single tenant approach**
+
+This approach uses the notification-controller service account for setting up
+authentication.
+
+- In the default installation, the notification-controller service account is
+  located in the `flux-system` namespace with name `notification-controller`.
+
+- Configure workload identity with notification-controller as described in the
+  docs [here](/flux/installation/configuration/workload-identity/).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: azuredevops-controller-level
+  namespace: flux-system
+spec:
+  type: azuredevops
+  address: https://dev.azure.com/<organization>/<project>/_git/<repository>
+  # No serviceAccountName specified - uses controller's identity
+```
+
+**Multi-tenant approach**
+
+For multi-tenant clusters, set `.spec.serviceAccountName` of the provider to
+the service account to be used for authentication. Ensure that the service
+account has the
+[annotations](https://learn.microsoft.com/en-us/azure/aks/workload-identity-overview?tabs=dotnet#service-account-annotations)
+for the client-id and tenant-id of the managed identity.
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: azuredevops-tenant-a
+  namespace: tenant-a
+spec:
+  type: azuredevops
+  address: https://dev.azure.com/<organization>/<project>/_git/<repository>
+  serviceAccountName: tenant-a-devops-sa
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tenant-a-devops-sa
+  namespace: tenant-a
+  annotations:
+    azure.workload.identity/client-id: <client-id-of-managed-identity>
+    azure.workload.identity/tenant-id: <tenant-id>
+```
+
+**Note:** Object-level authentication requires the `ObjectLevelWorkloadIdentity` feature gate to be enabled:
+
+```bash
+--feature-gates=ObjectLevelWorkloadIdentity=true
+```
 
 #### PAT
 

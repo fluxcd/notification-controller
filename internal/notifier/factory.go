@@ -263,7 +263,7 @@ func googleChatNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func googlePubSubNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGooglePubSub(opts.URL, opts.Channel, opts.Token, opts.Headers)
+	return NewGooglePubSub(&opts)
 }
 
 func webexNotifierFunc(opts notifierOptions) (Interface, error) {
