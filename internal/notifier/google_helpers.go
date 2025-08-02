@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 
@@ -32,8 +33,7 @@ import (
 
 // buildGCPClientOptions builds client options for GCP services.
 // Authentication precedence: JSON credentials take priority over workload identity.
-func buildGCPClientOptions(opts notifierOptions) ([]option.ClientOption, error) {
-	ctx := opts.Context
+func buildGCPClientOptions(ctx context.Context, opts notifierOptions) ([]option.ClientOption, error) {
 	var clientOpts []option.ClientOption
 
 	if opts.Token != "" {

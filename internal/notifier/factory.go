@@ -263,7 +263,10 @@ func googleChatNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func googlePubSubNotifierFunc(opts notifierOptions) (Interface, error) {
-	clientOpts, err := buildGCPClientOptions(opts)
+	// NOTE: Use background context for GCP client options to avoid workload identity timeout.
+	// opts.Context has a 15-second timeout which is too short for ServiceAccount informer
+	// sync and token creation. The actual notification timeout is handled separately.
+	clientOpts, err := buildGCPClientOptions(context.Background(), opts)
 	if err != nil {
 		return nil, err
 	}
