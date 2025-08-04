@@ -23,7 +23,6 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/pubsub"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -38,7 +37,10 @@ type (
 	}
 
 	googlePubSubClient struct {
-		opts *notifierOptions
+		client    *pubsub.Client
+		projectID string
+		topicID   string
+		headers   map[string]string
 	}
 )
 
@@ -54,8 +56,26 @@ func NewGooglePubSub(opts *notifierOptions) (*GooglePubSub, error) {
 	if opts.Channel == "" {
 		return nil, errors.New("GCP Pub/Sub topic ID cannot be empty")
 	}
-	client := &googlePubSubClient{opts}
-	return &GooglePubSub{client}, nil
+
+	clientOpts, err := buildGCPClientOptions(opts.Context, *opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build GCP client options: %w", err)
+	}
+	client, err := pubsub.NewClient(opts.Context, opts.URL, clientOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Pub/Sub client: %w", err)
+	}
+
+	pubsubClient := &googlePubSubClient{
+		client:    client,
+		projectID: opts.URL,
+		topicID:   opts.Channel,
+		headers:   opts.Headers,
+	}
+
+	return &GooglePubSub{
+		client: pubsubClient,
+	}, nil
 }
 
 // Post posts Flux events to a Google Pub/Sub topic.
@@ -74,36 +94,14 @@ func (g *GooglePubSub) Post(ctx context.Context, event eventv1.Event) error {
 }
 
 func (g *googlePubSubClient) publish(ctx context.Context, eventPayload []byte) error {
-	projectID := g.opts.URL
-	topicID := g.opts.Channel
-
-	// Build client.
-	opts, err := buildGCPClientOptions(ctx, *g.opts)
-	if err != nil {
-		return err
-	}
-	client, err := pubsub.NewClient(ctx, projectID, opts...)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if closeErr := client.Close(); closeErr != nil {
-			if err != nil {
-				err = kerrors.NewAggregate([]error{err, closeErr})
-			} else {
-				err = closeErr
-			}
-		}
-	}()
-
 	// Publish the event to the topic.
-	attrs := g.opts.Headers
+	attrs := g.headers
 	if len(attrs) == 0 {
 		attrs = nil
 	}
-	topic := fmt.Sprintf("projects/%s/topics/%s", projectID, topicID)
-	serverID, err := client.
-		Topic(topicID).
+	topic := fmt.Sprintf("projects/%s/topics/%s", g.projectID, g.topicID)
+	serverID, err := g.client.
+		Topic(g.topicID).
 		Publish(ctx, &pubsub.Message{
 			Data:       eventPayload,
 			Attributes: attrs,

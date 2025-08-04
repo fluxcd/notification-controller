@@ -70,6 +70,8 @@ github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/bradleyfalzon/ghinstallation/v2 v2.16.0 h1:B91r9bHtXp/+XRgS5aZm6ZzTdz3ahgJYmkt4xZkgDz8=
 github.com/bradleyfalzon/ghinstallation/v2 v2.16.0/go.mod h1:OeVe5ggFzoBnmgitZe/A+BqGOnv1DvU/0uiLQi1wutM=
+github.com/cappyzawa/pkg/auth v0.0.0-20250805030357-dddb28a9be71 h1:c0lj+JV9BCkq2sTEbRXuQ1LVgkOT3qBVz57fycTUmEw=
+github.com/cappyzawa/pkg/auth v0.0.0-20250805030357-dddb28a9be71/go.mod h1:YEAHpBFuW5oLlH9ekuJaQdnJ2Q3A7Ny8kha3WY7QMnY=
 github.com/carapace-sh/carapace-shlex v1.0.1 h1:ww0JCgWpOVuqWG7k3724pJ18Lq8gh5pHQs9j3ojUs1c=
 github.com/carapace-sh/carapace-shlex v1.0.1/go.mod h1:lJ4ZsdxytE0wHJ8Ta9S7Qq0XpjgjU0mdfCqiI2FHx7M=
 github.com/cdevents/sdk-go v0.4.1 h1:Cr/iH/I51Z+slxKRx9AV7stn6hr2pjRHQ5wpPJhRLTU=
@@ -138,8 +140,6 @@ github.com/fluxcd/pkg/apis/kustomize v1.11.0 h1:0IzDgxZkc4v+5SDNCvgZhfwfkdkQLPXC
 github.com/fluxcd/pkg/apis/kustomize v1.11.0/go.mod h1:j302mJGDww8cn9qvMsRQ0LJ1HPAPs/IlX7CSsoJV7BI=
 github.com/fluxcd/pkg/apis/meta v1.18.0 h1:ACHrMIjlcioE9GKS7NGk62KX4NshqNewr8sBwMcXABs=
 github.com/fluxcd/pkg/apis/meta v1.18.0/go.mod h1:97l3hTwBpJbXBY+wetNbqrUsvES8B1jGioKcBUxmqd8=
-github.com/fluxcd/pkg/auth v0.23.0 h1:Xt89QO1Hzh7X0JFwCeONyxMlgOX/zOPx0eyIyFoKyF0=
-github.com/fluxcd/pkg/auth v0.23.0/go.mod h1:YEAHpBFuW5oLlH9ekuJaQdnJ2Q3A7Ny8kha3WY7QMnY=
 github.com/fluxcd/pkg/cache v0.10.0 h1:M+OGDM4da1cnz7q+sZSBtkBJHpiJsLnKVmR9OdMWxEY=
 github.com/fluxcd/pkg/cache v0.10.0/go.mod h1:pPXRzQUDQagsCniuOolqVhnAkbNgYOg8d2cTliPs7ME=
 github.com/fluxcd/pkg/git v0.34.0 h1:qTViWkfpEDnjzySyKRKliqUeGj/DznqlkmPhaDNIsFY=

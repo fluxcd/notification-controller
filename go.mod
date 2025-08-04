@@ -203,3 +203,5 @@ require (
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
 )
+
+replace github.com/fluxcd/pkg/auth => github.com/cappyzawa/pkg/auth v0.0.0-20250805030357-dddb28a9be71

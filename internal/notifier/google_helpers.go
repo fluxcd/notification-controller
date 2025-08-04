@@ -68,7 +68,8 @@ func buildGCPClientOptions(ctx context.Context, opts notifierOptions) ([]option.
 			authOpts = append(authOpts, auth.WithProxyURL(*proxyURL))
 		}
 
-		tokenSource := gcp.NewTokenSource(ctx, authOpts...)
+		provider := gcp.NewProvider()
+		tokenSource := provider.GetOrCreateTokenSource(authOpts...)
 		clientOpts = append(clientOpts, option.WithTokenSource(tokenSource))
 	}
 
