@@ -432,8 +432,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 			Name:      provider.Spec.CertSecretRef.Name,
 			Namespace: provider.GetNamespace(),
 		}
-		const insecure = false // Provider API has no insecure field, always verify certificates
-		tlsConfig, err := secrets.TLSConfigFromSecretRef(ctx, kubeClient, secretRef, webhook, insecure)
+		tlsConfig, err := secrets.TLSConfigFromSecretRef(ctx, kubeClient, secretRef)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to get TLS config: %w", err)
 		}
