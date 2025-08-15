@@ -80,6 +80,11 @@ func getRepoInfoAndGithubClient(addr string, token string, tlsConfig *tls.Config
 			return nil, err
 		}
 
+		if tlsConfig != nil {
+			// add TLS config to get installation token
+			githubOpts = append(githubOpts, github.WithTLSConfig(tlsConfig))
+		}
+
 		client, err := github.New(githubOpts...)
 		if err != nil {
 			return nil, err
