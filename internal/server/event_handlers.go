@@ -18,6 +18,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
@@ -307,15 +308,8 @@ func createCommitStatus(ctx context.Context, provider *apiv1beta3.Provider, even
 
 // extractAuthFromSecret processes notification-controller specific keys (address, proxy, headers)
 // then uses runtime/secrets to handle standard authentication keys (token, username, password, etc.).
-func extractAuthFromSecret(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider) ([]notifier.Option, map[string][]byte, error) {
+func extractAuthFromSecret(ctx context.Context, secret *corev1.Secret) ([]notifier.Option, map[string][]byte, error) {
 	options := []notifier.Option{}
-
-	secretName := types.NamespacedName{Namespace: provider.Namespace, Name: provider.Spec.SecretRef.Name}
-	var secret corev1.Secret
-	if err := kubeClient.Get(ctx, secretName, &secret); err != nil {
-		return nil, nil, fmt.Errorf("failed to read secret: %w", err)
-	}
-
 	if val, ok := secret.Data["address"]; ok {
 		if len(val) > 2048 {
 			return nil, nil, fmt.Errorf("invalid address in secret: address exceeds maximum length of %d bytes", 2048)
@@ -325,7 +319,7 @@ func extractAuthFromSecret(ctx context.Context, kubeClient client.Client, provid
 	if val, ok := secret.Data["proxy"]; ok {
 		deprecatedProxy := strings.TrimSpace(string(val))
 		if _, err := url.Parse(deprecatedProxy); err != nil {
-			return nil, nil, fmt.Errorf("invalid 'proxy' in secret '%s'", secretName.String())
+			return nil, nil, fmt.Errorf("invalid 'proxy' in secret '%s/%s'", secret.Namespace, secret.Name)
 		}
 		log.FromContext(ctx).Error(nil, "warning: specifying proxy with 'proxy' key in the referenced secret is deprecated, use spec.proxySecretRef with 'address' key instead. Support for the 'proxy' key will be removed in v1.")
 		options = append(options, notifier.WithProxyURL(deprecatedProxy))
@@ -339,7 +333,7 @@ func extractAuthFromSecret(ctx context.Context, kubeClient client.Client, provid
 		options = append(options, notifier.WithHeaders(headers))
 	}
 
-	authMethods, err := secrets.AuthMethodsFromSecret(ctx, &secret)
+	authMethods, err := secrets.AuthMethodsFromSecret(ctx, secret)
 	if err == nil && authMethods != nil {
 		if authMethods.HasTokenAuth() {
 			options = append(options, notifier.WithToken(string(authMethods.Token)))
@@ -394,9 +388,15 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 	webhook := provider.Spec.Address
 	var token string
 	var secretData map[string][]byte
+	var providerCertSecret, providerSecret *corev1.Secret
+	var err error
 
 	if provider.Spec.SecretRef != nil {
-		secretOptions, sData, err := extractAuthFromSecret(ctx, kubeClient, provider)
+		providerSecret, err = getSecret(ctx, kubeClient, provider.Spec.SecretRef.Name, provider.GetNamespace())
+		if err != nil {
+			return nil, "", err
+		}
+		secretOptions, sData, err := extractAuthFromSecret(ctx, providerSecret)
 		if err != nil {
 			return nil, "", err
 		}
@@ -416,11 +416,11 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 	}
 
 	if provider.Spec.ProxySecretRef != nil {
-		secretRef := types.NamespacedName{
-			Name:      provider.Spec.ProxySecretRef.Name,
-			Namespace: provider.GetNamespace(),
+		proxySecret, err := getSecret(ctx, kubeClient, provider.Spec.ProxySecretRef.Name, provider.GetNamespace())
+		if err != nil {
+			return nil, "", err
 		}
-		proxyURL, err := secrets.ProxyURLFromSecretRef(ctx, kubeClient, secretRef)
+		proxyURL, err := secrets.ProxyURLFromSecret(ctx, proxySecret)
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to get proxy URL: %w", err)
 		}
@@ -428,17 +428,20 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 	}
 
 	if provider.Spec.CertSecretRef != nil {
-		secretRef := types.NamespacedName{
-			Name:      provider.Spec.CertSecretRef.Name,
-			Namespace: provider.GetNamespace(),
-		}
-		tlsConfig, err := secrets.TLSConfigFromSecretRef(ctx, kubeClient, secretRef)
+		providerCertSecret, err = getSecret(ctx, kubeClient, provider.Spec.CertSecretRef.Name, provider.GetNamespace())
 		if err != nil {
-			return nil, "", fmt.Errorf("failed to get TLS config: %w", err)
+			return nil, "", err
 		}
-		options = append(options, notifier.WithTLSConfig(tlsConfig))
 	}
 
+	tlsConfig, err := getTLSConfigForProvider(ctx, providerCertSecret, providerSecret, provider.Spec.Type)
+	if err != nil {
+		return nil, "", err
+	}
+
+	if tlsConfig != nil {
+		options = append(options, notifier.WithTLSConfig(tlsConfig))
+	}
 	if webhook != "" {
 		options = append(options, notifier.WithURL(webhook))
 	}
@@ -449,6 +452,34 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		return nil, "", fmt.Errorf("failed to initialize notifier: %w", err)
 	}
 	return sender, token, nil
+}
+
+// getTLSConfigForProvider - retrieves the TLS configuration from the provider's certSecretRef or secretRef.
+func getTLSConfigForProvider(ctx context.Context, providerCertSecret, providerSecret *corev1.Secret, providerType string) (tlsConfig *tls.Config, err error) {
+	// providerCertSecret takes precedence over providerSecret as it is explicitly specified for TLS configuration
+	if providerCertSecret != nil {
+		tlsConfig, err = secrets.TLSConfigFromSecret(ctx, providerCertSecret)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get TLS config: %w", err)
+		}
+		return
+	}
+	// if providerCertSecret is not specified, and if the provider is a git provider then
+	// attempt to get TLS config from providerSecret if ca.crt exists
+	if isGitProvider(providerType) && providerSecret != nil {
+		authMethods, err := secrets.AuthMethodsFromSecret(ctx, providerSecret)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get TLS config: %w", err)
+		}
+		// only proceed to create TLS config if ca.crt exists in the secret
+		if authMethods != nil && authMethods.HasTLS() {
+			tlsConfig, err = secrets.TLSConfigFromSecret(ctx, providerSecret)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get TLS config: %w", err)
+			}
+		}
+	}
+	return
 }
 
 // eventMatchesAlertSource returns if a given event matches with the given alert
@@ -607,4 +638,13 @@ func excludeInternalMetadata(event *eventv1.Event) {
 	for _, key := range excludeList {
 		delete(event.Metadata, key)
 	}
+}
+
+func getSecret(ctx context.Context, c client.Client, name, namespace string) (*corev1.Secret, error) {
+	secret := &corev1.Secret{}
+	ref := types.NamespacedName{Name: name, Namespace: namespace}
+	if err := c.Get(ctx, ref, secret); err != nil {
+		return nil, fmt.Errorf("failed to get secret '%s': %w", ref.String(), err)
+	}
+	return secret, nil
 }
