@@ -18,6 +18,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
@@ -426,16 +427,11 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		}
 		options = append(options, notifier.WithProxyURL(proxyURL.String()))
 	}
-
-	if provider.Spec.CertSecretRef != nil {
-		secretRef := types.NamespacedName{
-			Name:      provider.Spec.CertSecretRef.Name,
-			Namespace: provider.GetNamespace(),
-		}
-		tlsConfig, err := secrets.TLSConfigFromSecretRef(ctx, kubeClient, secretRef)
-		if err != nil {
-			return nil, "", fmt.Errorf("failed to get TLS config: %w", err)
-		}
+	tlsConfig, err := getTLSConfigForProvider(ctx, kubeClient, provider)
+	if err != nil {
+		return nil, "", err
+	}
+	if tlsConfig != nil {
 		options = append(options, notifier.WithTLSConfig(tlsConfig))
 	}
 
@@ -449,6 +445,34 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		return nil, "", fmt.Errorf("failed to initialize notifier: %w", err)
 	}
 	return sender, token, nil
+}
+
+// getTLSConfigForProvider - retrieves the TLS configuration from the provider's certSecretRef or secretRef.
+func getTLSConfigForProvider(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider) (tlsConfig *tls.Config, err error) {
+	secretRef := types.NamespacedName{
+		Namespace: provider.GetNamespace(),
+	}
+	// certSecretRef takes precedence over secretRef as it is explicitly specified for TLS configuration
+	if provider.Spec.CertSecretRef != nil {
+		secretRef.Name = provider.Spec.CertSecretRef.Name
+		tlsConfig, err = secrets.TLSConfigFromSecretRef(ctx, kubeClient, secretRef)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get TLS config: %w", err)
+		}
+		return
+	}
+	// if certSecretRef is not specified, and if the provider is a git provider then
+	// attempt to get TLS config from secretRef if ca.crt exists in secretRef
+	if isGitProvider(provider.Spec.Type) {
+		if provider.Spec.SecretRef != nil {
+			secretRef.Name = provider.Spec.SecretRef.Name
+			tlsConfig, err = secrets.TLSConfigFromSecretRef(ctx, kubeClient, secretRef)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get TLS config: %w", err)
+			}
+		}
+	}
+	return
 }
 
 // eventMatchesAlertSource returns if a given event matches with the given alert
