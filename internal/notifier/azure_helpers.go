@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"net/url"
 
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/fluxcd/pkg/auth"
@@ -33,7 +32,12 @@ import (
 
 // newManagedIdentityToken is used to attempt credential-free authentication.
 func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, providerName, providerNamespace, scope string, tokenClient client.Client, tokenCache *cache.TokenCache) (string, error) {
-	opts := []auth.Option{auth.WithScopes(scope)}
+	opts := []auth.Option{
+		auth.WithScopes(scope),
+		auth.WithClient(tokenClient),
+		auth.WithServiceAccountNamespace(providerNamespace),
+	}
+
 	if proxy != "" {
 		proxyURL, err := url.Parse(proxy)
 		if err != nil {
@@ -43,11 +47,7 @@ func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, pro
 	}
 
 	if serviceAccountName != "" {
-		serviceAccount := types.NamespacedName{
-			Name:      serviceAccountName,
-			Namespace: providerNamespace,
-		}
-		opts = append(opts, auth.WithServiceAccount(serviceAccount, tokenClient))
+		opts = append(opts, auth.WithServiceAccountName(serviceAccountName))
 	}
 
 	if tokenCache != nil {

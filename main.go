@@ -96,6 +96,7 @@ func main() {
 		exportHTTPPathMetrics bool
 		tokenCacheOptions     pkgcache.TokenFlags
 		watchOptions          runtimeCtrl.WatchOptions
+		defaultServiceAccount string
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -118,6 +119,8 @@ func main() {
 	rateLimiterOptions.BindFlags(flag.CommandLine)
 	featureGates.BindFlags(flag.CommandLine)
 	tokenCacheOptions.BindFlags(flag.CommandLine, tokenCacheDefaultMaxSize)
+	flag.StringVar(&defaultServiceAccount, auth.ControllerFlagDefaultServiceAccount,
+		"", "Default service account to use for workload identity when not specified in resources.")
 
 	flag.Parse()
 
@@ -134,6 +137,15 @@ func main() {
 		os.Exit(1)
 	case enabled:
 		auth.EnableObjectLevelWorkloadIdentity()
+	}
+
+	if defaultServiceAccount != "" {
+		auth.SetDefaultServiceAccount(defaultServiceAccount)
+	}
+
+	if auth.InconsistentObjectLevelConfiguration() {
+		setupLog.Error(auth.ErrInconsistentObjectLevelConfiguration, "invalid configuration")
+		os.Exit(1)
 	}
 
 	watchNamespace := ""
