@@ -525,7 +525,8 @@ func TestGetNotificationParams(t *testing.T) {
 			}
 
 			if tt.enableObjLevelWI {
-				t.Setenv(auth.EnvVarEnableObjectLevelWorkloadIdentity, "true")
+				auth.EnableObjectLevelWorkloadIdentity()
+				t.Cleanup(auth.DisableObjectLevelWorkloadIdentity)
 			}
 
 			// Create fake objects and event server.

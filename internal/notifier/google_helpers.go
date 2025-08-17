@@ -22,7 +22,6 @@ import (
 	"net/url"
 
 	"google.golang.org/api/option"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/fluxcd/pkg/auth"
 	"github.com/fluxcd/pkg/auth/gcp"
@@ -39,8 +38,10 @@ func buildGCPClientOptions(ctx context.Context, opts notifierOptions) ([]option.
 	if opts.Token != "" {
 		clientOpts = append(clientOpts, option.WithCredentialsJSON([]byte(opts.Token)))
 	} else {
-		var authOpts []auth.Option
-		authOpts = append(authOpts, auth.WithClient(opts.TokenClient))
+		authOpts := []auth.Option{
+			auth.WithClient(opts.TokenClient),
+			auth.WithServiceAccountNamespace(opts.ProviderNamespace),
+		}
 
 		if opts.TokenCache != nil {
 			involvedObject := cache.InvolvedObject{
@@ -53,11 +54,7 @@ func buildGCPClientOptions(ctx context.Context, opts notifierOptions) ([]option.
 		}
 
 		if opts.ServiceAccountName != "" {
-			serviceAccountKey := client.ObjectKey{
-				Name:      opts.ServiceAccountName,
-				Namespace: opts.ProviderNamespace,
-			}
-			authOpts = append(authOpts, auth.WithServiceAccount(serviceAccountKey, opts.TokenClient))
+			authOpts = append(authOpts, auth.WithServiceAccountName(opts.ServiceAccountName))
 		}
 
 		if opts.ProxyURL != "" {

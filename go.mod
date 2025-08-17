@@ -19,7 +19,7 @@ require (
 	github.com/fluxcd/notification-controller/api v1.6.0
 	github.com/fluxcd/pkg/apis/event v0.18.0
 	github.com/fluxcd/pkg/apis/meta v1.18.0
-	github.com/fluxcd/pkg/auth v0.23.0
+	github.com/fluxcd/pkg/auth v0.27.0
 	github.com/fluxcd/pkg/cache v0.10.0
 	github.com/fluxcd/pkg/git v0.34.0
 	github.com/fluxcd/pkg/masktoken v0.7.0
