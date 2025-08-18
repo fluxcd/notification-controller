@@ -40,7 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	log "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
@@ -1514,6 +1514,133 @@ func Test_excludeInternalMetadata(t *testing.T) {
 
 			excludeInternalMetadata(&tt.event)
 			g.Expect(tt.event.Metadata).To(BeEquivalentTo(tt.wantMetadata))
+		})
+	}
+}
+
+func TestGetTLSConfigForProvider(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+
+	// Reuse your existing helper.
+	caCert, clientCert, clientKey := generateTestCertificates(t)
+
+	// Expected TLS pieces.
+	caPool := x509.NewCertPool()
+	caPool.AppendCertsFromPEM(caCert)
+
+	clientCertPair, err := tls.X509KeyPair(clientCert, clientKey)
+	if err != nil {
+		t.Fatalf("failed to create client cert pair: %v", err)
+	}
+
+	getSecret := func(name string, data map[string][]byte) *corev1.Secret {
+		return &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
+			Data:       data,
+		}
+	}
+
+	tests := []struct {
+		name               string
+		providerType       string
+		providerCertSecret *corev1.Secret
+		providerSecret     *corev1.Secret
+		wantErr            bool
+		wantTLSConfig      *tls.Config
+	}{
+		{
+			name:         "no secrets returns nil TLS config",
+			providerType: apiv1beta3.GitHubProvider,
+		},
+		{
+			name:               "providerCertSecret in ca.crt with valid CA",
+			providerType:       apiv1beta3.GitHubProvider,
+			providerCertSecret: getSecret("cert-secret", map[string][]byte{"ca.crt": caCert}),
+			wantTLSConfig:      &tls.Config{RootCAs: caPool},
+		},
+		{
+			name:               "providerCertSecret precedence over providerSecret",
+			providerType:       apiv1beta3.GitHubProvider,
+			providerCertSecret: getSecret("cert-secret", map[string][]byte{"ca.crt": caCert}),
+			// Intentionally invalid providerSecret to prove precedence is honored.
+			providerSecret: getSecret("ignored", map[string][]byte{"ca.crt": []byte("not-a-cert")}),
+			wantTLSConfig:  &tls.Config{RootCAs: caPool},
+		},
+		{
+			name:               "providerCertSecret with invalid CA returns error",
+			providerType:       apiv1beta3.GitHubProvider,
+			providerCertSecret: getSecret("cert-secret", map[string][]byte{"ca.crt": []byte("bogus")}),
+			wantErr:            true,
+		},
+		{
+			name:           "providerSecret in ca.crt with valid CA (git provider)",
+			providerType:   apiv1beta3.GitHubProvider,
+			providerSecret: getSecret("git-secret", map[string][]byte{"ca.crt": caCert}),
+			wantTLSConfig:  &tls.Config{RootCAs: caPool},
+		},
+		{
+			name:           "providerSecret without ca.crt (git provider) returns nil TLS config",
+			providerType:   apiv1beta3.GitHubProvider,
+			providerSecret: getSecret("git-secret-no-ca", map[string][]byte{"foo": []byte("bar")}),
+		},
+		{
+			name:           "providerSecret in ca.crt with invalid CA (git provider) returns error",
+			providerType:   apiv1beta3.GitHubProvider,
+			providerSecret: getSecret("git-secret", map[string][]byte{"ca.crt": []byte("aaa")}),
+			wantErr:        true,
+		},
+		{
+			name:           "providerSecret ignored for non-git provider even if ca.crt present",
+			providerType:   apiv1beta3.SlackProvider,
+			providerSecret: getSecret("non-git", map[string][]byte{"ca.crt": caCert}),
+		},
+		{
+			name:               "providerCertSecret with (mTLS)",
+			providerType:       apiv1beta3.SlackProvider,
+			providerCertSecret: getSecret("cert-secret", map[string][]byte{"ca.crt": caCert, "tls.crt": clientCert, "tls.key": clientKey}),
+			wantTLSConfig:      &tls.Config{RootCAs: caPool, Certificates: []tls.Certificate{clientCertPair}},
+		},
+		{
+			name:           "providerSecret with (mTLS)",
+			providerType:   apiv1beta3.GitHubProvider,
+			providerSecret: getSecret("cert-secret", map[string][]byte{"ca.crt": caCert, "tls.crt": clientCert, "tls.key": clientKey}),
+			wantTLSConfig:  &tls.Config{RootCAs: caPool, Certificates: []tls.Certificate{clientCertPair}},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getTLSConfigForProvider(ctx, tt.providerCertSecret, tt.providerSecret, tt.providerType)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			if tt.wantTLSConfig == nil {
+				g.Expect(got).To(BeNil(), "expected nil TLS config")
+				return
+			}
+
+			g.Expect(got).ToNot(BeNil(), "expected non-nil TLS config")
+
+			// RootCAs presence matches expectation.
+			if tt.wantTLSConfig.RootCAs != nil {
+				g.Expect(got.RootCAs).ToNot(BeNil())
+			} else {
+				g.Expect(got.RootCAs).To(BeNil())
+			}
+
+			// Certificates (mTLS) presence matches expectation.
+			g.Expect(got.Certificates).To(HaveLen(len(tt.wantTLSConfig.Certificates)))
+			if len(tt.wantTLSConfig.Certificates) > 0 {
+				// Basic sanity: leaf cert is parsable; avoids brittle struct equality.
+				g.Expect(got.Certificates[0].Certificate).ToNot(BeNil())
+				_, parseErr := x509.ParseCertificate(got.Certificates[0].Certificate[0])
+				g.Expect(parseErr).ToNot(HaveOccurred())
+			}
 		})
 	}
 }

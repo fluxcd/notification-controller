@@ -21,7 +21,7 @@ require (
 	github.com/fluxcd/pkg/apis/meta v1.18.0
 	github.com/fluxcd/pkg/auth v0.27.0
 	github.com/fluxcd/pkg/cache v0.10.0
-	github.com/fluxcd/pkg/git v0.34.0
+	github.com/fluxcd/pkg/git v0.35.0
 	github.com/fluxcd/pkg/masktoken v0.7.0
 	github.com/fluxcd/pkg/runtime v0.80.0
 	github.com/fluxcd/pkg/ssa v0.51.0

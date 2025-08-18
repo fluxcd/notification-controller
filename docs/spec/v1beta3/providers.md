@@ -1504,9 +1504,14 @@ stringData:
 #### GitHub App
 
 To use Github App authentication, make sure the GitHub App is registered and
-installed with the necessary permissions and the github app secret is created as
+installed with the necessary permissions and the GitHub app secret is created as
 described
 [here](https://fluxcd.io/flux/components/source/gitrepositories/#github).
+
+**NOTE:** (For GitHub Enterprise Server) If the GitHub Server uses a private CA, the CA certificate can be referenced either via `.spec.certSecretRef`
+as described [here](#certificate-secret-reference) or the CA certificate can be added in the GitHub App secret referenced via `.spec.secretRef`.
+If the `.spec.secretRef` contains `tls.crt`, `tls.key` then mutual TLS configuration will be automatically enabled. Omit these keys if the GitHub server does not support mutual TLS.
+If both secret references are specified, then the CA specified in `.spec.certSecretRef` takes precedence over the CA specified in the GitHub App secret.
 
 #### Setting up a GitHub workflow
 
@@ -1801,6 +1806,11 @@ make sure the GitHub App is registered and installed with the necessary
 permissions to update the commit status and the github app secret is created as
 described
 [here](https://fluxcd.io/flux/components/source/gitrepositories/#github).
+
+**NOTE:** (For GitHub Enterprise Server) If the GitHub Server uses a private CA, the CA certificate can be referenced either via `.spec.certSecretRef`
+as described [here](#certificate-secret-reference) or the CA certificate can be added in the GitHub App secret referenced via `.spec.secretRef`.
+If the `.spec.secretRef` contains `tls.crt`, `tls.key` then mutual TLS configuration will be automatically enabled. Omit these keys if the GitHub server does not support mutual TLS.
+If both secret references are specified, then the CA specified in `.spec.certSecretRef` takes precedence over the CA specified in the GitHub App secret.
 
 #### GitLab
 
