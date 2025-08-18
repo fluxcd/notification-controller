@@ -60,6 +60,7 @@ var (
 		apiv1.BitbucketServerProvider: bitbucketServerNotifierFunc,
 		apiv1.BitbucketProvider:       bitbucketNotifierFunc,
 		apiv1.AzureDevOpsProvider:     azureDevOpsNotifierFunc,
+		apiv1.OTELProvider:            otelNotifierFunc,
 	}
 )
 
@@ -354,4 +355,11 @@ func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {
 	return NewAzureDevOps(opts.Context, opts.CommitStatus, opts.URL, opts.Token,
 		opts.TLSConfig, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName,
 		opts.ProviderNamespace, opts.TokenClient, opts.TokenCache)
+}
+
+func otelNotifierFunc(opts notifierOptions) (Interface, error) {
+	if opts.Token == "" && opts.Password != "" {
+		opts.Token = opts.Password
+	}
+	return NewOTLPTracer(opts.Context, opts.URL, opts.ProxyURL, opts.Headers, opts.TLSConfig, opts.Username, opts.Token)
 }
