@@ -17,11 +17,12 @@ limitations under the License.
 package testlistener
 
 import (
-	"github.com/stretchr/testify/assert"
 	"net"
 	"strconv"
 	"strings"
 	"testing"
+
+	. "github.com/onsi/gomega"
 )
 
 // New creates a TCP listener on a random port and returns
@@ -30,16 +31,17 @@ import (
 // when the test ends.
 func New(t *testing.T) (net.Listener, string, int) {
 	t.Helper()
+	g := NewWithT(t)
 
 	lis, err := net.Listen("tcp", "localhost:0")
-	assert.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 	t.Cleanup(func() { lis.Close() })
 
 	addr := lis.Addr().String()
 	addrParts := strings.Split(addr, ":")
 	portStr := addrParts[len(addrParts)-1]
 	port, err := strconv.Atoi(portStr)
-	assert.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	return lis, addr, port
 }

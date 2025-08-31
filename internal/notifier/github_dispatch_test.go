@@ -25,8 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	authgithub "github.com/fluxcd/pkg/git/github"
@@ -34,29 +33,33 @@ import (
 )
 
 func TestNewGitHubDispatchBasic(t *testing.T) {
-	g, err := NewGitHubDispatch("https://github.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, g.Owner, "foo")
-	assert.Equal(t, g.Repo, "bar")
-	assert.Equal(t, g.Client.BaseURL.Host, "api.github.com")
+	gomega := NewWithT(t)
+	github, err := NewGitHubDispatch("https://github.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
+	gomega.Expect(err).ToNot(HaveOccurred())
+	gomega.Expect(github.Owner).To(Equal("foo"))
+	gomega.Expect(github.Repo).To(Equal("bar"))
+	gomega.Expect(github.Client.BaseURL.Host).To(Equal("api.github.com"))
 }
 
 func TestNewEnterpriseGitHubDispatchBasic(t *testing.T) {
-	g, err := NewGitHubDispatch("https://foobar.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, g.Owner, "foo")
-	assert.Equal(t, g.Repo, "bar")
-	assert.Equal(t, g.Client.BaseURL.Host, "foobar.com")
+	gomega := NewWithT(t)
+	github, err := NewGitHubDispatch("https://foobar.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
+	gomega.Expect(err).ToNot(HaveOccurred())
+	gomega.Expect(github.Owner).To(Equal("foo"))
+	gomega.Expect(github.Repo).To(Equal("bar"))
+	gomega.Expect(github.Client.BaseURL.Host).To(Equal("foobar.com"))
 }
 
 func TestNewGitHubDispatchInvalidUrl(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewGitHubDispatch("https://github.com/foo/bar/baz", "foobar", nil, "", "", "", nil, nil)
-	assert.NotNil(t, err)
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitHubDispatchEmptyToken(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewGitHubDispatch("https://github.com/foo/bar", "", nil, "", "", "", nil, nil)
-	assert.NotNil(t, err)
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGithubDispatchProvider(t *testing.T) {
@@ -114,11 +117,12 @@ func TestNewGithubDispatchProvider(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := func(w http.ResponseWriter, r *http.Request) {
+				g := NewWithT(t)
 				w.WriteHeader(http.StatusOK)
 				var response []byte
 				var err error
 				response, err = json.Marshal(&authgithub.AppToken{Token: "access-token", ExpiresAt: expiresAt})
-				assert.Nil(t, err)
+				g.Expect(err).ToNot(HaveOccurred())
 				w.Write(response)
 			}
 			srv := httptest.NewServer(http.HandlerFunc(handler))
@@ -129,23 +133,25 @@ func TestNewGithubDispatchProvider(t *testing.T) {
 			if len(tt.secretData) > 0 {
 				tt.secretData["githubAppBaseURL"] = []byte(srv.URL)
 			}
+			g := NewWithT(t)
 			_, err := NewGitHubDispatch("https://github.com/foo/bar", "", nil, "", "foo", "bar", tt.secretData, nil)
 			if tt.wantErr != nil {
-				assert.NotNil(t, err)
-				assert.Equal(t, tt.wantErr, err)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err).To(Equal(tt.wantErr))
 			} else {
-				assert.Nil(t, err)
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
 }
 
 func TestGitHubDispatch_PostUpdate(t *testing.T) {
+	g := NewWithT(t)
 	githubDispatch, err := NewGitHubDispatch("https://github.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	event := testEvent()
 	event.Metadata[eventv1.MetaCommitStatusKey] = eventv1.MetaCommitStatusUpdateValue
 	err = githubDispatch.Post(context.TODO(), event)
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }

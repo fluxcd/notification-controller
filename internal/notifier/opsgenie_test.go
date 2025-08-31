@@ -25,16 +25,17 @@ import (
 	"testing"
 
 	"github.com/fluxcd/pkg/apis/event/v1beta1"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 )
 
 func TestOpsgenie_Post(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 		var payload OpsgenieAlert
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
 	}))
 	defer ts.Close()
@@ -59,12 +60,12 @@ func TestOpsgenie_Post(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
+			g := NewWithT(t)
 			opsgenie, err := NewOpsgenie(ts.URL, "", nil, "token")
-			require.NoError(t, err)
+			g.Expect(err).ToNot(HaveOccurred())
 
 			err = opsgenie.Post(context.TODO(), tt.event())
-			require.NoError(t, err)
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

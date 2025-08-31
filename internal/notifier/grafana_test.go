@@ -24,33 +24,33 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 )
 
 func TestGrafana_Post(t *testing.T) {
 	t.Run("Successfully post and expect 200 ok", func(t *testing.T) {
+		g := NewWithT(t)
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			b, err := io.ReadAll(r.Body)
-			require.NoError(t, err)
+			g.Expect(err).ToNot(HaveOccurred())
 			var payload = GraphitePayload{}
 			err = json.Unmarshal(b, &payload)
-			require.NoError(t, err)
+			g.Expect(err).ToNot(HaveOccurred())
 
-			require.Equal(t, "gitrepository/webapp.gitops-system", payload.Text)
-			require.Equal(t, "flux", payload.Tags[0])
-			require.Equal(t, "source-controller", payload.Tags[1])
-			require.Equal(t, "test: metadata", payload.Tags[2])
-			require.Equal(t, "kind: GitRepository", payload.Tags[3])
-			require.Equal(t, "name: webapp", payload.Tags[4])
-			require.Equal(t, "namespace: gitops-system", payload.Tags[5])
+			g.Expect(payload.Text).To(Equal("gitrepository/webapp.gitops-system"))
+			g.Expect(payload.Tags[0]).To(Equal("flux"))
+			g.Expect(payload.Tags[1]).To(Equal("source-controller"))
+			g.Expect(payload.Tags[2]).To(Equal("test: metadata"))
+			g.Expect(payload.Tags[3]).To(Equal("kind: GitRepository"))
+			g.Expect(payload.Tags[4]).To(Equal("name: webapp"))
+			g.Expect(payload.Tags[5]).To(Equal("namespace: gitops-system"))
 		}))
 		defer ts.Close()
 
 		grafana, err := NewGrafana(ts.URL, "", "", nil, "", "")
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		err = grafana.Post(context.TODO(), testEvent())
-		assert.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 	})
 }

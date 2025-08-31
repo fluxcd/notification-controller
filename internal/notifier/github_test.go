@@ -28,43 +28,49 @@ import (
 	"github.com/fluxcd/pkg/ssh"
 
 	"github.com/google/go-github/v64/github"
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/gomega"
 )
 
 func TestNewGitHubBasic(t *testing.T) {
+	gm := NewWithT(t)
 	g, err := NewGitHub("kustomization/gitops-system/0c9c2e41", "https://github.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, g.Owner, "foo")
-	assert.Equal(t, g.Repo, "bar")
-	assert.Equal(t, g.Client.BaseURL.Host, "api.github.com")
-	assert.Equal(t, g.CommitStatus, "kustomization/gitops-system/0c9c2e41")
+	gm.Expect(err).ToNot(HaveOccurred())
+	gm.Expect(g.Owner).To(Equal("foo"))
+	gm.Expect(g.Repo).To(Equal("bar"))
+	gm.Expect(g.Client.BaseURL.Host).To(Equal("api.github.com"))
+	gm.Expect(g.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
 }
 
 func TestNewEmterpriseGitHubBasic(t *testing.T) {
+	gm := NewWithT(t)
 	g, err := NewGitHub("kustomization/gitops-system/0c9c2e41", "https://foobar.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
-	assert.Nil(t, err)
-	assert.Equal(t, g.Owner, "foo")
-	assert.Equal(t, g.Repo, "bar")
-	assert.Equal(t, g.Client.BaseURL.Host, "foobar.com")
-	assert.Equal(t, g.CommitStatus, "kustomization/gitops-system/0c9c2e41")
+	gm.Expect(err).ToNot(HaveOccurred())
+	gm.Expect(g.Owner).To(Equal("foo"))
+	gm.Expect(g.Repo).To(Equal("bar"))
+	gm.Expect(g.Client.BaseURL.Host).To(Equal("foobar.com"))
+	gm.Expect(g.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
 }
 
 func TestNewGitHubInvalidUrl(t *testing.T) {
+	gm := NewWithT(t)
 	_, err := NewGitHub("kustomization/gitops-system/0c9c2e41", "https://github.com/foo/bar/baz", "foobar", nil, "", "", "", nil, nil)
-	assert.NotNil(t, err)
+	gm.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitHubEmptyToken(t *testing.T) {
+	gm := NewWithT(t)
 	_, err := NewGitHub("kustomization/gitops-system/0c9c2e41", "https://github.com/foo/bar", "", nil, "", "", "", nil, nil)
-	assert.NotNil(t, err)
+	gm.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitHubEmptyCommitStatus(t *testing.T) {
+	gm := NewWithT(t)
 	_, err := NewGitHub("", "https://github.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
-	assert.NotNil(t, err)
+	gm.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGithubProvider(t *testing.T) {
+	gm := NewWithT(t)
 	appID := "123"
 	installationID := "456"
 	kp, _ := ssh.GenerateKeyPair(ssh.RSA_4096)
@@ -123,7 +129,7 @@ func TestNewGithubProvider(t *testing.T) {
 				var response []byte
 				var err error
 				response, err = json.Marshal(&authgithub.AppToken{Token: "access-token", ExpiresAt: expiresAt})
-				assert.Nil(t, err)
+				gm.Expect(err).ToNot(HaveOccurred())
 				w.Write(response)
 			}
 			srv := httptest.NewServer(http.HandlerFunc(handler))
@@ -136,17 +142,17 @@ func TestNewGithubProvider(t *testing.T) {
 			}
 			_, err := NewGitHub("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://github.com/foo/bar", "", nil, "", "foo", "bar", tt.secretData, nil)
 			if tt.wantErr != nil {
-				assert.NotNil(t, err)
-				assert.Equal(t, tt.wantErr, err)
+				gm.Expect(err).To(HaveOccurred())
+				gm.Expect(err).To(Equal(tt.wantErr))
 			} else {
-				assert.Nil(t, err)
+				gm.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
 }
 
 func TestDuplicateGithubStatus(t *testing.T) {
-	assert := assert.New(t)
+	gm := NewWithT(t)
 
 	var tests = []struct {
 		ss  []*github.RepoStatus
@@ -161,7 +167,7 @@ func TestDuplicateGithubStatus(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		assert.Equal(test.dup, duplicateGithubStatus(test.ss, test.s))
+		gm.Expect(duplicateGithubStatus(test.ss, test.s)).To(Equal(test.dup))
 	}
 }
 

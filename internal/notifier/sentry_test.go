@@ -23,7 +23,7 @@ import (
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/getsentry/sentry-go"
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -51,20 +51,22 @@ func TestNewSentry(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			s, err := NewSentry(nil, tt.dsn, tt.environment)
 			if tt.err != nil {
-				assert.Error(t, err)
-				assert.Equal(t, tt.err, err)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err).To(Equal(tt.err))
 			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, s.Client.Options().Dsn, tt.dsn)
-				assert.Equal(t, s.Client.Options().Environment, tt.environment)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(s.Client.Options().Dsn).To(Equal(tt.dsn))
+				g.Expect(s.Client.Options().Environment).To(Equal(tt.environment))
 			}
 		})
 	}
 }
 
 func TestToSentryEvent(t *testing.T) {
+	g := NewWithT(t)
 	// Construct test event
 	e := eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
@@ -86,18 +88,19 @@ func TestToSentryEvent(t *testing.T) {
 	s := toSentryEvent(e)
 
 	// Assertions
-	assert.Equal(t, time.Date(2020, 01, 01, 0, 0, 0, 0, time.UTC), s.Timestamp)
-	assert.Equal(t, sentry.LevelInfo, s.Level)
-	assert.Equal(t, "source-controller", s.ServerName)
-	assert.Equal(t, "GitRepository: flux-system/test-app", s.Transaction)
-	assert.Equal(t, map[string]interface{}{
+	g.Expect(s.Timestamp).To(Equal(time.Date(2020, 01, 01, 0, 0, 0, 0, time.UTC)))
+	g.Expect(s.Level).To(Equal(sentry.LevelInfo))
+	g.Expect(s.ServerName).To(Equal("source-controller"))
+	g.Expect(s.Transaction).To(Equal("GitRepository: flux-system/test-app"))
+	g.Expect(s.Extra).To(Equal(map[string]interface{}{
 		"key1": "val1",
 		"key2": "val2",
-	}, s.Extra)
-	assert.Equal(t, "message", s.Message)
+	}))
+	g.Expect(s.Message).To(Equal("message"))
 }
 
 func TestToSentrySpan(t *testing.T) {
+	g := NewWithT(t)
 	// Construct test event
 	e := eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
@@ -119,9 +122,9 @@ func TestToSentrySpan(t *testing.T) {
 	s := eventToSpan(e)
 
 	// Assertions
-	assert.Equal(t, time.Date(2020, 01, 01, 0, 0, 0, 0, time.UTC), s.Timestamp)
-	assert.Equal(t, "transaction", s.Type)
-	assert.Equal(t, map[string]string{
+	g.Expect(s.Timestamp).To(Equal(time.Date(2020, 01, 01, 0, 0, 0, 0, time.UTC)))
+	g.Expect(s.Type).To(Equal("transaction"))
+	g.Expect(s.Tags).To(Equal(map[string]string{
 		"flux_involved_object_kind":      e.InvolvedObject.Kind,
 		"flux_involved_object_name":      e.InvolvedObject.Name,
 		"flux_involved_object_namespace": e.InvolvedObject.Namespace,
@@ -130,6 +133,6 @@ func TestToSentrySpan(t *testing.T) {
 		"flux_reporting_instance":        e.ReportingInstance,
 		"key1":                           "val1",
 		"key2":                           "val2",
-	}, s.Tags)
-	assert.Equal(t, "message", s.Message)
+	}))
+	g.Expect(s.Message).To(Equal("message"))
 }

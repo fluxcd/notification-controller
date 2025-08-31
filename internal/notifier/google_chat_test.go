@@ -24,28 +24,29 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 )
 
 func TestGoogleChat_Post(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 		var payload = GoogleChatPayload{}
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
-		require.Equal(t, "gitrepository/webapp.gitops-system", payload.Cards[0].Header.Title)
-		require.Equal(t, "source-controller", payload.Cards[0].Header.SubTitle)
-		require.Equal(t, "message", payload.Cards[0].Sections[0].Widgets[0].TextParagraph.Text)
-		require.Equal(t, "test", payload.Cards[0].Sections[1].Widgets[0].KeyValue.TopLabel)
-		require.Equal(t, "metadata", payload.Cards[0].Sections[1].Widgets[0].KeyValue.Content)
+		g.Expect(payload.Cards[0].Header.Title).To(Equal("gitrepository/webapp.gitops-system"))
+		g.Expect(payload.Cards[0].Header.SubTitle).To(Equal("source-controller"))
+		g.Expect(payload.Cards[0].Sections[0].Widgets[0].TextParagraph.Text).To(Equal("message"))
+		g.Expect(payload.Cards[0].Sections[1].Widgets[0].KeyValue.TopLabel).To(Equal("test"))
+		g.Expect(payload.Cards[0].Sections[1].Widgets[0].KeyValue.Content).To(Equal("metadata"))
 	}))
 	defer ts.Close()
 
 	google_chat, err := NewGoogleChat(ts.URL, "")
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	err = google_chat.Post(context.TODO(), testEvent())
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }

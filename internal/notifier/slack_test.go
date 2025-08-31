@@ -24,52 +24,55 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 func TestSlack_Post(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		var payload = SlackPayload{}
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
-		require.Equal(t, "gitrepository/webapp.gitops-system", payload.Attachments[0].AuthorName)
-		require.Equal(t, "metadata", payload.Attachments[0].Fields[0].Value)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(payload.Attachments[0].AuthorName).To(Equal("gitrepository/webapp.gitops-system"))
+		g.Expect(payload.Attachments[0].Fields[0].Value).To(Equal("metadata"))
 	}))
 	defer ts.Close()
 
 	slack, err := NewSlack(ts.URL, "", "", nil, "", "test")
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	err = slack.Post(context.TODO(), testEvent())
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func TestSlack_PostUpdate(t *testing.T) {
+	g := NewWithT(t)
 	slack, err := NewSlack("http://localhost", "", "", nil, "", "test")
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	event := testEvent()
 	event.Metadata[eventv1.MetaCommitStatusKey] = eventv1.MetaCommitStatusUpdateValue
 	err = slack.Post(context.TODO(), event)
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func TestSlack_ValidateResponse(t *testing.T) {
+	g := NewWithT(t)
 	body := []byte(`{
   "ok": true
 }`)
 	err := validateSlackResponse(http.StatusOK, body)
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	body = []byte(`{
   "ok": false,
   "error": "too_many_attachments"
 }`)
 	err = validateSlackResponse(http.StatusOK, body)
-	require.ErrorContains(t, err, "Slack responded with error: too_many_attachments")
+	g.Expect(err).To(MatchError(ContainSubstring("Slack responded with error: too_many_attachments")))
 }

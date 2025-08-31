@@ -24,8 +24,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 )
 
 func TestNewMSTeams(t *testing.T) {
@@ -58,26 +57,28 @@ func TestNewMSTeams(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			teams, err := NewMSTeams(tt.url, "", nil)
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantSchema, teams.Schema)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(teams.Schema).To(Equal(tt.wantSchema))
 		})
 	}
 }
 
 func TestMSTeams_Post(t *testing.T) {
+	g := NewWithT(t)
 	var deprecatedConnectorCalled bool
 	deprecatedConnectorServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		deprecatedConnectorCalled = true
 
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 		var payload = MSTeamsPayload{}
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
-		require.Equal(t, "gitrepository/webapp.gitops-system", payload.Sections[0].ActivitySubtitle)
-		require.Equal(t, "metadata", payload.Sections[0].Facts[0].Value)
+		g.Expect(payload.Sections[0].ActivitySubtitle).To(Equal("gitrepository/webapp.gitops-system"))
+		g.Expect(payload.Sections[0].Facts[0].Value).To(Equal("metadata"))
 	}))
 	defer deprecatedConnectorServer.Close()
 
@@ -86,12 +87,12 @@ func TestMSTeams_Post(t *testing.T) {
 		adaptiveCardCalled = true
 
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 		var payload map[string]any
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
-		assert.Equal(t, map[string]any{
+		g.Expect(payload).To(Equal(map[string]any{
 			"type": "message",
 			"attachments": []any{
 				map[string]any{
@@ -134,7 +135,7 @@ func TestMSTeams_Post(t *testing.T) {
 					},
 				},
 			},
-		}, payload)
+		}))
 	}))
 	defer adaptiveCardServer.Close()
 
@@ -160,16 +161,17 @@ func TestMSTeams_Post(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			*tt.serverCalled = false
 
 			teams, err := NewMSTeams(tt.url, "", nil)
-			require.NoError(t, err)
+			g.Expect(err).ToNot(HaveOccurred())
 			teams.Schema = tt.schema
 
 			err = teams.Post(context.TODO(), testEvent())
-			require.NoError(t, err)
+			g.Expect(err).ToNot(HaveOccurred())
 
-			assert.True(t, *tt.serverCalled)
+			g.Expect(*tt.serverCalled).To(BeTrue())
 		})
 	}
 }

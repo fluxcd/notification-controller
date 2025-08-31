@@ -24,45 +24,47 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 )
 
 func TestRocket_Post(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		var payload = SlackPayload{}
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
-		require.Equal(t, "gitrepository/webapp.gitops-system", payload.Attachments[0].AuthorName)
-		require.Equal(t, "metadata", payload.Attachments[0].Fields[0].Value)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(payload.Attachments[0].AuthorName).To(Equal("gitrepository/webapp.gitops-system"))
+		g.Expect(payload.Attachments[0].Fields[0].Value).To(Equal("metadata"))
 	}))
 	defer ts.Close()
 
 	rocket, err := NewRocket(ts.URL, "", nil, "test", "test")
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	err = rocket.Post(context.TODO(), testEvent())
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func TestRocket_PostWithoutChannelOrUser(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		var payload = SlackPayload{}
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
-		require.Equal(t, "gitrepository/webapp.gitops-system", payload.Attachments[0].AuthorName)
-		require.Equal(t, "metadata", payload.Attachments[0].Fields[0].Value)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(payload.Attachments[0].AuthorName).To(Equal("gitrepository/webapp.gitops-system"))
+		g.Expect(payload.Attachments[0].Fields[0].Value).To(Equal("metadata"))
 	}))
 	defer ts.Close()
 
 	rocket, err := NewRocket(ts.URL, "", nil, "", "")
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	err = rocket.Post(context.TODO(), testEvent())
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }

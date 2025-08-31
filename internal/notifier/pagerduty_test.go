@@ -6,13 +6,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/PagerDuty/go-pagerduty"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -27,47 +25,51 @@ const (
 
 func TestNewPagerDuty(t *testing.T) {
 	t.Run("US endpoint", func(t *testing.T) {
+		g := NewWithT(t)
 		p, err := NewPagerDuty("https://events.pagerduty.com/v2/enqueue", "", nil, routingKey)
-		assert.NoError(t, err)
-		assert.Equal(t, routingKey, p.RoutingKey)
-		assert.NotEqual(t, pagerdutyEUv2EventsAPIURL, p.Endpoint)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(p.RoutingKey).To(Equal(routingKey))
+		g.Expect(p.Endpoint).ToNot(Equal(pagerdutyEUv2EventsAPIURL))
 	})
 	t.Run("EU endpoint", func(t *testing.T) {
+		g := NewWithT(t)
 		p, err := NewPagerDuty("https://events.eu.pagerduty.com/v2/enqueue", "", nil, routingKey)
-		assert.NoError(t, err)
-		assert.Equal(t, routingKey, p.RoutingKey)
-		assert.Equal(t, pagerdutyEUv2EventsAPIURL, p.Endpoint)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(p.RoutingKey).To(Equal(routingKey))
+		g.Expect(p.Endpoint).To(Equal(pagerdutyEUv2EventsAPIURL))
 	})
 	t.Run("invalid URL", func(t *testing.T) {
+		g := NewWithT(t)
 		_, err := NewPagerDuty("not a url", "", nil, routingKey)
-		assert.Errorf(t, err, "invalid PagerDuty endpoint URL not a url: 'parse \"https://not a url/\": invalid character \" \" in host name'")
+		g.Expect(err).To(HaveOccurred())
 	})
 }
 
 func TestPagerDutyPost(t *testing.T) {
+	g := NewWithT(t)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/v2/enqueue", func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 		var payload pagerduty.V2Event
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 	})
 	mux.HandleFunc("/v2/change/enqueue", func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 		var payload pagerduty.ChangeEvent
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 	})
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
 	pd, err := NewPagerDuty(ts.URL, "", nil, "token")
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	err = pd.Post(context.TODO(), testEvent())
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func TestToPagerDutyV2Event(t *testing.T) {
@@ -145,16 +147,15 @@ func TestToPagerDutyV2Event(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			got := toPagerDutyV2Event(tt.e, routingKey)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Logf("got Payload: %+v", got.Payload)
-				t.Errorf("toPagerDutyV2Event() = %+v, want %+v", got, tt.want)
-			}
+			g.Expect(got).To(Equal(tt.want))
 		})
 	}
 }
 
 func TestToPagerDutyChangeEvent(t *testing.T) {
+	g := NewWithT(t)
 	e := eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind:      "GitRepository",
@@ -188,9 +189,7 @@ func TestToPagerDutyChangeEvent(t *testing.T) {
 		},
 	}
 	got := toPagerDutyChangeEvent(e, routingKey)
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("toPagerDutyChangeEvent() = %q, want %q", got, want)
-	}
+	g.Expect(got).To(Equal(want))
 }
 
 func TestToPagerDutySeverity(t *testing.T) {
@@ -222,7 +221,8 @@ func TestToPagerDutySeverity(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, toPagerDutySeverity(tt.severity))
+			g := NewWithT(t)
+			g.Expect(toPagerDutySeverity(tt.severity)).To(Equal(tt.want))
 		})
 	}
 }

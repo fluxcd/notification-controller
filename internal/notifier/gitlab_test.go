@@ -19,35 +19,40 @@ package notifier
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/gomega"
 )
 
 func TestNewGitLabBasic(t *testing.T) {
-	g, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar", "foobar", nil)
-	assert.Nil(t, err)
-	assert.Equal(t, g.Id, "foo/bar")
-	assert.Equal(t, g.CommitStatus, "kustomization/gitops-system/0c9c2e41")
+	gomega := NewWithT(t)
+	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar", "foobar", nil)
+	gomega.Expect(err).ToNot(HaveOccurred())
+	gomega.Expect(gitlab.Id).To(Equal("foo/bar"))
+	gomega.Expect(gitlab.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
 }
 
 func TestNewGitLabSubgroups(t *testing.T) {
-	g, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar/baz", "foobar", nil)
-	assert.Nil(t, err)
-	assert.Equal(t, g.Id, "foo/bar/baz")
+	gomega := NewWithT(t)
+	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar/baz", "foobar", nil)
+	gomega.Expect(err).ToNot(HaveOccurred())
+	gomega.Expect(gitlab.Id).To(Equal("foo/bar/baz"))
 }
 
 func TestNewGitLabSelfHosted(t *testing.T) {
-	g, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://example.com/foo/bar", "foo:bar", nil)
-	assert.Nil(t, err)
-	assert.Equal(t, g.Id, "foo/bar")
-	assert.Equal(t, g.Client.BaseURL().Host, "example.com")
+	gomega := NewWithT(t)
+	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://example.com/foo/bar", "foo:bar", nil)
+	gomega.Expect(err).ToNot(HaveOccurred())
+	gomega.Expect(gitlab.Id).To(Equal("foo/bar"))
+	gomega.Expect(gitlab.Client.BaseURL().Host).To(Equal("example.com"))
 }
 
 func TestNewGitLabEmptyToken(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar", "", nil)
-	assert.NotNil(t, err)
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitLabEmptyCommitStatus(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewGitLab("", "https://gitlab.com/foo/bar", "foobar", nil)
-	assert.NotNil(t, err)
+	g.Expect(err).To(HaveOccurred())
 }

@@ -26,47 +26,48 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 )
 
 func TestTelegram_Post(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, http.MethodPost, r.Method)
-		require.Equal(t, "/sendMessage", r.URL.Path)
-		require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+		g.Expect(r.Method).To(Equal(http.MethodPost))
+		g.Expect(r.URL.Path).To(Equal("/sendMessage"))
+		g.Expect(r.Header.Get("Content-Type")).To(Equal("application/json"))
 
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		var payload TelegramPayload
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
-		require.Equal(t, "channel", payload.ChatID)
-		require.Equal(t, "MarkdownV2", payload.ParseMode)
+		g.Expect(payload.ChatID).To(Equal("channel"))
+		g.Expect(payload.ParseMode).To(Equal("MarkdownV2"))
 
 		lines := strings.Split(payload.Text, "\n")
-		require.Len(t, lines, 5)
+		g.Expect(lines).To(HaveLen(5))
 		slices.Sort(lines[2:4])
-		require.Equal(t, "*💫 gitrepository/webapp/gitops\\-system*", lines[0])
-		require.Equal(t, "message", lines[1])
-		require.Equal(t, []string{
+		g.Expect(lines[0]).To(Equal("*💫 gitrepository/webapp/gitops\\-system*"))
+		g.Expect(lines[1]).To(Equal("message"))
+		g.Expect(lines[2:]).To(Equal([]string{
 			"\\- *kubernetes\\.io/somekey*: some\\.value",
 			"\\- *test*: metadata",
 			"",
-		}, lines[2:])
+		}))
 
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ts.Close()
 
 	telegram, err := NewTelegram("", "channel", "token")
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	telegram.url = ts.URL
 
 	ev := testEvent()
 	ev.Metadata["kubernetes.io/somekey"] = "some.value"
 	err = telegram.Post(context.TODO(), ev)
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }

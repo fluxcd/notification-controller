@@ -39,7 +39,6 @@ require (
 	github.com/sethvargo/go-limiter v1.0.0
 	github.com/slok/go-http-metrics v0.13.0
 	github.com/spf13/pflag v1.0.7
-	github.com/stretchr/testify v1.11.1
 	gitlab.com/gitlab-org/api/client-go v0.137.0
 	golang.org/x/oauth2 v0.30.0
 	golang.org/x/text v0.28.0

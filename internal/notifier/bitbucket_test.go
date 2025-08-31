@@ -19,28 +19,32 @@ package notifier
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/gomega"
 )
 
 func TestNewBitbucketBasic(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar", "foo:bar", nil)
-	assert.Nil(t, err)
-	assert.Equal(t, b.Owner, "foo")
-	assert.Equal(t, b.Repo, "bar")
-	assert.Equal(t, b.CommitStatus, "kustomization/gitops-system/0c9c2e41")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(b.Owner).To(Equal("foo"))
+	g.Expect(b.Repo).To(Equal("bar"))
+	g.Expect(b.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
 }
 
 func TestNewBitbucketEmptyCommitStatus(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewBitbucket("", "https://bitbucket.org/foo/bar", "foo:bar", nil)
-	assert.NotNil(t, err)
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewBitbucketInvalidUrl(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar/baz", "foo:bar", nil)
-	assert.NotNil(t, err)
+	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewBitbucketInvalidToken(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar", "bar", nil)
-	assert.NotNil(t, err)
+	g.Expect(err).To(HaveOccurred())
 }

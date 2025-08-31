@@ -19,13 +19,14 @@ package notifier
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 func TestUtil_NameAndDescription(t *testing.T) {
+	g := NewWithT(t)
 	event := eventv1.Event{
 		InvolvedObject: corev1.ObjectReference{
 			Kind: "Kustomization",
@@ -34,8 +35,8 @@ func TestUtil_NameAndDescription(t *testing.T) {
 		Reason: "ApplySucceeded",
 	}
 	name, desc := formatNameAndDescription(event)
-	require.Equal(t, "kustomization/gitops-system", name)
-	require.Equal(t, "apply succeeded", desc)
+	g.Expect(name).To(Equal("kustomization/gitops-system"))
+	g.Expect(desc).To(Equal("apply succeeded"))
 }
 
 func TestUtil_ParseRevision(t *testing.T) {
@@ -78,75 +79,84 @@ func TestUtil_ParseRevision(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			rev, err := parseRevision(tt.revision)
 			if tt.wantErr != "" {
-				require.Error(t, err, tt.wantErr)
-				require.Empty(t, rev)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(rev).To(BeEmpty())
 				return
 			}
-			require.NoError(t, err)
-			require.Equal(t, tt.expect, rev)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(rev).To(Equal(tt.expect))
 		})
 	}
 }
 
 func TestUtil_ParseGitHttps(t *testing.T) {
+	g := NewWithT(t)
 	addr := "https://github.com/foo/bar"
 	host, id, err := parseGitAddress(addr)
-	require.NoError(t, err)
-	require.Equal(t, "https://github.com", host)
-	require.Equal(t, "foo/bar", id)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(host).To(Equal("https://github.com"))
+	g.Expect(id).To(Equal("foo/bar"))
 }
 
 func TestUtil_ParseGitCustomHost(t *testing.T) {
+	g := NewWithT(t)
 	addr := "https://example.com/foo/bar"
 	host, id, err := parseGitAddress(addr)
-	require.NoError(t, err)
-	require.Equal(t, "https://example.com", host)
-	require.Equal(t, "foo/bar", id)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(host).To(Equal("https://example.com"))
+	g.Expect(id).To(Equal("foo/bar"))
 }
 
 func TestUtil_ParseGitHttpFileEnding(t *testing.T) {
+	g := NewWithT(t)
 	addr := "https://gitlab.com/foo/bar.git"
 	host, id, err := parseGitAddress(addr)
-	require.NoError(t, err)
-	require.Equal(t, "https://gitlab.com", host)
-	require.Equal(t, "foo/bar", id)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(host).To(Equal("https://gitlab.com"))
+	g.Expect(id).To(Equal("foo/bar"))
 }
 
 func TestUtil_ParseGitSsh(t *testing.T) {
+	g := NewWithT(t)
 	addr := "git@gitlab.com:foo/bar.git"
 	host, id, err := parseGitAddress(addr)
-	require.NoError(t, err)
-	require.Equal(t, "https://gitlab.com", host)
-	require.Equal(t, "foo/bar", id)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(host).To(Equal("https://gitlab.com"))
+	g.Expect(id).To(Equal("foo/bar"))
 }
 
 func TestUtil_ParseGitSshWithProtocol(t *testing.T) {
+	g := NewWithT(t)
 	addr := "ssh://git@github.com/stefanprodan/podinfo"
 	host, id, err := parseGitAddress(addr)
-	require.NoError(t, err)
-	require.Equal(t, "https://github.com", host)
-	require.Equal(t, "stefanprodan/podinfo", id)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(host).To(Equal("https://github.com"))
+	g.Expect(id).To(Equal("stefanprodan/podinfo"))
 }
 
 func TestUtil_ParseGitHttpWithSubgroup(t *testing.T) {
+	g := NewWithT(t)
 	addr := "https://gitlab.com/foo/bar/foo.git"
 	host, id, err := parseGitAddress(addr)
-	require.NoError(t, err)
-	require.Equal(t, "https://gitlab.com", host)
-	require.Equal(t, "foo/bar/foo", id)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(host).To(Equal("https://gitlab.com"))
+	g.Expect(id).To(Equal("foo/bar/foo"))
 }
 
 func TestUtil_Sha1String(t *testing.T) {
+	g := NewWithT(t)
 	str := "kustomization/namespace-foo-and-service-bar"
 	s := sha1String(str)
-	require.Equal(t, "12ea142172e98435e16336acbbed8919610922c3", s)
+	g.Expect(s).To(Equal("12ea142172e98435e16336acbbed8919610922c3"))
 }
 
 func TestUtil_BasicAuth(t *testing.T) {
+	g := NewWithT(t)
 	username := "user"
 	password := "password"
 	s := basicAuth(username, password)
-	require.Equal(t, "dXNlcjpwYXNzd29yZA==", s)
+	g.Expect(s).To(Equal("dXNlcjpwYXNzd29yZA=="))
 }
