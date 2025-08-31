@@ -9,7 +9,7 @@ REPOSITORY_ROOT := $(shell git rev-parse --show-toplevel)
 BUILD_DIR := $(REPOSITORY_ROOT)/build
 
 # API (doc) generation utilities
-CONTROLLER_GEN_VERSION ?= v0.16.1
+CONTROLLER_GEN_VERSION ?= v0.19.0
 GEN_API_REF_DOCS_VERSION ?= e327d0730470cbd61b06300f81c5fcf91c23c113
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
