@@ -34,26 +34,28 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 )
 
 func Test_postMessage(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		var payload = make(map[string]string)
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
-		require.Equal(t, "success", payload["status"])
+		g.Expect(payload["status"]).To(Equal("success"))
 	}))
 	defer ts.Close()
 	err := postMessage(context.Background(), ts.URL, map[string]string{"status": "success"})
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func Test_postMessage_timeout(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		time.Sleep(2 * time.Second)
 	}))
@@ -61,44 +63,47 @@ func Test_postMessage_timeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	err := postMessage(ctx, ts.URL, map[string]string{"status": "success"})
-	require.Error(t, err, "context deadline exceeded")
+	g.Expect(err).To(HaveOccurred())
 }
 
 func Test_postSelfSignedCert(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		var payload = make(map[string]string)
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
-		require.Equal(t, "success", payload["status"])
+		g.Expect(payload["status"]).To(Equal("success"))
 	}))
 	defer ts.Close()
 
 	cert, err := x509.ParseCertificate(ts.TLS.Certificates[0].Certificate[0])
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 	certpool := x509.NewCertPool()
 	certpool.AddCert(cert)
 	tlsConfig := &tls.Config{RootCAs: certpool}
 	err = postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, withTLSConfig(tlsConfig))
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func Test_postMessage_requestModifier(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		require.Equal(t, "Bearer token", r.Header.Get("Authorization"))
+		g.Expect(r.Header.Get("Authorization")).To(Equal("Bearer token"))
 	}))
 	defer ts.Close()
 
 	err := postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, withRequestModifier(func(req *retryablehttp.Request) {
 		req.Header.Set("Authorization", "Bearer token")
 	}))
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func Test_postMessage_responseValidator(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Default response validator determines success, but the custom validator below will determine failure .
 		w.WriteHeader(http.StatusOK)
@@ -107,7 +112,7 @@ func Test_postMessage_responseValidator(t *testing.T) {
 	defer ts.Close()
 
 	err := postMessage(context.Background(), ts.URL, map[string]string{"status": "success"})
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	err = postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, withResponseValidator(func(_ int, body []byte) error {
 		if strings.HasPrefix(string(body), "error:") {
@@ -115,7 +120,7 @@ func Test_postMessage_responseValidator(t *testing.T) {
 		}
 		return nil
 	}))
-	require.ErrorContains(t, err, "request failed: error: bad request")
+	g.Expect(err).To(MatchError(ContainSubstring("request failed: error: bad request")))
 }
 
 func testEvent() eventv1.Event {

@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -61,11 +61,12 @@ func TestForwarder_New(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			_, err := NewForwarder("http://example.org", "", nil, nil, tt.hmacKey)
 			if tt.err {
-				require.Error(t, err)
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				require.NoError(t, err)
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -95,27 +96,28 @@ func TestForwarder_Post(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				b, err := io.ReadAll(r.Body)
-				require.NoError(t, err)
+				g.Expect(err).ToNot(HaveOccurred())
 
-				require.Equal(t, "source-controller", r.Header.Get("gotk-component"))
-				require.Equal(t, "token", r.Header.Get("Authorization"))
+				g.Expect(r.Header.Get("gotk-component")).To(Equal("source-controller"))
+				g.Expect(r.Header.Get("Authorization")).To(Equal("token"))
 				if tt.hmacHeader == "" {
 					sigHdrVal, ok := r.Header["X-Signature"]
 					if tt.xSigHeader == "" {
-						require.Equal(t, false, ok, "expected signature header to be absent but it was present")
+						g.Expect(ok).To(BeFalse(), "expected signature header to be absent but it was present")
 					} else {
-						require.Equal(t, []string{tt.xSigHeader}, sigHdrVal)
+						g.Expect(sigHdrVal).To(Equal([]string{tt.xSigHeader}))
 					}
 				} else {
-					require.Equal(t, tt.hmacHeader, r.Header.Get("X-Signature"))
+					g.Expect(r.Header.Get("X-Signature")).To(Equal(tt.hmacHeader))
 				}
 				var payload = eventv1.Event{}
 				err = json.Unmarshal(b, &payload)
-				require.NoError(t, err)
-				require.Equal(t, "webapp", payload.InvolvedObject.Name)
-				require.Equal(t, "metadata", payload.Metadata["test"])
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(payload.InvolvedObject.Name).To(Equal("webapp"))
+				g.Expect(payload.Metadata["test"]).To(Equal("metadata"))
 			}))
 			defer ts.Close()
 
@@ -125,12 +127,12 @@ func TestForwarder_Post(t *testing.T) {
 				headers["X-Signature"] = tt.xSigHeader
 			}
 			forwarder, err := NewForwarder(ts.URL, "", headers, nil, tt.hmacKey)
-			require.NoError(t, err)
+			g.Expect(err).ToNot(HaveOccurred())
 
 			ev := testEvent()
 			ev.Timestamp = metav1.NewTime(time.Unix(1664520029, 0))
 			err = forwarder.Post(context.TODO(), ev)
-			require.NoError(t, err)
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

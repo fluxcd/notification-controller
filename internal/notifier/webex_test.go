@@ -24,35 +24,37 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 func TestWebex_Post(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		var payload = WebexPayload{}
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 	}))
 	defer ts.Close()
 
 	webex, err := NewWebex(ts.URL, "", nil, "room", "token")
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	err = webex.Post(context.TODO(), testEvent())
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func TestWebex_PostUpdate(t *testing.T) {
+	g := NewWithT(t)
 	webex, err := NewWebex("http://localhost", "", nil, "room", "token")
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	event := testEvent()
 	event.Metadata[eventv1.MetaCommitStatusKey] = eventv1.MetaCommitStatusUpdateValue
 	err = webex.Post(context.TODO(), event)
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }

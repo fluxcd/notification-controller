@@ -20,13 +20,13 @@ import (
 	"context"
 	"testing"
 
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	. "github.com/onsi/gomega"
-	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
 func Test_newCommitStatus(t *testing.T) {
@@ -167,9 +167,10 @@ func Test_generateDefaultCommitStatus(t *testing.T) {
 
 	for _, tt := range statusIDTests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			id := generateDefaultCommitStatus(tt.providerUID, tt.event)
 
-			require.Equal(t, tt.want, id)
+			g.Expect(id).To(Equal(tt.want))
 		})
 	}
 }

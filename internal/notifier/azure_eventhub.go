@@ -1,9 +1,12 @@
 /*
-Copyright 2021 The Flux authors
+Copyright 2025 The Flux authors
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -40,7 +43,7 @@ type AzureEventHub struct {
 func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace, proxy,
 	serviceAccountName, providerName, providerNamespace string, tokenClient client.Client,
 	tokenCache *cache.TokenCache) (*AzureEventHub, error) {
-	var client *eventhub.ProducerClient
+	var producerClient *eventhub.ProducerClient
 	var err error
 
 	if err := validateAuthOptions(endpointURL, token, serviceAccountName); err != nil {
@@ -48,7 +51,7 @@ func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace
 	}
 
 	if isSASAuth(endpointURL) {
-		client, err = newSASHub(endpointURL)
+		producerClient, err = newSASHub(endpointURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create a eventhub using SAS: %w", err)
 		}
@@ -63,14 +66,14 @@ func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace
 		} else {
 			log.FromContext(ctx).Error(nil, "warning: static JWT authentication is deprecated and will be removed in the future, prefer workload identity: https://fluxcd.io/flux/components/notification/providers/#managed-identity")
 		}
-		client, err = newJWTHub(endpointURL, token, eventHubNamespace)
+		producerClient, err = newJWTHub(endpointURL, token, eventHubNamespace)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create a eventhub using authentication token: %w", err)
 		}
 	}
 
 	return &AzureEventHub{
-		ProducerClient: client,
+		ProducerClient: producerClient,
 	}, nil
 }
 
@@ -140,12 +143,12 @@ func newJWTHub(eventhubName, token, eventHubNamespace string) (*eventhub.Produce
 
 // newSASHub used when address is a SAS ConnectionString
 func newSASHub(address string) (*eventhub.ProducerClient, error) {
-	client, err := eventhub.NewProducerClientFromConnectionString(address, "", nil)
+	producerClient, err := eventhub.NewProducerClientFromConnectionString(address, "", nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return client, nil
+	return producerClient, nil
 }
 
 // validateAuthOptions checks if the authentication options are valid

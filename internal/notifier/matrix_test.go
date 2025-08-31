@@ -5,15 +5,15 @@ import (
 	"time"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestSha1Sum(t *testing.T) {
+	g := NewWithT(t)
 	timestamp, err := time.Parse("Jan 2, 2006 at 3:04pm (WAT)", "Aug 24, 2021 at 4:18pm (WAT)")
-	if err != nil {
-		t.Fatalf("unexpected error getting timestamp: %s", err)
-	}
+	g.Expect(err).ToNot(HaveOccurred())
 
 	tests := []struct {
 		event eventv1.Event
@@ -38,13 +38,7 @@ func TestSha1Sum(t *testing.T) {
 
 	for _, tt := range tests {
 		hash, err := sha1sum(tt.event)
-		if err != nil {
-			t.Fatalf("unexpected err: %s", err)
-		}
-
-		if tt.sha1 != hash {
-			t.Errorf("wrong sha1 sum from event %v. expected %q got %q",
-				tt.event, tt.sha1, hash)
-		}
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(hash).To(Equal(tt.sha1))
 	}
 }

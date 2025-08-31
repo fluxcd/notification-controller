@@ -25,27 +25,27 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 )
 
 func TestDiscord_Post(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
 		var payload = SlackPayload{}
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
-		require.Equal(t, "gitrepository/webapp.gitops-system", payload.Attachments[0].AuthorName)
-		require.Equal(t, "metadata", payload.Attachments[0].Fields[0].Value)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(payload.Attachments[0].AuthorName).To(Equal("gitrepository/webapp.gitops-system"))
+		g.Expect(payload.Attachments[0].Fields[0].Value).To(Equal("metadata"))
 	}))
 	defer ts.Close()
 
 	discord, err := NewDiscord(ts.URL, "", "test", "test")
-	require.NoError(t, err)
-	assert.True(t, strings.HasSuffix(discord.URL, "/slack"))
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(strings.HasSuffix(discord.URL, "/slack")).To(BeTrue())
 
 	err = discord.Post(context.TODO(), testEvent())
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }

@@ -11,7 +11,7 @@ import (
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 )
 
 func Fuzz_DataDog(f *testing.F) {
@@ -20,13 +20,14 @@ func Fuzz_DataDog(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T,
 		apiKey, severity, message string, seed, response []byte) {
+		g := NewWithT(t)
 		mux := http.NewServeMux()
 		mux.HandleFunc("/api/v1/events", func(w http.ResponseWriter, r *http.Request) {
 			_, err := w.Write(response)
-			require.NoError(t, err)
+			g.Expect(err).ToNot(HaveOccurred())
 			_, err = io.Copy(io.Discard, r.Body)
-			require.NoError(t, err)
-			require.NoError(t, r.Body.Close())
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(r.Body.Close()).ToNot(HaveOccurred())
 		})
 		ts := httptest.NewServer(mux)
 		defer ts.Close()

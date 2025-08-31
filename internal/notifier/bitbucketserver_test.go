@@ -28,136 +28,151 @@ import (
 	"net/http/httptest"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestNewBitbucketServerBasicNoContext(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
-	assert.Nil(t, err)
-	assert.Equal(t, b.Username, "dummyuser")
-	assert.Equal(t, b.Password, "testpassword")
-	assert.Equal(t, b.Url.Scheme, "https")
-	assert.Equal(t, b.Url.Host, "example.com:7990")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(b.Username).To(Equal("dummyuser"))
+	g.Expect(b.Password).To(Equal("testpassword"))
+	g.Expect(b.Url.Scheme).To(Equal("https"))
+	g.Expect(b.Url.Host).To(Equal("example.com:7990"))
 }
 
 func TestNewBitbucketServerBasicWithContext(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
-	assert.Nil(t, err)
-	assert.Equal(t, b.Username, "dummyuser")
-	assert.Equal(t, b.Password, "testpassword")
-	assert.Equal(t, b.Url.Scheme, "https")
-	assert.Equal(t, b.Url.Host, "example.com:7990")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(b.Username).To(Equal("dummyuser"))
+	g.Expect(b.Password).To(Equal("testpassword"))
+	g.Expect(b.Url.Scheme).To(Equal("https"))
+	g.Expect(b.Url.Host).To(Equal("example.com:7990"))
 }
 
 func TestBitbucketServerApiPathNoContext(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
-	assert.Nil(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
-	assert.Equal(t, u, "https://example.com:7990/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds")
+	g.Expect(u).To(Equal("https://example.com:7990/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds"))
 }
 
 func TestBitbucketServerApiPathOneWordContext(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context1/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
-	assert.Nil(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
-	assert.Equal(t, u, "https://example.com:7990/context1/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds")
+	g.Expect(u).To(Equal("https://example.com:7990/context1/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds"))
 }
 
 func TestBitbucketServerApiPathMultipleWordContext(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context1/context2/context3/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
-	assert.Nil(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
-	assert.Equal(t, u, "https://example.com:7990/context1/context2/context3/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds")
+	g.Expect(u).To(Equal("https://example.com:7990/context1/context2/context3/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds"))
 }
 
 func TestBitbucketServerApiPathOneWordScmInContext(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
-	assert.Nil(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
-	assert.Equal(t, u, "https://example.com:7990/scm/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds")
+	g.Expect(u).To(Equal("https://example.com:7990/scm/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds"))
 }
 
 func TestBitbucketServerApiPathMultipleWordScmInContext(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/context2/scm/scm/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
-	assert.Nil(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
-	assert.Equal(t, u, "https://example.com:7990/scm/context2/scm/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds")
+	g.Expect(u).To(Equal("https://example.com:7990/scm/context2/scm/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds"))
 }
 
 func TestBitbucketServerApiPathScmAlreadyRemovedInInput(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context1/context2/context3/projectfoo/repobar.git", "", nil, "dummyuser", "testpassword")
-	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), "could not parse git address: supplied provider address is not http(s) git clone url")
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(Equal("could not parse git address: supplied provider address is not http(s) git clone url"))
 }
 
 func TestBitbucketServerSshAddress(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "ssh://git@mybitbucket:2222/ap/fluxcd-sandbox.git", "", nil, "", "")
-	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), "could not parse git address: unsupported scheme type in address: ssh. Must be http or https")
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(Equal("could not parse git address: unsupported scheme type in address: ssh. Must be http or https"))
 }
 
 func TestNewBitbucketServerToken(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
-	assert.Nil(t, err)
-	assert.Equal(t, b.Token, "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(b.Token).To(Equal("BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP"))
 }
 
 func TestNewBitbucketServerInvalidCreds(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "", nil, "", "")
-	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), "invalid credentials, expected to be one of username/password or API Token")
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(Equal("invalid credentials, expected to be one of username/password or API Token"))
 }
 
 func TestNewBitbucketServerInvalidRepo(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar/invalid.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
-	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), "could not parse git address: invalid repository id \"projectfoo/repobar/invalid\"")
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(Equal("could not parse git address: invalid repository id \"projectfoo/repobar/invalid\""))
 }
 
 func TestPostBitbucketServerMissingRevision(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
-	assert.Nil(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	//Validate missing revision
 	err = b.Post(context.TODO(), generateTestEventKustomization("info", map[string]string{
 		"dummybadrevision": "bad",
 	}))
-	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), "missing revision metadata")
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(Equal("missing revision metadata"))
 }
 
 func TestNewBitbucketServerEmptyCommitStatus(t *testing.T) {
+	g := NewWithT(t)
 	_, err := NewBitbucketServer("", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
-	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), "commit status cannot be empty")
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(Equal("commit status cannot be empty"))
 }
 
 func TestPostBitbucketServerBadCommitHash(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
-	assert.Nil(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	//Validate extract commit hash
 	err = b.Post(context.TODO(), generateTestEventKustomization("info", map[string]string{
 		eventv1.MetaRevisionKey: "badhash",
 	}))
-	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), "could not parse revision: failed to extract commit hash from 'badhash' revision")
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(Equal("could not parse revision: failed to extract commit hash from 'badhash' revision"))
 
 }
 
 func TestPostBitbucketServerBadBitbucketState(t *testing.T) {
+	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
-	assert.Nil(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	//Validate conversion to bitbucket state
 	err = b.Post(context.TODO(), generateTestEventKustomization("badserveritystate", map[string]string{
 		eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
 	}))
-	assert.NotNil(t, err)
-	assert.Equal(t, err.Error(), "couldn't convert to bitbucket server state: bitbucket server state generated on info or error events only")
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(Equal("couldn't convert to bitbucket server state: bitbucket server state generated on info or error events only"))
 
 }
 
@@ -329,25 +344,26 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 				// Validate Headers
 				for key, value := range tt.headers {
-					require.Equal(t, value, r.Header.Get(key))
+					g.Expect(r.Header.Get(key)).To(Equal(value))
 				}
 
 				// Validate URI
 				path := fmt.Sprintf("/rest/api/latest/projects/projectfoo/repos/repobar/commits/%s/builds", tt.uriHash)
-				require.Equal(t, r.URL.Path, path)
+				g.Expect(r.URL.Path).To(Equal(path))
 
 				// Validate Get Build Status call
 				if r.Method == http.MethodGet {
 
 					//Validate that this GET request has a query string with "key" as the query paraneter
-					require.Equal(t, r.URL.Query().Get(bbServerGetBuildStatusQueryString), tt.key)
+					g.Expect(r.URL.Query().Get(bbServerGetBuildStatusQueryString)).To(Equal(tt.key))
 
 					// Validate that this GET request has no body
-					require.Equal(t, http.NoBody, r.Body)
+					g.Expect(r.Body).To(Equal(http.NoBody))
 
 					if tt.name == "Validate duplicate commit status successful match" {
 						w.WriteHeader(http.StatusOK)
@@ -388,45 +404,45 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				if r.Method == http.MethodPost {
 
 					// Validate that this POST request has no query string
-					require.Equal(t, len(r.URL.Query()), 0)
+					g.Expect(len(r.URL.Query())).To(Equal(0))
 
 					// Validate that this POST request has Content-Type: application/json header
-					require.Equal(t, "application/json", r.Header.Get("Content-Type"))
+					g.Expect(r.Header.Get("Content-Type")).To(Equal("application/json"))
 
 					// Read json body of the request
 					b, err := io.ReadAll(r.Body)
-					require.NoError(t, err)
+					g.Expect(err).ToNot(HaveOccurred())
 
 					// Parse json request into Payload Request body struct
 					var payload bbServerBuildStatusSetRequest
 					err = json.Unmarshal(b, &payload)
-					require.NoError(t, err)
+					g.Expect(err).ToNot(HaveOccurred())
 
 					// Validate Key
-					require.Equal(t, payload.Key, tt.key)
+					g.Expect(payload.Key).To(Equal(tt.key))
 
 					// Validate that state can be only SUCCESSFUL or FAILED
 					if payload.State != "SUCCESSFUL" && payload.State != "FAILED" {
-						require.Fail(t, "Invalid state")
+						g.Expect(payload.State).To(Or(Equal("SUCCESSFUL"), Equal("FAILED")))
 					}
 
 					// If severity of event is info, state should be SUCCESSFUL
 					if tt.event.Severity == "info" {
-						require.Equal(t, "SUCCESSFUL", payload.State)
+						g.Expect(payload.State).To(Equal("SUCCESSFUL"))
 					}
 
 					// If severity of event is error, state should be FAILED
 					if tt.event.Severity == "error" {
-						require.Equal(t, "FAILED", payload.State)
+						g.Expect(payload.State).To(Equal("FAILED"))
 					}
 
 					// Validate description
-					require.Equal(t, "reason", payload.Description)
+					g.Expect(payload.Description).To(Equal("reason"))
 
 					// Validate name(with description appended)
-					require.Equal(t, "kustomization/hello-world"+" ["+payload.Description+"]", payload.Name)
+					g.Expect(payload.Name).To(Equal("kustomization/hello-world" + " [" + payload.Description + "]"))
 
-					require.Contains(t, payload.Url, "/scm/projectfoo/repobar.git")
+					g.Expect(payload.Url).To(ContainSubstring("/scm/projectfoo/repobar.git"))
 
 					if tt.testFailReason == "badpost" {
 						w.WriteHeader(http.StatusUnauthorized)
@@ -441,13 +457,13 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 			}))
 			defer ts.Close()
 			c, err := NewBitbucketServer(tt.commitStatus, ts.URL+"/scm/projectfoo/repobar.git", tt.token, nil, tt.username, tt.password)
-			require.NoError(t, err)
+			g.Expect(err).ToNot(HaveOccurred())
 			err = c.Post(context.TODO(), tt.event)
 			if tt.testFailReason == "" {
-				require.NoError(t, err)
+				g.Expect(err).ToNot(HaveOccurred())
 			} else {
-				assert.NotNil(t, err)
-				assert.Equal(t, err.Error(), tt.errorString)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err.Error()).To(Equal(tt.errorString))
 			}
 		})
 	}

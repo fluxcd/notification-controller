@@ -8,25 +8,26 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/stretchr/testify/require"
+	. "github.com/onsi/gomega"
 )
 
 func TestLark_Post(t *testing.T) {
+	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		b, err := io.ReadAll(r.Body)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 		var payload LarkPayload
 		err = json.Unmarshal(b, &payload)
-		require.NoError(t, err)
+		g.Expect(err).ToNot(HaveOccurred())
 
-		require.Equal(t, "💫 gitrepository/webapp.gitops-system", payload.Card.Header.Title.Content)
-		require.Equal(t, "turquoise", payload.Card.Header.Template)
+		g.Expect(payload.Card.Header.Title.Content).To(Equal("💫 gitrepository/webapp.gitops-system"))
+		g.Expect(payload.Card.Header.Template).To(Equal("turquoise"))
 	}))
 	defer ts.Close()
 
 	lark, err := NewLark(ts.URL)
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	err = lark.Post(context.TODO(), testEvent())
-	require.NoError(t, err)
+	g.Expect(err).ToNot(HaveOccurred())
 }

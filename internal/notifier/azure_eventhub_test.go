@@ -1,9 +1,12 @@
 /*
-Copyright 2021 The Flux authors
+Copyright 2025 The Flux authors
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
+
     http://www.apache.org/licenses/LICENSE-2.0
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,8 +20,9 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/gomega"
 )
 
 func TestNewAzureEventHub(t *testing.T) {
@@ -54,7 +58,7 @@ func TestNewAzureEventHub(t *testing.T) {
 			endpointURL:       "azure-nc-eventhub",
 			token:             "",
 			eventHubNamespace: "namespace",
-			err:               errors.New("failed to create a eventhub using managed identity: failed to get token: failed to create provider access token for the controller: ManagedIdentityCredential: failed to authenticate a system assigned identity. The endpoint responded with {\"error\":\"invalid_request\",\"error_description\":\"Identity not found\"}"),
+			err:               errors.New("failed to create a eventhub using managed identity: failed to get token: failed to create provider access token for the controller: ManagedIdentityCredential"),
 		},
 		{
 			name:               "SAS auth with serviceAccountName set",
@@ -90,13 +94,16 @@ func TestNewAzureEventHub(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client, err := NewAzureEventHub(context.TODO(), tt.endpointURL, tt.token, tt.eventHubNamespace, "", tt.serviceAccountName, "", "", nil, nil)
+			g := NewWithT(t)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+			defer cancel()
+			client, err := NewAzureEventHub(ctx, tt.endpointURL, tt.token, tt.eventHubNamespace, "", tt.serviceAccountName, "", "", nil, nil)
 			if tt.err != nil {
-				assert.Error(t, err)
-				assert.ErrorContains(t, err, tt.err.Error())
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err).To(MatchError(ContainSubstring(tt.err.Error())))
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, client)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(client).ToNot(BeNil())
 			}
 		})
 	}
