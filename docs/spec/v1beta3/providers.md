@@ -1522,14 +1522,14 @@ you need to set the event type for the repository_dispatch trigger to match the 
 name: test-github-dispatch-provider
 on:
   repository_dispatch:
-    types: [Kustomization/podinfo.flux-system]
+    types: [Kustomization/app1.apps]
 ```
 
 Assuming that we deploy all Flux kustomization resources in the same namespace,
 it will be useful to have a unique kustomization resource name for each application.
 This will allow you to use only `event_type` to trigger tests for the exact application.
 
-Let's say we have following folder structure for applications kustomization manifests:
+Let's say we have the following kustomize overlays structure for two applications:
 
 ```bash
 apps/
@@ -1543,21 +1543,21 @@ apps/
         └── staging
 ```
 
-You can then create a flux kustomization resource for the app to have unique `event_type` per app.
+You can then create a Flux Kustomization resource for the app to have unique `event_type` per app.
 The kustomization manifest for app1/staging:
 
 ```yaml
-apiVersion: kustomize.toolkit.fluxcd.io/v1beta3
+apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: app1
-  namespace: flux-system
+  namespace: apps
 spec:
   path: "./app1/staging"
 ```
 
-You would also like to know from the notification which cluster is being used for deployment.
-You can add the `spec.summary` field to the Flux alert configuration to mention the relevant cluster:
+You would also like to know from the notification which environment the event is coming from.
+You can add the `spec.eventMetadata` field to the Flux Alert and mention the relevant environment info:
 
 ```yaml
 apiVersion: notification.toolkit.fluxcd.io/v1beta3
@@ -1566,13 +1566,15 @@ metadata:
   name: github-dispatch
   namespace: flux-system
 spec:
-  summary: "staging (us-west-2)"
+  eventMetadata:
+    env: "staging"
+    region: "us-west-2"
   providerRef:
     name: github-dispatch
   eventSeverity: info
   eventSources:
     - kind: Kustomization
-      name: 'podinfo'
+      name: app1
 ```
 
 Now you can trigger the tests in the GitHub workflow for app1 in a staging cluster when
@@ -1582,11 +1584,13 @@ the app1 resources defined in `./app1/staging/` are reconciled by Flux:
 name: test-github-dispatch-provider
 on:
   repository_dispatch:
-    types: [Kustomization/podinfo.flux-system]
+    types: [Kustomization/app1.apps]
 jobs:
   run-tests-staging:
-    if: github.event.client_payload.metadata.summary == 'staging (us-west-2)'
-    runs-on: ubuntu-18.04
+    if: |
+      github.event.client_payload.metadata.env == 'staging' &&
+      github.event.client_payload.severity == 'info'
+    runs-on: ubuntu-latest
     steps:
     - name: Run tests
       run: echo "running tests.."
