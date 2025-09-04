@@ -60,6 +60,7 @@ var (
 		apiv1.BitbucketServerProvider: bitbucketServerNotifierFunc,
 		apiv1.BitbucketProvider:       bitbucketNotifierFunc,
 		apiv1.AzureDevOpsProvider:     azureDevOpsNotifierFunc,
+		apiv1.ZulipProvider:           zulipNotifierFunc,
 	}
 )
 
@@ -354,4 +355,8 @@ func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {
 	return NewAzureDevOps(opts.Context, opts.CommitStatus, opts.URL, opts.Token,
 		opts.TLSConfig, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName,
 		opts.ProviderNamespace, opts.TokenClient, opts.TokenCache)
+}
+
+func zulipNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewZulip(opts.URL, opts.Channel, opts.ProxyURL, opts.TLSConfig, opts.Username, opts.Password)
 }

@@ -32,23 +32,32 @@ import (
 type postOptions struct {
 	proxy             string
 	tlsConfig         *tls.Config
+	contentType       string
+	username          string
+	password          string
 	requestModifier   func(*retryablehttp.Request)
-	responseValidator func(statusCode int, body []byte) error
+	responseValidator func(*http.Response) error
 }
 
 type postOption func(*postOptions)
 
-func postMessage(ctx context.Context, address string, payload interface{}, opts ...postOption) error {
+func postMessage(ctx context.Context, address string, payload any, opts ...postOption) error {
 	options := &postOptions{
 		// Default validateResponse function verifies that the response status code is 200, 202 or 201.
-		responseValidator: func(statusCode int, body []byte) error {
-			if statusCode == http.StatusOK ||
-				statusCode == http.StatusAccepted ||
-				statusCode == http.StatusCreated {
+		responseValidator: func(resp *http.Response) error {
+			s := resp.StatusCode
+			if 200 <= s && s < 300 {
 				return nil
 			}
 
-			return fmt.Errorf("request failed with status code %d, %s", statusCode, string(body))
+			err := fmt.Errorf("request failed with status code %d", s)
+
+			b, bodyErr := io.ReadAll(resp.Body)
+			if bodyErr != nil {
+				return fmt.Errorf("%w: unable to read response body: %w", err, bodyErr)
+			}
+
+			return fmt.Errorf("%w: %s", err, string(b))
 		},
 	}
 
@@ -61,9 +70,18 @@ func postMessage(ctx context.Context, address string, payload interface{}, opts 
 		return err
 	}
 
-	data, err := json.Marshal(payload)
-	if err != nil {
-		return fmt.Errorf("marshalling notification payload failed: %w", err)
+	contentType := options.contentType
+	var data []byte
+	switch contentType {
+	case "":
+		contentType = "application/json"
+		var err error
+		data, err = json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("marshalling notification payload failed: %w", err)
+		}
+	default:
+		data = payload.([]byte)
 	}
 
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, address, data)
@@ -71,7 +89,12 @@ func postMessage(ctx context.Context, address string, payload interface{}, opts 
 		return fmt.Errorf("failed to create a new request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", contentType)
+
+	if options.username != "" || options.password != "" {
+		req.SetBasicAuth(options.username, options.password)
+	}
+
 	if options.requestModifier != nil {
 		options.requestModifier(req)
 	}
@@ -82,12 +105,7 @@ func postMessage(ctx context.Context, address string, payload interface{}, opts 
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if err := options.responseValidator(resp.StatusCode, body); err != nil {
+	if err := options.responseValidator(resp); err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
 
@@ -106,13 +124,26 @@ func withTLSConfig(tlsConfig *tls.Config) postOption {
 	}
 }
 
+func withContentType(contentType string) postOption {
+	return func(opts *postOptions) {
+		opts.contentType = contentType
+	}
+}
+
+func withBasicAuth(username, password string) postOption {
+	return func(opts *postOptions) {
+		opts.username = username
+		opts.password = password
+	}
+}
+
 func withRequestModifier(reqModifier func(*retryablehttp.Request)) postOption {
 	return func(opts *postOptions) {
 		opts.requestModifier = reqModifier
 	}
 }
 
-func withResponseValidator(respValidator func(statusCode int, body []byte) error) postOption {
+func withResponseValidator(respValidator func(resp *http.Response) error) postOption {
 	return func(opts *postOptions) {
 		opts.responseValidator = respValidator
 	}

@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
@@ -149,14 +150,13 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 //
 // On the other hand, incoming webhooks return more expressive HTTP status codes.
 // See https://api.slack.com/messaging/webhooks#handling_errors.
-func validateSlackResponse(_ int, body []byte) error {
-	type slackResponse struct {
+func validateSlackResponse(resp *http.Response) error {
+	var slackResp struct {
 		Ok    bool   `json:"ok"`
 		Error string `json:"error"`
 	}
 
-	slackResp := slackResponse{}
-	if err := json.Unmarshal(body, &slackResp); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&slackResp); err != nil {
 		return fmt.Errorf("unable to unmarshal response body: %w", err)
 	}
 
