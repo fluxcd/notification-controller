@@ -89,6 +89,44 @@ func Test_postSelfSignedCert(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 }
 
+func Test_postMessage_contentType(t *testing.T) {
+	const contentType = "application/x-www-form-urlencoded"
+
+	g := NewWithT(t)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		g.Expect(r.Header.Get("Content-Type")).To(Equal(contentType))
+
+		err := r.ParseForm()
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(r.Form.Get("status")).To(Equal("success"))
+	}))
+	defer ts.Close()
+
+	err := postMessage(context.Background(), ts.URL, []byte("status=success"), withContentType(contentType))
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func Test_postMessage_basicAuth(t *testing.T) {
+	g := NewWithT(t)
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username, password, ok := r.BasicAuth()
+		g.Expect(ok).To(BeTrue())
+		g.Expect(username).To(Equal("user"))
+		g.Expect(password).To(Equal("pass"))
+
+		b, err := io.ReadAll(r.Body)
+		g.Expect(err).ToNot(HaveOccurred())
+		var payload = make(map[string]string)
+		err = json.Unmarshal(b, &payload)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(payload["status"]).To(Equal("success"))
+	}))
+	defer ts.Close()
+
+	err := postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, withBasicAuth("user", "pass"))
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
 func Test_postMessage_requestModifier(t *testing.T) {
 	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
@@ -114,7 +152,11 @@ func Test_postMessage_responseValidator(t *testing.T) {
 	err := postMessage(context.Background(), ts.URL, map[string]string{"status": "success"})
 	g.Expect(err).ToNot(HaveOccurred())
 
-	err = postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, withResponseValidator(func(_ int, body []byte) error {
+	err = postMessage(context.Background(), ts.URL, map[string]string{"status": "success"}, withResponseValidator(func(resp *http.Response) error {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
 		if strings.HasPrefix(string(body), "error:") {
 			return errors.New(string(body))
 		}

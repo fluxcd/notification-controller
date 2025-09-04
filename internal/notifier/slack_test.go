@@ -63,16 +63,19 @@ func TestSlack_PostUpdate(t *testing.T) {
 
 func TestSlack_ValidateResponse(t *testing.T) {
 	g := NewWithT(t)
-	body := []byte(`{
+
+	resp := httptest.NewRecorder()
+	resp.Write([]byte(`{
   "ok": true
-}`)
-	err := validateSlackResponse(http.StatusOK, body)
+}`))
+	err := validateSlackResponse(resp.Result())
 	g.Expect(err).ToNot(HaveOccurred())
 
-	body = []byte(`{
+	resp = httptest.NewRecorder()
+	resp.Write([]byte(`{
   "ok": false,
   "error": "too_many_attachments"
-}`)
-	err = validateSlackResponse(http.StatusOK, body)
+}`))
+	err = validateSlackResponse(resp.Result())
 	g.Expect(err).To(MatchError(ContainSubstring("Slack responded with error: too_many_attachments")))
 }

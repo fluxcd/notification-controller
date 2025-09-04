@@ -108,6 +108,7 @@ The supported alerting providers are:
 | [Telegram](#telegram)                                   | `telegram`       |
 | [WebEx](#webex)                                         | `webex`          |
 | [NATS](#nats)                                           | `nats`           |
+| [Zulip](#zulip)                                         | `zulip`          |
 
 #### Types supporting Git commit status updates
 
@@ -1139,6 +1140,46 @@ stringData:
   password: <NATS Password>
 ```
 
+##### Zulip
+
+When `.spec.type` is set to `zulip`, the controller will send a Zulip message
+to the provided [Address](#address). The address is expected to be an HTTP/S URL
+pointing to a Zulip server. The `POST /api/v1/messages` API will be used to
+send the message. See the API docs [here](https://zulip.com/api/send-message).
+
+The Zulip *channel* and *topic* must be specified in the [Channel](#channel) field,
+separated by a forward slash (`/`). For example: `general/alerts`. In this case, the
+message will be sent to the `general` channel, under the `alerts` topic.
+
+The `zulip` Provider supports the configuration of an [HTTP/S proxy](#https-proxy),
+a [certificate secret reference](#certificate-secret-reference) for configuring TLS,
+and a [secret reference](#secret-reference) for HTTP Basic Authentication.
+
+Example of a `zulip` Provider with HTTP Basic Authentication:
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: zulip
+  namespace: default
+spec:
+  type: zulip
+  address: https://my-org.zulipchat.com
+  channel: my-channel/my-topic
+  secretRef:
+    name: zulip-basic-auth
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: zulip-basic-auth
+  namespace: default
+stringData:
+  username: my-bot@my-org.zulipchat.com      # the Zulip bot email address
+  password: F8KXuAylZOta3L5tjgVm3r1YVruUNGXu # the Zulip bot API key
+```
+
 ### Address
 
 `.spec.address` is an optional field that specifies the endpoint where the events are posted.
@@ -1300,6 +1341,7 @@ The following providers support client certificate authentication:
 | `sentry`            | Sentry                         |
 | `slack`             | Slack API                      |
 | `webex`             | Webex messages                 |
+| `zulip`             | Zulip API                      |
 
 Support for client certificate authentication is being expanded to additional providers over time.
 
