@@ -1690,7 +1690,6 @@ The Azure Event Hub provider supports the following authentication methods,
   Identity](https://learn.microsoft.com/en-us/azure/event-hubs/authenticate-managed-identity)
 - [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature)
   based.
-- [JWT](https://docs.microsoft.com/en-us/azure/event-hubs/authenticate-application) (Deprecated)
 
 #### Managed Identity
 
@@ -1776,63 +1775,6 @@ To create the needed secret:
 ```shell
 kubectl create secret generic azure-webhook \
 --from-literal=address="Endpoint=sb://fluxv2.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=yoursaskeygeneatedbyazure"
-```
-
-#### JWT based auth (Deprecated)
-
-In JWT we use 3 input values. Channel, token and address. We perform the
-following translation to match we the data we need to communicate with Azure
-Event Hub.
-
-- channel = Azure Event Hub namespace
-- address = Azure Event Hub name 
-- token   = JWT
-
-```yaml
----
-apiVersion: notification.toolkit.fluxcd.io/v1beta3
-kind: Provider
-metadata:
-  name: azure
-  namespace: default
-spec:
-  type: azureeventhub
-  address: <event-hub-name>
-  channel: <event-hub-namespace>
-  secretRef:
-    name: azure-token
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: azure-token
-  namespace: default
-stringData:
-  token: <event-hub-token>
-```
-
-The controller doesn't take any responsibility for the JWT token to be updated.
-You need to use a secondary tool to make sure that the token in the secret is
-renewed.
-
-If you want to make a easy test assuming that you have setup a Azure Enterprise
-application and you called it event-hub you can follow most of the bellow
-commands. You will need to provide the `client_secret` that you got when
-generating the Azure Enterprise Application.
-
-```shell
-export AZURE_CLIENT=$(az ad app list --filter "startswith(displayName,'event-hub')" --query '[].appId' |jq -r '.[0]')
-export AZURE_SECRET='secret-client-secret-generated-at-creation'
-export AZURE_TENANT=$(az account show -o tsv --query tenantId)
-
-curl -X GET --data 'grant_type=client_credentials' --data "client_id=$AZURE_CLIENT" --data "client_secret=$AZURE_SECRET" --data 'resource=https://eventhubs.azure.net' -H 'Content-Type: application/x-www-form-urlencoded' https://login.microsoftonline.com/$AZURE_TENANT/oauth2/token |jq .access_token
-```
-
-Use the output you got from `curl` and add it to your secret like bellow:
-
-```shell
-kubectl create secret generic azure-token \
---from-literal=token='A-valid-JWT-token'
 ```
 
 ### Git Commit Status Updates

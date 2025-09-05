@@ -64,7 +64,7 @@ func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace
 				return nil, fmt.Errorf("failed to create a eventhub using managed identity: %w", err)
 			}
 		} else {
-			log.FromContext(ctx).Error(nil, "warning: static JWT authentication is deprecated and will be removed in the future, prefer workload identity: https://fluxcd.io/flux/components/notification/providers/#managed-identity")
+			log.FromContext(ctx).Error(nil, "warning: static JWT authentication is deprecated and will be removed in Provider v1 GA, prefer workload identity: https://fluxcd.io/flux/components/notification/providers/#managed-identity")
 		}
 		producerClient, err = newJWTHub(endpointURL, token, eventHubNamespace)
 		if err != nil {
