@@ -61,6 +61,7 @@ var (
 		apiv1.BitbucketProvider:       bitbucketNotifierFunc,
 		apiv1.AzureDevOpsProvider:     azureDevOpsNotifierFunc,
 		apiv1.ZulipProvider:           zulipNotifierFunc,
+		apiv1.OTELProvider:            otelNotifierFunc,
 	}
 )
 
@@ -359,4 +360,11 @@ func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {
 
 func zulipNotifierFunc(opts notifierOptions) (Interface, error) {
 	return NewZulip(opts.URL, opts.Channel, opts.ProxyURL, opts.TLSConfig, opts.Username, opts.Password)
+}
+
+func otelNotifierFunc(opts notifierOptions) (Interface, error) {
+	if opts.Token == "" && opts.Password != "" {
+		opts.Token = opts.Password
+	}
+	return NewOTLPTracer(opts.Context, opts.URL, opts.ProxyURL, opts.Headers, opts.TLSConfig, opts.Username, opts.Token)
 }

@@ -109,6 +109,7 @@ The supported alerting providers are:
 | [WebEx](#webex)                                         | `webex`          |
 | [NATS](#nats)                                           | `nats`           |
 | [Zulip](#zulip)                                         | `zulip`          |
+| [OTEL](#otel)                                           | `otel`           |
 
 #### Types supporting Git commit status updates
 
@@ -1180,6 +1181,49 @@ stringData:
   password: F8KXuAylZOta3L5tjgVm3r1YVruUNGXu # the Zulip bot API key
 ```
 
+##### OTEL
+
+When `.spec.type` is set to `otel`, the controller will send distributed tracing data for
+[Events](events.md#event-structure) to an OpenTelemetry (OTEL) collector endpoint specified in the [Address](#address) field.
+
+The controller converts Flux events into OTEL spans with proper trace relationships based on the Flux object hierarchy. Source objects (GitRepository, HelmChart, OCIRepository, Bucket) create root spans, while other objects create child spans within the same trace. Each span includes event metadata as attributes and uses the alert name and namespace as the service identifier.
+
+Spans are correlated using a trace ID generated from the alert UID and revision metadata (depending on the source, the revision could be oci-digest, git commit hash, etc.). Having the following format: `<AlertUID>:<revision>`. All events from the same alert share the same trace ID, enabling end-to-end visibility across.
+
+This Provider type supports authentication via [Secret reference](#secret-reference), [proxy configuration](#https-proxy), and [TLS certificates](#certificate-secret-reference).
+
+**Note:** HelmRepository events are skipped as they are not considered primary sources for tracing.
+
+###### OTEL with Basic Authentication Example
+
+To configure `otel` provider with basic authentication, create a Secret with the
+`username` and `password` fields set, and add a `otel` provider with the associated
+[Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: otel-provider
+  namespace: desired-namespace
+spec:
+  type: otel
+  address: <Server-URL>
+  secretRef:
+    name: otel-provider-creds
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: otel-provider-creds
+  namespace: desired-namespace
+stringData:
+  username: <OTEL Username>
+  password: <OTEL Password>
+```
+
+
 ### Address
 
 `.spec.address` is an optional field that specifies the endpoint where the events are posted.
@@ -1342,6 +1386,7 @@ The following providers support client certificate authentication:
 | `slack`             | Slack API                      |
 | `webex`             | Webex messages                 |
 | `zulip`             | Zulip API                      |
+| `otel`              | OpenTelemetry Traces           |
 
 Support for client certificate authentication is being expanded to additional providers over time.
 
