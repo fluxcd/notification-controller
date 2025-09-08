@@ -385,7 +385,7 @@ func otelNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewOTLPTracer(opts.Context, opts.URL, opts.ProxyURL, opts.Headers, opts.TLSConfig, opts.Username, opts.Token)
+	return NewOTLPTracer(opts.Context, opts.TokenClient, opts.URL, opts.ProxyURL, opts.Headers, opts.TLSConfig, opts.Username, opts.Token)
 }
 
 func zoomNotifierFunc(opts notifierOptions) (Interface, error) {

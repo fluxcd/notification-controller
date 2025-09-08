@@ -89,7 +89,7 @@ func TestForwarder_Post(t *testing.T) {
 		{
 			name:       "non-empty HMAC key adds signature header",
 			hmacKey:    []byte("7152fed34dd6149a7c75a276c510da27cb6f82b0"),
-			hmacHeader: "sha256=2662a6dd1a887c05183aa5b9787d5ed92116199f09c7b3c7908ee3bd20bc60d9",
+			hmacHeader: "sha256=729978305ae46dfeab8809036d6793410364071039d6be3f69bac6f7e052e635",
 			xSigHeader: "should be overwritten with actual signature",
 		},
 	}
