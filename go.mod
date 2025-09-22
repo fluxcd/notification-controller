@@ -10,7 +10,7 @@ require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs/v2 v2.0.0
-	github.com/DataDog/datadog-api-client-go/v2 v2.43.0
+	github.com/DataDog/datadog-api-client-go/v2 v2.46.0
 	github.com/PagerDuty/go-pagerduty v1.8.0
 	github.com/cdevents/sdk-go v0.4.1
 	github.com/chainguard-dev/git-urls v1.0.2
@@ -38,8 +38,8 @@ require (
 	github.com/onsi/gomega v1.38.2
 	github.com/sethvargo/go-limiter v1.0.0
 	github.com/slok/go-http-metrics v0.13.0
-	github.com/spf13/pflag v1.0.7
-	gitlab.com/gitlab-org/api/client-go v0.147.0
+	github.com/spf13/pflag v1.0.10
+	gitlab.com/gitlab-org/api/client-go v0.147.1
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.38.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.38.0
@@ -47,7 +47,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0
 	golang.org/x/oauth2 v0.31.0
 	golang.org/x/text v0.29.0
-	google.golang.org/api v0.248.0
+	google.golang.org/api v0.249.0
 	k8s.io/api v0.34.0
 	k8s.io/apimachinery v0.34.0
 	k8s.io/client-go v0.34.0
