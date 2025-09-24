@@ -2,6 +2,106 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.7.0
+
+**Release date:** 2025-09-24
+
+This minor release comes with various bug fixes and improvements.
+
+⚠️ The `v1beta1` APIs were removed. Before upgrading the CRDs, Flux users
+must run [`flux migrate`](https://github.com/fluxcd/flux2/pull/5473) to
+migrate the cluster storage off `v1beta1`.
+
+### Provider
+
+The field `.spec.proxySecretRef` has been added to the Provider API.
+The field `.spec.proxy` and the field `proxy` inside the Secret
+referenced by `.spec.secretRef` are now deprecated and will be removed
+in the Provider API v1 GA.
+
+The `JWT based auth` authentication method for the `azureeventhub`
+provider has been deprecated and will be removed in the Provider
+API v1 GA.
+
+The `otel` provider has been introduced to send alerts as traces to an
+[OpenTelemetry Collector](https://opentelemetry.io/docs/collector/).
+
+The `azuredevops` and `googlepubsub` providers now support workload
+identity both at the controller and object levels. For object level,
+the `.spec.serviceAccountName` field can be set to the name of a
+service account in the same namespace that was configured with
+a cloud identity. For this feature to work, the controller feature gate
+`ObjectLevelWorkloadIdentity` must be enabled. See a complete guide
+[here](https://fluxcd.io/flux/integrations/).
+
+Support for mutual TLS (mTLS) has been added for GitHub App transport,
+git-based notifiers, postMessage-based notifiers, DataDog and Sentry,
+and TLS ServerName pinning has been removed for improved flexibility.
+
+### Receiver
+
+Users can now define a label selector for watching Secrets referenced
+in Receivers through the controller flag `--watch-configs-label-selector`.
+When an event on a Secret matching the label selector occurs, all
+Receivers referencing the Secret will be reconciled. The default is
+`--watch-configs-label-selector=reconcile.fluxcd.io/watch=Enabled`.
+
+### General updates
+
+In addition, the Kubernetes dependencies have been updated to v1.34 and
+various other controller dependencies have been updated to their latest
+version. The controller is now built with Go 1.25.
+
+Fixes:
+- Fix GitHub dispatch example documentation
+  [#1168](https://github.com/fluxcd/notification-controller/pull/1168)
+
+Improvements:
+- Add ProxySecretRef field to Provider API
+  [#1133](https://github.com/fluxcd/notification-controller/pull/1133)
+- [RFC-0010] Add object-level workload identity support for Azure DevOps provider
+  [#1145](https://github.com/fluxcd/notification-controller/pull/1145)
+- [RFC-0010] Add object-level workload identity support for Google Pub/Sub provider
+  [#1154](https://github.com/fluxcd/notification-controller/pull/1154)
+- [RFC-0010] Add default-service-account flag for lockdown
+  [#1161](https://github.com/fluxcd/notification-controller/pull/1161)
+- [RFC-0011] Add OpenTelemetry (OTEL) provider type
+  [#1149](https://github.com/fluxcd/notification-controller/pull/1149)
+- Add Zulip alert provider
+  [#1169](https://github.com/fluxcd/notification-controller/pull/1169)
+- Add mTLS support for postMessage-based notifiers
+  [#1137](https://github.com/fluxcd/notification-controller/pull/1137)
+- Add mTLS support for git-based notifiers
+  [#1146](https://github.com/fluxcd/notification-controller/pull/1146)
+- Add mTLS support for DataDog and Sentry notifiers
+  [#1148](https://github.com/fluxcd/notification-controller/pull/1148)
+- Add support for mTLS to GitHub App transport
+  [#1160](https://github.com/fluxcd/notification-controller/pull/1160)
+- Add proxy support to Telegram notifier
+  [#1140](https://github.com/fluxcd/notification-controller/pull/1140)
+- Add proper basic auth support for Alertmanager Provider
+  [#1152](https://github.com/fluxcd/notification-controller/pull/1152)
+- Add label selector for watching Secrets referenced in Receivers
+  [#1151](https://github.com/fluxcd/notification-controller/pull/1151)
+- Make address field optional for providers that generate URLs internally
+  [#1141](https://github.com/fluxcd/notification-controller/pull/1141)
+- Remove TLS ServerName pinning in TLS config creation
+  [#1158](https://github.com/fluxcd/notification-controller/pull/1158)
+- Remove deprecated APIs in group `notification.toolkit.fluxcd.io/v1beta1`
+  [#1157](https://github.com/fluxcd/notification-controller/pull/1157)
+- Migrate Azure Event Hubs to new ProducerClient (azeventhubs) SDK
+  [#1145](https://github.com/fluxcd/notification-controller/pull/1145)
+- Unify BasicAuth processing using pkg/runtime/secrets
+  [#1139](https://github.com/fluxcd/notification-controller/pull/1139)
+  [#1142](https://github.com/fluxcd/notification-controller/pull/1142)
+  [#1147](https://github.com/fluxcd/notification-controller/pull/1147)
+- Refactor CI with `fluxcd/gha-workflows`
+  [#1174](https://github.com/fluxcd/notification-controller/pull/1174)
+- Various dependency updates
+  [#1173](https://github.com/fluxcd/notification-controller/pull/1173)
+  [#1166](https://github.com/fluxcd/notification-controller/pull/1166)
+  [#1177](https://github.com/fluxcd/notification-controller/pull/1177)
+
 ## 1.6.0
 
 **Release date:** 2025-05-27
