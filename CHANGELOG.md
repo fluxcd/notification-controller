@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.7.1
+
+**Release date:** 2025-09-24
+
+This patch release fixes the release workflow.
+
+Fixes:
+- Fix release workflow
+  [#1179](https://github.com/fluxcd/notification-controller/pull/1179)
+
 ## 1.7.0
 
 **Release date:** 2025-09-24
