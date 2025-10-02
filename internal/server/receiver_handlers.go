@@ -60,8 +60,8 @@ var defaultFluxAPIVersions = map[string]string{
 	"HelmChart":       "source.toolkit.fluxcd.io/v1",
 	"HelmRepository":  "source.toolkit.fluxcd.io/v1",
 	"GitRepository":   "source.toolkit.fluxcd.io/v1",
-	"OCIRepository":   "source.toolkit.fluxcd.io/v1beta2",
-	"ImageRepository": "image.toolkit.fluxcd.io/v1beta2",
+	"OCIRepository":   "source.toolkit.fluxcd.io/v1",
+	"ImageRepository": "image.toolkit.fluxcd.io/v1",
 }
 
 // IndexReceiverWebhookPath is a client.IndexerFunc that returns the Receiver's
