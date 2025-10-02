@@ -121,7 +121,7 @@ handle the incoming webhook request.
 #### Supported Receiver types
 
 | Receiver                                   | Type           | Supports filtering using [Events](#events) |
-| ------------------------------------------ | -------------- | ------------------------------------------ |
+|--------------------------------------------|----------------|--------------------------------------------|
 | [Generic webhook](#generic)                | `generic`      | ❌                                          |
 | [Generic webhook with HMAC](#generic-hmac) | `generic-hmac` | ❌                                          |
 | [GitHub](#github)                          | `github`       | ✅                                          |
@@ -426,7 +426,7 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - apiVersion: image.toolkit.fluxcd.io/v1beta2
+    - apiVersion: image.toolkit.fluxcd.io/v1
       kind: ImageRepository
       name: webapp
 ```
@@ -459,7 +459,7 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - apiVersion: image.toolkit.fluxcd.io/v1beta2
+    - apiVersion: image.toolkit.fluxcd.io/v1
       kind: ImageRepository
       name: webapp
 ```
@@ -493,7 +493,7 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - apiVersion: image.toolkit.fluxcd.io/v1beta2
+    - apiVersion: image.toolkit.fluxcd.io/v1
       kind: ImageRepository
       name: webapp
 ```
@@ -537,7 +537,7 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - apiVersion: image.toolkit.fluxcd.io/v1beta2
+    - apiVersion: image.toolkit.fluxcd.io/v1
       kind: ImageRepository
       name: webapp
 ```
@@ -576,7 +576,7 @@ spec:
   secretRef:
     name: webhook-token
   resources:
-    - apiVersion: image.toolkit.fluxcd.io/v1beta2
+    - apiVersion: image.toolkit.fluxcd.io/v1
       kind: ImageRepository
       name: webapp
       namespace: default
@@ -662,11 +662,9 @@ called.
 A resource entry contains the following fields:
 
 - `apiVersion` (Optional): The Flux Custom Resource API group and version, such as
-  `source.toolkit.fluxcd.io/v1beta2`.
-- `kind`: The Flux Custom Resource kind, supported values are `Bucket`,
-  `GitRepository`, `Kustomization`, `HelmRelease`, `HelmChart`,
-  `HelmRepository`, `ImageRepository`, `ImagePolicy`, `ImageUpdateAutomation`
-  and `OCIRepository`.
+  `source.toolkit.fluxcd.io/v1`.
+- `kind`: The Flux Custom Resource kind, e.g. `Bucket`,
+  `GitRepository`, `OCIRepository` or `ImageRepository`.
 - `name`: The Flux Custom Resource `.metadata.name` or `*` (if `matchLabels` is specified)
 - `namespace` (Optional): The Flux Custom Resource `.metadata.namespace`.
   When not specified, the Receiver's `.metadata.namespace` is used instead.
@@ -679,7 +677,7 @@ To reconcile a single object, set the `kind`, `name` and `namespace`:
 
 ```yaml
 resources:
-  - apiVersion: image.toolkit.fluxcd.io/v1beta2
+  - apiVersion: image.toolkit.fluxcd.io/v1
     kind: ImageRepository
     name: podinfo
 ```
@@ -690,7 +688,7 @@ To reconcile objects of a particular kind with specific labels:
 
 ```yaml
 resources:
-  - apiVersion: image.toolkit.fluxcd.io/v1beta2
+  - apiVersion: image.toolkit.fluxcd.io/v1
     kind: ImageRepository
     name: "*"
     matchLabels:
@@ -717,7 +715,7 @@ spec:
   secretRef:
     name: flux-gar-token
   resources:
-    - apiVersion: image.toolkit.fluxcd.io/v1beta2
+    - apiVersion: image.toolkit.fluxcd.io/v1
       kind: ImageRepository
       name: "*"
       matchLabels:
@@ -739,7 +737,7 @@ spec:
   secretRef:
     name: flux-gar-token
   resources:
-    - apiVersion: image.toolkit.fluxcd.io/v1beta2
+    - apiVersion: image.toolkit.fluxcd.io/v1
       kind: ImageRepository
       name: "*"
       matchLabels:
