@@ -1253,7 +1253,6 @@ credentials for the provider API.
 The Kubernetes secret can have any of the following keys:
 
 - `address` - overrides `.spec.address`
-- `proxy` - overrides `.spec.proxy` (deprecated, use `.spec.proxySecretRef` instead. **Support for this key will be removed in v1**)
 - `token` - used for authentication
 - `username` - overrides `.spec.username`
 - `password` - used for authentication, often in combination with `username` (or `.spec.username`)
@@ -1312,7 +1311,7 @@ stringData:
 #### Proxy auth example
 
 Some networks need to use an authenticated proxy to access external services.
-The recommended approach is to use `.spec.proxySecretRef` with a dedicated Secret:
+Use `.spec.proxySecretRef` with a dedicated Secret:
 
 ```yaml
 ---
@@ -1325,20 +1324,6 @@ stringData:
   address: "http://proxy_url:proxy_port"
   username: "proxy_username"
   password: "proxy_password"
-```
-
-**Legacy approach (deprecated):**
-The proxy address can also be stored in the main secret to hide parameters like the username and password:
-
-```yaml
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: my-provider-proxy-legacy
-  namespace: default
-stringData:
-  proxy: "http://username:password@proxy_url:proxy_port"
 ```
 
 ### Certificate secret reference
@@ -1466,18 +1451,10 @@ the controller will log a deprecation warning.
 
 ### HTTP/S proxy
 
-`.spec.proxy` is an optional field to specify an HTTP/S proxy address.
-**Warning:** This field is deprecated, use `.spec.proxySecretRef` instead. **Support for this field will be removed in v1.**
-
 `.spec.proxySecretRef` is an optional field to specify a name reference to a
 Secret in the same namespace as the Provider, containing the proxy configuration.
 The Secret should contain an `address` key with the HTTP/S address of the proxy server.
 Optional `username` and `password` keys can be provided for proxy authentication.
-
-If the proxy address contains sensitive information such as basic auth credentials, it is
-recommended to use `.spec.proxySecretRef` instead of `.spec.proxy`.
-When `.spec.proxySecretRef` is specified, both `.spec.proxy` and the `proxy` key from
-`.spec.secretRef` are ignored.
 
 ### Timeout
 
