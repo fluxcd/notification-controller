@@ -98,14 +98,6 @@ type ProviderSpec struct {
 	// +optional
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 
-	// Proxy the HTTP/S address of the proxy server.
-	// Deprecated: Use ProxySecretRef instead. Will be removed in v1.
-	// +kubebuilder:validation:Pattern="^(http|https)://.*$"
-	// +kubebuilder:validation:MaxLength:=2048
-	// +kubebuilder:validation:Optional
-	// +optional
-	Proxy string `json:"proxy,omitempty"`
-
 	// ProxySecretRef specifies the Secret containing the proxy configuration
 	// for this Provider. The Secret should contain an 'address' key with the
 	// HTTP/S address of the proxy server. Optional 'username' and 'password'

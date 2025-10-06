@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -317,13 +316,10 @@ func extractAuthFromSecret(ctx context.Context, secret *corev1.Secret) ([]notifi
 		}
 	}
 
-	if val, ok := secret.Data["proxy"]; ok {
-		deprecatedProxy := strings.TrimSpace(string(val))
-		if _, err := url.Parse(deprecatedProxy); err != nil {
-			return nil, nil, fmt.Errorf("invalid 'proxy' in secret '%s/%s'", secret.Namespace, secret.Name)
-		}
-		log.FromContext(ctx).Error(nil, "warning: specifying proxy with 'proxy' key in the referenced secret is deprecated, use spec.proxySecretRef with 'address' key instead. Support for the 'proxy' key will be removed in v1.")
-		options = append(options, notifier.WithProxyURL(deprecatedProxy))
+	if _, ok := secret.Data["proxy"]; ok {
+		err := errors.New("specifying proxy with 'proxy' key in the referenced secret is deprecated, use spec.proxySecretRef with 'address' key instead. Support for the 'proxy' key is removed in v1")
+		log.FromContext(ctx).Error(err, "no longer supported.")
+		return nil, nil, err
 	}
 
 	if h, ok := secret.Data["headers"]; ok {
@@ -378,12 +374,6 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 
 	if tokenCache != nil {
 		options = append(options, notifier.WithTokenCache(tokenCache))
-	}
-
-	// TODO: Remove deprecated proxy handling when Provider v1 is released.
-	if provider.Spec.Proxy != "" {
-		log.FromContext(ctx).Error(nil, "warning: spec.proxy is deprecated, please use spec.proxySecretRef instead. Support for this field will be removed in v1.")
-		options = append(options, notifier.WithProxyURL(provider.Spec.Proxy))
 	}
 
 	webhook := provider.Spec.Address
