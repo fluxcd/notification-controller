@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.7.2
+
+**Release date:** 2025-10-06
+
+This patch release fixes the default Flux API versions in the Receiver handler.
+
+Fixes:
+- Update default API versions to GA
+  [#1186](https://github.com/fluxcd/notification-controller/pull/1186)
+
 ## 1.7.1
 
 **Release date:** 2025-09-24
