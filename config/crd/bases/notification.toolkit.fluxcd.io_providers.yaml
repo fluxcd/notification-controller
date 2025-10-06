@@ -297,13 +297,6 @@ spec:
                   Deprecated and not used in v1beta3.
                 pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
                 type: string
-              proxy:
-                description: |-
-                  Proxy the HTTP/S address of the proxy server.
-                  Deprecated: Use ProxySecretRef instead. Will be removed in v1.
-                maxLength: 2048
-                pattern: ^(http|https)://.*$
-                type: string
               proxySecretRef:
                 description: |-
                   ProxySecretRef specifies the Secret containing the proxy configuration

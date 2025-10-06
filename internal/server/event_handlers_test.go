@@ -600,7 +600,6 @@ func TestCreateNotifier(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		// TODO: Remove deprecated secret proxy key tests when Provider v1 is released.
 		{
 			name: "reference to secret with valid address, proxy, headers",
 			providerSpec: &apiv1beta3.ProviderSpec{
@@ -611,17 +610,6 @@ func TestCreateNotifier(t *testing.T) {
 				"address": []byte("https://example.com"),
 				"proxy":   []byte("https://exampleproxy.com"),
 				"headers": []byte(`foo: bar`),
-			},
-		},
-		{
-			name: "reference to secret with invalid proxy",
-			providerSpec: &apiv1beta3.ProviderSpec{
-				Type:      "slack",
-				SecretRef: &meta.LocalObjectReference{Name: secretName},
-			},
-			secretData: map[string][]byte{
-				"address": []byte("https://example.com"),
-				"proxy":   []byte("https://exampleproxy.com|"),
 			},
 			wantErr: true,
 		},
@@ -646,19 +634,6 @@ func TestCreateNotifier(t *testing.T) {
 			},
 			secretData: map[string][]byte{
 				"address": []byte("https://example.com"),
-			},
-		},
-		// TODO: Remove deprecated spec.proxy field tests when Provider v1 is released.
-		{
-			name: "invalid spec proxy overridden by valid secret ref proxy",
-			providerSpec: &apiv1beta3.ProviderSpec{
-				Type:      "slack",
-				SecretRef: &meta.LocalObjectReference{Name: secretName},
-				Proxy:     "https://example.com|",
-			},
-			secretData: map[string][]byte{
-				"address": []byte("https://example.com"),
-				"proxy":   []byte("https://example.com"),
 			},
 		},
 		{
@@ -869,15 +844,6 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 				"username": []byte("proxyuser"),
 			},
 			wantErr: true,
-		},
-		// TODO: Remove deprecated spec.proxy field tests when Provider v1 is released.
-		{
-			name: "deprecated spec.proxy field",
-			providerSpec: &apiv1beta3.ProviderSpec{
-				Type:    "generic",
-				Address: "https://example.com",
-				Proxy:   "http://proxy.example.com:8080",
-			},
 		},
 		{
 			name: "provider type that does not require address field",
