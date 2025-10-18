@@ -29,9 +29,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestTelegram_Post(t *testing.T) {
-	g := NewWithT(t)
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func telegramMockServer(g *WithT, expected *TelegramPayload) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		g.Expect(r.Method).To(Equal(http.MethodPost))
 		g.Expect(r.URL.Path).To(Equal("/sendMessage"))
 		g.Expect(r.Header.Get("Content-Type")).To(Equal("application/json"))
@@ -43,8 +42,9 @@ func TestTelegram_Post(t *testing.T) {
 		err = json.Unmarshal(b, &payload)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(payload.ChatID).To(Equal("channel"))
-		g.Expect(payload.ParseMode).To(Equal("MarkdownV2"))
+		g.Expect(payload.ChatID).To(Equal(expected.ChatID))
+		g.Expect(payload.MessageThreadID).To(Equal(expected.MessageThreadID))
+		g.Expect(payload.ParseMode).To(Equal(expected.ParseMode))
 
 		lines := strings.Split(payload.Text, "\n")
 		g.Expect(lines).To(HaveLen(5))
@@ -59,9 +59,38 @@ func TestTelegram_Post(t *testing.T) {
 
 		w.WriteHeader(http.StatusOK)
 	}))
+}
+
+func TestTelegram_Post(t *testing.T) {
+	g := NewWithT(t)
+	ts := telegramMockServer(g, &TelegramPayload{
+		ChatID:          "channel",
+		MessageThreadID: "",
+		ParseMode:       "MarkdownV2",
+	})
 	defer ts.Close()
 
 	telegram, err := NewTelegram("", "channel", "token")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	telegram.url = ts.URL
+
+	ev := testEvent()
+	ev.Metadata["kubernetes.io/somekey"] = "some.value"
+	err = telegram.Post(context.TODO(), ev)
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func TestTelegram_PostWithMessageThreadID(t *testing.T) {
+	g := NewWithT(t)
+	ts := telegramMockServer(g, &TelegramPayload{
+		ChatID:          "channel",
+		MessageThreadID: "thread",
+		ParseMode:       "MarkdownV2",
+	})
+	defer ts.Close()
+
+	telegram, err := NewTelegram("", "channel:thread", "token")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	telegram.url = ts.URL

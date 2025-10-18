@@ -25,9 +25,10 @@ type Telegram struct {
 // TelegramPayload represents the payload sent to Telegram Bot API
 // Reference: https://core.telegram.org/bots/api#sendmessage
 type TelegramPayload struct {
-	ChatID    string `json:"chat_id"`    // Unique identifier for the target chat
-	Text      string `json:"text"`       // Text of the message to be sent
-	ParseMode string `json:"parse_mode"` // Mode for parsing entities in the message text
+	ChatID          string `json:"chat_id"`                     // Unique identifier for the target chat
+	MessageThreadID string `json:"message_thread_id,omitempty"` // Unique identifier for the target message thread (topic) of the forum; for forum supergroups only
+	Text            string `json:"text"`                        // Text of the message to be sent
+	ParseMode       string `json:"parse_mode"`                  // Mode for parsing entities in the message text
 }
 
 func NewTelegram(proxyURL, channel, token string) (*Telegram, error) {
@@ -66,10 +67,16 @@ func (t *Telegram) Post(ctx context.Context, event eventv1.Event) error {
 	}
 	message := fmt.Sprintf("*%s*\n%s\n%s", escapeString(heading), escapeString(event.Message), metadata)
 
+	chatID, thread, channelHasThreadID := strings.Cut(t.Channel, ":")
+
 	payload := TelegramPayload{
-		ChatID:    t.Channel,
+		ChatID:    chatID,
 		Text:      message,
 		ParseMode: "MarkdownV2", // https://core.telegram.org/bots/api#markdownv2-style
+	}
+
+	if channelHasThreadID {
+		payload.MessageThreadID = thread
 	}
 
 	apiURL, err := url.JoinPath(t.url, sendMessageMethodName)
