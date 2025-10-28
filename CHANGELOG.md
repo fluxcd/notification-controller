@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.7.4
+
+**Release date:** 2025-10-28
+
+This patch release fixes support for SOCKS5 proxy in the controller APIs
+and support for `message_thread_id` in the `telegram` provider.
+
+Fixes:
+- Fix support for telegram message_thread_id
+  [#1199](https://github.com/fluxcd/notification-controller/pull/1199)
+- Restore SOCKS5 proxy support
+  [#1196](https://github.com/fluxcd/notification-controller/pull/1196)
+
 ## 1.7.3
 
 **Release date:** 2025-10-08
