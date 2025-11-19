@@ -57,20 +57,15 @@ type ReceiverReconciler struct {
 
 type ReceiverReconcilerOptions struct {
 	RateLimiter           workqueue.TypedRateLimiter[reconcile.Request]
+	WatchConfigs          bool
 	WatchConfigsPredicate predicate.Predicate
-}
-
-func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return r.SetupWithManagerAndOptions(mgr, ReceiverReconcilerOptions{
-		WatchConfigsPredicate: predicate.Not(predicate.Funcs{}),
-	})
 }
 
 const (
 	secretRefIndex = ".metadata.secretRef"
 )
 
-func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts ReceiverReconcilerOptions) error {
+func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager, opts ReceiverReconcilerOptions) error {
 	// This index is used to list Receivers by their webhook path after the receiver server
 	// gets a request.
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &apiv1.Receiver{},
@@ -87,19 +82,21 @@ func (r *ReceiverReconciler) SetupWithManagerAndOptions(mgr ctrl.Manager, opts R
 		}); err != nil {
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	ctrlBuilder := ctrl.NewControllerManagedBy(mgr).
 		For(&apiv1.Receiver{}, builder.WithPredicates(
 			predicate.Or(predicate.GenerationChangedPredicate{}, predicates.ReconcileRequestedPredicate{}),
-		)).
-		WatchesMetadata(
-			&corev1.Secret{},
-			handler.EnqueueRequestsFromMapFunc(r.enqueueRequestsForChangeOf),
-			builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, opts.WatchConfigsPredicate),
-		).
-		WithOptions(controller.Options{
-			RateLimiter: opts.RateLimiter,
-		}).
-		Complete(r)
+		))
+
+	if opts.WatchConfigs {
+		ctrlBuilder = ctrlBuilder.
+			WatchesMetadata(
+				&corev1.Secret{},
+				handler.EnqueueRequestsFromMapFunc(r.enqueueRequestsForChangeOf),
+				builder.WithPredicates(predicate.ResourceVersionChangedPredicate{}, opts.WatchConfigsPredicate),
+			)
+	}
+
+	return ctrlBuilder.WithOptions(controller.Options{RateLimiter: opts.RateLimiter}).Complete(r)
 }
 
 // enqueueRequestsForChangeOf enqueues Receiver requests for changes in referenced Secret objects.

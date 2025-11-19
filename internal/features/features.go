@@ -20,6 +20,7 @@ package features
 
 import (
 	"github.com/fluxcd/pkg/auth"
+	"github.com/fluxcd/pkg/runtime/controller"
 	feathelper "github.com/fluxcd/pkg/runtime/features"
 )
 
@@ -36,6 +37,9 @@ var features = map[string]bool{
 	// CacheSecretsAndConfigMaps
 	// opt-in from v0.31
 	CacheSecretsAndConfigMaps: false,
+	// DisableConfigWatchers
+	// opt-in from v1.7.5
+	controller.FeatureGateDisableConfigWatchers: false,
 }
 
 func init() {
