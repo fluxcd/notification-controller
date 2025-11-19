@@ -94,7 +94,7 @@ func TestMain(m *testing.M) {
 		Metrics:        testMetricsH,
 		ControllerName: controllerName,
 		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
-	}).SetupWithManagerAndOptions(testEnv, ReceiverReconcilerOptions{
+	}).SetupWithManager(testEnv, ReceiverReconcilerOptions{
 		RateLimiter:           controller.GetDefaultRateLimiter(),
 		WatchConfigsPredicate: predicate.Not(predicate.Funcs{}),
 	}); err != nil {

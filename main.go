@@ -226,6 +226,13 @@ func main() {
 		os.Exit(1)
 	}
 
+	disableConfigWatchers, err := features.Enabled(runtimeCtrl.FeatureGateDisableConfigWatchers)
+	if err != nil {
+		setupLog.Error(err, "unable to check feature gate "+runtimeCtrl.FeatureGateDisableConfigWatchers)
+		os.Exit(1)
+	}
+	watchConfigs := !disableConfigWatchers
+
 	if err = (&controller.ProviderReconciler{
 		Client:        mgr.GetClient(),
 		EventRecorder: mgr.GetEventRecorderFor(controllerName),
@@ -249,8 +256,9 @@ func main() {
 		ControllerName: controllerName,
 		Metrics:        metricsH,
 		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
-	}).SetupWithManagerAndOptions(mgr, controller.ReceiverReconcilerOptions{
+	}).SetupWithManager(mgr, controller.ReceiverReconcilerOptions{
 		RateLimiter:           runtimeCtrl.GetRateLimiter(rateLimiterOptions),
+		WatchConfigs:          watchConfigs,
 		WatchConfigsPredicate: watchConfigsPredicate,
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Receiver")
