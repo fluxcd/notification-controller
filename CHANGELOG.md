@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.7.5
+
+**Release date:** 2025-11-19
+
+This patch release fixes Azure Workload Identity in Azure China Cloud
+and introduces a feature gate to disable the ConfigMap and Secret watchers,
+`DisableConfigWatchers`.
+
+Improvements:
+- Add feature gate for disabling config watchers
+  [#1212](https://github.com/fluxcd/notification-controller/pull/1212)
+- Upgrade k8s to 1.34.2 and c-r to 0.22.4
+  [#1209](https://github.com/fluxcd/notification-controller/pull/1209)
+
 ## 1.7.4
 
 **Release date:** 2025-10-28
