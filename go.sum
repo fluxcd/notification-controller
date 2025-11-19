@@ -155,8 +155,8 @@ github.com/fluxcd/pkg/git v0.38.0 h1:fFH2PkL+VCtQ1aJec/6l3Wq5fQG1w02HHKfVY+gz1S4
 github.com/fluxcd/pkg/git v0.38.0/go.mod h1:PHilCGIM2t10CJ++yK4SFHIcBAXqMk14XcwZ/Rqw23I=
 github.com/fluxcd/pkg/masktoken v0.8.0 h1:Dm5xIVNbg0s6zNttjDvimaG38bKsXwxBVo5b+D7ThVU=
 github.com/fluxcd/pkg/masktoken v0.8.0/go.mod h1:Gc73ALOqIe+5Gj2V3JggMNiYcBiZ9bNNDYBE9R5XTTg=
-github.com/fluxcd/pkg/runtime v0.90.0 h1:IONDsN9npJdWqbSAfsI8j10sXpgaLd6ywycKwp35Wwo=
-github.com/fluxcd/pkg/runtime v0.90.0/go.mod h1:D/gUsaSpyw6Od2QEL7MELi5m+oUmwokuxUVZ+vKQxdo=
+github.com/fluxcd/pkg/runtime v0.91.0 h1:Z92sOLsJXa+0RIi/vNl87zF5qnsBUdOb60d2a0b4Ulo=
+github.com/fluxcd/pkg/runtime v0.91.0/go.mod h1:D/gUsaSpyw6Od2QEL7MELi5m+oUmwokuxUVZ+vKQxdo=
 github.com/fluxcd/pkg/ssa v0.61.0 h1:GeueQfZVrjPLEzmEkq6gpFTBr1MDcqUihCQDf6AaIo8=
 github.com/fluxcd/pkg/ssa v0.61.0/go.mod h1:PNRlgihYbmlQU5gzsB14nrsNMbtACNanBnKhLCWmeX8=
 github.com/fluxcd/pkg/ssh v0.23.0 h1:PqmBpQB7Rxspdb3LZZo2yflC7m990EU/cYtjK3sO3Tg=
