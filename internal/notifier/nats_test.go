@@ -17,10 +17,14 @@ func TestNewNATS(t *testing.T) {
 		server           string
 		username         string
 		password         string
+		credsData        []byte
+		nkeySeed         []byte
 		expectedErr      error
 		expectedSubject  string
 		expectedUsername string
 		expectedPassword string
+		expectedCreds    bool
+		expectedNkey     bool
 	}{
 		{
 			name:        "empty subject is not allowed",
@@ -54,13 +58,29 @@ func TestNewNATS(t *testing.T) {
 			expectedUsername: "user",
 			expectedPassword: "pass",
 		},
+		{
+			name:            "credentials file data is stored",
+			subject:         "test",
+			server:          "nats",
+			credsData:       []byte("credentials-content"),
+			expectedSubject: "test",
+			expectedCreds:   true,
+		},
+		{
+			name:            "nkey seed data is stored",
+			subject:         "test",
+			server:          "nats",
+			nkeySeed:        []byte("SUAGMJH5XLGZKQQWAWKRZJIGMOU4HPFUYLXJMXOO5NLFEO2OOQJ5LPRDPM"),
+			expectedSubject: "test",
+			expectedNkey:    true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			provider, err := NewNATS(tt.server, tt.subject, tt.username, tt.password)
+			provider, err := NewNATS(tt.server, tt.subject, tt.username, tt.password, tt.credsData, tt.nkeySeed)
 			if tt.expectedErr != nil {
 				g.Expect(err).To(Equal(tt.expectedErr))
 				g.Expect(provider).To(BeNil())
@@ -77,6 +97,13 @@ func TestNewNATS(t *testing.T) {
 				g.Expect(client.server).To(Equal(tt.server))
 				g.Expect(client.username).To(Equal(tt.expectedUsername))
 				g.Expect(client.password).To(Equal(tt.expectedPassword))
+
+				if tt.expectedCreds {
+					g.Expect(client.credsData).To(Equal(tt.credsData))
+				}
+				if tt.expectedNkey {
+					g.Expect(client.nkeySeed).To(Equal(tt.nkeySeed))
+				}
 			}
 		})
 	}
