@@ -1112,15 +1112,92 @@ When `.spec.type` is set to `nats`, the controller will publish the payload of
 an [Event](events.md#event-structure) on the [NATS Subject](https://docs.nats.io/nats-concepts/subjects) provided in the
 [Channel](#channel) field, using the server specified in the [Address](#address) field.
 
-This Provider type can optionally use the [Secret reference](#secret-reference) to
-authenticate to the NATS server using [Username/Password](https://docs.nats.io/using-nats/developer/connecting/userpass).
-The credentials must be specified in [the `username`](#username-example) and `password` fields of the Secret.
-Alternatively, NATS also supports passing the credentials with [the server URL](https://docs.nats.io/using-nats/developer/connecting/userpass#connecting-with-a-user-password-in-the-url). In this case the `address` should be provided through a 
+This Provider type supports multiple authentication methods through the [Secret reference](#secret-reference):
+
+1. **User Credentials (JWT)** - [NATS 2.0+ authentication](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_intro/jwt) using JWT tokens and NKeys (recommended)
+2. **NKeys** - [NKey-based authentication](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_intro/nkey_auth) using public-key cryptography
+3. **Username/Password** - [Basic authentication](https://docs.nats.io/using-nats/developer/connecting/userpass) (legacy)
+
+**Authentication Priority:** If multiple authentication methods are provided in the Secret, the controller will use them in the following priority order:
+1. User credentials (`creds` field) - takes precedence
+2. NKey seed (`nkey` field) - used if credentials are not provided
+3. Username/Password (`username` and `password` fields) - used if neither credentials nor NKey are provided
+
+When [Basic authentication](https://docs.nats.io/using-nats/developer/connecting/userpass) (legacy) username/password method is used NATS supports passing the credentials with [the server URL](https://docs.nats.io/using-nats/developer/connecting/userpass#connecting-with-a-user-password-in-the-url). In this case the `address` should be provided through a 
 Secret reference.
 
-Additionally if using credentials, the User must have [authorization](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization) to publish on the Subject provided.
+The authenticated User must have [authorization](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization) to publish on the [Subject](https://docs.nats.io/nats-concepts/subjects) provided.
 
-###### NATS with Username/Password Credentials Example
+###### NATS with User Credentials (JWT) Example
+
+To configure a Provider for NATS using user credentials (recommended for NATS 2.0+), create a Secret with the
+`creds` field containing the contents of your `.creds` file, and add a `nats` Provider with the associated
+[Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: nats-provider
+  namespace: desired-namespace
+spec:
+  type: nats
+  address: <NATS Server URL>
+  channel: <Subject>
+  secretRef:
+    name: nats-provider-creds
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nats-provider-creds
+  namespace: desired-namespace
+stringData:
+  creds: |
+    -----BEGIN NATS USER JWT-----
+    eyJ0eXAiOiJqd3QiLCJhbGciOiJlZDI1NTE5...
+    ------END NATS USER JWT------
+
+    ************************* IMPORTANT *************************
+    NKEY Seed printed below can be used to sign and prove identity.
+    NKEYs are sensitive and should be treated as secrets.
+    
+    -----BEGIN USER NKEY SEED-----
+    SUAGMJH5XLGZKQQWAWKRZJIGMOU4HPFUYLXJMXOO5NLFEO2OOQJ5LPRDPM
+    ------END USER NKEY SEED------
+```
+
+###### NATS with NKey Authentication Example
+
+To configure a Provider for NATS using NKey authentication, create a Secret with the
+`nkey` field containing your NKey seed, and add a `nats` Provider with the associated
+[Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: nats-provider
+  namespace: desired-namespace
+spec:
+  type: nats
+  address: <NATS Server URL>
+  channel: <Subject>
+  secretRef:
+    name: nats-provider-creds
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nats-provider-creds
+  namespace: desired-namespace
+stringData:
+  nkey: SUAGMJH5XLGZKQQWAWKRZJIGMOU4HPFUYLXJMXOO5NLFEO2OOQJ5LPRDPM
+```
+
+###### NATS with Username/Password Example
 
 To configure a Provider for NATS authenticating with Username/Password, create a Secret with the
 `username` and `password` fields set, and add a `nats` Provider with the associated
