@@ -38,11 +38,8 @@ type (
 	}
 
 	natsClient struct {
-		server    string
-		username  string
-		password  string
-		credsData []byte
-		nkeySeed  []byte
+		server string
+		authFn func() (nats.Option, func(), error)
 	}
 )
 
@@ -69,15 +66,41 @@ func NewNATS(server string, subject string, username string, password string, cr
 	if subject == "" {
 		return nil, errors.New("NATS subject (channel) cannot be empty")
 	}
+
+	client := &natsClient{server: server}
+
+	// Set up authentication function based on provided credentials
+	// Authentication priority: user credentials (JWT), nkey, username/password
+	if len(credsData) > 0 {
+		client.authFn = func() (nats.Option, func(), error) {
+			return nats.UserCredentialBytes(credsData), nil, nil
+		}
+	} else if len(nkeySeed) > 0 {
+		client.authFn = func() (nats.Option, func(), error) {
+			kp, err := nkeys.FromSeed(nkeySeed)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error parsing nkey seed: %w", err)
+			}
+			pubKey, err := kp.PublicKey()
+			if err != nil {
+				kp.Wipe()
+				return nil, nil, fmt.Errorf("error getting public key from nkey: %w", err)
+			}
+			// Create signature callback
+			sigCB := func(nonce []byte) ([]byte, error) {
+				return kp.Sign(nonce)
+			}
+			return nats.Nkey(pubKey, sigCB), kp.Wipe, nil
+		}
+	} else if username != "" && password != "" {
+		client.authFn = func() (nats.Option, func(), error) {
+			return nats.UserInfo(username, password), nil, nil
+		}
+	}
+
 	return &NATS{
 		subject: subject,
-		client: &natsClient{
-			server:    server,
-			username:  username,
-			password:  password,
-			credsData: credsData,
-			nkeySeed:  nkeySeed,
-		},
+		client:  client,
 	}, nil
 }
 
@@ -107,30 +130,16 @@ func (n *NATS) Post(ctx context.Context, event eventv1.Event) error {
 func (n *natsClient) publish(ctx context.Context, subject string, eventPayload []byte) (err error) {
 	opts := []nats.Option{nats.Name("NATS Provider Publisher")}
 
-	// Authentication priority: user credentials (JWT), nkey, username/password
-	if len(n.credsData) > 0 {
-		// Use UserCredentialBytes for memory-based credentials
-		opts = append(opts, nats.UserCredentialBytes(n.credsData))
-	} else if len(n.nkeySeed) > 0 {
-		// Parse nkey seed and set up nkey authentication
-		kp, err := nkeys.FromSeed(n.nkeySeed)
+	// Apply authentication if configured
+	if n.authFn != nil {
+		authOpt, cleanup, err := n.authFn()
 		if err != nil {
-			return fmt.Errorf("error parsing nkey seed: %w", err)
+			return err
 		}
-		defer kp.Wipe()
-
-		pubKey, err := kp.PublicKey()
-		if err != nil {
-			return fmt.Errorf("error getting public key from nkey: %w", err)
+		if cleanup != nil {
+			defer cleanup()
 		}
-
-		// Create signature callback
-		sigCB := func(nonce []byte) ([]byte, error) {
-			return kp.Sign(nonce)
-		}
-		opts = append(opts, nats.Nkey(pubKey, sigCB))
-	} else if n.username != "" && n.password != "" {
-		opts = append(opts, nats.UserInfo(n.username, n.password))
+		opts = append(opts, authOpt)
 	}
 
 	nc, err := nats.Connect(n.server, opts...)

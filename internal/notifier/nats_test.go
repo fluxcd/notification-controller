@@ -95,14 +95,16 @@ func TestNewNATS(t *testing.T) {
 				g.Expect(client).NotTo(BeNil())
 
 				g.Expect(client.server).To(Equal(tt.server))
-				g.Expect(client.username).To(Equal(tt.expectedUsername))
-				g.Expect(client.password).To(Equal(tt.expectedPassword))
 
-				if tt.expectedCreds {
-					g.Expect(client.credsData).To(Equal(tt.credsData))
-				}
-				if tt.expectedNkey {
-					g.Expect(client.nkeySeed).To(Equal(tt.nkeySeed))
+				// Verify authFn is configured based on authentication type
+				if tt.username != "" || tt.password != "" {
+					g.Expect(client.authFn).NotTo(BeNil(), "authFn should be set for username/password auth")
+				} else if tt.credsData != nil {
+					g.Expect(client.authFn).NotTo(BeNil(), "authFn should be set for credentials file auth")
+				} else if tt.nkeySeed != nil {
+					g.Expect(client.authFn).NotTo(BeNil(), "authFn should be set for nkey auth")
+				} else {
+					g.Expect(client.authFn).To(BeNil(), "authFn should be nil when no auth is provided")
 				}
 			}
 		})
