@@ -313,7 +313,15 @@ func dataDogNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func natsNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewNATS(opts.URL, opts.Channel, opts.Username, opts.Password)
+	// Extract credentials from secret data
+	// Keys: "creds" for user credentials file, "nkey" for nkey seed
+	var credsData, nkeySeed []byte
+	if opts.SecretData != nil {
+		credsData = opts.SecretData["creds"]
+		nkeySeed = opts.SecretData["nkey"]
+	}
+	
+	return NewNATS(opts.URL, opts.Channel, opts.Username, opts.Password, credsData, nkeySeed)
 }
 
 func gitHubNotifierFunc(opts notifierOptions) (Interface, error) {
