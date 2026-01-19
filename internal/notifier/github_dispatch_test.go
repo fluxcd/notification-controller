@@ -96,7 +96,7 @@ func TestNewGithubDispatchProvider(t *testing.T) {
 				"githubAppID":         []byte(appID),
 				"githubAppPrivateKey": kp.PrivateKey,
 			},
-			wantErr: errors.New("app installation ID must be provided to use github app authentication"),
+			wantErr: errors.New("app installation owner or ID must be provided to use github app authentication"),
 		},
 		{
 			name: "provider with missing app private key in options ",
