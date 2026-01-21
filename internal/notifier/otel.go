@@ -131,6 +131,7 @@ func (t *OTLPTracer) Post(ctx context.Context, event eventv1.Event) error {
 
 	// Extract revision from event metadata
 	revision := getRevision(event.Metadata)
+	logger.Info("Revision ID (former part of Trace ID)", revision)
 
 	// Create TraceProvider
 	tp := sdktrace.NewTracerProvider(
@@ -146,7 +147,7 @@ func (t *OTLPTracer) Post(ctx context.Context, event eventv1.Event) error {
 	)
 
 	// Generate traceID
-	logger.V(1).Info("Generating trace IDs", "alertUID", string(alert.UID), "revision", revision)
+	logger.Info("Generating trace IDs", "alertUID", string(alert.UID), "revision", revision)
 	var traceID trace.TraceID
 	traceIDStr := generateID(string(alert.UID), revision)
 	copy(traceID[:], traceIDStr[:16])
@@ -235,7 +236,9 @@ func getRevision(eventMetadata map[string]string) string {
 	ociDigest, hasOCI := eventMetadata["oci-digest"]
 	appVersion, hasApp := eventMetadata["app-version"]
 
-	if hasOCI && hasApp {
+	if rev, hasRev := eventMetadata["source-revision"]; hasRev {
+		revision = rev
+	} else if hasOCI && hasApp {
 		revision = appVersion + "@" + ociDigest
 	} else if rev, hasRev := eventMetadata["revision"]; hasRev {
 		revision = rev
