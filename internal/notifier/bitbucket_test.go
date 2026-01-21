@@ -22,9 +22,27 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestNewBitbucketBasic(t *testing.T) {
+func TestNewBitbucketBasicAuth(t *testing.T) {
 	g := NewWithT(t)
 	b, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar", "foo:bar", nil)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(b.Owner).To(Equal("foo"))
+	g.Expect(b.Repo).To(Equal("bar"))
+	g.Expect(b.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
+}
+
+func TestNewBitbucketOAuthRepositoryToken(t *testing.T) {
+	g := NewWithT(t)
+	b, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar", "x-token-auth:bar", nil)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(b.Owner).To(Equal("foo"))
+	g.Expect(b.Repo).To(Equal("bar"))
+	g.Expect(b.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
+}
+
+func TestNewBitbucketOAuthPersonalToken(t *testing.T) {
+	g := NewWithT(t)
+	b, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar", "x-bitbucket-api-token-auth:bar", nil)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(b.Owner).To(Equal("foo"))
 	g.Expect(b.Repo).To(Equal("bar"))

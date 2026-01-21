@@ -69,7 +69,18 @@ func NewBitbucket(commitStatus string, addr string, token string, tlsConfig *tls
 	owner := comp[0]
 	repo := comp[1]
 
-	client := bitbucket.NewBasicAuth(username, password)
+	// Support two authentication modes depending on secret content:
+	// - If username == "x-token-auth" or "x-bitbucket-api-token-auth" the
+	//   password is treated as an OAuth bearer token and we should use
+	//   NewOAuthbearerToken.
+	// - Otherwise use basic auth with <bitbucket_user_email>:<personal_api_token>.
+	var client *bitbucket.Client
+	if username == "x-token-auth" || username == "x-bitbucket-api-token-auth" {
+		// password in this case is the bearer token
+		client = bitbucket.NewOAuthbearerToken(password)
+	} else {
+		client = bitbucket.NewBasicAuth(username, password)
+	}
 	if tlsConfig != nil {
 		tr := &http.Transport{
 			TLSClientConfig: tlsConfig,
