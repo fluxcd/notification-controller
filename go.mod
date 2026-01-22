@@ -34,9 +34,9 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/ktrysmt/go-bitbucket v0.9.88
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
-	github.com/nats-io/nats.go v1.46.1
+	github.com/nats-io/nats.go v1.48.0
 	github.com/onsi/gomega v1.39.0
-	github.com/sethvargo/go-limiter v1.0.0
+	github.com/sethvargo/go-limiter v1.1.0
 	github.com/slok/go-http-metrics v0.13.0
 	github.com/spf13/pflag v1.0.10
 	gitlab.com/gitlab-org/api/client-go v1.16.0
