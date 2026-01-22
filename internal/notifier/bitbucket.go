@@ -69,7 +69,10 @@ func NewBitbucket(commitStatus string, addr string, token string, tlsConfig *tls
 	owner := comp[0]
 	repo := comp[1]
 
-	client := bitbucket.NewBasicAuth(username, password)
+	client, err := bitbucket.NewBasicAuth(username, password)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create bitbucket client: %v", err)
+	}
 	if tlsConfig != nil {
 		tr := &http.Transport{
 			TLSClientConfig: tlsConfig,
