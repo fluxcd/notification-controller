@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Flux authors
+Copyright 2026 The Flux authors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,67 +25,65 @@ import (
 	"testing"
 	"time"
 
-	authgithub "github.com/fluxcd/pkg/git/github"
-	"github.com/fluxcd/pkg/ssh"
-
 	"github.com/google/go-github/v64/github"
 	. "github.com/onsi/gomega"
+
+	authgithub "github.com/fluxcd/pkg/git/github"
+	"github.com/fluxcd/pkg/ssh"
 )
 
-func TestNewGitHubBasic(t *testing.T) {
-	gm := NewWithT(t)
-	g, err := NewGitHub(context.Background(), "kustomization/gitops-system/0c9c2e41",
-		WithGitHubAddress("https://github.com/foo/bar"),
+func TestNewGitHubPullRequestCommentBasic(t *testing.T) {
+	g := NewWithT(t)
+
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/v3/user" {
+			user := &github.User{Login: github.String("test-user")}
+			json.NewEncoder(w).Encode(user)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}
+	srv := httptest.NewServer(http.HandlerFunc(handler))
+	t.Cleanup(srv.Close)
+
+	gh, err := NewGitHubPullRequestComment(context.Background(), "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		WithGitHubAddress(srv.URL+"/foo/bar"),
 		WithGitHubToken("foobar"),
 	)
-	gm.Expect(err).ToNot(HaveOccurred())
-	gm.Expect(g.Owner).To(Equal("foo"))
-	gm.Expect(g.Repo).To(Equal("bar"))
-	gm.Expect(g.Client.BaseURL.Host).To(Equal("api.github.com"))
-	gm.Expect(g.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(gh.Owner).To(Equal("foo"))
+	g.Expect(gh.Repo).To(Equal("bar"))
+	g.Expect(gh.ProviderUID).To(Equal("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a"))
+	g.Expect(gh.UserLogin).To(Equal("test-user"))
 }
 
-func TestNewEmterpriseGitHubBasic(t *testing.T) {
-	gm := NewWithT(t)
-	g, err := NewGitHub(context.Background(), "kustomization/gitops-system/0c9c2e41",
-		WithGitHubAddress("https://foobar.com/foo/bar"),
-		WithGitHubToken("foobar"),
-	)
-	gm.Expect(err).ToNot(HaveOccurred())
-	gm.Expect(g.Owner).To(Equal("foo"))
-	gm.Expect(g.Repo).To(Equal("bar"))
-	gm.Expect(g.Client.BaseURL.Host).To(Equal("foobar.com"))
-	gm.Expect(g.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
-}
-
-func TestNewGitHubInvalidUrl(t *testing.T) {
-	gm := NewWithT(t)
-	_, err := NewGitHub(context.Background(), "kustomization/gitops-system/0c9c2e41",
+func TestNewGitHubPullRequestCommentInvalidUrl(t *testing.T) {
+	g := NewWithT(t)
+	_, err := NewGitHubPullRequestComment(context.Background(), "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 		WithGitHubAddress("https://github.com/foo/bar/baz"),
 		WithGitHubToken("foobar"),
 	)
-	gm.Expect(err).To(HaveOccurred())
+	g.Expect(err).To(HaveOccurred())
 }
 
-func TestNewGitHubEmptyToken(t *testing.T) {
-	gm := NewWithT(t)
-	_, err := NewGitHub(context.Background(), "kustomization/gitops-system/0c9c2e41",
+func TestNewGitHubPullRequestCommentEmptyToken(t *testing.T) {
+	g := NewWithT(t)
+	_, err := NewGitHubPullRequestComment(context.Background(), "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 		WithGitHubAddress("https://github.com/foo/bar"),
 	)
-	gm.Expect(err).To(HaveOccurred())
+	g.Expect(err).To(HaveOccurred())
 }
 
-func TestNewGitHubEmptyCommitStatus(t *testing.T) {
-	gm := NewWithT(t)
-	_, err := NewGitHub(context.Background(), "",
+func TestNewGitHubPullRequestCommentEmptyProviderUID(t *testing.T) {
+	g := NewWithT(t)
+	_, err := NewGitHubPullRequestComment(context.Background(), "",
 		WithGitHubAddress("https://github.com/foo/bar"),
 		WithGitHubToken("foobar"),
 	)
-	gm.Expect(err).To(HaveOccurred())
+	g.Expect(err).To(HaveOccurred())
 }
 
-func TestNewGithubProvider(t *testing.T) {
-	gm := NewWithT(t)
+func TestNewGitHubPullRequestCommentProvider(t *testing.T) {
 	appID := "123"
 	installationID := "456"
 	kp, _ := ssh.GenerateKeyPair(ssh.RSA_4096)
@@ -140,11 +138,16 @@ func TestNewGithubProvider(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := func(w http.ResponseWriter, r *http.Request) {
+				g := NewWithT(t)
 				w.WriteHeader(http.StatusOK)
 				var response []byte
 				var err error
-				response, err = json.Marshal(&authgithub.AppToken{Token: "access-token", ExpiresAt: expiresAt})
-				gm.Expect(err).ToNot(HaveOccurred())
+				response, err = json.Marshal(&authgithub.AppToken{
+					Token:     "access-token",
+					Slug:      "app-slug",
+					ExpiresAt: expiresAt,
+				})
+				g.Expect(err).ToNot(HaveOccurred())
 				w.Write(response)
 			}
 			srv := httptest.NewServer(http.HandlerFunc(handler))
@@ -155,45 +158,18 @@ func TestNewGithubProvider(t *testing.T) {
 			if len(tt.secretData) > 0 {
 				tt.secretData["githubAppBaseURL"] = []byte(srv.URL)
 			}
-			_, err := NewGitHub(context.Background(), "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+			g := NewWithT(t)
+			_, err := NewGitHubPullRequestComment(context.Background(), "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 				WithGitHubAddress("https://github.com/foo/bar"),
 				WithGitHubProvider("foo", "bar"),
 				WithGitHubSecretData(tt.secretData),
 			)
 			if tt.wantErr != nil {
-				gm.Expect(err).To(HaveOccurred())
-				gm.Expect(err).To(Equal(tt.wantErr))
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(err).To(Equal(tt.wantErr))
 			} else {
-				gm.Expect(err).ToNot(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
-	}
-}
-
-func TestDuplicateGithubStatus(t *testing.T) {
-	gm := NewWithT(t)
-
-	var tests = []struct {
-		ss  []*github.RepoStatus
-		s   *github.RepoStatus
-		dup bool
-	}{
-		{[]*github.RepoStatus{ghStatus("success", "foo", "bar")}, ghStatus("success", "foo", "bar"), true},
-		{[]*github.RepoStatus{ghStatus("success", "foo", "bar")}, ghStatus("failure", "foo", "bar"), false},
-		{[]*github.RepoStatus{ghStatus("success", "foo", "bar")}, ghStatus("success", "baz", "bar"), false},
-		{[]*github.RepoStatus{ghStatus("success", "foo", "bar")}, ghStatus("success", "foo", "baz"), false},
-		{[]*github.RepoStatus{ghStatus("success", "baz", "bar"), ghStatus("success", "foo", "bar")}, ghStatus("success", "foo", "bar"), true},
-	}
-
-	for _, test := range tests {
-		gm.Expect(duplicateGithubStatus(test.ss, test.s)).To(Equal(test.dup))
-	}
-}
-
-func ghStatus(state string, context string, description string) *github.RepoStatus {
-	return &github.RepoStatus{
-		State:       &state,
-		Context:     &context,
-		Description: &description,
 	}
 }

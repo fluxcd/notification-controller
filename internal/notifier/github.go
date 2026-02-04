@@ -18,7 +18,6 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 
@@ -26,7 +25,6 @@ import (
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/apis/meta"
-	"github.com/fluxcd/pkg/cache"
 )
 
 type GitHub struct {
@@ -36,26 +34,21 @@ type GitHub struct {
 	Client       *github.Client
 }
 
-func NewGitHub(commitStatus string, addr string, token string, tlsConfig *tls.Config,
-	proxyURL string, providerName string, providerNamespace string, secretData map[string][]byte,
-	tokenCache *cache.TokenCache) (*GitHub, error) {
-
-	// this should never happen
+func NewGitHub(ctx context.Context, commitStatus string, opts ...GitHubClientOption) (*GitHub, error) {
 	if commitStatus == "" {
 		return nil, errors.New("commit status cannot be empty")
 	}
 
-	repoInfo, err := getRepoInfoAndGithubClient(addr, token, tlsConfig,
-		proxyURL, providerName, providerNamespace, secretData, tokenCache)
+	clientInfo, err := NewGitHubClient(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	return &GitHub{
-		Owner:        repoInfo.owner,
-		Repo:         repoInfo.repo,
+		Owner:        clientInfo.Owner,
+		Repo:         clientInfo.Repo,
 		CommitStatus: commitStatus,
-		Client:       repoInfo.client,
+		Client:       clientInfo.Client,
 	}, nil
 }
 

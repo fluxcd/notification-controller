@@ -260,6 +260,12 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, nil, "", 0, nil
 	}
 
+	// Skip if the provider is a change request provider but the event doesn't have the change request metadata key.
+	if isChangeRequestProvider(provider.Spec.Type) &&
+		event.Metadata[eventv1.Group+"/"+eventv1.MetaChangeRequestKey] == "" {
+		return nil, nil, "", 0, nil
+	}
+
 	// Check object-level workload identity feature gate.
 	if provider.Spec.ServiceAccountName != "" && !auth.IsObjectLevelWorkloadIdentityEnabled() {
 		return nil, nil, "", 0, fmt.Errorf(
@@ -356,6 +362,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 	commitStatus string, tokenCache *cache.TokenCache) (notifier.Interface, string, error) {
 	options := []notifier.Option{
 		notifier.WithTokenClient(kubeClient),
+		notifier.WithProviderUID(string(provider.UID)),
 		notifier.WithProviderName(provider.Name),
 		notifier.WithProviderNamespace(provider.Namespace),
 	}

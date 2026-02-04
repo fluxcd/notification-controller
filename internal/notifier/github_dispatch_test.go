@@ -34,7 +34,10 @@ import (
 
 func TestNewGitHubDispatchBasic(t *testing.T) {
 	gomega := NewWithT(t)
-	github, err := NewGitHubDispatch("https://github.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
+	github, err := NewGitHubDispatch(context.Background(),
+		WithGitHubAddress("https://github.com/foo/bar"),
+		WithGitHubToken("foobar"),
+	)
 	gomega.Expect(err).ToNot(HaveOccurred())
 	gomega.Expect(github.Owner).To(Equal("foo"))
 	gomega.Expect(github.Repo).To(Equal("bar"))
@@ -43,7 +46,10 @@ func TestNewGitHubDispatchBasic(t *testing.T) {
 
 func TestNewEnterpriseGitHubDispatchBasic(t *testing.T) {
 	gomega := NewWithT(t)
-	github, err := NewGitHubDispatch("https://foobar.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
+	github, err := NewGitHubDispatch(context.Background(),
+		WithGitHubAddress("https://foobar.com/foo/bar"),
+		WithGitHubToken("foobar"),
+	)
 	gomega.Expect(err).ToNot(HaveOccurred())
 	gomega.Expect(github.Owner).To(Equal("foo"))
 	gomega.Expect(github.Repo).To(Equal("bar"))
@@ -52,13 +58,18 @@ func TestNewEnterpriseGitHubDispatchBasic(t *testing.T) {
 
 func TestNewGitHubDispatchInvalidUrl(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitHubDispatch("https://github.com/foo/bar/baz", "foobar", nil, "", "", "", nil, nil)
+	_, err := NewGitHubDispatch(context.Background(),
+		WithGitHubAddress("https://github.com/foo/bar/baz"),
+		WithGitHubToken("foobar"),
+	)
 	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitHubDispatchEmptyToken(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitHubDispatch("https://github.com/foo/bar", "", nil, "", "", "", nil, nil)
+	_, err := NewGitHubDispatch(context.Background(),
+		WithGitHubAddress("https://github.com/foo/bar"),
+	)
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -134,7 +145,11 @@ func TestNewGithubDispatchProvider(t *testing.T) {
 				tt.secretData["githubAppBaseURL"] = []byte(srv.URL)
 			}
 			g := NewWithT(t)
-			_, err := NewGitHubDispatch("https://github.com/foo/bar", "", nil, "", "foo", "bar", tt.secretData, nil)
+			_, err := NewGitHubDispatch(context.Background(),
+				WithGitHubAddress("https://github.com/foo/bar"),
+				WithGitHubProvider("foo", "bar"),
+				WithGitHubSecretData(tt.secretData),
+			)
 			if tt.wantErr != nil {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err).To(Equal(tt.wantErr))
@@ -147,7 +162,10 @@ func TestNewGithubDispatchProvider(t *testing.T) {
 
 func TestGitHubDispatch_PostUpdate(t *testing.T) {
 	g := NewWithT(t)
-	githubDispatch, err := NewGitHubDispatch("https://github.com/foo/bar", "foobar", nil, "", "", "", nil, nil)
+	githubDispatch, err := NewGitHubDispatch(context.Background(),
+		WithGitHubAddress("https://github.com/foo/bar"),
+		WithGitHubToken("foobar"),
+	)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	event := testEvent()

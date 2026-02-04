@@ -33,35 +33,36 @@ var (
 	// notifiers is a map of notifier names to factory functions.
 	notifiers = notifierMap{
 		// GenericProvider is the default notifier
-		apiv1.GenericProvider:         genericNotifierFunc,
-		apiv1.GenericHMACProvider:     genericHMACNotifierFunc,
-		apiv1.SlackProvider:           slackNotifierFunc,
-		apiv1.DiscordProvider:         discordNotifierFunc,
-		apiv1.RocketProvider:          rocketNotifierFunc,
-		apiv1.MSTeamsProvider:         msteamsNotifierFunc,
-		apiv1.GoogleChatProvider:      googleChatNotifierFunc,
-		apiv1.GooglePubSubProvider:    googlePubSubNotifierFunc,
-		apiv1.WebexProvider:           webexNotifierFunc,
-		apiv1.SentryProvider:          sentryNotifierFunc,
-		apiv1.AzureEventHubProvider:   azureEventHubNotifierFunc,
-		apiv1.TelegramProvider:        telegramNotifierFunc,
-		apiv1.LarkProvider:            larkNotifierFunc,
-		apiv1.Matrix:                  matrixNotifierFunc,
-		apiv1.OpsgenieProvider:        opsgenieNotifierFunc,
-		apiv1.AlertManagerProvider:    alertmanagerNotifierFunc,
-		apiv1.GrafanaProvider:         grafanaNotifierFunc,
-		apiv1.PagerDutyProvider:       pagerDutyNotifierFunc,
-		apiv1.DataDogProvider:         dataDogNotifierFunc,
-		apiv1.NATSProvider:            natsNotifierFunc,
-		apiv1.GitHubProvider:          gitHubNotifierFunc,
-		apiv1.GitHubDispatchProvider:  gitHubDispatchNotifierFunc,
-		apiv1.GitLabProvider:          gitLabNotifierFunc,
-		apiv1.GiteaProvider:           giteaNotifierFunc,
-		apiv1.BitbucketServerProvider: bitbucketServerNotifierFunc,
-		apiv1.BitbucketProvider:       bitbucketNotifierFunc,
-		apiv1.AzureDevOpsProvider:     azureDevOpsNotifierFunc,
-		apiv1.ZulipProvider:           zulipNotifierFunc,
-		apiv1.OTELProvider:            otelNotifierFunc,
+		apiv1.GenericProvider:                  genericNotifierFunc,
+		apiv1.GenericHMACProvider:              genericHMACNotifierFunc,
+		apiv1.SlackProvider:                    slackNotifierFunc,
+		apiv1.DiscordProvider:                  discordNotifierFunc,
+		apiv1.RocketProvider:                   rocketNotifierFunc,
+		apiv1.MSTeamsProvider:                  msteamsNotifierFunc,
+		apiv1.GoogleChatProvider:               googleChatNotifierFunc,
+		apiv1.GooglePubSubProvider:             googlePubSubNotifierFunc,
+		apiv1.WebexProvider:                    webexNotifierFunc,
+		apiv1.SentryProvider:                   sentryNotifierFunc,
+		apiv1.AzureEventHubProvider:            azureEventHubNotifierFunc,
+		apiv1.TelegramProvider:                 telegramNotifierFunc,
+		apiv1.LarkProvider:                     larkNotifierFunc,
+		apiv1.Matrix:                           matrixNotifierFunc,
+		apiv1.OpsgenieProvider:                 opsgenieNotifierFunc,
+		apiv1.AlertManagerProvider:             alertmanagerNotifierFunc,
+		apiv1.GrafanaProvider:                  grafanaNotifierFunc,
+		apiv1.PagerDutyProvider:                pagerDutyNotifierFunc,
+		apiv1.DataDogProvider:                  dataDogNotifierFunc,
+		apiv1.NATSProvider:                     natsNotifierFunc,
+		apiv1.GitHubProvider:                   gitHubNotifierFunc,
+		apiv1.GitHubDispatchProvider:           gitHubDispatchNotifierFunc,
+		apiv1.GitHubPullRequestCommentProvider: gitHubPullRequestCommentNotifierFunc,
+		apiv1.GitLabProvider:                   gitLabNotifierFunc,
+		apiv1.GiteaProvider:                    giteaNotifierFunc,
+		apiv1.BitbucketServerProvider:          bitbucketServerNotifierFunc,
+		apiv1.BitbucketProvider:                bitbucketNotifierFunc,
+		apiv1.AzureDevOpsProvider:              azureDevOpsNotifierFunc,
+		apiv1.ZulipProvider:                    zulipNotifierFunc,
+		apiv1.OTELProvider:                     otelNotifierFunc,
 	}
 )
 
@@ -85,6 +86,7 @@ type notifierOptions struct {
 	TLSConfig          *tls.Config
 	Password           string
 	CommitStatus       string
+	ProviderUID        string
 	ProviderName       string
 	ProviderNamespace  string
 	SecretData         map[string][]byte
@@ -174,6 +176,13 @@ func WithProviderName(name string) Option {
 func WithProviderNamespace(namespace string) Option {
 	return func(o *notifierOptions) {
 		o.ProviderNamespace = namespace
+	}
+}
+
+// WithProviderUID sets the provider UID for the notifier.
+func WithProviderUID(uid string) Option {
+	return func(o *notifierOptions) {
+		o.ProviderUID = uid
 	}
 }
 
@@ -317,17 +326,15 @@ func natsNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func gitHubNotifierFunc(opts notifierOptions) (Interface, error) {
-	if opts.Token == "" && opts.Password != "" {
-		opts.Token = opts.Password
-	}
-	return NewGitHub(opts.CommitStatus, opts.URL, opts.Token, opts.TLSConfig, opts.ProxyURL, opts.ProviderName, opts.ProviderNamespace, opts.SecretData, opts.TokenCache)
+	return NewGitHub(opts.Context, opts.CommitStatus, opts.GitHubClientOptions()...)
 }
 
 func gitHubDispatchNotifierFunc(opts notifierOptions) (Interface, error) {
-	if opts.Token == "" && opts.Password != "" {
-		opts.Token = opts.Password
-	}
-	return NewGitHubDispatch(opts.URL, opts.Token, opts.TLSConfig, opts.ProxyURL, opts.ProviderName, opts.ProviderNamespace, opts.SecretData, opts.TokenCache)
+	return NewGitHubDispatch(opts.Context, opts.GitHubClientOptions()...)
+}
+
+func gitHubPullRequestCommentNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewGitHubPullRequestComment(opts.Context, opts.ProviderUID, opts.GitHubClientOptions()...)
 }
 
 func gitLabNotifierFunc(opts notifierOptions) (Interface, error) {
