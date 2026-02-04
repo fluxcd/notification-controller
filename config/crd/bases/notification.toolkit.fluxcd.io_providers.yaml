@@ -383,6 +383,7 @@ spec:
                 - grafana
                 - githubdispatch
                 - githubpullrequestcomment
+                - gitlabmergerequestcomment
                 - pagerduty
                 - datadog
                 - nats

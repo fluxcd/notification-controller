@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 
@@ -30,12 +29,12 @@ import (
 )
 
 type GitHubPullRequestComment struct {
-	Owner       string
-	Repo        string
-	UserLogin   string
-	AppSlug     string
-	ProviderUID string
-	Client      *github.Client
+	changeRequestComment
+	Owner     string
+	Repo      string
+	UserLogin string
+	AppSlug   string
+	Client    *github.Client
 }
 
 func NewGitHubPullRequestComment(ctx context.Context, providerUID string, opts ...GitHubClientOption) (*GitHubPullRequestComment, error) {
@@ -50,12 +49,15 @@ func NewGitHubPullRequestComment(ctx context.Context, providerUID string, opts .
 	}
 
 	return &GitHubPullRequestComment{
-		Owner:       clientInfo.Owner,
-		Repo:        clientInfo.Repo,
-		UserLogin:   clientInfo.UserLogin,
-		AppSlug:     clientInfo.AppSlug,
-		ProviderUID: providerUID,
-		Client:      clientInfo.Client,
+		changeRequestComment: changeRequestComment{
+			ProviderUID:      providerUID,
+			CommentKeyPrefix: "flux-pr-comment-key",
+		},
+		Owner:     clientInfo.Owner,
+		Repo:      clientInfo.Repo,
+		UserLogin: clientInfo.UserLogin,
+		AppSlug:   clientInfo.AppSlug,
+		Client:    clientInfo.Client,
 	}, nil
 }
 
@@ -139,58 +141,4 @@ func (g *GitHubPullRequestComment) getPullRequestNumber(event *eventv1.Event) (i
 		return 0, fmt.Errorf("invalid %q metadata value %q: %w", eventv1.MetaChangeRequestKey, prStr, err)
 	}
 	return prNumber, nil
-}
-
-// generateCommentKey generates a unique comment key based on the provider UID,
-// involved object kind and name.
-func (g *GitHubPullRequestComment) generateCommentKey(event *eventv1.Event) string {
-	return fmt.Sprintf("%s/%s/%s/%s",
-		g.ProviderUID,
-		event.InvolvedObject.Kind,
-		event.InvolvedObject.Namespace,
-		event.InvolvedObject.Name)
-}
-
-// formatCommentKeyMarker formats the comment key marker that is used to identify comments
-// created by this notifier for a specific event. It is included in the comment body as an
-// HTML comment, so it is not visible in the GitHub UI but can be used to find and delete
-// existing comments for the same event. The marker includes the generated comment key.
-func (g *GitHubPullRequestComment) formatCommentKeyMarker(event *eventv1.Event) string {
-	return fmt.Sprintf("<!-- flux-pr-comment-key:%s -->", g.generateCommentKey(event))
-}
-
-// formatCommentBody formats the body of the pull request comment based on the event data.
-func (g *GitHubPullRequestComment) formatCommentBody(event *eventv1.Event) string {
-	marker := g.formatCommentKeyMarker(event)
-
-	// Get emoji based on severity
-	var severityEmoji string
-	if event.Severity == eventv1.EventSeverityError {
-		severityEmoji = "⚠️"
-	} else {
-		severityEmoji = "ℹ️"
-	}
-
-	// Format object identifier
-	objectID := fmt.Sprintf("%s/%s/%s",
-		event.InvolvedObject.Kind,
-		event.InvolvedObject.Namespace,
-		event.InvolvedObject.Name)
-
-	// Build metadata section
-	keys := make([]string, 0, len(event.Metadata))
-	for k := range event.Metadata {
-		if k != eventv1.MetaChangeRequestKey {
-			keys = append(keys, k)
-		}
-	}
-	slices.Sort(keys)
-	var metadataLines strings.Builder
-	for _, key := range keys {
-		fmt.Fprintf(&metadataLines, "* `%s`: %s\n", key, event.Metadata[key])
-	}
-
-	// Format the comment body
-	return fmt.Sprintf("%s\n\n## Flux Status\n\n%s %s\n\n%s\n\nMetadata:\n%s",
-		marker, severityEmoji, objectID, event.Message, metadataLines.String())
 }

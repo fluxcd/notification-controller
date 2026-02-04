@@ -261,7 +261,7 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 	}
 
 	// Skip if the provider is a change request provider but the event doesn't have the change request metadata key.
-	if isChangeRequestProvider(provider.Spec.Type) &&
+	if isChangeRequestCommentProvider(provider.Spec.Type) &&
 		event.Metadata[eventv1.Group+"/"+eventv1.MetaChangeRequestKey] == "" {
 		return nil, nil, "", 0, nil
 	}
