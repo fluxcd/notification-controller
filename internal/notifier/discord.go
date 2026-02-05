@@ -58,11 +58,6 @@ func NewDiscord(hookURL string, proxyURL string, username string, channel string
 
 // Post Discord message
 func (s *Discord) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	payload := SlackPayload{
 		Username: s.Username,
 	}

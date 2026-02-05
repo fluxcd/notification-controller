@@ -53,11 +53,6 @@ func NewRocket(hookURL string, proxyURL string, tlsConfig *tls.Config, username 
 
 // Post Rocket message
 func (s *Rocket) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	payload := SlackPayload{
 		Channel:  s.Channel,
 		Username: s.Username,

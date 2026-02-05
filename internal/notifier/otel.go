@@ -112,11 +112,6 @@ func NewOTLPTracer(ctx context.Context, urlStr string, proxyURL string, headers 
 
 // Post implements the notifier.Interface
 func (t *OTLPTracer) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	logger := log.FromContext(ctx).V(1).WithValues(
 		"event", event.Reason,
 		"object", fmt.Sprintf("%s/%s/%s", event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name),

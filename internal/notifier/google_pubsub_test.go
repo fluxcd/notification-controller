@@ -93,13 +93,6 @@ func TestGooglePubSubPost(t *testing.T) {
 			publishShouldExecute: true,
 		},
 		{
-			name: "commit status updates are dropped",
-			event: eventv1.Event{
-				Metadata: map[string]string{"commit_status": "update"},
-			},
-			publishShouldExecute: false,
-		},
-		{
 			name:                 "publish error is relayed",
 			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","reportingController":""}`,
 			topicName:            "projects/projectID/topics/topicID",

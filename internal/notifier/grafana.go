@@ -62,11 +62,6 @@ func NewGrafana(URL string, proxyURL string, token string, tlsConfig *tls.Config
 
 // Post annotation
 func (g *Grafana) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	sfields := make([]string, 0, len(event.Metadata))
 	// add tag to filter on grafana
 	sfields = append(sfields, "flux", event.ReportingController)

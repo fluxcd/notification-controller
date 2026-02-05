@@ -87,11 +87,6 @@ func NewGoogleChat(hookURL string, proxyURL string) (*GoogleChat, error) {
 
 // Post Google Chat message
 func (s *GoogleChat) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	// Header
 	objName := fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace)
 	header := GoogleChatCardHeader{

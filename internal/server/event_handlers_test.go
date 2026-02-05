@@ -378,7 +378,7 @@ func TestDispatchNotification(t *testing.T) {
 				EventRecorder: record.NewFakeRecorder(32),
 			}
 
-			err := eventServer.dispatchNotification(context.TODO(), testEvent, alert)
+			_, err := eventServer.dispatchNotification(context.TODO(), testEvent, alert)
 			g.Expect(err != nil).To(Equal(tt.wantErr))
 		})
 	}
@@ -542,16 +542,16 @@ func TestGetNotificationParams(t *testing.T) {
 				EventRecorder:        record.NewFakeRecorder(32),
 			}
 
-			_, n, _, _, err := eventServer.getNotificationParams(context.TODO(), event, alert)
+			params, _, err := eventServer.getNotificationParams(context.TODO(), event, alert)
 			g.Expect(err != nil).To(Equal(tt.wantErr))
 			if tt.alertSummary != "" {
-				g.Expect(n.Metadata["summary"]).To(Equal(tt.alertSummary))
+				g.Expect(params.event.Metadata["summary"]).To(Equal(tt.alertSummary))
 			}
 			// NOTE: This is performing simple check. Thorough test for event
 			// metadata is performed in TestCombineEventMetadata.
 			if tt.alertEventMetadata != nil {
 				for k, v := range tt.alertEventMetadata {
-					g.Expect(n.Metadata).To(HaveKeyWithValue(k, v))
+					g.Expect(params.event.Metadata).To(HaveKeyWithValue(k, v))
 				}
 			}
 		})

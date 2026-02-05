@@ -50,8 +50,8 @@ func NewPagerDuty(endpoint string, proxyURL string, tlsConfig *tls.Config, routi
 }
 
 func (p *PagerDuty) Post(ctx context.Context, event eventv1.Event) error {
-	// skip commit status updates and progressing events (we want success or failure)
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) || event.HasReason(meta.ProgressingReason) {
+	// skip progressing events (we want success or failure)
+	if event.HasReason(meta.ProgressingReason) {
 		return nil
 	}
 

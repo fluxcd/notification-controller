@@ -27,7 +27,6 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	authgithub "github.com/fluxcd/pkg/git/github"
 	"github.com/fluxcd/pkg/ssh"
 )
@@ -158,18 +157,4 @@ func TestNewGithubDispatchProvider(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestGitHubDispatch_PostUpdate(t *testing.T) {
-	g := NewWithT(t)
-	githubDispatch, err := NewGitHubDispatch(context.Background(),
-		WithGitHubAddress("https://github.com/foo/bar"),
-		WithGitHubToken("foobar"),
-	)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	event := testEvent()
-	event.Metadata[eventv1.MetaCommitStatusKey] = eventv1.MetaCommitStatusUpdateValue
-	err = githubDispatch.Post(context.TODO(), event)
-	g.Expect(err).ToNot(HaveOccurred())
 }

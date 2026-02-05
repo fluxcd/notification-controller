@@ -60,11 +60,6 @@ func NewOpsgenie(hookURL string, proxyURL string, tlsConfig *tls.Config, token s
 
 // Post opsgenie alert message
 func (s *Opsgenie) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	var details = make(map[string]string)
 
 	if event.Metadata != nil {

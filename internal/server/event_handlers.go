@@ -80,6 +80,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		eventLogger.Info("dispatching event", "message", event.Message)
 
 		// Dispatch notifications.
+		var droppedChangeRequestAlerts []*apiv1beta3.Alert
 		for i := range alerts {
 			alert := &alerts[i]
 			alertLogger := eventLogger.WithValues(
@@ -89,11 +90,27 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 					"providerName": alert.Spec.ProviderRef.Name,
 				})
 			ctx := log.IntoContext(ctx, alertLogger)
-			if err := s.dispatchNotification(ctx, event, alert); err != nil {
+			droppedChangeRequestProvider, err := s.dispatchNotification(ctx, event, alert)
+			if err != nil {
 				alertLogger.Error(err, "failed to dispatch notification")
 				s.Eventf(alert, corev1.EventTypeWarning, "NotificationDispatchFailed",
 					"failed to dispatch notification for %s: %s", involvedObjectString(event.InvolvedObject), err)
 			}
+			if droppedChangeRequestProvider {
+				droppedChangeRequestAlerts = append(droppedChangeRequestAlerts, alert)
+			}
+		}
+
+		// Log if any events were dropped due to being related to a change request comment
+		// provider but not having the required change request metadata key.
+		if len(droppedChangeRequestAlerts) > 0 {
+			var alertNames []string
+			for _, alert := range droppedChangeRequestAlerts {
+				alertNames = append(alertNames, fmt.Sprintf("%s/%s", alert.Namespace, alert.Name))
+			}
+			eventLogger.Info(
+				"event dropped for change request providers due to missing change request metadata key",
+				"alerts", alertNames)
 		}
 
 		w.WriteHeader(http.StatusAccepted)
@@ -203,23 +220,24 @@ func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, alert *
 }
 
 // dispatchNotification constructs and sends notification from the given event
-// and alert data.
-func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) error {
-	sender, notification, token, timeout, err := s.getNotificationParams(ctx, event, alert)
+// and alert data. The returned boolean indicates if the event was dropped due
+// to being related to a change request provider but not having the required
+// change request metadata key.
+func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) (bool, error) {
+	params, droppedChangeRequestProvider, err := s.getNotificationParams(ctx, event, alert)
 	if err != nil {
-		return err
+		return false, err
 	}
-	// Skip when either sender or notification couldn't be created.
-	if sender == nil || notification == nil {
-		return nil
+	if params == nil {
+		return droppedChangeRequestProvider, nil
 	}
 
 	go func(n notifier.Interface, e eventv1.Event) {
-		pctx, cancel := context.WithTimeout(context.Background(), timeout)
+		pctx, cancel := context.WithTimeout(context.Background(), params.timeout)
 		defer cancel()
 		pctx = notifier.WithAlertMetadata(pctx, alert.ObjectMeta)
 		if err := n.Post(pctx, e); err != nil {
-			maskedErrStr, maskErr := masktoken.MaskTokenFromString(err.Error(), token)
+			maskedErrStr, maskErr := masktoken.MaskTokenFromString(err.Error(), params.token)
 			if maskErr != nil {
 				err = maskErr
 			} else {
@@ -227,24 +245,35 @@ func (s *EventServer) dispatchNotification(ctx context.Context, event *eventv1.E
 			}
 			log.FromContext(ctx).Error(err, "failed to send notification")
 			s.Eventf(alert, corev1.EventTypeWarning, "NotificationDispatchFailed",
-				"failed to send notification for %s: %s", involvedObjectString(event.InvolvedObject), err)
+				"failed to send notification for %s: %s", involvedObjectString(e.InvolvedObject), err)
 		}
-	}(sender, *notification)
+	}(params.sender, *params.event)
 
-	return nil
+	return false, nil
+}
+
+// notificationParams holds the results of the getNotificationParams function.
+type notificationParams struct {
+	sender  notifier.Interface
+	event   *eventv1.Event
+	token   string
+	timeout time.Duration
 }
 
 // getNotificationParams constructs the notification parameters from the given
 // event and alert, and returns a notifier, event, token and timeout for sending
 // the notification. The returned event is a mutated form of the input event
-// based on the alert configuration.
-func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) (notifier.Interface, *eventv1.Event, string, time.Duration, error) {
+// based on the alert configuration. A boolean is also returned to indicate if
+// the event was dropped due to being related to a change request provider but
+// not having the required change request metadata key.
+func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.Event,
+	alert *apiv1beta3.Alert) (*notificationParams, bool, error) {
 	// Check if event comes from a different namespace.
 	if s.noCrossNamespaceRefs && event.InvolvedObject.Namespace != alert.Namespace {
 		accessDenied := fmt.Errorf(
 			"alert '%s/%s' can't process event from '%s', cross-namespace references have been blocked",
 			alert.Namespace, alert.Name, involvedObjectString(event.InvolvedObject))
-		return nil, nil, "", 0, fmt.Errorf("discarding event, access denied to cross-namespace sources: %w", accessDenied)
+		return nil, false, fmt.Errorf("discarding event, access denied to cross-namespace sources: %w", accessDenied)
 	}
 
 	var provider apiv1beta3.Provider
@@ -252,23 +281,31 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 
 	err := s.kubeClient.Get(ctx, providerName, &provider)
 	if err != nil {
-		return nil, nil, "", 0, fmt.Errorf("failed to read provider: %w", err)
+		return nil, false, fmt.Errorf("failed to read provider: %w", err)
 	}
 
 	// Skip if the provider is suspended.
 	if provider.Spec.Suspend {
-		return nil, nil, "", 0, nil
+		return nil, false, nil
 	}
 
-	// Skip if the provider is a change request provider but the event doesn't have the change request metadata key.
-	if isChangeRequestCommentProvider(provider.Spec.Type) &&
-		event.Metadata[eventv1.Group+"/"+eventv1.MetaChangeRequestKey] == "" {
-		return nil, nil, "", 0, nil
+	// Skip if the event has commit status update metadata but the provider is not a git provider.
+	// Git providers (github, gitlab, etc.) are the ones that set commit statuses.
+	if !isCommitStatusProvider(provider.Spec.Type) && isCommitStatusUpdate(event) {
+		return nil, false, nil
+	}
+
+	// Skip if the provider is a change request comment provider but the event
+	// doesn't have the change request metadata key.
+	if isChangeRequestCommentProvider(provider.Spec.Type) && !hasChangeRequestKey(event) {
+		// Return true on dropped event for a change request comment provider
+		// when the event doesn't have the change request metadata key.
+		return nil, true, nil
 	}
 
 	// Check object-level workload identity feature gate.
 	if provider.Spec.ServiceAccountName != "" && !auth.IsObjectLevelWorkloadIdentityEnabled() {
-		return nil, nil, "", 0, fmt.Errorf(
+		return nil, false, fmt.Errorf(
 			"to use spec.serviceAccountName for provider authentication please enable the %s feature gate in the controller",
 			auth.FeatureGateObjectLevelWorkloadIdentity)
 	}
@@ -280,15 +317,20 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 	// Create a commit status for the given provider and event, if applicable.
 	commitStatus, err := createCommitStatus(ctx, &provider, &notification, alert)
 	if err != nil {
-		return nil, nil, "", 0, fmt.Errorf("failed to create commit status: %w", err)
+		return nil, false, fmt.Errorf("failed to create commit status: %w", err)
 	}
 
 	sender, token, err := createNotifier(ctx, s.kubeClient, &provider, commitStatus, s.tokenCache)
 	if err != nil {
-		return nil, nil, "", 0, fmt.Errorf("failed to initialize notifier for provider '%s': %w", provider.Name, err)
+		return nil, false, fmt.Errorf("failed to initialize notifier for provider '%s': %w", provider.Name, err)
 	}
 
-	return sender, &notification, token, provider.GetTimeout(), nil
+	return &notificationParams{
+		sender:  sender,
+		event:   &notification,
+		token:   token,
+		timeout: provider.GetTimeout(),
+	}, false, nil
 }
 
 // createCommitStatus creates a commit status for the given provider and event.
@@ -297,7 +339,7 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 // If the provider is not a git provider, the commit status will be an empty string.
 // If the commitStatusExpr fails to compile or is invalid, an error will be returned.
 func createCommitStatus(ctx context.Context, provider *apiv1beta3.Provider, event *eventv1.Event, alert *apiv1beta3.Alert) (commitStatus string, err error) {
-	if !isGitProvider(provider.Spec.Type) {
+	if !isCommitStatusProvider(provider.Spec.Type) {
 		return "", nil
 	}
 
@@ -472,9 +514,9 @@ func getTLSConfigForProvider(ctx context.Context, providerCertSecret, providerSe
 		}
 		return
 	}
-	// if providerCertSecret is not specified, and if the provider is a git provider then
-	// attempt to get TLS config from providerSecret if ca.crt exists
-	if isGitProvider(providerType) && providerSecret != nil {
+	// if providerCertSecret is not specified, and if the provider is a commit status
+	// provider then attempt to get TLS config from providerSecret if ca.crt exists
+	if isCommitStatusProvider(providerType) && providerSecret != nil {
 		authMethods, err := secrets.AuthMethodsFromSecret(ctx, providerSecret)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get TLS config: %w", err)

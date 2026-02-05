@@ -97,11 +97,6 @@ func (s *Webex) CreateMarkdown(event *eventv1.Event) string {
 
 // Post Webex message
 func (s *Webex) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	payload := WebexPayload{
 		RoomId:   s.RoomId,
 		Markdown: s.CreateMarkdown(&event),

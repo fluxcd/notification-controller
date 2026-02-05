@@ -83,11 +83,6 @@ func NewSlack(hookURL string, proxyURL string, token string, tlsConfig *tls.Conf
 
 // Post Slack message
 func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	payload := SlackPayload{
 		Username: s.Username,
 	}

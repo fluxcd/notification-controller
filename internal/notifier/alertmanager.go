@@ -93,11 +93,6 @@ func NewAlertmanager(hookURL string, proxyURL string, tlsConfig *tls.Config, tok
 }
 
 func (s *Alertmanager) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	annotations := make(map[string]string)
 	annotations["message"] = event.Message
 
