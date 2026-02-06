@@ -124,6 +124,14 @@ The providers supporting [Git commit status updates](#git-commit-status-updates)
 | [GitLab](#gitlab)                                            | `gitlab`          |
 | [Gitea](#gitea)                                              | `gitea`           |
 
+#### Types supporting change request comments
+
+The providers supporting change request (pull request / merge request) comments are:
+
+| Provider                                                                   | Type                         |
+|----------------------------------------------------------------------------|------------------------------|
+| [GitHub Pull Request Comment](#github-pull-request-comment)                | `githubpullrequestcomment`   |
+
 #### Alerting
 
 ##### Generic webhook
@@ -2054,3 +2062,86 @@ The CEL expression can access the following variables:
 If the `spec.commitStatusExpr` field is not specified, the notification-controller will use a default commit status message based on the involved object kind, name, and a truncated provider UID to generate a commit status (e.g. `kustomization/gitops-system/0c9c2e41`).
 
 A useful tool for building and testing CEL expressions is the [CEL Playground](https://playcel.undistro.io/).
+
+### Change Request Comments
+
+The notification-controller can post comments on pull requests / merge requests
+to provide status updates directly on the change request where developers are working.
+
+**Note:** Flux objects without the `event.toolkit.fluxcd.io/change_request` annotation are
+automatically filtered out and will not trigger any action from change request providers.
+
+#### GitHub Pull Request Comment
+
+When `.spec.type` is set to `githubpullrequestcomment`, the controller will post
+a comment on the GitHub pull request specified in the event metadata.
+
+This provider is designed to work with Flux objects that contain the
+`event.toolkit.fluxcd.io/change_request` annotation, which specifies
+the pull request number. Flux objects without this annotation are
+ignored.
+
+Each Flux object will have at most one status comment per provider on the pull request,
+which is updated whenever a new event is received.
+
+##### Authentication
+
+The provider supports the same authentication methods as the [GitHub commit status provider](#github):
+
+- **Personal Access Token**: A token with permissions to read and write pull request comments
+- **GitHub App**: A GitHub App installation with permissions to read and write pull request comments
+
+##### GitHub Pull Request Comment Example
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: github-pr-comment
+  namespace: flux-system
+spec:
+  type: githubpullrequestcomment
+  address: https://github.com/my-org/my-repo
+  secretRef:
+    name: github-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: github-token
+  namespace: flux-system
+stringData:
+  token: <personal-access-token>
+```
+
+For GitHub App authentication, create the secret as described in the
+[GitHub App authentication section](#github-app).
+
+##### Comment Format
+
+The provider posts comments in the following format:
+
+```markdown
+## Flux Status
+
+ℹ️ Kustomization/apps/podinfo
+
+Applied revision: branch@sha1:hex
+
+Metadata:
+* `revision`: branch@sha1:hex
+```
+
+For error events, the comment will show:
+
+```markdown
+## Flux Status
+
+⚠️ Kustomization/apps/podinfo
+
+Reconciliation failed: validation error
+
+Metadata:
+* `revision`: branch@sha1:hex
+```

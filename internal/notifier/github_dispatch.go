@@ -18,14 +18,12 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
-	"github.com/fluxcd/pkg/cache"
-
 	"github.com/google/go-github/v64/github"
+
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 type GitHubDispatch struct {
@@ -34,20 +32,16 @@ type GitHubDispatch struct {
 	Client *github.Client
 }
 
-func NewGitHubDispatch(addr string, token string, tlsConfig *tls.Config, proxyURL string,
-	providerName string, providerNamespace string, secretData map[string][]byte,
-	tokenCache *cache.TokenCache) (*GitHubDispatch, error) {
-
-	repoInfo, err := getRepoInfoAndGithubClient(addr, token, tlsConfig,
-		proxyURL, providerName, providerNamespace, secretData, tokenCache)
+func NewGitHubDispatch(ctx context.Context, opts ...GitHubClientOption) (*GitHubDispatch, error) {
+	clientInfo, err := NewGitHubClient(ctx, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	return &GitHubDispatch{
-		Owner:  repoInfo.owner,
-		Repo:   repoInfo.repo,
-		Client: repoInfo.client,
+		Owner:  clientInfo.Owner,
+		Repo:   clientInfo.Repo,
+		Client: clientInfo.Client,
 	}, nil
 }
 
@@ -61,18 +55,17 @@ func (g *GitHubDispatch) Post(ctx context.Context, event eventv1.Event) error {
 	eventType := fmt.Sprintf("%s/%s.%s",
 		event.InvolvedObject.Kind, event.InvolvedObject.Name, event.InvolvedObject.Namespace)
 
-	eventData, err := json.Marshal(event)
+	b, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("failed to marshal object into json: %w", err)
 	}
-	eventDataRaw := json.RawMessage(eventData)
+	clientPayload := json.RawMessage(b)
 
 	opts := github.DispatchRequestOptions{
 		EventType:     eventType,
-		ClientPayload: &eventDataRaw,
+		ClientPayload: &clientPayload,
 	}
 	_, _, err = g.Client.Repositories.Dispatch(ctx, g.Owner, g.Repo, opts)
-
 	if err != nil {
 		return fmt.Errorf("could not send github repository dispatch webhook: %v", err)
 	}

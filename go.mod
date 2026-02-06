@@ -17,13 +17,13 @@ require (
 	github.com/elazarl/goproxy v1.8.0
 	github.com/fluxcd/cli-utils v0.37.1-flux.1
 	github.com/fluxcd/notification-controller/api v1.7.0
-	github.com/fluxcd/pkg/apis/event v0.22.0
+	github.com/fluxcd/pkg/apis/event v0.23.0
 	github.com/fluxcd/pkg/apis/meta v1.25.0
 	github.com/fluxcd/pkg/auth v0.36.0
 	github.com/fluxcd/pkg/cache v0.13.0
-	github.com/fluxcd/pkg/git v0.41.0
+	github.com/fluxcd/pkg/git v0.42.0
 	github.com/fluxcd/pkg/masktoken v0.8.0
-	github.com/fluxcd/pkg/runtime v0.97.0
+	github.com/fluxcd/pkg/runtime v0.98.0
 	github.com/fluxcd/pkg/ssa v0.66.0
 	github.com/fluxcd/pkg/ssh v0.24.0
 	github.com/getsentry/sentry-go v0.41.0

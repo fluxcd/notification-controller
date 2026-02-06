@@ -382,6 +382,7 @@ spec:
                 - alertmanager
                 - grafana
                 - githubdispatch
+                - githubpullrequestcomment
                 - pagerduty
                 - datadog
                 - nats

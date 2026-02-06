@@ -50,7 +50,12 @@ func Fuzz_GitHub(f *testing.F) {
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
 		tlsConfig := &tls.Config{RootCAs: &cert}
-		github, err := NewGitHub(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, tlsConfig, "", "foo", "bar", nil, nil)
+		github, err := NewGitHub(context.TODO(), commitStatus,
+			WithGitHubAddress(fmt.Sprintf("%s/%s", ts.URL, urlSuffix)),
+			WithGitHubToken(token),
+			WithGitHubTLSConfig(tlsConfig),
+			WithGitHubProvider("foo", "bar"),
+		)
 		if err != nil {
 			return
 		}
