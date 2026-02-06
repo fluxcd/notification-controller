@@ -2125,11 +2125,12 @@ The provider posts comments in the following format:
 ```markdown
 ## Flux Status
 
-ℹ️ Info: `Kustomization/flux-system.flux-system`
+ℹ️ Kustomization/apps/podinfo
 
-`Applied revision: main@sha1:abc1234`
+Applied revision: branch@sha1:hex
 
-* `revision`: `main@sha1:abc1234`
+Metadata:
+* `revision`: branch@sha1:hex
 ```
 
 For error events, the comment will show:
@@ -2137,9 +2138,10 @@ For error events, the comment will show:
 ```markdown
 ## Flux Status
 
-⚠️ Error: `Kustomization/flux-system.flux-system`
+⚠️ Kustomization/apps/podinfo
 
-`Reconciliation failed: validation error`
+Reconciliation failed: validation error
 
-* `revision`: `main@sha1:abc1234`
+Metadata:
+* `revision`: branch@sha1:hex
 ```

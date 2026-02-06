@@ -163,12 +163,12 @@ func (g *GitHubPullRequestComment) formatCommentKeyMarker(event *eventv1.Event) 
 func (g *GitHubPullRequestComment) formatCommentBody(event *eventv1.Event) string {
 	marker := g.formatCommentKeyMarker(event)
 
-	// Format severity with emoji
-	var severityText string
+	// Get emoji based on severity
+	var severityEmoji string
 	if event.Severity == eventv1.EventSeverityError {
-		severityText = "⚠️ Error"
+		severityEmoji = "⚠️"
 	} else {
-		severityText = "ℹ️ Info"
+		severityEmoji = "ℹ️"
 	}
 
 	// Format object identifier
@@ -187,10 +187,10 @@ func (g *GitHubPullRequestComment) formatCommentBody(event *eventv1.Event) strin
 	slices.Sort(keys)
 	var metadataLines strings.Builder
 	for _, key := range keys {
-		fmt.Fprintf(&metadataLines, "* `%s`: `%s`\n", key, event.Metadata[key])
+		fmt.Fprintf(&metadataLines, "* `%s`: %s\n", key, event.Metadata[key])
 	}
 
 	// Format the comment body
-	return fmt.Sprintf("%s\n\n## Flux Status\n\n%s: `%s`\n\n`%s`\n\n%s",
-		marker, severityText, objectID, event.Message, metadataLines.String())
+	return fmt.Sprintf("%s\n\n## Flux Status\n\n%s %s\n\n%s\n\nMetadata:\n%s",
+		marker, severityEmoji, objectID, event.Message, metadataLines.String())
 }
