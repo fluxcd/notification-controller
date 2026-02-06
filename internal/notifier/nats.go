@@ -62,11 +62,6 @@ func NewNATS(server string, subject string, username string, password string) (*
 
 // Post posts Flux events to a NATS subject.
 func (n *NATS) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	eventPayload, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("error json-marshaling event: %w", err)

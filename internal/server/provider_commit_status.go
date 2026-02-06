@@ -22,10 +22,11 @@ import (
 	"slices"
 	"strings"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
-	"github.com/fluxcd/pkg/runtime/cel"
 	"github.com/google/cel-go/common/types"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	"github.com/fluxcd/pkg/runtime/cel"
 
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 )
@@ -88,8 +89,8 @@ func newCommitStatus(ctx context.Context, expr string, notification *eventv1.Eve
 	return result, nil
 }
 
-// isGitProvider returns true if the provider type is a Git provider.
-func isGitProvider(providerType string) bool {
+// isCommitStatusProvider returns true if the provider type is a Git provider.
+func isCommitStatusProvider(providerType string) bool {
 	gitProviderTypes := []string{
 		apiv1beta3.GitHubProvider,
 		apiv1beta3.GitLabProvider,
@@ -100,4 +101,10 @@ func isGitProvider(providerType string) bool {
 	}
 
 	return slices.Contains(gitProviderTypes, providerType)
+}
+
+// isCommitStatusUpdate returns true if the event is a commit status update.
+func isCommitStatusUpdate(event *eventv1.Event) bool {
+	key := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group + "/" + eventv1.MetaCommitStatusKey
+	return event.Metadata[key] == eventv1.MetaCommitStatusUpdateValue
 }

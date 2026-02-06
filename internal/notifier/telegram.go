@@ -49,11 +49,6 @@ func NewTelegram(proxyURL, channel, token string) (*Telegram, error) {
 }
 
 func (t *Telegram) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	emoji := "💫"
 	if event.Severity == eventv1.EventSeverityError {
 		emoji = "🚨"

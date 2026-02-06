@@ -47,11 +47,6 @@ func NewGitHubDispatch(ctx context.Context, opts ...GitHubClientOption) (*GitHub
 
 // Post GitHub Repository Dispatch webhook
 func (g *GitHubDispatch) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	eventType := fmt.Sprintf("%s/%s.%s",
 		event.InvolvedObject.Kind, event.InvolvedObject.Name, event.InvolvedObject.Namespace)
 

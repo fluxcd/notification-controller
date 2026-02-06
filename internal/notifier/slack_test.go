@@ -25,8 +25,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 func TestSlack_Post(t *testing.T) {
@@ -47,17 +45,6 @@ func TestSlack_Post(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = slack.Post(context.TODO(), testEvent())
-	g.Expect(err).ToNot(HaveOccurred())
-}
-
-func TestSlack_PostUpdate(t *testing.T) {
-	g := NewWithT(t)
-	slack, err := NewSlack("http://localhost", "", "", nil, "", "test")
-	g.Expect(err).ToNot(HaveOccurred())
-
-	event := testEvent()
-	event.Metadata[eventv1.MetaCommitStatusKey] = eventv1.MetaCommitStatusUpdateValue
-	err = slack.Post(context.TODO(), event)
 	g.Expect(err).ToNot(HaveOccurred())
 }
 

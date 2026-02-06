@@ -79,11 +79,6 @@ func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace
 
 // Post all notification-controller messages to EventHub
 func (e *AzureEventHub) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	eventBytes, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("unable to marshall event: %w", err)

@@ -144,11 +144,6 @@ func NewMSTeams(hookURL string, proxyURL string, tlsConfig *tls.Config) (*MSTeam
 
 // Post MS Teams message
 func (s *MSTeams) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	objName := fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace)
 
 	var payload any

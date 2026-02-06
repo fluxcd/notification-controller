@@ -114,13 +114,6 @@ func TestNATSPost(t *testing.T) {
 			publishShouldExecute: true,
 		},
 		{
-			name: "commit status updates are dropped",
-			event: eventv1.Event{
-				Metadata: map[string]string{"commit_status": "update"},
-			},
-			publishShouldExecute: false,
-		},
-		{
 			name:                 "publish error is wrapped and relayed",
 			subject:              "test",
 			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","reportingController":""}`,

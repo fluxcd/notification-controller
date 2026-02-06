@@ -128,9 +128,10 @@ The providers supporting [Git commit status updates](#git-commit-status-updates)
 
 The providers supporting change request (pull request / merge request) comments are:
 
-| Provider                                                                   | Type                         |
-|----------------------------------------------------------------------------|------------------------------|
-| [GitHub Pull Request Comment](#github-pull-request-comment)                | `githubpullrequestcomment`   |
+| Provider                                                                   | Type                           |
+|----------------------------------------------------------------------------|--------------------------------|
+| [GitHub Pull Request Comment](#github-pull-request-comment)                | `githubpullrequestcomment`     |
+| [GitLab Merge Request Comment](#gitlab-merge-request-comment)              | `gitlabmergerequestcomment`    |
 
 #### Alerting
 
@@ -2145,3 +2146,57 @@ Reconciliation failed: validation error
 Metadata:
 * `revision`: branch@sha1:hex
 ```
+
+#### GitLab Merge Request Comment
+
+When `.spec.type` is set to `gitlabmergerequestcomment`, the controller will post
+a comment on the GitLab merge request specified in the event metadata.
+
+This provider is designed to work with Flux objects that contain the
+`event.toolkit.fluxcd.io/change_request` annotation, which specifies
+the merge request IID. Flux objects without this annotation are
+ignored.
+
+Each Flux object will have at most one status comment per provider on the merge request,
+which is updated whenever a new event is received.
+
+##### Authentication
+
+The provider requires a GitLab [personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html)
+or [project/group access token](https://docs.gitlab.com/ee/user/project/settings/project_access_tokens.html)
+with the `api` scope.
+
+##### GitLab Merge Request Comment Example
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: gitlab-mr-comment
+  namespace: flux-system
+spec:
+  type: gitlabmergerequestcomment
+  address: https://gitlab.com/my-group/my-project
+  secretRef:
+    name: gitlab-token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-token
+  namespace: flux-system
+stringData:
+  token: <personal-access-token>
+```
+
+For self-hosted GitLab instances, update the `address` field to point to your GitLab instance:
+
+```yaml
+spec:
+  address: https://gitlab.example.com/my-group/my-project
+```
+
+##### Comment Format
+
+The provider posts comments in the same format as the [GitHub Pull Request Comment](#comment-format) provider.

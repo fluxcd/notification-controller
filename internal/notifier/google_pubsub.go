@@ -60,11 +60,6 @@ func NewGooglePubSub(opts *notifierOptions) (*GooglePubSub, error) {
 
 // Post posts Flux events to a Google Pub/Sub topic.
 func (g *GooglePubSub) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	eventPayload, err := json.Marshal(event)
 	if err != nil {
 		return fmt.Errorf("error json-marshaling event: %w", err)

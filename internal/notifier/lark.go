@@ -62,11 +62,6 @@ func NewLark(address string) (*Lark, error) {
 }
 
 func (l *Lark) Post(ctx context.Context, event eventv1.Event) error {
-	// Skip Git commit status update event.
-	if event.HasMetadata(eventv1.MetaCommitStatusKey, eventv1.MetaCommitStatusUpdateValue) {
-		return nil
-	}
-
 	emoji := "💫"
 	color := "turquoise"
 	if event.Severity == eventv1.EventSeverityError {
