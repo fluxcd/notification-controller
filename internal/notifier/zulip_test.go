@@ -70,12 +70,12 @@ func TestZulip_Post(t *testing.T) {
 		{
 			name:            "info severity event",
 			eventSeverity:   eventv1.EventSeverityInfo,
-			expectedContent: "ℹ️ Info: `kustomization/test-ks.default`\n\n`Test event message`\n\nMetadata:\n- **key1**: `value1`\n- **key2**: `value2`",
+			expectedContent: "## Flux Status\n\nℹ️ Kustomization/default/test-ks\n\nTest event message\n\nMetadata:\n* `key1`: value1\n* `key2`: value2\n",
 		},
 		{
 			name:            "error severity event",
 			eventSeverity:   eventv1.EventSeverityError,
-			expectedContent: "⚠️ Error: `kustomization/test-ks.default`\n\n`Test event message`\n\nMetadata:\n- **key1**: `value1`\n- **key2**: `value2`",
+			expectedContent: "## Flux Status\n\n⚠️ Kustomization/default/test-ks\n\nTest event message\n\nMetadata:\n* `key1`: value1\n* `key2`: value2\n",
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
