@@ -108,3 +108,8 @@ func isCommitStatusUpdate(event *eventv1.Event) bool {
 	key := event.InvolvedObject.GetObjectKind().GroupVersionKind().Group + "/" + eventv1.MetaCommitStatusKey
 	return event.Metadata[key] == eventv1.MetaCommitStatusUpdateValue
 }
+
+// hasCommitKey returns true if the event has the commit metadata key.
+func hasCommitKey(event *eventv1.Event) bool {
+	return event.Metadata[eventv1.Group+"/"+eventv1.MetaCommitKey] != ""
+}
