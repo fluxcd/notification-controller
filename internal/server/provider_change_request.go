@@ -22,9 +22,9 @@ import (
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
-// isChangeRequestCommentProvider returns true if the provider type is a
-// change request comment provider.
-func isChangeRequestCommentProvider(providerType string) bool {
+// isChangeRequestProvider returns true if the provider type is a
+// change request provider.
+func isChangeRequestProvider(providerType string) bool {
 	return providerType == apiv1beta3.GitHubPullRequestCommentProvider ||
 		providerType == apiv1beta3.GitLabMergeRequestCommentProvider
 }
