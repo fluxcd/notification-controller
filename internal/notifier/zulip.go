@@ -21,7 +21,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/url"
-	"slices"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -66,34 +65,7 @@ func NewZulip(endpoint, channel, proxyURL string, tlsConfig *tls.Config, usernam
 func (z *Zulip) Post(ctx context.Context, event eventv1.Event) error {
 	const contentType = "application/x-www-form-urlencoded"
 
-	obj := fmt.Sprintf("%s/%s.%s",
-		strings.ToLower(event.InvolvedObject.Kind),
-		event.InvolvedObject.Name,
-		event.InvolvedObject.Namespace)
-
-	header := fmt.Sprintf("ℹ️ Info: `%s`", obj)
-	if event.Severity == eventv1.EventSeverityError {
-		header = fmt.Sprintf("⚠️ Error: `%s`", obj)
-	}
-
-	msg := fmt.Sprintf("`%s`", event.Message)
-
-	mdKeys := make([]string, 0, len(event.Metadata))
-	for k := range event.Metadata {
-		mdKeys = append(mdKeys, k)
-	}
-	slices.Sort(mdKeys)
-	md := make([]string, 0, len(event.Metadata))
-	for _, k := range mdKeys {
-		md = append(md, fmt.Sprintf("- **%s**: `%s`", k, event.Metadata[k]))
-	}
-
-	content := fmt.Sprintf(`%[1]s
-
-%[2]s
-
-Metadata:
-%[3]s`, header, msg, strings.Join(md, "\n"))
+	content := formatMarkdownPost(&event)
 
 	payload := []byte(url.Values{
 		"type":    {"stream"},

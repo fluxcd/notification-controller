@@ -18,8 +18,6 @@ package notifier
 
 import (
 	"fmt"
-	"slices"
-	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 )
@@ -52,35 +50,6 @@ func (c *changeRequestComment) formatCommentKeyMarker(event *eventv1.Event) stri
 // formatCommentBody formats the body of the change request comment based on the event data.
 func (c *changeRequestComment) formatCommentBody(event *eventv1.Event) string {
 	marker := c.formatCommentKeyMarker(event)
-
-	// Get emoji based on severity
-	var severityEmoji string
-	if event.Severity == eventv1.EventSeverityError {
-		severityEmoji = "⚠️"
-	} else {
-		severityEmoji = "ℹ️"
-	}
-
-	// Format object identifier
-	objectID := fmt.Sprintf("%s/%s/%s",
-		event.InvolvedObject.Kind,
-		event.InvolvedObject.Namespace,
-		event.InvolvedObject.Name)
-
-	// Build metadata section
-	keys := make([]string, 0, len(event.Metadata))
-	for k := range event.Metadata {
-		if k != eventv1.MetaChangeRequestKey {
-			keys = append(keys, k)
-		}
-	}
-	slices.Sort(keys)
-	var metadataLines strings.Builder
-	for _, key := range keys {
-		fmt.Fprintf(&metadataLines, "* `%s`: %s\n", key, event.Metadata[key])
-	}
-
-	// Format the comment body
-	return fmt.Sprintf("%s\n\n## Flux Status\n\n%s %s\n\n%s\n\nMetadata:\n%s",
-		marker, severityEmoji, objectID, event.Message, metadataLines.String())
+	body := formatMarkdownPost(event)
+	return fmt.Sprintf("%s\n\n%s", marker, body)
 }
