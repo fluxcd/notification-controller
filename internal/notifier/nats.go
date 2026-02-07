@@ -24,6 +24,7 @@ import (
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nkeys"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -37,26 +38,81 @@ type (
 	}
 
 	natsClient struct {
-		server   string
-		username string
-		password string
+		server    string
+		authFn    func() (nats.Option, func(), error)
+		username  string
+		password  string
+		credsData []byte
+		nkeySeed  []byte
 	}
 )
 
-func NewNATS(server string, subject string, username string, password string) (*NATS, error) {
+// NewNATS creates a new NATS notifier with support for multiple authentication methods.
+//
+// Authentication methods (in priority order):
+//  1. User Credentials (JWT + NKey): Pass the .creds file content via credsData parameter
+//  2. NKey: Pass the NKey seed via nkeySeed parameter
+//  3. Username/Password: Pass via username and password parameters
+//
+// Parameters:
+//   - server: NATS server URL (e.g., "nats://localhost:4222")
+//   - subject: NATS subject to publish events to
+//   - username: Username for basic authentication (optional)
+//   - password: Password for basic authentication (optional)
+//   - credsData: User credentials file content (JWT + NKey) for NATS 2.0+ authentication (optional)
+//   - nkeySeed: NKey seed for NKey-based authentication (optional)
+//
+// Returns an error if server or subject is empty.
+func NewNATS(server string, subject string, username string, password string, secretData map[string][]byte) (*NATS, error) {
 	if server == "" {
 		return nil, errors.New("NATS server (address) cannot be empty")
 	}
 	if subject == "" {
 		return nil, errors.New("NATS subject (channel) cannot be empty")
 	}
+
+	client := &natsClient{server: server}
+
+	// Extract credentials from secret data
+	// Keys: "creds" for user credentials file, "nkey" for nkey seed
+	var credsData, nkeySeed []byte
+	if secretData != nil {
+		credsData = secretData["creds"]
+		nkeySeed = secretData["nkey"]
+	}
+
+	// Set up authentication function based on provided credentials
+	// Authentication priority: user credentials (JWT), nkey, username/password
+	if len(credsData) > 0 {
+		client.authFn = func() (nats.Option, func(), error) {
+			return nats.UserCredentialBytes(credsData), nil, nil
+		}
+	} else if len(nkeySeed) > 0 {
+		client.authFn = func() (nats.Option, func(), error) {
+			kp, err := nkeys.FromSeed(nkeySeed)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error parsing nkey seed: %w", err)
+			}
+			pubKey, err := kp.PublicKey()
+			if err != nil {
+				kp.Wipe()
+				return nil, nil, fmt.Errorf("error getting public key from nkey: %w", err)
+			}
+			// Create signature callback
+			sigCB := func(nonce []byte) ([]byte, error) {
+				return kp.Sign(nonce)
+			}
+			return nats.Nkey(pubKey, sigCB), kp.Wipe, nil
+		}
+	} else if username != "" && password != "" {
+		client.authFn = func() (nats.Option, func(), error) {
+			return nats.UserInfo(username, password), nil, nil
+		}
+	}
+
 	return &NATS{
 		subject: subject,
-		client: &natsClient{
-			server:   server,
-			username: username,
-			password: password,
-		},
+		client:  client,
 	}, nil
 }
 
@@ -80,8 +136,17 @@ func (n *NATS) Post(ctx context.Context, event eventv1.Event) error {
 
 func (n *natsClient) publish(ctx context.Context, subject string, eventPayload []byte) (err error) {
 	opts := []nats.Option{nats.Name("NATS Provider Publisher")}
-	if n.username != "" && n.password != "" {
-		opts = append(opts, nats.UserInfo(n.username, n.password))
+
+	// Apply authentication if configured
+	if n.authFn != nil {
+		authOpt, cleanup, err := n.authFn()
+		if err != nil {
+			return err
+		}
+		if cleanup != nil {
+			defer cleanup()
+		}
+		opts = append(opts, authOpt)
 	}
 
 	nc, err := nats.Connect(n.server, opts...)

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	"github.com/nats-io/nats.go"
 	. "github.com/onsi/gomega"
 )
 
@@ -17,10 +18,13 @@ func TestNewNATS(t *testing.T) {
 		server           string
 		username         string
 		password         string
+		secretData       map[string][]byte
 		expectedErr      error
 		expectedSubject  string
 		expectedUsername string
 		expectedPassword string
+		expectedCreds    bool
+		expectedNkey     bool
 	}{
 		{
 			name:        "empty subject is not allowed",
@@ -54,13 +58,53 @@ func TestNewNATS(t *testing.T) {
 			expectedUsername: "user",
 			expectedPassword: "pass",
 		},
+		{
+			name:            "credentials file data is stored",
+			subject:         "test",
+			server:          "nats",
+			secretData:      map[string][]byte{"creds": []byte("credentials-content")},
+			expectedSubject: "test",
+			expectedCreds:   true,
+		},
+		{
+			name:            "nkey seed data is stored",
+			subject:         "test",
+			server:          "nats",
+			secretData:      map[string][]byte{"nkey": []byte("SUAGMJH5XLGZKQQWAWKRZJIGMOU4HPFUYLXJMXOO5NLFEO2OOQJ5LPRDPM")},
+			expectedSubject: "test",
+			expectedNkey:    true,
+		},
+		// Priority tests: creds > nkey > username/password
+		{
+			name:     "creds takes priority over nkey and username/password",
+			subject:  "test",
+			server:   "nats",
+			username: "user",
+			password: "pass",
+			secretData: map[string][]byte{
+				"creds": []byte("credentials-content"),
+				"nkey":  []byte("SUAGMJH5XLGZKQQWAWKRZJIGMOU4HPFUYLXJMXOO5NLFEO2OOQJ5LPRDPM"),
+			},
+			expectedSubject: "test",
+			expectedCreds:   true,
+		},
+		{
+			name:            "nkey takes priority over username/password",
+			subject:         "test",
+			server:          "nats",
+			username:        "user",
+			password:        "pass",
+			secretData:      map[string][]byte{"nkey": []byte("SUAGMJH5XLGZKQQWAWKRZJIGMOU4HPFUYLXJMXOO5NLFEO2OOQJ5LPRDPM")},
+			expectedSubject: "test",
+			expectedNkey:    true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			provider, err := NewNATS(tt.server, tt.subject, tt.username, tt.password)
+			provider, err := NewNATS(tt.server, tt.subject, tt.username, tt.password, tt.secretData)
 			if tt.expectedErr != nil {
 				g.Expect(err).To(Equal(tt.expectedErr))
 				g.Expect(provider).To(BeNil())
@@ -75,8 +119,46 @@ func TestNewNATS(t *testing.T) {
 				g.Expect(client).NotTo(BeNil())
 
 				g.Expect(client.server).To(Equal(tt.server))
-				g.Expect(client.username).To(Equal(tt.expectedUsername))
-				g.Expect(client.password).To(Equal(tt.expectedPassword))
+
+				// Verify authFn returns valid option and correct auth type
+				if client.authFn != nil {
+					opt, cleanup, err := client.authFn()
+					g.Expect(err).To(BeNil(), "authFn should not return error")
+					g.Expect(opt).NotTo(BeNil(), "authFn should return a valid option")
+					if cleanup != nil {
+						defer cleanup()
+					}
+
+					// Apply option to verify which auth method was selected
+					var opts nats.Options
+					g.Expect(opt(&opts)).To(Succeed())
+
+					if tt.expectedCreds {
+						g.Expect(opts.UserJWT).NotTo(BeNil(), "creds auth should set UserJWT nats.Options field")
+					} else if tt.expectedNkey {
+						g.Expect(opts.Nkey).NotTo(BeEmpty(), "nkey auth should set Nkey nats.Options field")
+						g.Expect(opts.SignatureCB).NotTo(BeNil(), "nkey auth should set SignatureCB nats.Options field")
+					} else if tt.expectedUsername != "" {
+						g.Expect(opts.User).To(Equal(tt.expectedUsername), "username/password auth should set User nats.Options field")
+						g.Expect(opts.Password).To(Equal(tt.expectedPassword), "username/password auth should set Password nats.Options field")
+					}
+				} else {
+					// Verify authFn is configured based on authentication type
+					if tt.username != "" || tt.password != "" {
+						g.Expect(client.authFn).NotTo(BeNil(), "authFn should be set for username/password auth")
+					} else if tt.secretData != nil && tt.secretData["creds"] != nil {
+						g.Expect(client.authFn).NotTo(BeNil(), "authFn should be set for credentials file auth")
+					} else if tt.secretData != nil && tt.secretData["nkey"] != nil {
+						g.Expect(client.authFn).NotTo(BeNil(), "authFn should be set for nkey auth")
+					} else {
+						// When no auth is provided, authFn should be nil
+						g.Expect(client.authFn).To(BeNil(), "authFn should be nil when no auth is provided")
+						g.Expect(tt.expectedCreds).To(BeFalse())
+						g.Expect(tt.expectedNkey).To(BeFalse())
+						g.Expect(tt.expectedUsername).To(BeEmpty())
+						g.Expect(tt.expectedPassword).To(BeEmpty())
+					}
+				}
 			}
 		})
 	}
