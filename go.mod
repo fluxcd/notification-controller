@@ -23,8 +23,8 @@ require (
 	github.com/fluxcd/pkg/cache v0.13.0
 	github.com/fluxcd/pkg/git v0.43.0
 	github.com/fluxcd/pkg/masktoken v0.8.0
-	github.com/fluxcd/pkg/runtime v0.100.0
-	github.com/fluxcd/pkg/ssa v0.68.0
+	github.com/fluxcd/pkg/runtime v0.100.1
+	github.com/fluxcd/pkg/ssa v0.67.1
 	github.com/fluxcd/pkg/ssh v0.24.0
 	github.com/getsentry/sentry-go v0.42.0
 	github.com/go-logr/logr v1.4.3
