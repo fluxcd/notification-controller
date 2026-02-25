@@ -322,8 +322,9 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, droppedProviders{}, nil
 	}
 
-	// Skip if the provider is a commit status provider but the event doesn't have the commit metadata key.
-	if isCommitStatusProvider(provider.Spec.Type) && !hasCommitKey(event) {
+	// Skip if the provider is a commit status provider but the event doesn't have the commit metadata key
+	// and the event is not a commit status update.
+	if isCommitStatusProvider(provider.Spec.Type) && !hasCommitKey(event) && !isCommitStatusUpdate(event) {
 		// Return true on dropped event for a commit status provider
 		// when the event doesn't have the commit metadata key.
 		return nil, droppedProviders{commitStatus: true}, nil

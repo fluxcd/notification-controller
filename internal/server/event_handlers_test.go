@@ -418,18 +418,20 @@ func TestGetNotificationParams(t *testing.T) {
 	testEvent := &eventv1.Event{InvolvedObject: involvedObj}
 
 	tests := []struct {
-		name                   string
-		alertNamespace         string
-		alertSummary           string
-		alertEventMetadata     map[string]string
-		providerNamespace      string
-		providerSuspended      bool
-		providerServiceAccount string
-		secretNamespace        string
-		noCrossNSRefs          bool
-		enableObjLevelWI       bool
-		eventMetadata          map[string]string
-		wantErr                bool
+		name                    string
+		alertNamespace          string
+		alertSummary            string
+		alertEventMetadata      map[string]string
+		providerType            string
+		providerNamespace       string
+		providerSuspended       bool
+		providerServiceAccount  string
+		secretNamespace         string
+		noCrossNSRefs           bool
+		enableObjLevelWI        bool
+		eventMetadata           map[string]string
+		wantErr                 bool
+		wantDroppedCommitStatus bool
 	}{
 		{
 			name:              "event src and alert in diff NS",
@@ -490,6 +492,19 @@ func TestGetNotificationParams(t *testing.T) {
 			enableObjLevelWI:       true,
 			wantErr:                false,
 		},
+		{
+			name:                    "commit status provider drops event without commit key",
+			providerType:            apiv1beta3.GitHubProvider,
+			wantDroppedCommitStatus: true,
+		},
+		{
+			name:         "commit status provider does not drop commit status update event without commit key",
+			providerType: apiv1beta3.GitHubProvider,
+			eventMetadata: map[string]string{
+				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
+			},
+			wantErr: true, // proceeds past the guard and fails on notifier creation
+		},
 	}
 
 	for _, tt := range tests {
@@ -511,6 +526,9 @@ func TestGetNotificationParams(t *testing.T) {
 			}
 			if tt.alertEventMetadata != nil {
 				alert.Spec.EventMetadata = tt.alertEventMetadata
+			}
+			if tt.providerType != "" {
+				provider.Spec.Type = tt.providerType
 			}
 			if tt.providerNamespace != "" {
 				provider.Namespace = tt.providerNamespace
@@ -542,8 +560,9 @@ func TestGetNotificationParams(t *testing.T) {
 				EventRecorder:        record.NewFakeRecorder(32),
 			}
 
-			params, _, err := eventServer.getNotificationParams(context.TODO(), event, alert)
+			params, dropped, err := eventServer.getNotificationParams(context.TODO(), event, alert)
 			g.Expect(err != nil).To(Equal(tt.wantErr))
+			g.Expect(dropped.commitStatus).To(Equal(tt.wantDroppedCommitStatus))
 			if tt.alertSummary != "" {
 				g.Expect(params.event.Metadata["summary"]).To(Equal(tt.alertSummary))
 			}
