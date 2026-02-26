@@ -16,7 +16,7 @@ require (
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/elazarl/goproxy v1.8.1
 	github.com/fluxcd/cli-utils v0.37.2-flux.1
-	github.com/fluxcd/notification-controller/api v1.8.0
+	github.com/fluxcd/notification-controller/api v1.8.1
 	github.com/fluxcd/pkg/apis/event v0.24.0
 	github.com/fluxcd/pkg/apis/meta v1.25.0
 	github.com/fluxcd/pkg/auth v0.38.3
