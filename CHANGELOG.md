@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.8.1
+
+**Release date:** 2026-02-27
+
+This patch release fixes a regression introduced in 1.8.0 where commit
+status events were dropped.
+
+Fixes:
+- Fix commit status providers requiring only commit event key
+  [#1247](https://github.com/fluxcd/notification-controller/pull/1247)
+
+Improvements:
+- Remove no longer needed workaround for Flux 2.8
+  [#1244](https://github.com/fluxcd/notification-controller/pull/1244)
+- Update fluxcd/pkg dependencies
+  [#1250](https://github.com/fluxcd/notification-controller/pull/1250)
+
 ## 1.8.0
 
 **Release date:** 2026-02-17
