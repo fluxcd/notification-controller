@@ -135,6 +135,14 @@ github.com/felixge/httpsnoop v1.0.4 h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2
 github.com/felixge/httpsnoop v1.0.4/go.mod h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=
 github.com/fluxcd/cli-utils v0.37.1-flux.1 h1:WnG2mHxCPZMj/soIq/S/1zvbrGCJN3GJGbNfG06X55M=
 github.com/fluxcd/cli-utils v0.37.1-flux.1/go.mod h1:aND5wX3LuTFtB7eUT7vsWr8mmxRVSPR2Wkvbn0SqPfw=
+github.com/fluxcd/helm-controller/api v1.5.1 h1:yraWl0ImzO4yIy/N5d9i54N+OZxKuFZqjed8wrIjy8U=
+github.com/fluxcd/helm-controller/api v1.5.1/go.mod h1:Yr0y7GKizbvQQGK5wBX6sGCZrTY86AN9n1PNEsji2XE=
+github.com/fluxcd/image-automation-controller/api v1.1.0 h1:CLPNHQskX0falo4s1suG1ztUe9IGaY9q5ntcz5Fxt9A=
+github.com/fluxcd/image-automation-controller/api v1.1.0/go.mod h1:dIpTDlWgUfjvdGZCNfe8Ht9sCiHwRbJDoIbwfLQ56wc=
+github.com/fluxcd/image-reflector-controller/api v1.1.0 h1:7TtE9DrCnlH1Wn3R3UKXJHNhX/FgS0ejdjFKHzl+XHs=
+github.com/fluxcd/image-reflector-controller/api v1.1.0/go.mod h1:hLGsqTv3RydJXaApmN+ZtIOHNxlUdmuOJl323x6dsPE=
+github.com/fluxcd/kustomize-controller/api v1.8.1 h1:Pe5+sV1i1EwfK5TA4ogYX6YJ6ADJaETmG58WYieRkG4=
+github.com/fluxcd/kustomize-controller/api v1.8.1/go.mod h1:+ZJB/dIGbnSzZ5J/kiJ8n0USmLNAjfeZU6Xfra0oMZA=
 github.com/fluxcd/pkg/apis/acl v0.9.0 h1:wBpgsKT+jcyZEcM//OmZr9RiF8klL3ebrDp2u2ThsnA=
 github.com/fluxcd/pkg/apis/acl v0.9.0/go.mod h1:TttNS+gocsGLwnvmgVi3/Yscwqrjc17+vhgYfqkfrV4=
 github.com/fluxcd/pkg/apis/event v0.24.0 h1:WVPf0FrJ5JExRDDGoo4W0jZgHZt0n4E48/e8b3TSmkA=
@@ -157,6 +165,8 @@ github.com/fluxcd/pkg/ssa v0.67.1 h1:wmwrznP+USRUtppKRjAiBx3ayriygRx0IeMdX7z/HaM
 github.com/fluxcd/pkg/ssa v0.67.1/go.mod h1:PFXVjChubQOiWDxalpwh6PzRsEswGqnKwZB4ScoxDx4=
 github.com/fluxcd/pkg/ssh v0.24.0 h1:hrPlxs0hhXf32DRqs68VbsXs0XfQMphyRVIk0rYYJa4=
 github.com/fluxcd/pkg/ssh v0.24.0/go.mod h1:xWammEqalrpurpcMiixJRXtynRQtBEoqheyU5F/vWrg=
+github.com/fluxcd/source-controller/api v1.8.0 h1:ndrYmcv6ZMcdQHFSUkOrFVDO7h16SfDBSw/DOqf/LPo=
+github.com/fluxcd/source-controller/api v1.8.0/go.mod h1:1O7+sMbqc1+3tPvjmtgFz+bASTl794Y9SxpebHDDSGA=
 github.com/fortytw2/leaktest v1.3.0 h1:u8491cBMTQ8ft8aeV+adlcytMZylmA5nnwwkRZjI8vw=
 github.com/fortytw2/leaktest v1.3.0/go.mod h1:jDsjWgpAGjm2CA7WthBh/CdZYEPF31XHquHwclZch5g=
 github.com/fsnotify/fsnotify v1.9.0 h1:2Ml+OJNzbYCTzsxtv8vKSFD9PbJjmhYF14k/jKC7S9k=

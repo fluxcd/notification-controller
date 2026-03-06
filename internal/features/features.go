@@ -31,6 +31,12 @@ const (
 	// When enabled, it will cache both object types, resulting in increased
 	// memory usage and cluster-wide RBAC permissions (list and watch).
 	CacheSecretsAndConfigMaps = "CacheSecretsAndConfigMaps"
+	// CacheFluxObjects controls whether FluxCD objects referenced by Alerts
+	// should be cached via informers.
+	//
+	// When enabled, it will cache all Flux objects under Alerts, resulting in
+	// increased memory usage and additional RBAC permissions (list and watch).
+	CacheFluxObjects = "CacheFluxObjects"
 )
 
 var features = map[string]bool{
@@ -40,6 +46,9 @@ var features = map[string]bool{
 	// DisableConfigWatchers
 	// opt-in from v1.7.5
 	controller.FeatureGateDisableConfigWatchers: false,
+	// CacheFluxObjects
+	// opt-in from v1.9.0
+	CacheFluxObjects: false,
 }
 
 func init() {
