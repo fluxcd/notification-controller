@@ -16,6 +16,10 @@ require (
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/elazarl/goproxy v1.8.1
 	github.com/fluxcd/cli-utils v0.37.1-flux.1
+	github.com/fluxcd/helm-controller/api v1.5.1
+	github.com/fluxcd/image-automation-controller/api v1.1.0
+	github.com/fluxcd/image-reflector-controller/api v1.1.0
+	github.com/fluxcd/kustomize-controller/api v1.8.1
 	github.com/fluxcd/notification-controller/api v1.8.0
 	github.com/fluxcd/pkg/apis/event v0.24.0
 	github.com/fluxcd/pkg/apis/meta v1.25.0
@@ -26,6 +30,7 @@ require (
 	github.com/fluxcd/pkg/runtime v0.100.1
 	github.com/fluxcd/pkg/ssa v0.67.1
 	github.com/fluxcd/pkg/ssh v0.24.0
+	github.com/fluxcd/source-controller/api v1.8.0
 	github.com/getsentry/sentry-go v0.42.0
 	github.com/go-logr/logr v1.4.3
 	github.com/google/cel-go v0.27.0

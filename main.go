@@ -50,6 +50,14 @@ import (
 	"github.com/fluxcd/pkg/runtime/pprof"
 	"github.com/fluxcd/pkg/runtime/probes"
 
+	// FluxCD controller APIs - only used when CacheFluxObjects is enabled
+	helmv2 "github.com/fluxcd/helm-controller/api/v2"
+	imageautov1 "github.com/fluxcd/image-automation-controller/api/v1beta2"
+	imagev1 "github.com/fluxcd/image-reflector-controller/api/v1beta2"
+	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
+	sourcev1 "github.com/fluxcd/source-controller/api/v1"
+	sourcev1beta2 "github.com/fluxcd/source-controller/api/v1beta2"
+
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1b2 "github.com/fluxcd/notification-controller/api/v1beta2"
 	apiv1b3 "github.com/fluxcd/notification-controller/api/v1beta3"
@@ -161,6 +169,19 @@ func main() {
 	}
 	if !shouldCache {
 		disableCacheFor = append(disableCacheFor, &corev1.Secret{}, &corev1.ConfigMap{})
+	}
+
+	cacheFluxObjects, err := features.Enabled(features.CacheFluxObjects)
+	if err != nil {
+		setupLog.Error(err, "unable to check feature gate "+features.CacheFluxObjects)
+		os.Exit(1)
+	}
+	if cacheFluxObjects {
+		if err := registerFluxSchemes(scheme); err != nil {
+			setupLog.Error(err, "unable to register Flux controller schemes")
+			os.Exit(1)
+		}
+		setupLog.Info("FluxCD object caching enabled via informers")
 	}
 
 	restConfig := client.GetConfigOrDie(clientOptions)
@@ -300,4 +321,24 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+// registerFluxSchemes registers FluxCD controller schemes for caching
+func registerFluxSchemes(scheme *runtime.Scheme) error {
+	if err := sourcev1.AddToScheme(scheme); err != nil {
+		return err
+	}
+	if err := sourcev1beta2.AddToScheme(scheme); err != nil {
+		return err
+	}
+	if err := kustomizev1.AddToScheme(scheme); err != nil {
+		return err
+	}
+	if err := helmv2.AddToScheme(scheme); err != nil {
+		return err
+	}
+	if err := imagev1.AddToScheme(scheme); err != nil {
+		return err
+	}
+	return imageautov1.AddToScheme(scheme)
 }
