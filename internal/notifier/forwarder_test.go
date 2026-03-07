@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 )
 
 func TestForwarder_New(t *testing.T) {
@@ -89,7 +89,7 @@ func TestForwarder_Post(t *testing.T) {
 		{
 			name:       "non-empty HMAC key adds signature header",
 			hmacKey:    []byte("7152fed34dd6149a7c75a276c510da27cb6f82b0"),
-			hmacHeader: "sha256=65b018549b1254e7226d1c08f9567ee45bc9de0fc4e7b1a40253f9a018b08be7",
+			hmacHeader: "sha256=2662a6dd1a887c05183aa5b9787d5ed92116199f09c7b3c7908ee3bd20bc60d9",
 			xSigHeader: "should be overwritten with actual signature",
 		},
 	}
