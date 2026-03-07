@@ -15,16 +15,16 @@ require (
 	github.com/cdevents/sdk-go v0.4.1
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/elazarl/goproxy v1.8.1
-	github.com/fluxcd/cli-utils v0.37.2-flux.1
+	github.com/fluxcd/cli-utils v1.2.0
 	github.com/fluxcd/notification-controller/api v1.8.0
-	github.com/fluxcd/pkg/apis/event v0.25.0
-	github.com/fluxcd/pkg/apis/meta v1.26.0
+	github.com/fluxcd/pkg/apis/event v0.26.0
+	github.com/fluxcd/pkg/apis/meta v1.27.0
 	github.com/fluxcd/pkg/auth v0.40.0
 	github.com/fluxcd/pkg/cache v0.13.0
 	github.com/fluxcd/pkg/git v0.46.0
 	github.com/fluxcd/pkg/masktoken v0.8.0
 	github.com/fluxcd/pkg/runtime v0.103.0
-	github.com/fluxcd/pkg/ssa v0.70.0
+	github.com/fluxcd/pkg/ssa v0.74.0
 	github.com/fluxcd/pkg/ssh v0.24.0
 	github.com/getsentry/sentry-go v0.42.0
 	github.com/go-logr/logr v1.4.3

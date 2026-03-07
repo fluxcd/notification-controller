@@ -234,28 +234,28 @@ func main() {
 	watchConfigs := !disableConfigWatchers
 
 	if err = (&controller.ProviderReconciler{
-		Client:        mgr.GetClient(),
-		EventRecorder: mgr.GetEventRecorderFor(controllerName),
-		TokenCache:    tokenCache,
+		Client:                 mgr.GetClient(),
+		AnnotatedEventRecorder: mgr.GetAnnotatedEventRecorder(controllerName),
+		TokenCache:             tokenCache,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Provider")
 		os.Exit(1)
 	}
 
 	if err = (&controller.AlertReconciler{
-		Client:         mgr.GetClient(),
-		ControllerName: controllerName,
-		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
+		Client:                 mgr.GetClient(),
+		ControllerName:         controllerName,
+		AnnotatedEventRecorder: mgr.GetAnnotatedEventRecorder(controllerName),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Alert")
 		os.Exit(1)
 	}
 
 	if err = (&controller.ReceiverReconciler{
-		Client:         mgr.GetClient(),
-		ControllerName: controllerName,
-		Metrics:        metricsH,
-		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
+		Client:                 mgr.GetClient(),
+		ControllerName:         controllerName,
+		Metrics:                metricsH,
+		AnnotatedEventRecorder: mgr.GetAnnotatedEventRecorder(controllerName),
 	}).SetupWithManager(mgr, controller.ReceiverReconcilerOptions{
 		RateLimiter:           runtimeCtrl.GetRateLimiter(rateLimiterOptions),
 		WatchConfigs:          watchConfigs,
@@ -282,7 +282,7 @@ func main() {
 			Registry: ctrlmetrics.Registry,
 		}),
 	})
-	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), mgr.GetEventRecorderFor(controllerName), aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics, tokenCache)
+	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), mgr.GetEventRecorder(controllerName), aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics, tokenCache)
 	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)

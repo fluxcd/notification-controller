@@ -24,7 +24,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	. "github.com/onsi/gomega"
 )
 
@@ -42,7 +42,7 @@ func TestOpsgenie_Post(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		event func() v1beta1.Event
+		event func() eventv1.Event
 	}{
 		{
 			name:  "test event",
@@ -50,7 +50,7 @@ func TestOpsgenie_Post(t *testing.T) {
 		},
 		{
 			name: "test event with empty metadata",
-			event: func() v1beta1.Event {
+			event: func() eventv1.Event {
 				events := testEvent()
 				events.Metadata = nil
 				return events

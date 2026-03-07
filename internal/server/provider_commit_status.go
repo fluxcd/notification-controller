@@ -25,7 +25,7 @@ import (
 	"github.com/google/cel-go/common/types"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/runtime/cel"
 
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
