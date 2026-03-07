@@ -20,7 +20,7 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
-	kuberecorder "k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,7 +37,7 @@ import (
 // AlertReconciler reconciles an Alert object to migrate it to static Alert.
 type AlertReconciler struct {
 	client.Client
-	kuberecorder.EventRecorder
+	events.EventRecorder
 
 	ControllerName string
 }
@@ -88,7 +88,7 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 	controllerutil.RemoveFinalizer(obj, apiv1.NotificationFinalizer)
 
 	log.Info("removed finalizer from Alert to migrate to static Alert")
-	r.Event(obj, corev1.EventTypeNormal, "Migration", "removed finalizer from Alert to migrate to static Alert")
+	r.Eventf(obj, nil, corev1.EventTypeNormal, "Migration", "", "removed finalizer from Alert to migrate to static Alert")
 
 	return
 }
