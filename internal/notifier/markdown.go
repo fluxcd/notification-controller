@@ -21,7 +21,7 @@ import (
 	"slices"
 	"strings"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 )
 
 // formatMarkdownPost formats the event for Markdown rendering engines.

@@ -26,7 +26,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	kuberecorder "k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -40,6 +39,7 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 	helper "github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/fluxcd/pkg/runtime/patch"
 	"github.com/fluxcd/pkg/runtime/predicates"
 
@@ -51,7 +51,7 @@ import (
 type ReceiverReconciler struct {
 	client.Client
 	helper.Metrics
-	kuberecorder.EventRecorder
+	events.Recorder
 
 	ControllerName string
 }
@@ -170,14 +170,14 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 		// Emit warning event if the reconciliation failed.
 		if retErr != nil {
-			r.Event(obj, corev1.EventTypeWarning, meta.FailedReason, retErr.Error())
+			r.Eventf(obj, nil, corev1.EventTypeWarning, meta.FailedReason, apiv1.ActionReconciling, "%s", retErr.Error())
 		}
 
 		// Log and emit success event.
 		if retErr == nil && conditions.IsReady(obj) {
 			msg := fmt.Sprintf("Reconciliation finished, next run in %s", obj.GetInterval().String())
 			log.Info(msg)
-			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
+			r.Eventf(obj, nil, corev1.EventTypeNormal, meta.SucceededReason, apiv1.ActionReconciled, "%s", msg)
 		}
 	}()
 
@@ -353,7 +353,7 @@ func (r *ReceiverReconciler) markTerminal(obj *apiv1.Receiver, log logr.Logger, 
 	conditions.MarkStalled(obj, reason, "%s", errMsg)
 	obj.Status.ObservedGeneration = obj.Generation
 	log.Error(err, prefix)
-	r.Event(obj, corev1.EventTypeWarning, reason, errMsg)
+	r.Eventf(obj, nil, corev1.EventTypeWarning, reason, apiv1.ActionFailed, "%s", errMsg)
 }
 
 // token extract the token value from the secret object
