@@ -20,14 +20,21 @@ The following is an example of an event sent by kustomize-controller to report a
     "namespace": "apps",
     "uid": "7d0cdc51-ddcf-4743-b223-83ca5c699632"
   },
+  "relatedObject": {
+    "apiVersion": "source.toolkit.fluxcd.io/v1",
+    "kind": "GitRepository",
+    "name": "webapp",
+    "namespace": "apps"
+  },
   "metadata": {
     "kustomize.toolkit.fluxcd.io/revision": "main/731f7eaddfb6af01cb2173e18f0f75b0ba780ef1"
   },
-  "severity":"error",
+  "severity": "error",
   "reason": "ValidationFailed",
-  "message":"service/apps/webapp validation error: spec.type: Unsupported value: Ingress",
-  "reportingController":"kustomize-controller",
-  "timestamp":"2022-10-28T07:26:19Z"
+  "action": "Reconciling",
+  "message": "service/apps/webapp validation error: spec.type: Unsupported value: Ingress",
+  "reportingController": "kustomize-controller",
+  "timestamp": "2022-10-28T07:26:19Z"
 }
 ```
 
@@ -35,6 +42,7 @@ In the above example:
 
 - An event is issued by kustomize-controller for a specific object, indicated in the
   `involvedObject` field.
+- The `relatedObject` field optionally references a secondary object involved in the action (correlates to the source).
 - The notification-controller receives the event and finds the [alerts](alerts.md)
   that match the `involvedObject` and `severity` values.
 - For all matching alerts, the controller posts the `message` and the source revision
@@ -43,7 +51,7 @@ In the above example:
 ## Event structure
 
 The Go type that defines the event structure can be found in the
-[fluxcd/pkg/apis/event/v1beta1](https://github.com/fluxcd/pkg/blob/main/apis/event/v1beta1/event.go)
+[fluxcd/pkg/apis/event/v1](https://github.com/fluxcd/pkg/blob/main/apis/event/v1/event.go)
 package.
 
 ## Rate limiting

@@ -25,7 +25,7 @@ import (
 
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/apis/meta"
 )
 

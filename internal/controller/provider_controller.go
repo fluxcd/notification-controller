@@ -19,7 +19,6 @@ package controller
 import (
 	"context"
 
-	kuberecorder "k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,6 +27,7 @@ import (
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 	"github.com/fluxcd/pkg/cache"
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/fluxcd/pkg/runtime/patch"
 
 	"github.com/fluxcd/notification-controller/internal/notifier"
@@ -42,7 +42,7 @@ import (
 // Provider.
 type ProviderReconciler struct {
 	client.Client
-	kuberecorder.EventRecorder
+	events.EventRecorder
 
 	TokenCache *cache.TokenCache
 }
