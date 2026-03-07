@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +32,7 @@ func TestSha1Sum(t *testing.T) {
 				ReportingController: "",
 				ReportingInstance:   "",
 			},
-			sha1: "37d91b4f6a1e44c6a38273b0a0fd408fade7b0f5",
+			sha1: "b483201be9dd568ab4db38f53bc19fc82da23943",
 		},
 	}
 

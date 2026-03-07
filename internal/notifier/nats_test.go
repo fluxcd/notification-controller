@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/nats-io/nats.go"
 	. "github.com/onsi/gomega"
 )
@@ -192,13 +192,13 @@ func TestNATSPost(t *testing.T) {
 			event: eventv1.Event{
 				Metadata: map[string]string{"foo": "bar"},
 			},
-			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","metadata":{"foo":"bar"},"reportingController":""}`,
+			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","action":"","metadata":{"foo":"bar"},"reportingController":""}`,
 			publishShouldExecute: true,
 		},
 		{
 			name:                 "publish error is wrapped and relayed",
 			subject:              "test",
-			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","reportingController":""}`,
+			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","action":"","reportingController":""}`,
 			publishErr:           errors.New("publish error"),
 			expectedErr:          fmt.Errorf("error publishing event to subject test: %w", errors.New("publish error")),
 			publishShouldExecute: true,

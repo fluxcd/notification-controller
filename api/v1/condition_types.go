@@ -28,4 +28,24 @@ const (
 
 	// TokenNotFoundReason represents the fact that receiver token can't be found.
 	TokenNotFoundReason string = "TokenNotFound"
+
+	// MigrationReason represents the fact that a given resource is being
+	// migrated to a static resource.
+	MigrationReason string = "Migration"
+
+	// InvalidConfigReason represents the fact that part of a given resource's
+	// configuration couldn't be used, e.g. an invalid filter regex.
+	InvalidConfigReason string = "InvalidConfig"
+
+	// NotificationDispatchFailedReason represents the fact that dispatching a
+	// notification to a provider failed.
+	NotificationDispatchFailedReason string = "NotificationDispatchFailed"
+
+	// SourceFetchFailedReason represents the fact that the involved object of
+	// an event couldn't be fetched to evaluate an alert's source match labels.
+	SourceFetchFailedReason string = "SourceFetchFailed"
+
+	// MetadataAppendFailedReason represents the fact that event metadata
+	// couldn't be combined due to conflicting keys across the metadata sources.
+	MetadataAppendFailedReason string = "MetadataAppendFailed"
 )

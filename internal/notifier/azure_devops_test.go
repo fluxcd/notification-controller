@@ -21,7 +21,8 @@ import (
 	"testing"
 	"time"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
+	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -102,7 +103,7 @@ func TestAzureDevOps_Post(t *testing.T) {
 				Metadata: map[string]string{
 					eventv1.MetaRevisionKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
 				},
-				Reason: "ApplySucceeded",
+				Reason: meta.ReconciliationSucceededReason,
 			},
 			want: git.CreateCommitStatusArgs{
 				CommitId:     strPtr("69b59063470310ebbd88a9156325322a124e55a3"),
@@ -130,7 +131,7 @@ func TestAzureDevOps_Post(t *testing.T) {
 					eventv1.MetaRevisionKey:       "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
 					eventv1.MetaOriginRevisionKey: "main@sha1:bd88a9156325322a124e55a369b59063470310eb",
 				},
-				Reason: "ApplySucceeded",
+				Reason: meta.ReconciliationSucceededReason,
 			},
 			want: git.CreateCommitStatusArgs{
 				CommitId:     strPtr("bd88a9156325322a124e55a369b59063470310eb"),
@@ -158,7 +159,7 @@ func TestAzureDevOps_Post(t *testing.T) {
 					eventv1.MetaRevisionKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
 					"summary":               "test summary",
 				},
-				Reason: "ApplySucceeded",
+				Reason: meta.ReconciliationSucceededReason,
 			},
 			want: git.CreateCommitStatusArgs{
 				CommitId:     strPtr("69b59063470310ebbd88a9156325322a124e55a3"),
