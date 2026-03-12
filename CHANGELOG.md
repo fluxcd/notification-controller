@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.8.2
+
+**Release date:** 2026-03-12
+
+This patch release comes with dependency updates.
+
+Improvements:
+- Bump `go.opentelemetry.io/otel/sdk` from `1.39.0` to `1.40.0`
+  [#1255](https://github.com/fluxcd/notification-controller/pull/1255)
+- Update fluxcd/pkg dependencies
+  [#1269](https://github.com/fluxcd/notification-controller/pull/1269)
+
 ## 1.8.1
 
 **Release date:** 2026-02-27
