@@ -50,7 +50,7 @@ func NewSentry(tlsConfig *tls.Config, dsn string, environment string) (*Sentry, 
 		TracesSampleRate: 1,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create Sentry client: %w", err)
 	}
 
 	return &Sentry{
