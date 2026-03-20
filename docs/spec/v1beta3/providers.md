@@ -1822,6 +1822,28 @@ for the client-id and tenant-id of the managed identity.
 For a complete guide on how to set up authentication for an Azure Event Hub,
 see the integration [docs](/flux/integrations/azure/).
 
+##### Provider manifest
+
+When using managed identity (workload identity), the provider uses the
+`.spec.channel` and `.spec.address` fields to identify the Azure Event Hub:
+
+- `channel` — the Azure Event Hub namespace
+- `address` — the Azure Event Hub name
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: azure
+  namespace: default
+spec:
+  type: azureeventhub
+  address: <event-hub-name>
+  channel: <event-hub-namespace>
+  serviceAccountName: <sa-name> # if object-level workload identity is enabled.
+```
+
 #### SAS based auth
 
 When using SAS auth, we only use the `address` field in the secret.
