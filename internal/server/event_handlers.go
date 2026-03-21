@@ -94,7 +94,7 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 			dropped, err := s.dispatchNotification(ctx, event, alert)
 			if err != nil {
 				alertLogger.Error(err, "failed to dispatch notification")
-				s.Eventf(alert, corev1.EventTypeWarning, "NotificationDispatchFailed",
+				s.Eventf(alert, nil, corev1.EventTypeWarning, "NotificationDispatchFailed", "",
 					"failed to dispatch notification for %s: %s", involvedObjectString(event.InvolvedObject), err)
 				continue
 			}
@@ -208,8 +208,8 @@ func (s *EventServer) messageIsIncluded(ctx context.Context, msg string, alert *
 			}
 		} else {
 			log.FromContext(ctx).Error(err, fmt.Sprintf("failed to compile inclusion regex: %s", exp))
-			s.Eventf(alert, corev1.EventTypeWarning,
-				"InvalidConfig", "failed to compile inclusion regex: %s", exp)
+			s.Eventf(alert, nil, corev1.EventTypeWarning,
+				"InvalidConfig", "", "failed to compile inclusion regex: %s", exp)
 		}
 	}
 	return false
@@ -229,7 +229,7 @@ func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, alert *
 			}
 		} else {
 			log.FromContext(ctx).Error(err, fmt.Sprintf("failed to compile exclusion regex: %s", exp))
-			s.Eventf(alert, corev1.EventTypeWarning, "InvalidConfig",
+			s.Eventf(alert, nil, corev1.EventTypeWarning, "InvalidConfig", "",
 				"failed to compile exclusion regex: %s", exp)
 		}
 	}
@@ -263,7 +263,7 @@ func (s *EventServer) dispatchNotification(ctx context.Context,
 				err = errors.New(maskedErrStr)
 			}
 			log.FromContext(ctx).Error(err, "failed to send notification")
-			s.Eventf(alert, corev1.EventTypeWarning, "NotificationDispatchFailed",
+			s.Eventf(alert, nil, corev1.EventTypeWarning, "NotificationDispatchFailed", "",
 				"failed to send notification for %s: %s", involvedObjectString(e.InvolvedObject), err)
 		}
 	}(params.sender, *params.event)
@@ -607,7 +607,7 @@ func (s *EventServer) eventMatchesAlertSource(ctx context.Context, event *eventv
 		Name:      event.InvolvedObject.Name,
 	}, &obj); err != nil {
 		logger.Error(err, "error getting the involved object")
-		s.Eventf(alert, corev1.EventTypeWarning, "SourceFetchFailed",
+		s.Eventf(alert, nil, corev1.EventTypeWarning, "SourceFetchFailed", "",
 			"error getting source object %s", involvedObjectString(event.InvolvedObject))
 		return false
 	}
@@ -617,7 +617,7 @@ func (s *EventServer) eventMatchesAlertSource(ctx context.Context, event *eventv
 	})
 	if err != nil {
 		logger.Error(err, fmt.Sprintf("error using matchLabels from event source %s", crossNSObjectRefString(source)))
-		s.Eventf(alert, corev1.EventTypeWarning, "InvalidConfig",
+		s.Eventf(alert, nil, corev1.EventTypeWarning, "InvalidConfig", "",
 			"error using matchLabels from event source %s", crossNSObjectRefString(source))
 		return false
 	}
@@ -704,7 +704,7 @@ func (s *EventServer) combineEventMetadata(ctx context.Context, event *eventv1.E
 		const msg = "metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information)"
 		slices.SortFunc(conflictingKeys, func(a, b *keyConflict) int { return strings.Compare(a.Key, b.Key) })
 		l.Info("warning: "+msg, "conflictingKeys", conflictingKeys)
-		s.AnnotatedEventf(alert, conflictEventAnnotations, corev1.EventTypeWarning, "MetadataAppendFailed", "%s", msg)
+		s.Eventf(alert, nil, corev1.EventTypeWarning, "MetadataAppendFailed", "", "%s", msg)
 	}
 
 	if len(metadata) > 0 {
