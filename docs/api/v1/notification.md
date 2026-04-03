@@ -149,7 +149,11 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <p>SecretRef specifies the Secret containing the token used
-to validate the payload authenticity.</p>
+to validate the payload authenticity. The Secret must contain a &lsquo;token&rsquo;
+key. For GCR receivers, the Secret must also contain an &lsquo;email&rsquo; key
+with the IAM service account email configured on the Pub/Sub push
+subscription, and may optionally contain an &lsquo;audience&rsquo; key with the
+expected OIDC token audience.</p>
 </td>
 </tr>
 <tr>
@@ -366,7 +370,11 @@ github.com/fluxcd/pkg/apis/meta.LocalObjectReference
 </td>
 <td>
 <p>SecretRef specifies the Secret containing the token used
-to validate the payload authenticity.</p>
+to validate the payload authenticity. The Secret must contain a &lsquo;token&rsquo;
+key. For GCR receivers, the Secret must also contain an &lsquo;email&rsquo; key
+with the IAM service account email configured on the Pub/Sub push
+subscription, and may optionally contain an &lsquo;audience&rsquo; key with the
+expected OIDC token audience.</p>
 </td>
 </tr>
 <tr>
