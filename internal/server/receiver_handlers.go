@@ -38,6 +38,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/conditions"
 	"github.com/go-logr/logr"
 	"github.com/google/go-github/v64/github"
+	"google.golang.org/api/idtoken"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -223,11 +224,22 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 	}
 	r.Body = io.NopCloser(bytes.NewReader(b))
 
-	// Fetch the token.
-	token, err := s.token(ctx, receiver)
+	// Fetch the secret.
+	secret, err := s.secret(ctx, receiver)
 	if err != nil {
-		return fmt.Errorf("unable to read token, error: %w", err)
+		return fmt.Errorf("unable to read secret, error: %w", err)
 	}
+
+	// Extract the token from the secret.
+	secretName := types.NamespacedName{
+		Namespace: receiver.GetNamespace(),
+		Name:      receiver.Spec.SecretRef.Name,
+	}
+	tokenBytes, ok := secret.Data["token"]
+	if !ok {
+		return fmt.Errorf("invalid %q secret data: required field 'token'", secretName)
+	}
+	token := string(tokenBytes)
 
 	logger := s.logger.WithValues(
 		"reconciler kind", apiv1.ReceiverKind,
@@ -398,8 +410,6 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		r.Body = io.NopCloser(bytes.NewReader(b))
 		return nil
 	case apiv1.GCRReceiver:
-		const tokenIndex = len("Bearer ")
-
 		type data struct {
 			Action string `json:"action"`
 			Digest string `json:"digest"`
@@ -415,8 +425,34 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 			} `json:"message"`
 		}
 
-		err := authenticateGCRRequest(&http.Client{}, r.Header.Get("Authorization"), tokenIndex)
-		if err != nil {
+		expectedEmail, ok := secret.Data["email"]
+		_ = ok
+		// TODO: in Flux 2.9, require the email. this will be a breaking change.
+		// if !ok {
+		// 	return fmt.Errorf("invalid secret data: required field 'email' for GCR receiver")
+		// }
+
+		// Determine the expected audience. If explicitly set in the secret, use
+		// that. Otherwise, reconstruct the webhook URL from the request, which is
+		// the default audience used by GCR when it sends the webhook.
+		audience := string(secret.Data["audience"])
+		if audience == "" {
+			scheme := "https"
+			if r.TLS == nil {
+				if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
+					scheme = proto
+				} else {
+					scheme = "http"
+				}
+			}
+			audience = scheme + "://" + r.Host + r.URL.Path
+		}
+
+		authenticate := authenticateGCRRequest
+		if s.gcrTokenValidator != nil {
+			authenticate = s.gcrTokenValidator
+		}
+		if err := authenticate(ctx, r.Header.Get("Authorization"), string(expectedEmail), audience); err != nil {
 			return fmt.Errorf("cannot authenticate GCR request: %w", err)
 		}
 
@@ -498,26 +534,18 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 	return fmt.Errorf("recevier type %q not supported", receiver.Spec.Type)
 }
 
-func (s *ReceiverServer) token(ctx context.Context, receiver apiv1.Receiver) (string, error) {
-	token := ""
+func (s *ReceiverServer) secret(ctx context.Context, receiver apiv1.Receiver) (*corev1.Secret, error) {
 	secretName := types.NamespacedName{
 		Namespace: receiver.GetNamespace(),
 		Name:      receiver.Spec.SecretRef.Name,
 	}
 
 	var secret corev1.Secret
-	err := s.kubeClient.Get(ctx, secretName, &secret)
-	if err != nil {
-		return "", fmt.Errorf("unable to read token from secret %q error: %w", secretName, err)
+	if err := s.kubeClient.Get(ctx, secretName, &secret); err != nil {
+		return nil, fmt.Errorf("unable to read secret %q: %w", secretName, err)
 	}
 
-	if val, ok := secret.Data["token"]; ok {
-		token = string(val)
-	} else {
-		return "", fmt.Errorf("invalid %q secret data: required field 'token'", secretName)
-	}
-
-	return token, nil
+	return &secret, nil
 }
 
 // requestReconciliation requests reconciliation of all the resources matching the given CrossNamespaceObjectReference by annotating them accordingly.
@@ -577,26 +605,53 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource *metav1.PartialO
 	return nil
 }
 
-func authenticateGCRRequest(c *http.Client, bearer string, tokenIndex int) (err error) {
-	type auth struct {
-		Aud string `json:"aud"`
+// authenticateGCRRequest validates the OIDC ID token according to
+// https://docs.cloud.google.com/pubsub/docs/authenticate-push-subscriptions#go.
+func authenticateGCRRequest(ctx context.Context, bearer string, expectedEmail string, expectedAudience string) error {
+	const bearerPrefix = "Bearer "
+	if !strings.HasPrefix(bearer, bearerPrefix) {
+		return fmt.Errorf("the Authorization header is missing or malformed")
 	}
 
-	if len(bearer) < tokenIndex {
-		return fmt.Errorf("the Authorization header is missing or malformed: %v", bearer)
-	}
+	token := bearer[len(bearerPrefix):]
 
-	token := bearer[tokenIndex:]
-	url := fmt.Sprintf("https://oauth2.googleapis.com/tokeninfo?id_token=%s", token)
-
-	resp, err := c.Get(url)
+	// Validate the OIDC ID token signature and claims using Google's public keys.
+	v, err := idtoken.NewValidator(ctx)
 	if err != nil {
-		return fmt.Errorf("cannot verify authenticity of payload: %w", err)
+		return fmt.Errorf("cannot create ID token validator: %w", err)
+	}
+	payload, err := v.Validate(ctx, token, expectedAudience)
+	if err != nil {
+		// Extract the actual audience from the token for logging.
+		gotAudience := "<unknown>"
+		if parts := strings.Split(token, "."); len(parts) == 3 {
+			if claimsJSON, decErr := base64.RawURLEncoding.DecodeString(parts[1]); decErr == nil {
+				var claims struct {
+					Aud string `json:"aud"`
+				}
+				if json.Unmarshal(claimsJSON, &claims) == nil && claims.Aud != "" {
+					gotAudience = claims.Aud
+				}
+			}
+		}
+		return fmt.Errorf("invalid ID token: audience is '%s', want '%s': %w", gotAudience, expectedAudience, err)
 	}
 
-	var p auth
-	if err := json.NewDecoder(resp.Body).Decode(&p); err != nil {
-		return fmt.Errorf("cannot decode auth payload: %w", err)
+	// Verify the token issuer.
+	issuer, _ := payload.Claims["iss"].(string)
+	if issuer != "accounts.google.com" && issuer != "https://accounts.google.com" {
+		return fmt.Errorf("token issuer is '%s', want 'accounts.google.com' or 'https://accounts.google.com'", issuer)
+	}
+
+	// Verify the token was issued for the expected service account.
+	email, _ := payload.Claims["email"].(string)
+	emailVerified, _ := payload.Claims["email_verified"].(bool)
+	// TODO: in Flux 2.9, require the email (remove `expectedEmail != "" &&`). this will be a breaking change.
+	if expectedEmail != "" && email != expectedEmail {
+		return fmt.Errorf("token email is '%s', want '%s'", email, expectedEmail)
+	}
+	if !emailVerified {
+		return fmt.Errorf("token email '%s' is not verified", email)
 	}
 
 	return nil
