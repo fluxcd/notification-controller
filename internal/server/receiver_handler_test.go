@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/hmac"
+	"fmt"
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
@@ -1211,7 +1212,7 @@ func Test_handlePayload(t *testing.T) {
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GCRReceiver,
 					SecretRef: meta.LocalObjectReference{
-						Name: "token",
+						Name: "gcr-token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
 						{
@@ -1227,7 +1228,15 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			secret:                     testSecretWithToken,
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "gcr-token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+					"email": []byte("test@example.iam.gserviceaccount.com"),
+				},
+			},
 			resources:                  []client.Object{testReceiverResource},
 			expectedResourcesAnnotated: 1,
 			expectedResponseCode:       http.StatusOK,
@@ -1401,6 +1410,12 @@ func Test_handlePayload(t *testing.T) {
 				logger:               logger.NewLogger(logger.Options{}),
 				kubeClient:           client,
 				noCrossNamespaceRefs: tt.noCrossNamespaceRefs,
+				gcrTokenValidator: func(_ context.Context, bearer string, expectedEmail string, expectedAudience string) error {
+					if bearer == "" {
+						return fmt.Errorf("missing authorization header")
+					}
+					return nil
+				},
 			}
 
 			data, err := json.Marshal(tt.payload)
