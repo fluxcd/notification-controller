@@ -37,6 +37,9 @@ type ReceiverServer struct {
 	kubeClient            client.Client
 	noCrossNamespaceRefs  bool
 	exportHTTPPathMetrics bool
+	// gcrTokenValidator overrides the default GCR OIDC token validation function.
+	// Used in tests to avoid calling Google's servers.
+	gcrTokenValidator func(ctx context.Context, bearer string, expectedEmail string, expectedAudience string) error
 }
 
 // NewReceiverServer returns an HTTP server that handles webhooks

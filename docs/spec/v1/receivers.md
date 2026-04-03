@@ -545,15 +545,53 @@ spec:
 #### GCR
 
 When a Receiver's `.spec.type` is set to `gcr`, the controller will respond to
-an [HTTP webhook event payload](https://cloud.google.com/container-registry/docs/configuring-notifications#notification_examples)
-from Google Cloud Registry to the generated [`.status.webhookPath`](#webhook-path),
-while verifying the payload is legitimate using [JWT](https://cloud.google.com/pubsub/docs/push#authentication).
+an [HTTP webhook event payload](https://cloud.google.com/artifact-registry/docs/configure-notifications)
+from Google Container Registry (GCR) or Google Artifact Registry (GAR) to the
+generated [`.status.webhookPath`](#webhook-path), while verifying the payload is
+legitimate using [OIDC ID token validation](https://cloud.google.com/pubsub/docs/authenticate-push-subscriptions).
 
-The controller verifies the request originates from Google by validating the 
-token from the [`Authorization` header](https://cloud.google.com/pubsub/docs/push#validate_tokens).
-For this to work, authentication must be enabled for the Pub/Sub subscription,
-refer to the [Google Cloud documentation](https://cloud.google.com/pubsub/docs/push#configure_for_push_authentication)
-for more information.
+The controller authenticates the request by performing the following checks on
+the OIDC ID token from the `Authorization` header:
+
+1. **Signature verification**: The token signature is validated against Google's
+   public keys.
+2. **Audience verification**: The `aud` claim is verified against the expected
+   audience (see below).
+3. **Issuer verification**: The `iss` claim must be `accounts.google.com` or
+   `https://accounts.google.com`.
+4. **Email verification**: The `email` claim must match the service account
+   email specified in the referenced Secret's `email` key, and `email_verified`
+   must be `true`.
+
+For this to work, [authentication must be enabled on the Pub/Sub push
+subscription](https://cloud.google.com/pubsub/docs/push#configure_for_push_authentication),
+with the OIDC service account set to the same service account specified in the
+Secret's `email` key.
+
+##### Secret format for GCR
+
+The Secret referenced by `.spec.secretRef.name` must contain the following keys:
+
+| Key          | Required | Description                                                                                                                                                    |
+|--------------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `token`      | Yes      | Random string used to salt the generated [webhook path](#webhook-path).                                                                                        |
+| `email`      | Yes      | The email of the IAM service account configured on the Pub/Sub push subscription for OIDC authentication.                                                      |
+| `audience`   | No       | The expected `aud` claim in the OIDC token. If omitted, the controller reconstructs it from the incoming request URL, which matches the Pub/Sub default behavior of using the push endpoint URL as the audience. Set this if you configured a custom audience on the Pub/Sub subscription. |
+
+Example:
+
+```yaml
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gcr-webhook-token
+  namespace: default
+type: Opaque
+stringData:
+  token: <random token>
+  email: <service-account>@<project>.iam.gserviceaccount.com
+```
 
 When the verification succeeds, the request payload is unmarshalled to the
 expected format. If this is successful, the controller will request a
@@ -574,7 +612,7 @@ metadata:
 spec:
   type: gcr
   secretRef:
-    name: webhook-token
+    name: gcr-webhook-token
   resources:
     - apiVersion: image.toolkit.fluxcd.io/v1
       kind: ImageRepository
@@ -776,6 +814,11 @@ key, whose value is a string containing a (random) secret token.
 This token is used to salt the generated [webhook path](#webhook-path), and
 depending on the Receiver [type](#supported-receiver-types), to verify the
 authenticity of a request.
+
+**Note:** Some receiver types require additional keys in the Secret. For
+example, the [GCR](#gcr) type requires an `email` key and optionally an
+`audience` key. Refer to the documentation for the specific receiver type for
+details.
 
 Example:
 
