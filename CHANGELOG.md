@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.8.3
+
+**Release date:** 2026-04-07
+
+This patch release adds optional `email` and `audience` fields to the GCR
+Receiver for tighter verification, and includes a provider manifest example
+for Azure Event Hub managed identity authentication.
+
+Improvements:
+- Refactor GCR Receiver
+  [#1279](https://github.com/fluxcd/notification-controller/pull/1279)
+- Add provider manifest example for Azure Event Hub managed identity auth
+  [#1275](https://github.com/fluxcd/notification-controller/pull/1275)
+
 ## 1.8.2
 
 **Release date:** 2026-03-12
