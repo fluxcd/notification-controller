@@ -166,7 +166,7 @@ gen-crd-api-reference-docs:
 
 # Download the envtest binaries to testbin
 ENVTEST_ASSETS_DIR=$(BUILD_DIR)/testbin
-ENVTEST_KUBERNETES_VERSION?=latest
+ENVTEST_KUBERNETES_VERSION?=v0.22.4
 install-envtest: setup-envtest
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	$(ENVTEST) use $(ENVTEST_KUBERNETES_VERSION) --arch=$(ENVTEST_ARCH) --bin-dir=$(ENVTEST_ASSETS_DIR)
