@@ -427,17 +427,20 @@ func TestGetNotificationParams(t *testing.T) {
 		providerSuspended       bool
 		providerServiceAccount  string
 		secretNamespace         string
+		secretData              map[string][]byte
 		noCrossNSRefs           bool
 		enableObjLevelWI        bool
 		eventMetadata           map[string]string
 		wantErr                 bool
 		wantDroppedCommitStatus bool
+		wantParams              bool
 	}{
 		{
 			name:              "event src and alert in diff NS",
 			alertNamespace:    "bar-ns",
 			providerNamespace: "bar-ns",
 			secretNamespace:   "bar-ns",
+			wantParams:        true,
 		},
 		{
 			name:              "event src and alert in diff NS with no cross NS refs",
@@ -464,6 +467,7 @@ func TestGetNotificationParams(t *testing.T) {
 		{
 			name:         "alert with summary, no event metadata",
 			alertSummary: "some summary text",
+			wantParams:   true,
 		},
 		{
 			name:         "alert with summary, with event metadata",
@@ -472,6 +476,7 @@ func TestGetNotificationParams(t *testing.T) {
 				"foo":     "bar",
 				"summary": "baz",
 			},
+			wantParams: true,
 		},
 		{
 			name: "alert with event metadata",
@@ -479,6 +484,7 @@ func TestGetNotificationParams(t *testing.T) {
 				"aaa": "bbb",
 				"ccc": "ddd",
 			},
+			wantParams: true,
 		},
 		{
 			name:                   "object level workload identity feature gate disabled",
@@ -490,7 +496,7 @@ func TestGetNotificationParams(t *testing.T) {
 			name:                   "object level workload identity feature gate enabled",
 			providerServiceAccount: "foo",
 			enableObjLevelWI:       true,
-			wantErr:                false,
+			wantParams:             true,
 		},
 		{
 			name:                    "commit status provider drops event without commit key",
@@ -503,7 +509,24 @@ func TestGetNotificationParams(t *testing.T) {
 			eventMetadata: map[string]string{
 				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
 			},
-			wantErr: true, // proceeds past the guard and fails on notifier creation
+			wantErr: true,
+		},
+		{
+			name:         "generic provider does not drop commit status update event",
+			providerType: apiv1beta3.GenericProvider,
+			eventMetadata: map[string]string{
+				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
+			},
+			wantParams: true,
+		},
+		{
+			name:         "generic-hmac provider does not drop commit status update event",
+			providerType: apiv1beta3.GenericHMACProvider,
+			secretData:   map[string][]byte{"token": []byte("test-hmac-key")},
+			eventMetadata: map[string]string{
+				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
+			},
+			wantParams: true,
 		},
 	}
 
@@ -538,6 +561,9 @@ func TestGetNotificationParams(t *testing.T) {
 			if tt.secretNamespace != "" {
 				secret.Namespace = tt.secretNamespace
 			}
+			if tt.secretData != nil {
+				secret.Data = tt.secretData
+			}
 			if tt.eventMetadata != nil {
 				event.Metadata = tt.eventMetadata
 			}
@@ -561,8 +587,9 @@ func TestGetNotificationParams(t *testing.T) {
 			}
 
 			params, dropped, err := eventServer.getNotificationParams(context.TODO(), event, alert)
-			g.Expect(err != nil).To(Equal(tt.wantErr))
+			g.Expect(err != nil).To(Equal(tt.wantErr), "unexpected error: %v", err)
 			g.Expect(dropped.commitStatus).To(Equal(tt.wantDroppedCommitStatus))
+			g.Expect(params != nil).To(Equal(tt.wantParams), "unexpected params: %v", params)
 			if tt.alertSummary != "" {
 				g.Expect(params.event.Metadata["summary"]).To(Equal(tt.alertSummary))
 			}
