@@ -81,8 +81,7 @@ type ReceiverSpec struct {
 	// to validate the payload authenticity. The Secret must contain a 'token'
 	// key. For GCR receivers, the Secret must also contain an 'email' key
 	// with the IAM service account email configured on the Pub/Sub push
-	// subscription, and may optionally contain an 'audience' key with the
-	// expected OIDC token audience.
+	// subscription, and an 'audience' key with the expected OIDC token audience.
 	// +required
 	SecretRef meta.LocalObjectReference `json:"secretRef"`
 
