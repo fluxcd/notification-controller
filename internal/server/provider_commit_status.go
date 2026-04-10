@@ -89,6 +89,11 @@ func newCommitStatus(ctx context.Context, expr string, notification *eventv1.Eve
 	return result, nil
 }
 
+// isGenericProvider returns true if the provider type is a generic provider.
+func isGenericProvider(providerType string) bool {
+	return providerType == apiv1beta3.GenericProvider || providerType == apiv1beta3.GenericHMACProvider
+}
+
 // isCommitStatusProvider returns true if the provider type is a Git provider.
 func isCommitStatusProvider(providerType string) bool {
 	gitProviderTypes := []string{
