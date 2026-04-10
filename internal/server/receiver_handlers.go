@@ -426,34 +426,23 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 			} `json:"message"`
 		}
 
-		expectedEmail, ok := secret.Data["email"]
-		_ = ok
+		expectedEmail := string(secret.Data["email"])
 		// TODO: in Flux 2.9, require the email. this will be a breaking change.
-		// if !ok {
+		// if expectedEmail == "" {
 		// 	return fmt.Errorf("invalid secret data: required field 'email' for GCR receiver")
 		// }
 
-		// Determine the expected audience. If explicitly set in the secret, use
-		// that. Otherwise, reconstruct the webhook URL from the request, which is
-		// the default audience used by GCR when it sends the webhook.
-		audience := string(secret.Data["audience"])
-		if audience == "" {
-			scheme := "https"
-			if r.TLS == nil {
-				if proto := r.Header.Get("X-Forwarded-Proto"); proto != "" {
-					scheme = proto
-				} else {
-					scheme = "http"
-				}
-			}
-			audience = scheme + "://" + r.Host + r.URL.Path
-		}
+		expectedAudience := string(secret.Data["audience"])
+		// TODO: in Flux 2.9, require the audience. this will be a breaking change.
+		// if expectedAudience == "" {
+		// 	return fmt.Errorf("invalid secret data: required field 'audience' for GCR receiver")
+		// }
 
 		authenticate := authenticateGCRRequest
 		if s.gcrTokenValidator != nil {
 			authenticate = s.gcrTokenValidator
 		}
-		if err := authenticate(ctx, r.Header.Get("Authorization"), string(expectedEmail), audience); err != nil {
+		if err := authenticate(ctx, r.Header.Get("Authorization"), expectedEmail, expectedAudience); err != nil {
 			return fmt.Errorf("cannot authenticate GCR request: %w", err)
 		}
 

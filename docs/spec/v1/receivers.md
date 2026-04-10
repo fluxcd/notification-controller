@@ -576,7 +576,7 @@ The Secret referenced by `.spec.secretRef.name` must contain the following keys:
 |--------------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `token`      | Yes      | Random string used to salt the generated [webhook path](#webhook-path).                                                                                        |
 | `email`      | Yes      | The email of the IAM service account configured on the Pub/Sub push subscription for OIDC authentication.                                                      |
-| `audience`   | No       | The expected `aud` claim in the OIDC token. If omitted, the controller reconstructs it from the incoming request URL, which matches the Pub/Sub default behavior of using the push endpoint URL as the audience. Set this if you configured a custom audience on the Pub/Sub subscription. |
+| `audience`   | Yes      | The expected `aud` claim in the OIDC token.                                                                                                                    |
 
 Example:
 
@@ -591,6 +591,10 @@ type: Opaque
 stringData:
   token: <random token>
   email: <service-account>@<project>.iam.gserviceaccount.com
+  # The default audience set by GCP is the full push endpoint URL, but
+  # you can also choose a custom audience and configure it on the Pub/Sub
+  # subscription.
+  audience: https://<hostname>/hook/<sha256(token+name+namespace)>
 ```
 
 When the verification succeeds, the request payload is unmarshalled to the
