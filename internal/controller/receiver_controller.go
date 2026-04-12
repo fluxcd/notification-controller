@@ -25,7 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	kuberecorder "k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -50,7 +50,7 @@ import (
 type ReceiverReconciler struct {
 	client.Client
 	helper.Metrics
-	kuberecorder.EventRecorder
+	events.EventRecorder
 
 	ControllerName string
 }
@@ -166,14 +166,14 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 		// Emit warning event if the reconciliation failed.
 		if retErr != nil {
-			r.Event(obj, corev1.EventTypeWarning, meta.FailedReason, retErr.Error())
+			r.Eventf(obj, nil, corev1.EventTypeWarning, meta.FailedReason, "", retErr.Error())
 		}
 
 		// Log and emit success event.
 		if retErr == nil && conditions.IsReady(obj) {
 			msg := fmt.Sprintf("Reconciliation finished, next run in %s", obj.GetInterval().String())
 			log.Info(msg)
-			r.Event(obj, corev1.EventTypeNormal, meta.SucceededReason, msg)
+			r.Eventf(obj, nil, corev1.EventTypeNormal, meta.SucceededReason, "", msg)
 		}
 	}()
 
@@ -215,7 +215,7 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 			conditions.MarkStalled(obj, meta.InvalidCELExpressionReason, "%s", errMsg)
 			obj.Status.ObservedGeneration = obj.Generation
 			log.Error(err, msg)
-			r.Event(obj, corev1.EventTypeWarning, meta.InvalidCELExpressionReason, errMsg)
+			r.Eventf(obj, nil, corev1.EventTypeWarning, meta.InvalidCELExpressionReason, "", errMsg)
 			return ctrl.Result{}, nil
 		}
 	}
