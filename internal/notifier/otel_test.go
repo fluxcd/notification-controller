@@ -23,8 +23,11 @@ import (
 	"testing"
 	"time"
 
+	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/fluxcd/pkg/apis/event/v1beta1"
 )
@@ -67,8 +70,12 @@ func TestOTEL_Post(t *testing.T) {
 				UID:       "test-alert-uid",
 			}
 			ctx := WithAlertMetadata(context.Background(), *alertMetadata)
+			// Create mock client with Kustomization scheme
+			scheme := runtime.NewScheme()
+			_ = kustomizev1.AddToScheme(scheme)
+			mockClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-			otelTrace, err := NewOTLPTracer(ctx, ts.URL, "", nil, nil, "", "")
+			otelTrace, err := NewOTLPTracer(ctx, mockClient, ts.URL, "", nil, nil, "", "")
 			g.Expect(err).ToNot(HaveOccurred())
 
 			err = otelTrace.Post(ctx, tt.event())
