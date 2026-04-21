@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.8.4
+
+**Release date:** 2026-04-21
+
+This patch release fixes a regression in which generic providers would not
+forward commit status events, and requires the `audience` field on the GCR
+Receiver secret for tighter verification (it will become mandatory in
+Flux 2.9).
+
+Fixes:
+- Fix generic providers not forwarding commit status events
+  [#1291](https://github.com/fluxcd/notification-controller/pull/1291)
+- Remove GCR audience reconstruction
+  [#1288](https://github.com/fluxcd/notification-controller/pull/1288)
+
 ## 1.8.3
 
 **Release date:** 2026-04-07
