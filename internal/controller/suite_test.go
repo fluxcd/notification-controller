@@ -77,14 +77,14 @@ func TestMain(m *testing.M) {
 	if err := (&AlertReconciler{
 		Client:         testEnv,
 		ControllerName: controllerName,
-		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
+		EventRecorder:  testEnv.GetEventRecorder(controllerName),
 	}).SetupWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Failed to start AlertReconciler: %v", err))
 	}
 
 	if err := (&ProviderReconciler{
 		Client:        testEnv,
-		EventRecorder: testEnv.GetEventRecorderFor(controllerName),
+		EventRecorder: testEnv.GetEventRecorder(controllerName),
 	}).SetupWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Failed to start ProviderReconciler: %v", err))
 	}
@@ -93,7 +93,7 @@ func TestMain(m *testing.M) {
 		Client:         testEnv,
 		Metrics:        testMetricsH,
 		ControllerName: controllerName,
-		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
+		EventRecorder:  testEnv.GetEventRecorder(controllerName),
 	}).SetupWithManager(testEnv, ReceiverReconcilerOptions{
 		RateLimiter:           controller.GetDefaultRateLimiter(),
 		WatchConfigsPredicate: predicate.Not(predicate.Funcs{}),
