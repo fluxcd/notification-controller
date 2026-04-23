@@ -63,7 +63,7 @@ func TestOpsgenie_Post(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			opsgenie, err := NewOpsgenie(ts.URL, "", nil, "token")
+			opsgenie, err := NewOpsgenie(ts.URL, "", nil, "token", "")
 			g.Expect(err).ToNot(HaveOccurred())
 
 			err = opsgenie.Post(context.TODO(), tt.event())
@@ -84,16 +84,18 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 	}))
 	defer ts.Close()
 
+	providerUID := "test-provider-uid-123"
+
 	tests := []struct {
 		name          string
 		event         func() v1beta1.Event
 		expectedAlias string
 	}{
 		{
-			name:  "alias is set from involved object and reason",
+			name:  "alias includes provider UID for cluster uniqueness",
 			event: testEvent,
 			expectedAlias: fmt.Sprintf("%x",
-				sha256.Sum256([]byte("GitRepository/gitops-system/webapp/reason")))[:64],
+				sha256.Sum256([]byte("test-provider-uid-123/GitRepository/gitops-system/webapp/reason")))[:64],
 		},
 		{
 			name: "alias is stable for same event",
@@ -103,7 +105,7 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 				return e
 			},
 			expectedAlias: fmt.Sprintf("%x",
-				sha256.Sum256([]byte("GitRepository/gitops-system/webapp/reason")))[:64],
+				sha256.Sum256([]byte("test-provider-uid-123/GitRepository/gitops-system/webapp/reason")))[:64],
 		},
 		{
 			name: "alias differs for different reason",
@@ -113,7 +115,7 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 				return e
 			},
 			expectedAlias: fmt.Sprintf("%x",
-				sha256.Sum256([]byte("GitRepository/gitops-system/webapp/HealthCheckFailed")))[:64],
+				sha256.Sum256([]byte("test-provider-uid-123/GitRepository/gitops-system/webapp/HealthCheckFailed")))[:64],
 		},
 		{
 			name: "alias differs for different namespace",
@@ -123,7 +125,7 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 				return e
 			},
 			expectedAlias: fmt.Sprintf("%x",
-				sha256.Sum256([]byte("GitRepository/production/webapp/reason")))[:64],
+				sha256.Sum256([]byte("test-provider-uid-123/GitRepository/production/webapp/reason")))[:64],
 		},
 		{
 			name: "alias with empty metadata",
@@ -133,14 +135,14 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 				return e
 			},
 			expectedAlias: fmt.Sprintf("%x",
-				sha256.Sum256([]byte("GitRepository/gitops-system/webapp/reason")))[:64],
+				sha256.Sum256([]byte("test-provider-uid-123/GitRepository/gitops-system/webapp/reason")))[:64],
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			opsgenie, err := NewOpsgenie(ts.URL, "", nil, "token")
+			opsgenie, err := NewOpsgenie(ts.URL, "", nil, "token", providerUID)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			err = opsgenie.Post(context.TODO(), tt.event())
@@ -154,10 +156,11 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 func TestGenerateOpsgenieAlias(t *testing.T) {
 	g := NewWithT(t)
 	event := testEvent()
+	providerUID := "test-uid"
 
 	// Alias should be deterministic
-	alias1 := generateOpsgenieAlias(event)
-	alias2 := generateOpsgenieAlias(event)
+	alias1 := generateOpsgenieAlias(providerUID, event)
+	alias2 := generateOpsgenieAlias(providerUID, event)
 	g.Expect(alias1).To(Equal(alias2))
 
 	// Alias should be 64 chars (hex-encoded SHA-256 truncated)
@@ -166,6 +169,10 @@ func TestGenerateOpsgenieAlias(t *testing.T) {
 	// Different reason should produce different alias
 	event2 := testEvent()
 	event2.Reason = "DifferentReason"
-	alias3 := generateOpsgenieAlias(event2)
+	alias3 := generateOpsgenieAlias(providerUID, event2)
 	g.Expect(alias1).ToNot(Equal(alias3))
+
+	// Different provider UID should produce different alias
+	alias4 := generateOpsgenieAlias("different-uid", event)
+	g.Expect(alias1).ToNot(Equal(alias4))
 }

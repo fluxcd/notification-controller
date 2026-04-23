@@ -29,10 +29,11 @@ import (
 )
 
 type Opsgenie struct {
-	URL       string
-	ProxyURL  string
-	TLSConfig *tls.Config
-	ApiKey    string
+	URL         string
+	ProxyURL    string
+	TLSConfig   *tls.Config
+	ApiKey      string
+	ProviderUID string
 }
 
 type OpsgenieAlert struct {
@@ -42,7 +43,7 @@ type OpsgenieAlert struct {
 	Details     map[string]string `json:"details"`
 }
 
-func NewOpsgenie(hookURL string, proxyURL string, tlsConfig *tls.Config, token string) (*Opsgenie, error) {
+func NewOpsgenie(hookURL string, proxyURL string, tlsConfig *tls.Config, token string, providerUID string) (*Opsgenie, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Opsgenie hook URL %s: '%w'", hookURL, err)
@@ -53,10 +54,11 @@ func NewOpsgenie(hookURL string, proxyURL string, tlsConfig *tls.Config, token s
 	}
 
 	return &Opsgenie{
-		URL:       hookURL,
-		ProxyURL:  proxyURL,
-		ApiKey:    token,
-		TLSConfig: tlsConfig,
+		URL:         hookURL,
+		ProxyURL:    proxyURL,
+		ApiKey:      token,
+		TLSConfig:   tlsConfig,
+		ProviderUID: providerUID,
 	}, nil
 }
 
@@ -73,7 +75,7 @@ func (s *Opsgenie) Post(ctx context.Context, event eventv1.Event) error {
 	// The alias is derived from the involved object's kind, namespace,
 	// name, and the event reason so that repeated alerts for the same
 	// source are deduplicated while different reasons create separate alerts.
-	alias := generateOpsgenieAlias(event)
+	alias := generateOpsgenieAlias(s.ProviderUID, event)
 
 	payload := OpsgenieAlert{
 		Message:     event.InvolvedObject.Kind + "/" + event.InvolvedObject.Name,
@@ -102,13 +104,17 @@ func (s *Opsgenie) Post(ctx context.Context, event eventv1.Event) error {
 }
 
 // generateOpsgenieAlias creates a stable, deterministic alias string from
-// the event's involved object and reason. Opsgenie uses the alias field to
-// deduplicate alerts — alerts with the same alias are treated as the same
-// incident instead of creating new pages. The alias is a SHA-256 hash
-// (truncated to 64 chars) to stay within Opsgenie's 512-char alias limit
-// while remaining collision-resistant.
-func generateOpsgenieAlias(event eventv1.Event) string {
-	key := fmt.Sprintf("%s/%s/%s/%s",
+// the provider UID and the event's involved object and reason. Opsgenie uses
+// the alias field to deduplicate alerts — alerts with the same alias are
+// treated as the same incident instead of creating new pages. The provider UID
+// is included so that alerts from different clusters (each with their own
+// Provider resource) produce distinct aliases even when the involved objects
+// share the same kind/namespace/name. The alias is a SHA-256 hash (truncated
+// to 64 chars) to stay within Opsgenie's 512-char alias limit while remaining
+// collision-resistant.
+func generateOpsgenieAlias(providerUID string, event eventv1.Event) string {
+	key := fmt.Sprintf("%s/%s/%s/%s/%s",
+		providerUID,
 		event.InvolvedObject.Kind,
 		event.InvolvedObject.Namespace,
 		event.InvolvedObject.Name,
