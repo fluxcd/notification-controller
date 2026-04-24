@@ -1233,13 +1233,114 @@ func Test_handlePayload(t *testing.T) {
 					Name: "gcr-token",
 				},
 				Data: map[string][]byte{
-					"token": []byte("token"),
-					"email": []byte("test@example.iam.gserviceaccount.com"),
+					"token":    []byte("token"),
+					"email":    []byte("test@example.iam.gserviceaccount.com"),
+					"audience": []byte("https://example.com"),
 				},
 			},
 			resources:                  []client.Object{testReceiverResource},
 			expectedResourcesAnnotated: 1,
 			expectedResponseCode:       http.StatusOK,
+		},
+		{
+			name: "GCR receiver rejects secret missing 'email'",
+			headers: map[string]string{
+				"Content-Type":  "application/json",
+				"Authorization": "Bearer token",
+			},
+			payload: map[string]any{
+				"message": map[string]any{
+					"data": marshalGCRData(t, map[string]any{
+						"action": "INSERT",
+						"digest": "us-east1-docker.pkg.dev/my-project/my-repo/app1@sha256:6ec128e26cd5...",
+						"tag":    "us-east1-docker.pkg.dev/my-project/my-repo/app1:v1.2.3",
+					}),
+				},
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "gcr-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GCRReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "gcr-token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "gcr-token",
+				},
+				Data: map[string][]byte{
+					"token":    []byte("token"),
+					"audience": []byte("https://example.com"),
+				},
+			},
+			resources:                  []client.Object{testReceiverResource},
+			expectedResourcesAnnotated: 0,
+			expectedResponseCode:       http.StatusBadRequest,
+		},
+		{
+			name: "GCR receiver rejects secret missing 'audience'",
+			headers: map[string]string{
+				"Content-Type":  "application/json",
+				"Authorization": "Bearer token",
+			},
+			payload: map[string]any{
+				"message": map[string]any{
+					"data": marshalGCRData(t, map[string]any{
+						"action": "INSERT",
+						"digest": "us-east1-docker.pkg.dev/my-project/my-repo/app1@sha256:6ec128e26cd5...",
+						"tag":    "us-east1-docker.pkg.dev/my-project/my-repo/app1:v1.2.3",
+					}),
+				},
+			},
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "gcr-receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GCRReceiver,
+					SecretRef: meta.LocalObjectReference{
+						Name: "gcr-token",
+					},
+					Resources: []apiv1.CrossNamespaceObjectReference{
+						{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "test-resource",
+						},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "gcr-token",
+				},
+				Data: map[string][]byte{
+					"token": []byte("token"),
+					"email": []byte("test@example.iam.gserviceaccount.com"),
+				},
+			},
+			resources:                  []client.Object{testReceiverResource},
+			expectedResourcesAnnotated: 0,
+			expectedResponseCode:       http.StatusBadRequest,
 		},
 		{
 			name: "CEL filtering a Nexus receiver",
