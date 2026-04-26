@@ -427,16 +427,14 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		}
 
 		expectedEmail := string(secret.Data["email"])
-		// TODO: in Flux 2.9, require the email. this will be a breaking change.
-		// if expectedEmail == "" {
-		// 	return fmt.Errorf("invalid secret data: required field 'email' for GCR receiver")
-		// }
+		if expectedEmail == "" {
+			return fmt.Errorf("invalid secret data: required field 'email' for GCR receiver")
+		}
 
 		expectedAudience := string(secret.Data["audience"])
-		// TODO: in Flux 2.9, require the audience. this will be a breaking change.
-		// if expectedAudience == "" {
-		// 	return fmt.Errorf("invalid secret data: required field 'audience' for GCR receiver")
-		// }
+		if expectedAudience == "" {
+			return fmt.Errorf("invalid secret data: required field 'audience' for GCR receiver")
+		}
 
 		authenticate := authenticateGCRRequest
 		if s.gcrTokenValidator != nil {
@@ -636,8 +634,7 @@ func authenticateGCRRequest(ctx context.Context, bearer string, expectedEmail st
 	// Verify the token was issued for the expected service account.
 	email, _ := payload.Claims["email"].(string)
 	emailVerified, _ := payload.Claims["email_verified"].(bool)
-	// TODO: in Flux 2.9, require the email (remove `expectedEmail != "" &&`). this will be a breaking change.
-	if expectedEmail != "" && email != expectedEmail {
+	if email != expectedEmail {
 		return fmt.Errorf("token email is '%s', want '%s'", email, expectedEmail)
 	}
 	if !emailVerified {
