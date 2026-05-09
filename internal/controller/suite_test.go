@@ -75,25 +75,25 @@ func TestMain(m *testing.M) {
 	testMetricsH := controller.NewMetrics(testEnv, metrics.MustMakeRecorder(), apiv1.NotificationFinalizer)
 
 	if err := (&AlertReconciler{
-		Client:         testEnv,
-		ControllerName: controllerName,
-		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
+		Client:                 testEnv,
+		ControllerName:         controllerName,
+		AnnotatedEventRecorder: testEnv.GetAnnotatedEventRecorder(controllerName),
 	}).SetupWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Failed to start AlertReconciler: %v", err))
 	}
 
 	if err := (&ProviderReconciler{
-		Client:        testEnv,
-		EventRecorder: testEnv.GetEventRecorderFor(controllerName),
+		Client:                 testEnv,
+		AnnotatedEventRecorder: testEnv.GetAnnotatedEventRecorder(controllerName),
 	}).SetupWithManager(testEnv); err != nil {
 		panic(fmt.Sprintf("Failed to start ProviderReconciler: %v", err))
 	}
 
 	if err := (&ReceiverReconciler{
-		Client:         testEnv,
-		Metrics:        testMetricsH,
-		ControllerName: controllerName,
-		EventRecorder:  testEnv.GetEventRecorderFor(controllerName),
+		Client:                 testEnv,
+		Metrics:                testMetricsH,
+		ControllerName:         controllerName,
+		AnnotatedEventRecorder: testEnv.GetAnnotatedEventRecorder(controllerName),
 	}).SetupWithManager(testEnv, ReceiverReconcilerOptions{
 		RateLimiter:           controller.GetDefaultRateLimiter(),
 		WatchConfigsPredicate: predicate.Not(predicate.Funcs{}),

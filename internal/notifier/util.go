@@ -27,7 +27,7 @@ import (
 	"github.com/fluxcd/pkg/git"
 
 	giturls "github.com/chainguard-dev/git-urls"
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 )
 
 func parseGitAddress(s string) (string, string, error) {
