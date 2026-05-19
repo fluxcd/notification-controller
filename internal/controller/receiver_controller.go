@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -209,13 +210,22 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 
 	if filter := obj.Spec.ResourceFilter; filter != "" {
 		if err := server.ValidateResourceFilter(filter); err != nil {
-			const msg = "Reconciliation failed terminally due to configuration error"
-			errMsg := fmt.Sprintf("%s: %v", msg, err)
-			conditions.MarkFalse(obj, meta.ReadyCondition, meta.InvalidCELExpressionReason, "%s", errMsg)
-			conditions.MarkStalled(obj, meta.InvalidCELExpressionReason, "%s", errMsg)
-			obj.Status.ObservedGeneration = obj.Generation
-			log.Error(err, msg)
-			r.Event(obj, corev1.EventTypeWarning, meta.InvalidCELExpressionReason, errMsg)
+			r.markTerminal(obj, log, meta.InvalidCELExpressionReason, err)
+			return ctrl.Result{}, nil
+		}
+	}
+
+	if err := validateOIDCSpec(obj); err != nil {
+		r.markTerminal(obj, log, apiv1.ValidationFailedReason, err)
+		return ctrl.Result{}, nil
+	}
+	if len(obj.Spec.OIDCProviders) > 0 {
+		if err := server.ValidateOIDCProvidersSpec(obj.Spec.OIDCProviders); err != nil {
+			r.markTerminal(obj, log, apiv1.ValidationFailedReason, err)
+			return ctrl.Result{}, nil
+		}
+		if err := server.CompileOIDCProviders(obj.Spec.OIDCProviders); err != nil {
+			r.markTerminal(obj, log, meta.InvalidCELExpressionReason, err)
 			return ctrl.Result{}, nil
 		}
 	}
@@ -292,6 +302,32 @@ func (r *ReceiverReconciler) patch(ctx context.Context, obj *apiv1.Receiver, pat
 	}
 
 	return nil
+}
+
+// validateOIDCSpec enforces the two cross-field invariants the CRD encodes as
+// XValidation rules, so older API servers that ignore them still cause a
+// terminal failure rather than a misbehaving Receiver.
+func validateOIDCSpec(obj *apiv1.Receiver) error {
+	if obj.Spec.Type == apiv1.GenericOIDCReceiver && len(obj.Spec.OIDCProviders) == 0 {
+		return fmt.Errorf("generic-oidc receiver requires at least one oidcProvider")
+	}
+	if obj.Spec.Type != apiv1.GenericOIDCReceiver && len(obj.Spec.OIDCProviders) > 0 {
+		return fmt.Errorf("oidcProviders can only be set when type is generic-oidc")
+	}
+	return nil
+}
+
+// markTerminal records a terminal configuration error against the Receiver:
+// Ready=False, Stalled with the given reason, observed generation pinned and a
+// warning event emitted.
+func (r *ReceiverReconciler) markTerminal(obj *apiv1.Receiver, log logr.Logger, reason string, err error) {
+	const prefix = "Reconciliation failed terminally due to configuration error"
+	errMsg := fmt.Sprintf("%s: %v", prefix, err)
+	conditions.MarkFalse(obj, meta.ReadyCondition, reason, "%s", errMsg)
+	conditions.MarkStalled(obj, reason, "%s", errMsg)
+	obj.Status.ObservedGeneration = obj.Generation
+	log.Error(err, prefix)
+	r.Event(obj, corev1.EventTypeWarning, reason, errMsg)
 }
 
 // token extract the token value from the secret object

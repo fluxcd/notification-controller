@@ -167,6 +167,34 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 		g.Expect(conditions.GetObservedGeneration(resultR, meta.StalledCondition)).To(BeIdenticalTo(resultR.Generation))
 	})
 
+	t.Run("fails with invalid CEL in oidcProviders", func(t *testing.T) {
+		g := NewWithT(t)
+		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)).To(Succeed())
+
+		// Fix the resourceFilter, switch to generic-oidc and inject an invalid OIDC CEL
+		// expression so the reconciler fails terminally only because of the OIDC config.
+		patch := []byte(`{"spec":{"type":"generic-oidc","resourceFilter":"has(res.metadata.annotations)","oidcProviders":[{"issuerURL":"https://example.com","audience":"flux","validations":[{"expression":"not valid ===","message":"oops"}]}]}}`)
+		g.Expect(k8sClient.Patch(context.Background(), resultR, client.RawPatch(types.MergePatchType, patch))).To(Succeed())
+
+		g.Eventually(func() bool {
+			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
+			return resultR.Status.ObservedGeneration == resultR.Generation &&
+				!conditions.IsReady(resultR) &&
+				conditions.GetReason(resultR, meta.ReadyCondition) == meta.InvalidCELExpressionReason
+		}, timeout, time.Second).Should(BeTrue())
+
+		g.Expect(conditions.GetMessage(resultR, meta.ReadyCondition)).To(ContainSubstring("oidcProviders"))
+		g.Expect(conditions.Has(resultR, meta.StalledCondition)).To(BeTrue())
+
+		// Revert to the original type and clear the providers so subsequent subtests start clean.
+		patch = []byte(`{"spec":{"type":"generic","oidcProviders":null}}`)
+		g.Expect(k8sClient.Patch(context.Background(), resultR, client.RawPatch(types.MergePatchType, patch))).To(Succeed())
+		g.Eventually(func() bool {
+			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
+			return conditions.IsReady(resultR)
+		}, timeout, time.Second).Should(BeTrue())
+	})
+
 	t.Run("recovers when the CEL expression is valid", func(t *testing.T) {
 		g := NewWithT(t)
 		// Incomplete CEL expression
