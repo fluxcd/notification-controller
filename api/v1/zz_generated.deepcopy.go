@@ -21,6 +21,7 @@ limitations under the License.
 package v1
 
 import (
+	"github.com/fluxcd/pkg/apis/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -181,7 +182,11 @@ func (in *ReceiverSpec) DeepCopyInto(out *ReceiverSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	out.SecretRef = in.SecretRef
+	if in.SecretRef != nil {
+		in, out := &in.SecretRef, &out.SecretRef
+		*out = new(meta.LocalObjectReference)
+		**out = **in
+	}
 	if in.OIDCProviders != nil {
 		in, out := &in.OIDCProviders, &out.OIDCProviders
 		*out = make([]OIDCProvider, len(*in))

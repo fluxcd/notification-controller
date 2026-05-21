@@ -274,8 +274,6 @@ metadata:
   namespace: default
 spec:
   type: generic-oidc
-  secretRef:
-    name: webhook-token
   oidcProviders:
     # audience defaults to 'notification-controller'.
     - issuerURL: https://token.actions.githubusercontent.com
@@ -922,9 +920,14 @@ This would look for an annotation "update-image" on the resource, and match it t
 
 ### Secret reference
 
-`.spec.secretRef.name` is a required field to specify a name reference to a
-Secret in the same namespace as the Receiver. The Secret must contain a `token`
-key, whose value is a string containing a (random) secret token.
+`.spec.secretRef.name` specifies a name reference to a Secret in the same
+namespace as the Receiver. The Secret must contain a `token` key, whose value is
+a string containing a (random) secret token.
+
+It is required for all receiver types except [`generic-oidc`](#generic-oidc),
+which authenticates requests using the OIDC token instead. When omitted, the
+[webhook path](#webhook-path) is derived from the Receiver name and namespace
+only.
 
 This token is used to salt the generated [webhook path](#webhook-path), and
 depending on the Receiver [type](#supported-receiver-types), to verify the

@@ -45,6 +45,53 @@ import (
 	"github.com/fluxcd/notification-controller/internal/server"
 )
 
+func TestValidateOIDCSpec(t *testing.T) {
+	stubProvider := []apiv1.OIDCProvider{{IssuerURL: "https://example.com"}}
+	secretRef := &meta.LocalObjectReference{Name: "webhook-token"}
+
+	tests := []struct {
+		name    string
+		spec    apiv1.ReceiverSpec
+		wantErr string
+	}{
+		{
+			name:    "generic-oidc without oidcProviders is rejected",
+			spec:    apiv1.ReceiverSpec{Type: apiv1.GenericOIDCReceiver},
+			wantErr: "generic-oidc receiver requires at least one oidcProvider",
+		},
+		{
+			name:    "oidcProviders on non-generic-oidc is rejected",
+			spec:    apiv1.ReceiverSpec{Type: apiv1.GenericReceiver, SecretRef: secretRef, OIDCProviders: stubProvider},
+			wantErr: "oidcProviders can only be set when type is generic-oidc",
+		},
+		{
+			name:    "secretRef is required for non-generic-oidc",
+			spec:    apiv1.ReceiverSpec{Type: apiv1.GenericReceiver},
+			wantErr: "secretRef is required when type is not generic-oidc",
+		},
+		{
+			name: "generic-oidc without secretRef is valid",
+			spec: apiv1.ReceiverSpec{Type: apiv1.GenericOIDCReceiver, OIDCProviders: stubProvider},
+		},
+		{
+			name: "non-generic-oidc with secretRef is valid",
+			spec: apiv1.ReceiverSpec{Type: apiv1.GenericReceiver, SecretRef: secretRef},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			err := validateOIDCSpec(&apiv1.Receiver{Spec: tt.spec})
+			if tt.wantErr == "" {
+				g.Expect(err).NotTo(HaveOccurred())
+				return
+			}
+			g.Expect(err).To(MatchError(ContainSubstring(tt.wantErr)))
+		})
+	}
+}
+
 func TestReceiverReconciler_deleteBeforeFinalizer(t *testing.T) {
 	g := NewWithT(t)
 
@@ -65,7 +112,7 @@ func TestReceiverReconciler_deleteBeforeFinalizer(t *testing.T) {
 		Resources: []apiv1.CrossNamespaceObjectReference{
 			{Kind: "Bucket", Name: "Foo"},
 		},
-		SecretRef: meta.LocalObjectReference{Name: "foo-secret"},
+		SecretRef: &meta.LocalObjectReference{Name: "foo-secret"},
 	}
 	// Add a test finalizer to prevent the object from getting deleted.
 	receiver.SetFinalizers([]string{"test-finalizer"})
@@ -121,7 +168,7 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 					Kind: "GitRepository",
 				},
 			},
-			SecretRef: meta.LocalObjectReference{
+			SecretRef: &meta.LocalObjectReference{
 				Name: secretName,
 			},
 		},
@@ -368,7 +415,7 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 					Kind: "GitRepository",
 				},
 			},
-			SecretRef: meta.LocalObjectReference{
+			SecretRef: &meta.LocalObjectReference{
 				Name: "receiver-secret",
 			},
 		},

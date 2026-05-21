@@ -225,22 +225,27 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 	}
 	r.Body = io.NopCloser(bytes.NewReader(b))
 
-	// Fetch the secret.
-	secret, err := s.secret(ctx, receiver)
-	if err != nil {
-		return fmt.Errorf("unable to read secret, error: %w", err)
-	}
+	// Fetch the secret and extract the token, when a secretRef is set. secretRef
+	// is optional only for generic-oidc receivers, which authenticate requests
+	// using the OIDC token instead of the webhook token.
+	var secret *corev1.Secret
+	var token string
+	if receiver.Spec.SecretRef != nil {
+		secret, err = s.secret(ctx, receiver)
+		if err != nil {
+			return fmt.Errorf("unable to read secret, error: %w", err)
+		}
 
-	// Extract the token from the secret.
-	secretName := types.NamespacedName{
-		Namespace: receiver.GetNamespace(),
-		Name:      receiver.Spec.SecretRef.Name,
+		secretName := types.NamespacedName{
+			Namespace: receiver.GetNamespace(),
+			Name:      receiver.Spec.SecretRef.Name,
+		}
+		tokenBytes, ok := secret.Data["token"]
+		if !ok {
+			return fmt.Errorf("invalid %q secret data: required field 'token'", secretName)
+		}
+		token = string(tokenBytes)
 	}
-	tokenBytes, ok := secret.Data["token"]
-	if !ok {
-		return fmt.Errorf("invalid %q secret data: required field 'token'", secretName)
-	}
-	token := string(tokenBytes)
 
 	logger := s.logger.WithValues(
 		"reconciler kind", apiv1.ReceiverKind,
@@ -426,6 +431,10 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				PublishTime  time.Time `json:"publishTime"`
 				Subscription string    `json:"subscription"`
 			} `json:"message"`
+		}
+
+		if secret == nil {
+			return fmt.Errorf("secretRef is required for GCR receivers")
 		}
 
 		expectedEmail := string(secret.Data["email"])

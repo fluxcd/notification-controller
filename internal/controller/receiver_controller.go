@@ -79,6 +79,9 @@ func (r *ReceiverReconciler) SetupWithManager(mgr ctrl.Manager, opts ReceiverRec
 	if err := mgr.GetFieldIndexer().IndexField(context.Background(), &apiv1.Receiver{},
 		secretRefIndex, func(obj client.Object) []string {
 			receiver := obj.(*apiv1.Receiver)
+			if receiver.Spec.SecretRef == nil {
+				return nil
+			}
 			return []string{fmt.Sprintf("%s/%s", receiver.GetNamespace(), receiver.Spec.SecretRef.Name)}
 		}); err != nil {
 	}
@@ -314,6 +317,9 @@ func validateOIDCSpec(obj *apiv1.Receiver) error {
 	if obj.Spec.Type != apiv1.GenericOIDCReceiver && len(obj.Spec.OIDCProviders) > 0 {
 		return fmt.Errorf("oidcProviders can only be set when type is generic-oidc")
 	}
+	if obj.Spec.Type != apiv1.GenericOIDCReceiver && obj.Spec.SecretRef == nil {
+		return fmt.Errorf("secretRef is required when type is not generic-oidc")
+	}
 	return nil
 }
 
@@ -332,6 +338,13 @@ func (r *ReceiverReconciler) markTerminal(obj *apiv1.Receiver, log logr.Logger, 
 
 // token extract the token value from the secret object
 func (r *ReceiverReconciler) token(ctx context.Context, receiver *apiv1.Receiver) (string, error) {
+	// secretRef is optional for generic-oidc receivers, which authenticate
+	// requests using the OIDC token instead of the webhook token. Without a
+	// token the webhook path is derived from the Receiver name and namespace.
+	if receiver.Spec.SecretRef == nil {
+		return "", nil
+	}
+
 	token := ""
 	secretName := types.NamespacedName{
 		Namespace: receiver.GetNamespace(),

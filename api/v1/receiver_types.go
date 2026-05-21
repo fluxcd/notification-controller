@@ -51,6 +51,7 @@ const DefaultOIDCAudience string = "notification-controller"
 // ReceiverSpec defines the desired state of the Receiver.
 // +kubebuilder:validation:XValidation:rule="self.type != 'generic-oidc' || (has(self.oidcProviders) && size(self.oidcProviders) > 0)",message="generic-oidc receivers must define at least one oidcProvider"
 // +kubebuilder:validation:XValidation:rule="self.type == 'generic-oidc' || !has(self.oidcProviders) || size(self.oidcProviders) == 0",message="oidcProviders can only be set when type is generic-oidc"
+// +kubebuilder:validation:XValidation:rule="self.type == 'generic-oidc' || has(self.secretRef)",message="secretRef is required when type is not generic-oidc"
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
@@ -89,8 +90,11 @@ type ReceiverSpec struct {
 	// key. For GCR receivers, the Secret must also contain an 'email' key
 	// with the IAM service account email configured on the Pub/Sub push
 	// subscription, and an 'audience' key with the expected OIDC token audience.
-	// +required
-	SecretRef meta.LocalObjectReference `json:"secretRef"`
+	//
+	// Required for all receiver types except 'generic-oidc', which authenticates
+	// requests using the OIDC token instead.
+	// +optional
+	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
 
 	// OIDCProviders specifies the OIDC providers used to authenticate incoming
 	// requests when Type is 'generic-oidc'. The provider whose IssuerURL matches
