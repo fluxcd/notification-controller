@@ -98,7 +98,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 				},
@@ -118,7 +118,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GitLabReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 				},
@@ -142,7 +142,7 @@ func Test_handlePayload(t *testing.T) {
 				Spec: apiv1.ReceiverSpec{
 					Type:   apiv1.CDEventsReceiver,
 					Events: []string{"cd.change.merged.v1"},
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 				},
@@ -181,7 +181,7 @@ func Test_handlePayload(t *testing.T) {
 				Spec: apiv1.ReceiverSpec{
 					Type:   apiv1.CDEventsReceiver,
 					Events: []string{"cd.environment.modified.v1"},
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 				},
@@ -219,7 +219,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.CDEventsReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 				},
@@ -257,7 +257,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GitHubReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 				},
@@ -288,7 +288,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericHMACReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 				},
@@ -317,7 +317,7 @@ func Test_handlePayload(t *testing.T) {
 				Spec: apiv1.ReceiverSpec{
 					Type:   apiv1.BitbucketReceiver,
 					Events: []string{"push"},
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 				},
@@ -346,7 +346,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.QuayReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 				},
@@ -372,7 +372,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.HarborReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 				},
@@ -395,7 +395,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "non-existing",
 					},
 				},
@@ -448,7 +448,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -476,7 +476,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -503,7 +503,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -560,7 +560,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -612,7 +612,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -643,7 +643,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -684,7 +684,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -710,7 +710,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -772,7 +772,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -857,7 +857,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -911,7 +911,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GitHubReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -948,7 +948,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GitLabReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -979,7 +979,7 @@ func Test_handlePayload(t *testing.T) {
 				Spec: apiv1.ReceiverSpec{
 					Type:   apiv1.CDEventsReceiver,
 					Events: []string{"cd.change.merged.v1"},
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -1040,7 +1040,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.BitbucketReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -1073,7 +1073,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.QuayReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -1127,7 +1127,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.HarborReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -1168,7 +1168,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.DockerHubReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -1211,7 +1211,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GCRReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "gcr-token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -1263,7 +1263,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GCRReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "gcr-token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -1313,7 +1313,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GCRReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "gcr-token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -1370,7 +1370,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.NexusReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -1410,7 +1410,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.ACRReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{
@@ -1443,7 +1443,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
-					SecretRef: meta.LocalObjectReference{
+					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.CrossNamespaceObjectReference{

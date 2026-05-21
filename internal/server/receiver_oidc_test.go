@@ -117,7 +117,6 @@ func newOIDCReceiver(name string, providers []apiv1.OIDCProvider) *apiv1.Receive
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec: apiv1.ReceiverSpec{
 			Type:          apiv1.GenericOIDCReceiver,
-			SecretRef:     meta.LocalObjectReference{Name: "token"},
 			OIDCProviders: providers,
 			Resources: []apiv1.CrossNamespaceObjectReference{{
 				APIVersion: apiv1.GroupVersion.String(),
