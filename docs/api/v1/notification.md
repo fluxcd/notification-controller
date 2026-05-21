@@ -327,8 +327,9 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Audience is the expected audience (&lsquo;aud&rsquo; claim) for tokens issued by
-this provider.</p>
+this provider. Defaults to &lsquo;notification-controller&rsquo;.</p>
 </td>
 </tr>
 <tr>

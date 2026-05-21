@@ -131,8 +131,10 @@ func TestValidateOIDCProvidersSpec(t *testing.T) {
 	err := ValidateOIDCProvidersSpec([]apiv1.OIDCProvider{{Audience: "aud", Validations: stubValidation}})
 	g.Expect(err).To(gomega.MatchError(gomega.ContainSubstring("issuerURL is required")))
 
-	err = ValidateOIDCProvidersSpec([]apiv1.OIDCProvider{{IssuerURL: "https://a", Validations: stubValidation}})
-	g.Expect(err).To(gomega.MatchError(gomega.ContainSubstring("audience is required")))
+	// Audience is optional; it defaults to 'notification-controller' in code.
+	g.Expect(ValidateOIDCProvidersSpec([]apiv1.OIDCProvider{
+		{IssuerURL: "https://a", Validations: stubValidation},
+	})).To(gomega.Succeed())
 
 	err = ValidateOIDCProvidersSpec([]apiv1.OIDCProvider{{IssuerURL: "example.com", Audience: "aud", Validations: stubValidation}})
 	g.Expect(err).To(gomega.MatchError(gomega.ContainSubstring("must start with http:// or https://")))
