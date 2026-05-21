@@ -77,7 +77,7 @@ spec:
                     audience:
                       description: |-
                         Audience is the expected audience ('aud' claim) for tokens issued by
-                        this provider.
+                        this provider. Defaults to 'notification-controller'.
                       type: string
                     issuerURL:
                       description: |-
@@ -140,7 +140,6 @@ spec:
                         type: object
                       type: array
                   required:
-                  - audience
                   - issuerURL
                   - validations
                   type: object

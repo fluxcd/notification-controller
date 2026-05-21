@@ -126,9 +126,6 @@ func ValidateOIDCProvidersSpec(providers []apiv1.OIDCProvider) error {
 		if !oidcIssuerURLPattern.MatchString(p.IssuerURL) {
 			return fmt.Errorf("oidcProviders[%d]: issuerURL %q must start with http:// or https://", i, p.IssuerURL)
 		}
-		if p.Audience == "" {
-			return fmt.Errorf("oidcProviders[%d]: audience is required", i)
-		}
 		if _, dup := seen[p.IssuerURL]; dup {
 			return fmt.Errorf("oidcProviders[%d]: duplicate issuerURL %q", i, p.IssuerURL)
 		}

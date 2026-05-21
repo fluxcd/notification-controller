@@ -239,6 +239,8 @@ The provider whose `issuerURL` matches the token's `iss` claim is used to verify
 the token signature, expiration and audience. The controller then evaluates the
 provider's CEL expressions against the token claims:
 
+- `.spec.oidcProviders[].audience` is the expected `aud` claim of the token. It
+  is optional and defaults to `notification-controller`.
 - `.spec.oidcProviders[].validations` is a required list of CEL boolean
   expressions. The request is accepted only if all of them evaluate to `true`.
   The `message` of each failing expression is returned to the caller.
@@ -275,8 +277,8 @@ spec:
   secretRef:
     name: webhook-token
   oidcProviders:
+    # audience defaults to 'notification-controller'.
     - issuerURL: https://token.actions.githubusercontent.com
-      audience: notification-controller
       validations:
         - expression: "claims.repository_owner == 'my-org'"
           message: "wrong org"

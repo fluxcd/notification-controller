@@ -67,7 +67,7 @@ func (s *ReceiverServer) validateGenericOIDC(ctx context.Context, receiver apiv1
 	if err != nil {
 		return fmt.Errorf("failed to initialize OIDC provider for issuer %q: %w", provider.IssuerURL, err)
 	}
-	verifier := oidcProvider.Verifier(&oidc.Config{ClientID: provider.Audience})
+	verifier := oidcProvider.Verifier(&oidc.Config{ClientID: provider.GetAudience()})
 
 	idToken, err := verifier.Verify(ctx, rawToken)
 	if err != nil {

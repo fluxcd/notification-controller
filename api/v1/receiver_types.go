@@ -44,6 +44,10 @@ const (
 	CDEventsReceiver    string = "cdevents"
 )
 
+// DefaultOIDCAudience is the default expected audience ('aud' claim) for tokens
+// issued to a 'generic-oidc' Receiver when no audience is configured.
+const DefaultOIDCAudience string = "notification-controller"
+
 // ReceiverSpec defines the desired state of the Receiver.
 // +kubebuilder:validation:XValidation:rule="self.type != 'generic-oidc' || (has(self.oidcProviders) && size(self.oidcProviders) > 0)",message="generic-oidc receivers must define at least one oidcProvider"
 // +kubebuilder:validation:XValidation:rule="self.type == 'generic-oidc' || !has(self.oidcProviders) || size(self.oidcProviders) == 0",message="oidcProviders can only be set when type is generic-oidc"
@@ -114,9 +118,9 @@ type OIDCProvider struct {
 	IssuerURL string `json:"issuerURL"`
 
 	// Audience is the expected audience ('aud' claim) for tokens issued by
-	// this provider.
-	// +required
-	Audience string `json:"audience"`
+	// this provider. Defaults to 'notification-controller'.
+	// +optional
+	Audience string `json:"audience,omitempty"`
 
 	// Variables is an optional list of named CEL expressions, evaluated in order
 	// and exposed as 'vars.<name>'. Each expression can read the token claims
@@ -137,6 +141,16 @@ type OIDCProvider struct {
 	// +kubebuilder:validation:MinItems=1
 	// +required
 	Validations []OIDCValidation `json:"validations"`
+}
+
+// GetAudience returns the expected audience ('aud' claim) for tokens issued by
+// this provider, defaulting to 'notification-controller'.
+func (in *OIDCProvider) GetAudience() string {
+	if in.Audience != "" {
+		return in.Audience
+	}
+
+	return DefaultOIDCAudience
 }
 
 // OIDCVariable is a named CEL expression evaluated against the OIDC token
