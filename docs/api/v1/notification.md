@@ -157,6 +157,24 @@ subscription, and an &lsquo;audience&rsquo; key with the expected OIDC token aud
 </tr>
 <tr>
 <td>
+<code>oidcProviders</code><br>
+<em>
+<a href="#notification.toolkit.fluxcd.io/v1.OIDCProvider">
+[]OIDCProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCProviders specifies the OIDC providers used to authenticate incoming
+requests when Type is &lsquo;generic-oidc&rsquo;. The provider whose IssuerURL matches
+the token&rsquo;s &lsquo;iss&rsquo; claim is used to verify the token signature, expiration
+and audience, and to evaluate the configured CEL validations against the
+token claims.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>suspend</code><br>
 <em>
 bool
@@ -271,6 +289,177 @@ MatchLabels requires the name to be set to <code>*</code>.</p>
 </table>
 </div>
 </div>
+<h3 id="notification.toolkit.fluxcd.io/v1.OIDCProvider">OIDCProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#notification.toolkit.fluxcd.io/v1.ReceiverSpec">ReceiverSpec</a>)
+</p>
+<p>OIDCProvider configures an OIDC issuer used to authenticate requests for a
+&lsquo;generic-oidc&rsquo; Receiver.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>issuerURL</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>IssuerURL is the OIDC issuer URL used for provider discovery. It must
+match the &lsquo;iss&rsquo; claim of tokens issued by this provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>audience</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Audience is the expected audience (&lsquo;aud&rsquo; claim) for tokens issued by
+this provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>variables</code><br>
+<em>
+<a href="#notification.toolkit.fluxcd.io/v1.OIDCVariable">
+[]OIDCVariable
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Variables is an optional list of named CEL expressions, evaluated in order
+and exposed as &lsquo;vars.<name>&rsquo;. Each expression can read the token claims
+via &lsquo;claims&rsquo; and any variable defined before it. Use it to share
+sub-expressions across validations.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>validations</code><br>
+<em>
+<a href="#notification.toolkit.fluxcd.io/v1.OIDCValidation">
+[]OIDCValidation
+</a>
+</em>
+</td>
+<td>
+<p>Validations is the list of CEL boolean expressions evaluated against the
+token claims and the variables. The request is accepted only if all of
+them evaluate to true; the message of each failing expression is returned
+to the caller.</p>
+<p>At least one validation is required. A valid signature alone does not
+authorize a request: public issuers issue tokens to any caller on the
+platform, so the validations must constrain the caller&rsquo;s identity claims
+(e.g. &lsquo;repository_owner&rsquo; for GitHub Actions).</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="notification.toolkit.fluxcd.io/v1.OIDCValidation">OIDCValidation
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#notification.toolkit.fluxcd.io/v1.OIDCProvider">OIDCProvider</a>)
+</p>
+<p>OIDCValidation is a CEL boolean expression evaluated against the OIDC token
+claims and variables of a &lsquo;generic-oidc&rsquo; Receiver.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>expression</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Expression is the CEL boolean expression to evaluate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>message</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Message is returned to the caller when the expression evaluates to false.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="notification.toolkit.fluxcd.io/v1.OIDCVariable">OIDCVariable
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#notification.toolkit.fluxcd.io/v1.OIDCProvider">OIDCProvider</a>)
+</p>
+<p>OIDCVariable is a named CEL expression evaluated against the OIDC token
+claims of a &lsquo;generic-oidc&rsquo; Receiver.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the variable name; it must be a valid CEL identifier.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expression</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Expression is the CEL expression that defines the variable value.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="notification.toolkit.fluxcd.io/v1.ReceiverSpec">ReceiverSpec
 </h3>
 <p>
@@ -373,6 +562,24 @@ to validate the payload authenticity. The Secret must contain a &lsquo;token&rsq
 key. For GCR receivers, the Secret must also contain an &lsquo;email&rsquo; key
 with the IAM service account email configured on the Pub/Sub push
 subscription, and an &lsquo;audience&rsquo; key with the expected OIDC token audience.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcProviders</code><br>
+<em>
+<a href="#notification.toolkit.fluxcd.io/v1.OIDCProvider">
+[]OIDCProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCProviders specifies the OIDC providers used to authenticate incoming
+requests when Type is &lsquo;generic-oidc&rsquo;. The provider whose IssuerURL matches
+the token&rsquo;s &lsquo;iss&rsquo; claim is used to verify the token signature, expiration
+and audience, and to evaluate the configured CEL validations against the
+token claims.</p>
 </td>
 </tr>
 <tr>

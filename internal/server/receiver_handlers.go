@@ -250,6 +250,8 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 	switch receiver.Spec.Type {
 	case apiv1.GenericReceiver:
 		return nil
+	case apiv1.GenericOIDCReceiver:
+		return s.validateGenericOIDC(ctx, receiver, r)
 	case apiv1.GenericHMACReceiver:
 		b, err := io.ReadAll(r.Body)
 		if err != nil {

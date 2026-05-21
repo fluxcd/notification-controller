@@ -31,6 +31,7 @@ const (
 	ReceiverWebhookPath string = "/hook/"
 	GenericReceiver     string = "generic"
 	GenericHMACReceiver string = "generic-hmac"
+	GenericOIDCReceiver string = "generic-oidc"
 	GitHubReceiver      string = "github"
 	GitLabReceiver      string = "gitlab"
 	BitbucketReceiver   string = "bitbucket"
@@ -44,10 +45,12 @@ const (
 )
 
 // ReceiverSpec defines the desired state of the Receiver.
+// +kubebuilder:validation:XValidation:rule="self.type != 'generic-oidc' || (has(self.oidcProviders) && size(self.oidcProviders) > 0)",message="generic-oidc receivers must define at least one oidcProvider"
+// +kubebuilder:validation:XValidation:rule="self.type == 'generic-oidc' || !has(self.oidcProviders) || size(self.oidcProviders) == 0",message="oidcProviders can only be set when type is generic-oidc"
 type ReceiverSpec struct {
 	// Type of webhook sender, used to determine
 	// the validation procedure and payload deserialization.
-	// +kubebuilder:validation:Enum=generic;generic-hmac;github;gitlab;bitbucket;harbor;dockerhub;quay;gcr;nexus;acr;cdevents
+	// +kubebuilder:validation:Enum=generic;generic-hmac;generic-oidc;github;gitlab;bitbucket;harbor;dockerhub;quay;gcr;nexus;acr;cdevents
 	// +required
 	Type string `json:"type"`
 
@@ -85,10 +88,79 @@ type ReceiverSpec struct {
 	// +required
 	SecretRef meta.LocalObjectReference `json:"secretRef"`
 
+	// OIDCProviders specifies the OIDC providers used to authenticate incoming
+	// requests when Type is 'generic-oidc'. The provider whose IssuerURL matches
+	// the token's 'iss' claim is used to verify the token signature, expiration
+	// and audience, and to evaluate the configured CEL validations against the
+	// token claims.
+	// +listType=map
+	// +listMapKey=issuerURL
+	// +optional
+	OIDCProviders []OIDCProvider `json:"oidcProviders,omitempty"`
+
 	// Suspend tells the controller to suspend subsequent
 	// events handling for this receiver.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
+}
+
+// OIDCProvider configures an OIDC issuer used to authenticate requests for a
+// 'generic-oidc' Receiver.
+type OIDCProvider struct {
+	// IssuerURL is the OIDC issuer URL used for provider discovery. It must
+	// match the 'iss' claim of tokens issued by this provider.
+	// +kubebuilder:validation:Pattern="^https?://"
+	// +required
+	IssuerURL string `json:"issuerURL"`
+
+	// Audience is the expected audience ('aud' claim) for tokens issued by
+	// this provider.
+	// +required
+	Audience string `json:"audience"`
+
+	// Variables is an optional list of named CEL expressions, evaluated in order
+	// and exposed as 'vars.<name>'. Each expression can read the token claims
+	// via 'claims' and any variable defined before it. Use it to share
+	// sub-expressions across validations.
+	// +optional
+	Variables []OIDCVariable `json:"variables,omitempty"`
+
+	// Validations is the list of CEL boolean expressions evaluated against the
+	// token claims and the variables. The request is accepted only if all of
+	// them evaluate to true; the message of each failing expression is returned
+	// to the caller.
+	//
+	// At least one validation is required. A valid signature alone does not
+	// authorize a request: public issuers issue tokens to any caller on the
+	// platform, so the validations must constrain the caller's identity claims
+	// (e.g. 'repository_owner' for GitHub Actions).
+	// +kubebuilder:validation:MinItems=1
+	// +required
+	Validations []OIDCValidation `json:"validations"`
+}
+
+// OIDCVariable is a named CEL expression evaluated against the OIDC token
+// claims of a 'generic-oidc' Receiver.
+type OIDCVariable struct {
+	// Name is the variable name; it must be a valid CEL identifier.
+	// +required
+	Name string `json:"name"`
+
+	// Expression is the CEL expression that defines the variable value.
+	// +required
+	Expression string `json:"expression"`
+}
+
+// OIDCValidation is a CEL boolean expression evaluated against the OIDC token
+// claims and variables of a 'generic-oidc' Receiver.
+type OIDCValidation struct {
+	// Expression is the CEL boolean expression to evaluate.
+	// +required
+	Expression string `json:"expression"`
+
+	// Message is returned to the caller when the expression evaluates to false.
+	// +required
+	Message string `json:"message"`
 }
 
 // ReceiverStatus defines the observed state of the Receiver.

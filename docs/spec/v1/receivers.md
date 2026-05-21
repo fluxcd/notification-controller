@@ -124,6 +124,7 @@ handle the incoming webhook request.
 |--------------------------------------------|----------------|--------------------------------------------|
 | [Generic webhook](#generic)                | `generic`      | ❌                                          |
 | [Generic webhook with HMAC](#generic-hmac) | `generic-hmac` | ❌                                          |
+| [Generic webhook with OIDC](#generic-oidc) | `generic-oidc` | ❌                                          |
 | [GitHub](#github)                          | `github`       | ✅                                          |
 | [Gitea](#github)                           | `github`       | ✅                                          |
 | [GitLab](#gitlab)                          | `gitlab`       | ✅                                          |
@@ -223,6 +224,114 @@ spec:
    ```sh
    curl <webhook-url> -X POST -H "X-Signature: <hash-function>=<generated-hash>" -d '<request-body>'
    ```
+
+#### Generic OIDC
+
+When a Receiver's `.spec.type` is set to `generic-oidc`, the controller will
+respond to any HTTP request to the generated [`.status.webhookPath` path](#webhook-path)
+that carries a valid OIDC ID token in the `Authorization: Bearer <token>`
+header. The `token` from the [Secret reference](#secret-reference) is used only
+to salt the webhook path, as with the [`generic`](#generic) type. The request
+is authenticated by the OIDC provider that issued the token.
+
+The token is verified against the providers listed in `.spec.oidcProviders`.
+The provider whose `issuerURL` matches the token's `iss` claim is used to verify
+the token signature, expiration and audience. The controller then evaluates the
+provider's CEL expressions against the token claims:
+
+- `.spec.oidcProviders[].validations` is a required list of CEL boolean
+  expressions. The request is accepted only if all of them evaluate to `true`.
+  The `message` of each failing expression is returned to the caller.
+- `.spec.oidcProviders[].variables` is an optional list of named CEL
+  expressions, evaluated in order and exposed as `vars.<name>`. Each expression
+  can read the token claims via `claims` and any variable defined before it.
+  Use it to share sub-expressions across validations.
+
+If any expression is invalid, the controller marks the Receiver as `Stalled`
+with the reason `InvalidCELExpression` and rejects all requests.
+
+**Warning:** A valid signature does not authorize a request on its own. Public
+issuers such as GitHub Actions issue tokens to any caller on the platform, so
+the validations must constrain the identity claims that identify the caller,
+for example `repository_owner` and `repository` for GitHub Actions.
+
+**Note:** This type of Receiver does not support filtering using
+[Events](#events).
+
+##### Generic OIDC example
+
+A minimal configuration with a single validation that restricts the caller to a
+GitHub organization:
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Receiver
+metadata:
+  name: generic-oidc-receiver
+  namespace: default
+spec:
+  type: generic-oidc
+  secretRef:
+    name: webhook-token
+  oidcProviders:
+    - issuerURL: https://token.actions.githubusercontent.com
+      audience: notification-controller
+      validations:
+        - expression: "claims.repository_owner == 'my-org'"
+          message: "wrong org"
+  resources:
+    - apiVersion: source.toolkit.fluxcd.io/v1
+      kind: GitRepository
+      name: webapp
+```
+
+A configuration that uses `variables` to share sub-expressions across
+validations, restricting the caller to an allow-list of repositories on the
+`main` branch and the `production` environment:
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Receiver
+metadata:
+  name: generic-oidc-receiver
+  namespace: default
+spec:
+  type: generic-oidc
+  secretRef:
+    name: webhook-token
+  oidcProviders:
+    - issuerURL: https://token.actions.githubusercontent.com
+      audience: notification-controller
+      variables:
+        - name: owner
+          expression: "claims.repository_owner"
+        # allowedRepos references the owner variable defined above.
+        - name: allowedRepos
+          expression: "[vars.owner + '/repo-a', vars.owner + '/repo-b']"
+      validations:
+        - expression: "vars.owner == 'my-org'"
+          message: "wrong org"
+        - expression: "claims.repository in vars.allowedRepos"
+          message: "repo not in allowlist"
+        - expression: "claims.ref == 'refs/heads/main' && claims.environment == 'production'"
+          message: "must be main branch + production environment"
+  resources:
+    - apiVersion: source.toolkit.fluxcd.io/v1
+      kind: GitRepository
+      name: webapp
+```
+
+Call the Receiver from a GitHub Actions workflow:
+
+```sh
+TOKEN=$(curl -sH "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+  "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=notification-controller" \
+  | jq -r .value)
+
+curl <webhook-url> -X POST -H "Authorization: Bearer $TOKEN"
+```
 
 #### GitHub
 
