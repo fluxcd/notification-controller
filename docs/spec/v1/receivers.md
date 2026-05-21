@@ -230,9 +230,10 @@ spec:
 When a Receiver's `.spec.type` is set to `generic-oidc`, the controller will
 respond to any HTTP request to the generated [`.status.webhookPath` path](#webhook-path)
 that carries a valid OIDC ID token in the `Authorization: Bearer <token>`
-header. The `token` from the [Secret reference](#secret-reference) is used only
-to salt the webhook path, as with the [`generic`](#generic) type. The request
-is authenticated by the OIDC provider that issued the token.
+header. The request is authenticated by the OIDC provider that issued the token,
+so this type does not use a [Secret reference](#secret-reference); setting
+`.spec.secretRef` is rejected. The [webhook path](#webhook-path) is derived from
+the Receiver name and namespace only.
 
 The token is verified against the providers listed in `.spec.oidcProviders`.
 The provider whose `issuerURL` matches the token's `iss` claim is used to verify
@@ -274,8 +275,6 @@ metadata:
   namespace: default
 spec:
   type: generic-oidc
-  secretRef:
-    name: webhook-token
   oidcProviders:
     # audience defaults to 'notification-controller'.
     - issuerURL: https://token.actions.githubusercontent.com
@@ -301,8 +300,6 @@ metadata:
   namespace: default
 spec:
   type: generic-oidc
-  secretRef:
-    name: webhook-token
   oidcProviders:
     - issuerURL: https://token.actions.githubusercontent.com
       audience: notification-controller
@@ -922,9 +919,12 @@ This would look for an annotation "update-image" on the resource, and match it t
 
 ### Secret reference
 
-`.spec.secretRef.name` is a required field to specify a name reference to a
-Secret in the same namespace as the Receiver. The Secret must contain a `token`
-key, whose value is a string containing a (random) secret token.
+`.spec.secretRef.name` specifies a name reference to a Secret in the same
+namespace as the Receiver. The Secret must contain a `token` key, whose value is
+a string containing a (random) secret token.
+
+It is required for all receiver types except [`generic-oidc`](#generic-oidc),
+which authenticates requests using the OIDC token instead and rejects this field.
 
 This token is used to salt the generated [webhook path](#webhook-path), and
 depending on the Receiver [type](#supported-receiver-types), to verify the
@@ -1202,7 +1202,12 @@ annotation value it acted on in the `.status.lastHandledReconcileAt` field.
 
 When a Receiver becomes [ready](#ready-receiver), the controller reports the
 generated incoming webhook path under `.status.webhookPath`. The path format is
-`/hook/sha256sum(token+name+namespace)`.
+`/hook/sha256sum(token+name+namespace)`, where `token` is the value of the
+`token` key in the [referenced Secret](#secret-reference).
+
+For [`generic-oidc`](#generic-oidc) receivers, which have no Secret reference,
+the `token` is empty and the path is `/hook/sha256sum(name+namespace)`. Since
+this path is not secret, requests are authenticated by the OIDC token instead.
 
 [typical-status-properties]: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
 [kstatus-spec]: https://github.com/kubernetes-sigs/cli-utils/tree/master/pkg/kstatus

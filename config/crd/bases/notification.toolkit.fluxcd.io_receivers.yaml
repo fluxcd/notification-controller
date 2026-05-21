@@ -216,6 +216,9 @@ spec:
                   key. For GCR receivers, the Secret must also contain an 'email' key
                   with the IAM service account email configured on the Pub/Sub push
                   subscription, and an 'audience' key with the expected OIDC token audience.
+
+                  Required for all receiver types except 'generic-oidc', which authenticates
+                  requests using the OIDC token instead and must not set this field.
                 properties:
                   name:
                     description: Name of the referent.
@@ -249,7 +252,6 @@ spec:
                 type: string
             required:
             - resources
-            - secretRef
             - type
             type: object
             x-kubernetes-validations:
@@ -259,6 +261,10 @@ spec:
             - message: oidcProviders can only be set when type is generic-oidc
               rule: self.type == 'generic-oidc' || !has(self.oidcProviders) || size(self.oidcProviders)
                 == 0
+            - message: secretRef cannot be set when type is generic-oidc
+              rule: self.type != 'generic-oidc' || !has(self.secretRef)
+            - message: secretRef is required when type is not generic-oidc
+              rule: self.type == 'generic-oidc' || has(self.secretRef)
           status:
             default:
               observedGeneration: -1

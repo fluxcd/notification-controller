@@ -45,6 +45,118 @@ import (
 	"github.com/fluxcd/notification-controller/internal/server"
 )
 
+func TestValidateOIDCSpec(t *testing.T) {
+	stubProviders := []apiv1.OIDCProvider{{IssuerURL: "https://example.com"}}
+	secretRef := &meta.LocalObjectReference{Name: "webhook-token"}
+
+	tests := []struct {
+		name    string
+		spec    apiv1.ReceiverSpec
+		wantErr string
+	}{
+		{
+			name:    "generic-oidc without oidcProviders is rejected",
+			spec:    apiv1.ReceiverSpec{Type: apiv1.GenericOIDCReceiver},
+			wantErr: "generic-oidc receiver requires at least one oidcProvider",
+		},
+		{
+			name:    "oidcProviders on non-generic-oidc is rejected",
+			spec:    apiv1.ReceiverSpec{Type: apiv1.GenericReceiver, SecretRef: secretRef, OIDCProviders: stubProviders},
+			wantErr: "oidcProviders can only be set when type is generic-oidc",
+		},
+		{
+			name:    "secretRef on generic-oidc is rejected",
+			spec:    apiv1.ReceiverSpec{Type: apiv1.GenericOIDCReceiver, OIDCProviders: stubProviders, SecretRef: secretRef},
+			wantErr: "secretRef cannot be set when type is generic-oidc",
+		},
+		{
+			name:    "secretRef missing on non-generic-oidc is rejected",
+			spec:    apiv1.ReceiverSpec{Type: apiv1.GenericReceiver},
+			wantErr: "secretRef is required when type is not generic-oidc",
+		},
+		{
+			name: "generic-oidc without secretRef is valid",
+			spec: apiv1.ReceiverSpec{Type: apiv1.GenericOIDCReceiver, OIDCProviders: stubProviders},
+		},
+		{
+			name: "non-generic-oidc with secretRef is valid",
+			spec: apiv1.ReceiverSpec{Type: apiv1.GenericReceiver, SecretRef: secretRef},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			err := validateOIDCSpec(&apiv1.Receiver{Spec: tt.spec})
+			if tt.wantErr == "" {
+				g.Expect(err).NotTo(HaveOccurred())
+				return
+			}
+			g.Expect(err).To(MatchError(ContainSubstring(tt.wantErr)))
+		})
+	}
+}
+
+func TestReceiverReconciler_SecretRefValidation(t *testing.T) {
+	g := NewWithT(t)
+
+	namespaceName := "receiver-" + randStringRunes(5)
+	g.Expect(createNamespace(namespaceName)).NotTo(HaveOccurred())
+
+	resources := []apiv1.CrossNamespaceObjectReference{{Name: "podinfo", Kind: "GitRepository"}}
+	secretRef := &meta.LocalObjectReference{Name: "webhook-token"}
+	oidcProviders := []apiv1.OIDCProvider{{
+		IssuerURL:   "https://token.actions.githubusercontent.com",
+		Validations: []apiv1.OIDCValidation{{Expression: "true", Message: "nope"}},
+	}}
+
+	tests := []struct {
+		name          string
+		spec          apiv1.ReceiverSpec
+		wantErrSubstr string
+	}{
+		{
+			name: "non-generic-oidc with secretRef is accepted",
+			spec: apiv1.ReceiverSpec{Type: apiv1.GenericReceiver, Resources: resources, SecretRef: secretRef},
+		},
+		{
+			name:          "non-generic-oidc without secretRef is rejected",
+			spec:          apiv1.ReceiverSpec{Type: apiv1.GenericReceiver, Resources: resources},
+			wantErrSubstr: "secretRef is required when type is not generic-oidc",
+		},
+		{
+			name: "generic-oidc without secretRef is accepted",
+			spec: apiv1.ReceiverSpec{Type: apiv1.GenericOIDCReceiver, Resources: resources, OIDCProviders: oidcProviders},
+		},
+		{
+			name:          "generic-oidc with secretRef is rejected",
+			spec:          apiv1.ReceiverSpec{Type: apiv1.GenericOIDCReceiver, Resources: resources, OIDCProviders: oidcProviders, SecretRef: secretRef},
+			wantErrSubstr: "secretRef cannot be set when type is generic-oidc",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			receiver := &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "receiver-" + randStringRunes(5),
+					Namespace: namespaceName,
+				},
+				Spec: tt.spec,
+			}
+			err := k8sClient.Create(context.Background(), receiver)
+			if tt.wantErrSubstr == "" {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(k8sClient.Delete(context.Background(), receiver)).To(Succeed())
+				return
+			}
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(err.Error()).To(ContainSubstring(tt.wantErrSubstr))
+		})
+	}
+}
+
 func TestReceiverReconciler_deleteBeforeFinalizer(t *testing.T) {
 	g := NewWithT(t)
 
@@ -65,7 +177,7 @@ func TestReceiverReconciler_deleteBeforeFinalizer(t *testing.T) {
 		Resources: []apiv1.CrossNamespaceObjectReference{
 			{Kind: "Bucket", Name: "Foo"},
 		},
-		SecretRef: meta.LocalObjectReference{Name: "foo-secret"},
+		SecretRef: &meta.LocalObjectReference{Name: "foo-secret"},
 	}
 	// Add a test finalizer to prevent the object from getting deleted.
 	receiver.SetFinalizers([]string{"test-finalizer"})
@@ -121,7 +233,7 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 					Kind: "GitRepository",
 				},
 			},
-			SecretRef: meta.LocalObjectReference{
+			SecretRef: &meta.LocalObjectReference{
 				Name: secretName,
 			},
 		},
@@ -173,7 +285,8 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 
 		// Fix the resourceFilter, switch to generic-oidc and inject an invalid OIDC CEL
 		// expression so the reconciler fails terminally only because of the OIDC config.
-		patch := []byte(`{"spec":{"type":"generic-oidc","resourceFilter":"has(res.metadata.annotations)","oidcProviders":[{"issuerURL":"https://example.com","audience":"flux","validations":[{"expression":"not valid ===","message":"oops"}]}]}}`)
+		// generic-oidc forbids secretRef, so clear it as part of the same patch.
+		patch := []byte(`{"spec":{"type":"generic-oidc","secretRef":null,"resourceFilter":"has(res.metadata.annotations)","oidcProviders":[{"issuerURL":"https://example.com","audience":"flux","validations":[{"expression":"not valid ===","message":"oops"}]}]}}`)
 		g.Expect(k8sClient.Patch(context.Background(), resultR, client.RawPatch(types.MergePatchType, patch))).To(Succeed())
 
 		g.Eventually(func() bool {
@@ -187,7 +300,8 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 		g.Expect(conditions.Has(resultR, meta.StalledCondition)).To(BeTrue())
 
 		// Revert to the original type and clear the providers so subsequent subtests start clean.
-		patch = []byte(`{"spec":{"type":"generic","oidcProviders":null}}`)
+		// generic requires secretRef, so restore it alongside the type change.
+		patch = []byte(fmt.Sprintf(`{"spec":{"type":"generic","oidcProviders":null,"secretRef":{"name":%q}}}`, secretName))
 		g.Expect(k8sClient.Patch(context.Background(), resultR, client.RawPatch(types.MergePatchType, patch))).To(Succeed())
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
@@ -368,7 +482,7 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 					Kind: "GitRepository",
 				},
 			},
-			SecretRef: meta.LocalObjectReference{
+			SecretRef: &meta.LocalObjectReference{
 				Name: "receiver-secret",
 			},
 		},
