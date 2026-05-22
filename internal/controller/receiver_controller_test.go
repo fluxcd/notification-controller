@@ -103,7 +103,7 @@ func TestReceiverReconciler_SecretRefValidation(t *testing.T) {
 	namespaceName := "receiver-" + randStringRunes(5)
 	g.Expect(createNamespace(namespaceName)).NotTo(HaveOccurred())
 
-	resources := []apiv1.CrossNamespaceObjectReference{{Name: "podinfo", Kind: "GitRepository"}}
+	resources := []apiv1.ReceiverResource{{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{Name: "podinfo", Kind: "GitRepository"}}}
 	secretRef := &meta.LocalObjectReference{Name: "webhook-token"}
 	oidcProviders := []apiv1.OIDCProvider{{
 		IssuerURL:   "https://token.actions.githubusercontent.com",
@@ -174,8 +174,8 @@ func TestReceiverReconciler_deleteBeforeFinalizer(t *testing.T) {
 	receiver.Namespace = namespaceName
 	receiver.Spec = apiv1.ReceiverSpec{
 		Type: "github",
-		Resources: []apiv1.CrossNamespaceObjectReference{
-			{Kind: "Bucket", Name: "Foo"},
+		Resources: []apiv1.ReceiverResource{
+			{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{Kind: "Bucket", Name: "Foo"}},
 		},
 		SecretRef: &meta.LocalObjectReference{Name: "foo-secret"},
 	}
@@ -227,11 +227,11 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 		Spec: apiv1.ReceiverSpec{
 			Type:   "generic",
 			Events: []string{"push"},
-			Resources: []apiv1.CrossNamespaceObjectReference{
-				{
+			Resources: []apiv1.ReceiverResource{
+				{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 					Name: "podinfo",
 					Kind: "GitRepository",
-				},
+				}},
 			},
 			SecretRef: &meta.LocalObjectReference{
 				Name: secretName,
@@ -476,11 +476,11 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 		Spec: apiv1.ReceiverSpec{
 			Type:   "generic",
 			Events: []string{"pull"},
-			Resources: []apiv1.CrossNamespaceObjectReference{
-				{
+			Resources: []apiv1.ReceiverResource{
+				{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 					Name: "podinfo",
 					Kind: "GitRepository",
-				},
+				}},
 			},
 			SecretRef: &meta.LocalObjectReference{
 				Name: "receiver-secret",

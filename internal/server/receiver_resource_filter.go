@@ -27,6 +27,8 @@ import (
 	"github.com/fluxcd/pkg/runtime/cel"
 	"github.com/google/cel-go/common/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
 type resourceFilter func(context.Context, client.Object) (*bool, error)
@@ -72,25 +74,18 @@ func newFilterExpression(s string, opts ...ResourceFilterOption) (*cel.Expressio
 		cel.WithStructVariables(vars...))
 }
 
-// newResourceFilter compiles the CEL expression and returns a filter that
-// evaluates it against each resource. When the validation result carries OIDC
-// token claims (generic-oidc receivers), they are exposed as the claims variable.
-func newResourceFilter(expr string, r *http.Request, result *validationResult) (resourceFilter, error) {
-	var claims map[string]any
-	if result != nil {
-		claims = result.claims
-	}
+// resourceFilterEvaluator compiles resource filter CEL expressions that share a
+// single parsed webhook request body and, for generic-oidc receivers, the
+// verified token claims. The body is read once so the top-level resourceFilter
+// and the per-resource filters can all be evaluated against the same request.
+type resourceFilterEvaluator struct {
+	req    map[string]any
+	claims map[string]any
+}
 
-	var opts []ResourceFilterOption
-	if claims != nil {
-		opts = append(opts, WithClaims())
-	}
-
-	celExpr, err := newFilterExpression(expr, opts...)
-	if err != nil {
-		return nil, err
-	}
-
+// newResourceFilterEvaluator parses the webhook request body once and captures
+// the verified OIDC token claims (if any) for later expression evaluation.
+func newResourceFilterEvaluator(r *http.Request, result *validationResult) (*resourceFilterEvaluator, error) {
 	// Only decodes the body for the expression if the body is JSON.
 	// Technically you could generate several resources without any body.
 	var req map[string]any
@@ -98,6 +93,28 @@ func newResourceFilter(expr string, r *http.Request, result *validationResult) (
 		req = map[string]any{}
 	} else if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("failed to parse request body as JSON: %s", err)
+	}
+
+	var claims map[string]any
+	if result != nil {
+		claims = result.claims
+	}
+
+	return &resourceFilterEvaluator{req: req, claims: claims}, nil
+}
+
+// filter compiles a single CEL expression into a resourceFilter that evaluates
+// it against each resource. When the evaluator carries OIDC token claims, they
+// are exposed as the claims variable.
+func (e *resourceFilterEvaluator) filter(expr string) (resourceFilter, error) {
+	var opts []ResourceFilterOption
+	if e.claims != nil {
+		opts = append(opts, WithClaims())
+	}
+
+	celExpr, err := newFilterExpression(expr, opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	return func(ctx context.Context, obj client.Object) (*bool, error) {
@@ -108,10 +125,10 @@ func newResourceFilter(expr string, r *http.Request, result *validationResult) (
 
 		vars := map[string]any{
 			"res": res,
-			"req": req,
+			"req": e.req,
 		}
-		if claims != nil {
-			vars["claims"] = claims
+		if e.claims != nil {
+			vars["claims"] = e.claims
 		}
 
 		result, err := celExpr.EvaluateBoolean(ctx, vars)
@@ -121,6 +138,81 @@ func newResourceFilter(expr string, r *http.Request, result *validationResult) (
 
 		return &result, nil
 	}, nil
+}
+
+// allResourceFilters stacks filters so a resource is accepted only when every
+// filter accepts it. Nil filters are ignored; if no filter remains it returns
+// nil, leaving the decision to the caller's default.
+func allResourceFilters(filters ...resourceFilter) resourceFilter {
+	var active []resourceFilter
+	for _, f := range filters {
+		if f != nil {
+			active = append(active, f)
+		}
+	}
+	if len(active) == 0 {
+		return nil
+	}
+
+	return func(ctx context.Context, obj client.Object) (*bool, error) {
+		for _, f := range active {
+			accept, err := f(ctx, obj)
+			if err != nil {
+				return nil, err
+			}
+			if !*accept {
+				return accept, nil
+			}
+		}
+		return new(true), nil
+	}
+}
+
+// newResourceFilters builds the effective filter for each resource referenced by
+// the Receiver. The top-level resourceFilter and any per-resource filter stack:
+// a resource is reconciled only when all configured expressions accept it. The
+// webhook request body is parsed at most once and shared across expressions.
+//
+// The returned slice is aligned with receiver.Spec.Resources; a nil element
+// means no filter applies and the resource should be accepted.
+func newResourceFilters(r *http.Request, receiver apiv1.Receiver, result *validationResult) ([]resourceFilter, error) {
+	filters := make([]resourceFilter, len(receiver.Spec.Resources))
+
+	hasFilters := receiver.Spec.ResourceFilter != ""
+	for i := range receiver.Spec.Resources {
+		if receiver.Spec.Resources[i].Filter != "" {
+			hasFilters = true
+		}
+	}
+	if !hasFilters {
+		return filters, nil
+	}
+
+	evaluator, err := newResourceFilterEvaluator(r, result)
+	if err != nil {
+		return nil, err
+	}
+
+	var topFilter resourceFilter
+	if receiver.Spec.ResourceFilter != "" {
+		topFilter, err = evaluator.filter(receiver.Spec.ResourceFilter)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	for i := range receiver.Spec.Resources {
+		var perResource resourceFilter
+		if expr := receiver.Spec.Resources[i].Filter; expr != "" {
+			perResource, err = evaluator.filter(expr)
+			if err != nil {
+				return nil, err
+			}
+		}
+		filters[i] = allResourceFilters(topFilter, perResource)
+	}
+
+	return filters, nil
 }
 
 func isJSONContent(r *http.Request) bool {

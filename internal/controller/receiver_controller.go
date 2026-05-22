@@ -211,12 +211,25 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
+	var filterOpts []server.ResourceFilterOption
+	if obj.Spec.Type == apiv1.GenericOIDCReceiver {
+		filterOpts = append(filterOpts, server.WithClaims())
+	}
 	if filter := obj.Spec.ResourceFilter; filter != "" {
-		var opts []server.ResourceFilterOption
-		if obj.Spec.Type == apiv1.GenericOIDCReceiver {
-			opts = append(opts, server.WithClaims())
+		if err := server.ValidateResourceFilter(filter, filterOpts...); err != nil {
+			err = fmt.Errorf("invalid resourceFilter expression: %w", err)
+			r.markTerminal(obj, log, meta.InvalidCELExpressionReason, err)
+			return ctrl.Result{}, nil
 		}
-		if err := server.ValidateResourceFilter(filter, opts...); err != nil {
+	}
+	for i := range obj.Spec.Resources {
+		res := obj.Spec.Resources[i]
+		if res.Filter == "" {
+			continue
+		}
+		if err := server.ValidateResourceFilter(res.Filter, filterOpts...); err != nil {
+			err = fmt.Errorf("invalid filter expression for resources[%d] (kind=%q, name=%q): %w",
+				i, res.Kind, res.Name, err)
 			r.markTerminal(obj, log, meta.InvalidCELExpressionReason, err)
 			return ctrl.Result{}, nil
 		}

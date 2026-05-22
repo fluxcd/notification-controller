@@ -929,6 +929,40 @@ The `claims` variable is only declared for `generic-oidc` receivers; using it in
 the `resourceFilter` of any other Receiver type is rejected as an invalid CEL
 expression.
 
+#### Per-resource filtering
+
+In addition to the top-level `.spec.resourceFilter`, each entry in
+`.spec.resources` accepts its own `filter` CEL expression. It is evaluated only
+for the resources matched by that entry and uses the same variables (`res`,
+`req` and, for `generic-oidc` receivers, `claims`).
+
+The two filters stack: a resource is reconciled only when both the top-level
+`resourceFilter` and the entry's `filter` (when set) return true.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Receiver
+metadata:
+  name: gar-receiver
+  namespace: apps
+spec:
+  type: gcr
+  secretRef:
+    name: flux-gar-token
+  resourceFilter: req.tag.contains(res.metadata.name)
+  resources:
+    - apiVersion: image.toolkit.fluxcd.io/v1
+      kind: ImageRepository
+      name: "*"
+      matchLabels:
+        registry: gar
+      filter: res.metadata.labels['environment'] == 'production'
+```
+
+Here an `ImageRepository` is annotated only if the incoming tag contains its name
+(top-level `resourceFilter`) **and** it carries the `environment: production`
+label (per-resource `filter`).
+
 ### Secret reference
 
 `.spec.secretRef.name` specifies a name reference to a Secret in the same

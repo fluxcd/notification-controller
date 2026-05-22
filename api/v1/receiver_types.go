@@ -74,7 +74,7 @@ type ReceiverSpec struct {
 
 	// A list of resources to be notified about changes.
 	// +required
-	Resources []CrossNamespaceObjectReference `json:"resources"`
+	Resources []ReceiverResource `json:"resources"`
 
 	// ResourceFilter is a CEL expression expected to return a boolean that is
 	// evaluated for each resource referenced in the Resources field when a
@@ -114,6 +114,25 @@ type ReceiverSpec struct {
 	// events handling for this receiver.
 	// +optional
 	Suspend bool `json:"suspend,omitempty"`
+}
+
+// ReceiverResource references a resource to be notified about changes, with an
+// optional per-resource CEL filter.
+type ReceiverResource struct {
+	CrossNamespaceObjectReference `json:",inline"`
+
+	// Filter is a CEL expression expected to return a boolean that is evaluated
+	// for each resource matched by this reference when a webhook is received,
+	// in addition to the top-level resourceFilter. A reconciliation is requested
+	// only when both expressions (when set) return true.
+	// The expression can read the resource metadata via 'res' and the webhook
+	// request body via 'req'. For generic-oidc receivers, the verified OIDC
+	// token claims are also available via 'claims'.
+	// When the expression is specified the controller will parse it and mark
+	// the object as terminally failed if the expression is invalid or does not
+	// return a boolean.
+	// +optional
+	Filter string `json:"filter,omitempty"`
 }
 
 // OIDCProvider configures an OIDC issuer used to authenticate requests for a

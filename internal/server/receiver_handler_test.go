@@ -451,13 +451,13 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							Kind: apiv1.ReceiverKind,
 							MatchLabels: map[string]string{
 								"label": "match",
 							},
-						},
+						}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -479,12 +479,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "does-not-exists",
-						},
+						}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -506,15 +506,15 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "*",
 							MatchLabels: map[string]string{
 								"label": "match",
 							},
-						},
+						}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -563,12 +563,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "dummy-resource",
-						},
+						}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -615,12 +615,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "*",
-						},
+						}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -646,13 +646,13 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "some-resource",
 							Namespace:  "another-namespace",
-						},
+						}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -687,12 +687,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "some-resource",
-						},
+						}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -713,15 +713,15 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "dummy-resource",
 							MatchLabels: map[string]string{
 								"label": "match",
 							},
-						},
+						}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -775,15 +775,15 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "*",
 							MatchLabels: map[string]string{
 								"label": "production",
 							},
-						},
+						}},
 					},
 					ResourceFilter: `has(res.metadata.annotations) && req.tag.split('/').last().value().split(":").first().value() == res.metadata.annotations['update-image']`,
 				},
@@ -860,12 +860,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 					ResourceFilter: `has(res.metadata.annotations) && req.tag.split('/').last().value().split(":").first().value() == res.metadata.annotations['update-image']`,
 				},
@@ -914,12 +914,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.action == 'push'`,
 				},
@@ -951,12 +951,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.action == 'push'`,
 				},
@@ -982,12 +982,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.context.gitRepository == 'adamkenihan/notification-controller'`,
 				},
@@ -1043,12 +1043,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.action == 'push'`,
 				},
@@ -1076,12 +1076,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.docker_url == 'docker.io'`,
 				},
@@ -1130,12 +1130,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.events[0].full_name == 'prj/repo1'`,
 				},
@@ -1171,12 +1171,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.push_data.tag.split('/').last().value().split(':').first().value() == 'test-repo'`,
 				},
@@ -1214,12 +1214,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "gcr-token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.tag.split('/').last().value().split(":").first().value() == 'app1'`,
 				},
@@ -1266,12 +1266,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "gcr-token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -1316,12 +1316,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "gcr-token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -1373,12 +1373,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.repositoryName == 'npm-proxy'`,
 				},
@@ -1413,12 +1413,12 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "test-resource",
-						},
+						}},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.target.repository == 'hello-world'`,
 				},
@@ -1446,15 +1446,15 @@ func Test_handlePayload(t *testing.T) {
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
-					Resources: []apiv1.CrossNamespaceObjectReference{
-						{
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "*",
 							MatchLabels: map[string]string{
 								"label": "production",
 							},
-						},
+						}},
 					},
 					ResourceFilter: `res.name == "test-resource-1"`,
 				},

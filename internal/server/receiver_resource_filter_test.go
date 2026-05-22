@@ -178,12 +178,77 @@ func TestCELEvaluation(t *testing.T) {
 	for _, tt := range evaluationTests {
 		t.Run(tt.expression, func(t *testing.T) {
 			g := NewWithT(t)
-			resourceFilter, err := newResourceFilter(tt.expression, tt.request, &validationResult{claims: tt.claims})
+			evaluator, err := newResourceFilterEvaluator(tt.request, &validationResult{claims: tt.claims})
+			g.Expect(err).To(Succeed())
+			resourceFilter, err := evaluator.filter(tt.expression)
 			g.Expect(err).To(Succeed())
 
 			result, err := resourceFilter(context.Background(), tt.resource)
 			g.Expect(err).To(Succeed())
 			g.Expect(result).To(Equal(&tt.wantResult))
+		})
+	}
+}
+
+func TestResourceFilterStacking(t *testing.T) {
+	res := &apiv1.Receiver{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       apiv1.ReceiverKind,
+			APIVersion: apiv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "podinfo",
+			Labels: map[string]string{"team": "dev"},
+		},
+	}
+
+	tests := []struct {
+		name        string
+		topFilter   string
+		perResource string
+		wantAccept  bool
+	}{
+		{"no filters accept all", "", "", true},
+		{"top-level only true", `res.metadata.name == 'podinfo'`, "", true},
+		{"top-level only false", `res.metadata.name == 'other'`, "", false},
+		{"per-resource only true", "", `res.metadata.labels['team'] == 'dev'`, true},
+		{"per-resource only false", "", `res.metadata.labels['team'] == 'ops'`, false},
+		{"both true", `res.metadata.name == 'podinfo'`, `res.metadata.labels['team'] == 'dev'`, true},
+		{"top true per-resource false", `res.metadata.name == 'podinfo'`, `res.metadata.labels['team'] == 'ops'`, false},
+		{"top false per-resource true", `res.metadata.name == 'other'`, `res.metadata.labels['team'] == 'dev'`, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			receiver := apiv1.Receiver{
+				Spec: apiv1.ReceiverSpec{
+					ResourceFilter: tt.topFilter,
+					Resources: []apiv1.ReceiverResource{{
+						CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+							Kind: apiv1.ReceiverKind,
+							Name: "podinfo",
+						},
+						Filter: tt.perResource,
+					}},
+				},
+			}
+			req := testNewHTTPRequest(t, http.MethodPost, "/test", nil)
+
+			filters, err := newResourceFilters(req, receiver, nil)
+			g.Expect(err).To(Succeed())
+			g.Expect(filters).To(HaveLen(1))
+
+			filter := filters[0]
+			if filter == nil {
+				// No filters configured: the accept-all default applies.
+				g.Expect(tt.wantAccept).To(BeTrue())
+				return
+			}
+
+			accept, err := filter(context.Background(), res)
+			g.Expect(err).To(Succeed())
+			g.Expect(*accept).To(Equal(tt.wantAccept))
 		})
 	}
 }

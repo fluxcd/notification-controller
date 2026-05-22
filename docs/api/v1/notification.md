@@ -111,8 +111,8 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>resources</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1.CrossNamespaceObjectReference">
-[]CrossNamespaceObjectReference
+<a href="#notification.toolkit.fluxcd.io/v1.ReceiverResource">
+[]ReceiverResource
 </a>
 </em>
 </td>
@@ -215,7 +215,7 @@ ReceiverStatus
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#notification.toolkit.fluxcd.io/v1.ReceiverSpec">ReceiverSpec</a>)
+<a href="#notification.toolkit.fluxcd.io/v1.ReceiverResource">ReceiverResource</a>)
 </p>
 <p>CrossNamespaceObjectReference contains enough information to let you locate the
 typed referenced object at cluster level</p>
@@ -467,6 +467,64 @@ string
 </table>
 </div>
 </div>
+<h3 id="notification.toolkit.fluxcd.io/v1.ReceiverResource">ReceiverResource
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#notification.toolkit.fluxcd.io/v1.ReceiverSpec">ReceiverSpec</a>)
+</p>
+<p>ReceiverResource references a resource to be notified about changes, with an
+optional per-resource CEL filter.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>CrossNamespaceObjectReference</code><br>
+<em>
+<a href="#notification.toolkit.fluxcd.io/v1.CrossNamespaceObjectReference">
+CrossNamespaceObjectReference
+</a>
+</em>
+</td>
+<td>
+<p>
+(Members of <code>CrossNamespaceObjectReference</code> are embedded into this type.)
+</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>filter</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Filter is a CEL expression expected to return a boolean that is evaluated
+for each resource matched by this reference when a webhook is received,
+in addition to the top-level resourceFilter. A reconciliation is requested
+only when both expressions (when set) return true.
+The expression can read the resource metadata via &lsquo;res&rsquo; and the webhook
+request body via &lsquo;req&rsquo;. For generic-oidc receivers, the verified OIDC
+token claims are also available via &lsquo;claims&rsquo;.
+When the expression is specified the controller will parse it and mark
+the object as terminally failed if the expression is invalid or does not
+return a boolean.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <h3 id="notification.toolkit.fluxcd.io/v1.ReceiverSpec">ReceiverSpec
 </h3>
 <p>
@@ -527,8 +585,8 @@ e.g. &lsquo;push&rsquo; for GitHub or &lsquo;Push Hook&rsquo; for GitLab.</p>
 <td>
 <code>resources</code><br>
 <em>
-<a href="#notification.toolkit.fluxcd.io/v1.CrossNamespaceObjectReference">
-[]CrossNamespaceObjectReference
+<a href="#notification.toolkit.fluxcd.io/v1.ReceiverResource">
+[]ReceiverResource
 </a>
 </em>
 </td>
