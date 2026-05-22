@@ -212,7 +212,11 @@ func (r *ReceiverReconciler) reconcile(ctx context.Context, obj *apiv1.Receiver)
 	log := ctrl.LoggerFrom(ctx)
 
 	if filter := obj.Spec.ResourceFilter; filter != "" {
-		if err := server.ValidateResourceFilter(filter); err != nil {
+		var opts []server.ResourceFilterOption
+		if obj.Spec.Type == apiv1.GenericOIDCReceiver {
+			opts = append(opts, server.WithClaims())
+		}
+		if err := server.ValidateResourceFilter(filter, opts...); err != nil {
 			r.markTerminal(obj, log, meta.InvalidCELExpressionReason, err)
 			return ctrl.Result{}, nil
 		}

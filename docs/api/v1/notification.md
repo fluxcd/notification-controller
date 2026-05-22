@@ -133,6 +133,9 @@ string
 evaluated for each resource referenced in the Resources field when a
 webhook is received. If the expression returns false then the controller
 will not request a reconciliation for the resource.
+The expression can read the resource metadata via &lsquo;res&rsquo; and the webhook
+request body via &lsquo;req&rsquo;. For generic-oidc receivers, the verified OIDC
+token claims are also available via &lsquo;claims&rsquo;.
 When the expression is specified the controller will parse it and mark
 the object as terminally failed if the expression is invalid or does not
 return a boolean.</p>
@@ -546,6 +549,9 @@ string
 evaluated for each resource referenced in the Resources field when a
 webhook is received. If the expression returns false then the controller
 will not request a reconciliation for the resource.
+The expression can read the resource metadata via &lsquo;res&rsquo; and the webhook
+request body via &lsquo;req&rsquo;. For generic-oidc receivers, the verified OIDC
+token claims are also available via &lsquo;claims&rsquo;.
 When the expression is specified the controller will parse it and mark
 the object as terminally failed if the expression is invalid or does not
 return a boolean.</p>

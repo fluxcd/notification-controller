@@ -153,6 +153,9 @@ spec:
                   evaluated for each resource referenced in the Resources field when a
                   webhook is received. If the expression returns false then the controller
                   will not request a reconciliation for the resource.
+                  The expression can read the resource metadata via 'res' and the webhook
+                  request body via 'req'. For generic-oidc receivers, the verified OIDC
+                  token claims are also available via 'claims'.
                   When the expression is specified the controller will parse it and mark
                   the object as terminally failed if the expression is invalid or does not
                   return a boolean.
