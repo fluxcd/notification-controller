@@ -31,25 +31,26 @@ import (
 
 // validateGenericOIDC verifies the bearer token of an incoming request against
 // one of the configured OIDC providers and evaluates the provider's CEL
-// variables and validations over the verified claims.
-func (s *ReceiverServer) validateGenericOIDC(ctx context.Context, receiver apiv1.Receiver, r *http.Request) error {
+// variables and validations over the verified claims. On success it returns the
+// verified claims so they can be exposed to the Receiver's resourceFilter.
+func (s *ReceiverServer) validateGenericOIDC(ctx context.Context, receiver apiv1.Receiver, r *http.Request) (map[string]any, error) {
 	if len(receiver.Spec.OIDCProviders) == 0 {
-		return fmt.Errorf("generic-oidc receiver has no oidcProviders configured")
+		return nil, fmt.Errorf("generic-oidc receiver has no oidcProviders configured")
 	}
 
 	bearer := r.Header.Get("Authorization")
 	const prefix = "Bearer "
 	if !strings.HasPrefix(bearer, prefix) {
-		return fmt.Errorf("the Authorization header is missing or malformed")
+		return nil, fmt.Errorf("the Authorization header is missing or malformed")
 	}
 	rawToken := strings.TrimSpace(bearer[len(prefix):])
 	if rawToken == "" {
-		return fmt.Errorf("the Authorization header is missing a bearer token")
+		return nil, fmt.Errorf("the Authorization header is missing a bearer token")
 	}
 
 	iss, err := unverifiedTokenIssuer(rawToken)
 	if err != nil {
-		return fmt.Errorf("failed to parse bearer token: %w", err)
+		return nil, fmt.Errorf("failed to parse bearer token: %w", err)
 	}
 
 	var provider *apiv1.OIDCProvider
@@ -60,34 +61,38 @@ func (s *ReceiverServer) validateGenericOIDC(ctx context.Context, receiver apiv1
 		}
 	}
 	if provider == nil {
-		return fmt.Errorf("no oidcProvider configured for issuer %q", iss)
+		return nil, fmt.Errorf("no oidcProvider configured for issuer %q", iss)
 	}
 
 	oidcProvider, err := oidc.NewProvider(ctx, provider.IssuerURL)
 	if err != nil {
-		return fmt.Errorf("failed to initialize OIDC provider for issuer %q: %w", provider.IssuerURL, err)
+		return nil, fmt.Errorf("failed to initialize OIDC provider for issuer %q: %w", provider.IssuerURL, err)
 	}
 	verifier := oidcProvider.Verifier(&oidc.Config{ClientID: provider.GetAudience()})
 
 	idToken, err := verifier.Verify(ctx, rawToken)
 	if err != nil {
-		return fmt.Errorf("failed to verify OIDC token: %w", err)
+		return nil, fmt.Errorf("failed to verify OIDC token: %w", err)
 	}
 
 	var claims map[string]any
 	if err := idToken.Claims(&claims); err != nil {
-		return fmt.Errorf("failed to extract OIDC token claims: %w", err)
+		return nil, fmt.Errorf("failed to extract OIDC token claims: %w", err)
 	}
 
 	processor, err := newOIDCClaimsProcessor(*provider)
 	if err != nil {
-		return fmt.Errorf("invalid oidcProvider configuration for issuer %q: %w", provider.IssuerURL, err)
+		return nil, fmt.Errorf("invalid oidcProvider configuration for issuer %q: %w", provider.IssuerURL, err)
 	}
 	if err := processor.Evaluate(ctx, claims); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	if claims == nil {
+		claims = map[string]any{}
+	}
+
+	return claims, nil
 }
 
 // unverifiedTokenIssuer extracts the 'iss' claim from a JWT without verifying

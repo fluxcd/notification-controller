@@ -175,11 +175,17 @@ func TestValidateGenericOIDC(t *testing.T) {
 		bearer      string
 		expectError bool
 		errContains string
+		wantClaims  map[string]any
 	}{
 		{
 			name:     "valid token passes validations",
 			receiver: newOIDCReceiver("ok", []apiv1.OIDCProvider{baseProvider}),
 			bearer:   "Bearer " + iss.sign(t, validClaims()),
+			wantClaims: map[string]any{
+				"sub":         "subject",
+				"repository":  "my-org/my-repo",
+				"environment": "production",
+			},
 		},
 		{
 			name:        "missing authorization header",
@@ -281,14 +287,21 @@ func TestValidateGenericOIDC(t *testing.T) {
 				req.Header.Set("Authorization", tt.bearer)
 			}
 
-			err := s.validateGenericOIDC(context.Background(), *tt.receiver, req)
+			claims, err := s.validateGenericOIDC(context.Background(), *tt.receiver, req)
 			if tt.expectError {
 				g.Expect(err).To(gomega.HaveOccurred())
+				g.Expect(claims).To(gomega.BeNil())
 				if tt.errContains != "" {
 					g.Expect(err.Error()).To(gomega.ContainSubstring(tt.errContains))
 				}
 			} else {
 				g.Expect(err).NotTo(gomega.HaveOccurred(), "unexpected error: %v", err)
+				g.Expect(claims).NotTo(gomega.BeNil())
+				if tt.wantClaims != nil {
+					for k, v := range tt.wantClaims {
+						g.Expect(claims).To(gomega.HaveKeyWithValue(k, v))
+					}
+				}
 			}
 		})
 	}

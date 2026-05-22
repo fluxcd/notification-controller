@@ -917,6 +917,18 @@ This would look for an annotation "update-image" on the resource, and match it t
 
 **Note:** Currently the `resource` value in the CEL expression only provides the object metadata, this means you can access things like `res.metadata.labels`, `res.metadata.annotations` and `res.metadata.name`.
 
+For [`generic-oidc`](#generic-oidc-receiver) receivers, the verified OIDC token
+claims are also available to the expression via the `claims` variable. This
+allows filtering resources based on the identity of the caller, for example:
+
+```yaml
+  resourceFilter: claims.repository == res.metadata.annotations['source-repository']
+```
+
+The `claims` variable is only declared for `generic-oidc` receivers; using it in
+the `resourceFilter` of any other Receiver type is rejected as an invalid CEL
+expression.
+
 ### Secret reference
 
 `.spec.secretRef.name` specifies a name reference to a Secret in the same

@@ -114,7 +114,8 @@ func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.validate(ctx, receiver, r); err != nil {
+	result, err := s.validate(ctx, receiver, r)
+	if err != nil {
 		logger.Error(err, "unable to validate payload")
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -125,7 +126,7 @@ func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
 		return &accept, nil
 	}
 	if receiver.Spec.ResourceFilter != "" {
-		resourceFilter, err = newResourceFilter(receiver.Spec.ResourceFilter, r)
+		resourceFilter, err = newResourceFilter(receiver.Spec.ResourceFilter, r, result)
 		if err != nil {
 			logger.Error(err, "unable to create resource filter")
 			w.WriteHeader(http.StatusInternalServerError)
@@ -214,14 +215,24 @@ func (s *ReceiverServer) notifyDynamicResources(ctx context.Context, logger logr
 	return nil
 }
 
-func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, r *http.Request) error {
+// validationResult carries data extracted while authenticating an incoming
+// webhook request that later steps need.
+type validationResult struct {
+	// claims holds the verified OIDC token claims for generic-oidc receivers,
+	// exposed to the Receiver's resourceFilter. It is nil for all other types.
+	claims map[string]any
+}
+
+// validate authenticates the incoming request against the Receiver's
+// configuration. It returns nil on failure and a non-nil result on success.
+func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, r *http.Request) (*validationResult, error) {
 	// Validate payload size before doing anything else in case we are being DDoSed.
 	b, err := io.ReadAll(io.LimitReader(r.Body, maxRequestSizeBytes+1))
 	if err != nil {
-		return fmt.Errorf("failed to read request body: %w", err)
+		return nil, fmt.Errorf("failed to read request body: %w", err)
 	}
 	if len(b) > maxRequestSizeBytes {
-		return fmt.Errorf("request body exceeds the maximum size of %d bytes", maxRequestSizeBytes)
+		return nil, fmt.Errorf("request body exceeds the maximum size of %d bytes", maxRequestSizeBytes)
 	}
 	r.Body = io.NopCloser(bytes.NewReader(b))
 
@@ -233,7 +244,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 	if receiver.Spec.SecretRef != nil {
 		secret, err = s.secret(ctx, receiver)
 		if err != nil {
-			return fmt.Errorf("unable to read secret, error: %w", err)
+			return nil, fmt.Errorf("unable to read secret, error: %w", err)
 		}
 
 		secretName := types.NamespacedName{
@@ -242,7 +253,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		}
 		tokenBytes, ok := secret.Data["token"]
 		if !ok {
-			return fmt.Errorf("invalid %q secret data: required field 'token'", secretName)
+			return nil, fmt.Errorf("invalid %q secret data: required field 'token'", secretName)
 		}
 		token = string(tokenBytes)
 	}
@@ -254,25 +265,29 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 
 	switch receiver.Spec.Type {
 	case apiv1.GenericReceiver:
-		return nil
+		return &validationResult{}, nil
 	case apiv1.GenericOIDCReceiver:
-		return s.validateGenericOIDC(ctx, receiver, r)
+		claims, err := s.validateGenericOIDC(ctx, receiver, r)
+		if err != nil {
+			return nil, err
+		}
+		return &validationResult{claims: claims}, nil
 	case apiv1.GenericHMACReceiver:
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
-			return fmt.Errorf("unable to read request body: %s", err)
+			return nil, fmt.Errorf("unable to read request body: %s", err)
 		}
 
 		err = github.ValidateSignature(r.Header.Get("X-Signature"), b, []byte(token))
 		if err != nil {
-			return fmt.Errorf("unable to validate HMAC signature: %s", err)
+			return nil, fmt.Errorf("unable to validate HMAC signature: %s", err)
 		}
 		r.Body = io.NopCloser(bytes.NewReader(b))
-		return nil
+		return &validationResult{}, nil
 	case apiv1.GitHubReceiver:
 		b, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
-			return fmt.Errorf("the GitHub signature header is invalid, err: %w", err)
+			return nil, fmt.Errorf("the GitHub signature header is invalid, err: %w", err)
 		}
 
 		event := github.WebHookType(r)
@@ -285,16 +300,16 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the GitHub event %q is not authorised", event)
+				return nil, fmt.Errorf("the GitHub event %q is not authorised", event)
 			}
 		}
 
 		logger.Info(fmt.Sprintf("handling GitHub event: %s", event))
 		r.Body = io.NopCloser(bytes.NewReader(b))
-		return nil
+		return &validationResult{}, nil
 	case apiv1.GitLabReceiver:
 		if r.Header.Get("X-Gitlab-Token") != token {
-			return fmt.Errorf("the X-Gitlab-Token header value does not match the receiver token")
+			return nil, fmt.Errorf("the X-Gitlab-Token header value does not match the receiver token")
 		}
 
 		event := r.Header.Get("X-Gitlab-Event")
@@ -307,27 +322,27 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the GitLab event %q is not authorised", event)
+				return nil, fmt.Errorf("the GitLab event %q is not authorised", event)
 			}
 		}
 
 		logger.Info(fmt.Sprintf("handling GitLab event: %s", event))
-		return nil
+		return &validationResult{}, nil
 	case apiv1.CDEventsReceiver:
 		event := r.Header.Get("Ce-Type")
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
-			return fmt.Errorf("unable to read CDEvent request body: %s", err)
+			return nil, fmt.Errorf("unable to read CDEvent request body: %s", err)
 		}
 
 		cdevent, err := cdevents04.NewFromJsonBytes(b)
 		if err != nil {
-			return fmt.Errorf("unable to validate CDEvent event: %s", err)
+			return nil, fmt.Errorf("unable to validate CDEvent event: %s", err)
 		}
 
 		err = cdevents.Validate(cdevent)
 		if err != nil {
-			return fmt.Errorf("unable to validate CDEvent event: %s", err)
+			return nil, fmt.Errorf("unable to validate CDEvent event: %s", err)
 		}
 
 		if len(receiver.Spec.Events) > 0 {
@@ -339,17 +354,17 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the CDEvent %q is not authorised", event)
+				return nil, fmt.Errorf("the CDEvent %q is not authorised", event)
 			}
 		}
 
 		logger.Info(fmt.Sprintf("handling CDEvent: %s", event))
 		r.Body = io.NopCloser(bytes.NewReader(b))
-		return nil
+		return &validationResult{}, nil
 	case apiv1.BitbucketReceiver:
 		b, err := github.ValidatePayload(r, []byte(token))
 		if err != nil {
-			return fmt.Errorf("the Bitbucket server signature header is invalid, err: %w", err)
+			return nil, fmt.Errorf("the Bitbucket server signature header is invalid, err: %w", err)
 		}
 
 		event := r.Header.Get("X-Event-Key")
@@ -362,13 +377,13 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 				}
 			}
 			if !allowed {
-				return fmt.Errorf("the Bitbucket server event %q is not authorised", event)
+				return nil, fmt.Errorf("the Bitbucket server event %q is not authorised", event)
 			}
 		}
 
 		logger.Info(fmt.Sprintf("handling Bitbucket server event: %s", event))
 		r.Body = io.NopCloser(bytes.NewReader(b))
-		return nil
+		return &validationResult{}, nil
 	case apiv1.QuayReceiver:
 		type payload struct {
 			DockerUrl   string   `json:"docker_url"`
@@ -377,24 +392,24 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
-			return fmt.Errorf("unable to read request body: %s", err)
+			return nil, fmt.Errorf("unable to read request body: %s", err)
 		}
 		r.Body = io.NopCloser(bytes.NewReader(b))
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			return fmt.Errorf("cannot decode Quay webhook payload: %w", err)
+			return nil, fmt.Errorf("cannot decode Quay webhook payload: %w", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling Quay event from %s", p.DockerUrl))
 		r.Body = io.NopCloser(bytes.NewReader(b))
-		return nil
+		return &validationResult{}, nil
 	case apiv1.HarborReceiver:
 		if r.Header.Get("Authorization") != token {
-			return fmt.Errorf("the Harbor Authorization header value does not match the receiver token")
+			return nil, fmt.Errorf("the Harbor Authorization header value does not match the receiver token")
 		}
 
 		logger.Info("handling Harbor event")
-		return nil
+		return &validationResult{}, nil
 	case apiv1.DockerHubReceiver:
 		type payload struct {
 			PushData struct {
@@ -406,17 +421,17 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		}
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
-			return fmt.Errorf("unable to read request body: %s", err)
+			return nil, fmt.Errorf("unable to read request body: %s", err)
 		}
 		r.Body = io.NopCloser(bytes.NewReader(b))
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			return fmt.Errorf("cannot decode DockerHub webhook payload")
+			return nil, fmt.Errorf("cannot decode DockerHub webhook payload")
 		}
 
 		logger.Info(fmt.Sprintf("handling DockerHub event from %s for tag %s", p.Repository.URL, p.PushData.Tag))
 		r.Body = io.NopCloser(bytes.NewReader(b))
-		return nil
+		return &validationResult{}, nil
 	case apiv1.GCRReceiver:
 		type data struct {
 			Action string `json:"action"`
@@ -434,17 +449,17 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		}
 
 		if secret == nil {
-			return fmt.Errorf("secretRef is required for GCR receivers")
+			return nil, fmt.Errorf("secretRef is required for GCR receivers")
 		}
 
 		expectedEmail := string(secret.Data["email"])
 		if expectedEmail == "" {
-			return fmt.Errorf("invalid secret data: required field 'email' for GCR receiver")
+			return nil, fmt.Errorf("invalid secret data: required field 'email' for GCR receiver")
 		}
 
 		expectedAudience := string(secret.Data["audience"])
 		if expectedAudience == "" {
-			return fmt.Errorf("invalid secret data: required field 'audience' for GCR receiver")
+			return nil, fmt.Errorf("invalid secret data: required field 'audience' for GCR receiver")
 		}
 
 		authenticate := authenticateGCRRequest
@@ -452,12 +467,12 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 			authenticate = s.gcrTokenValidator
 		}
 		if err := authenticate(ctx, r.Header.Get("Authorization"), expectedEmail, expectedAudience); err != nil {
-			return fmt.Errorf("cannot authenticate GCR request: %w", err)
+			return nil, fmt.Errorf("cannot authenticate GCR request: %w", err)
 		}
 
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			return fmt.Errorf("cannot decode GCR webhook payload: %w", err)
+			return nil, fmt.Errorf("cannot decode GCR webhook payload: %w", err)
 		}
 		// The GCR payload is a Google PubSub event with the GCR event wrapped
 		// inside (in base64 JSON).
@@ -466,30 +481,30 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		var d data
 		err = json.Unmarshal(raw, &d)
 		if err != nil {
-			return fmt.Errorf("cannot decode GCR webhook body: %w", err)
+			return nil, fmt.Errorf("cannot decode GCR webhook body: %w", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling GCR event from %s for tag %s", d.Digest, d.Tag))
 		encodedPayload, err := json.Marshal(d)
 		if err != nil {
-			return fmt.Errorf("cannot decode GCR webhook body: %w", err)
+			return nil, fmt.Errorf("cannot decode GCR webhook body: %w", err)
 		}
 		// This only puts the unwrapped event into the payload.
 		r.Body = io.NopCloser(bytes.NewReader(encodedPayload))
-		return nil
+		return &validationResult{}, nil
 	case apiv1.NexusReceiver:
 		signature := r.Header.Get("X-Nexus-Webhook-Signature")
 		if len(signature) == 0 {
-			return fmt.Errorf("the Nexus signature is missing from header")
+			return nil, fmt.Errorf("the Nexus signature is missing from header")
 		}
 
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
-			return fmt.Errorf("cannot read Nexus payload. error: %w", err)
+			return nil, fmt.Errorf("cannot read Nexus payload. error: %w", err)
 		}
 
 		if !verifyHmacSignature([]byte(token), signature, b) {
-			return fmt.Errorf("invalid Nexus signature")
+			return nil, fmt.Errorf("invalid Nexus signature")
 		}
 		type payload struct {
 			Action         string `json:"action"`
@@ -497,12 +512,12 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		}
 		var p payload
 		if err := json.Unmarshal(b, &p); err != nil {
-			return fmt.Errorf("cannot decode Nexus webhook payload: %w", err)
+			return nil, fmt.Errorf("cannot decode Nexus webhook payload: %w", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling Nexus event from %s", p.RepositoryName))
 		r.Body = io.NopCloser(bytes.NewReader(b))
-		return nil
+		return &validationResult{}, nil
 	case apiv1.ACRReceiver:
 		type target struct {
 			Repository string `json:"repository"`
@@ -516,21 +531,21 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 
 		b, err := io.ReadAll(r.Body)
 		if err != nil {
-			return fmt.Errorf("unable to read request body: %s", err)
+			return nil, fmt.Errorf("unable to read request body: %s", err)
 		}
 		r.Body = io.NopCloser(bytes.NewReader(b))
 
 		var p payload
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			return fmt.Errorf("cannot decode ACR webhook payload: %s", err)
+			return nil, fmt.Errorf("cannot decode ACR webhook payload: %s", err)
 		}
 
 		logger.Info(fmt.Sprintf("handling ACR event from %s for tag %s", p.Target.Repository, p.Target.Tag))
 		r.Body = io.NopCloser(bytes.NewReader(b))
-		return nil
+		return &validationResult{}, nil
 	}
 
-	return fmt.Errorf("recevier type %q not supported", receiver.Spec.Type)
+	return nil, fmt.Errorf("recevier type %q not supported", receiver.Spec.Type)
 }
 
 func (s *ReceiverServer) secret(ctx context.Context, receiver apiv1.Receiver) (*corev1.Secret, error) {

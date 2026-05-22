@@ -68,10 +68,21 @@ func TestValidateCELExpressionInvalidExpressions(t *testing.T) {
 	}
 }
 
+func TestValidateCELExpressionClaims(t *testing.T) {
+	g := NewWithT(t)
+
+	// The claims variable is undeclared unless WithClaims is passed, mirroring
+	// that only generic-oidc receivers expose verified OIDC token claims.
+	g.Expect(ValidateResourceFilter(`claims.sub == 'test'`)).
+		To(MatchError(ContainSubstring("undeclared reference to 'claims'")))
+	g.Expect(ValidateResourceFilter(`claims.sub == 'test'`, WithClaims())).To(Succeed())
+}
+
 func TestCELEvaluation(t *testing.T) {
 	evaluationTests := []struct {
 		expression string
 		request    *http.Request
+		claims     map[string]any
 		resource   client.Object
 		wantResult bool
 	}{
@@ -92,6 +103,41 @@ func TestCELEvaluation(t *testing.T) {
 				},
 			},
 			wantResult: true,
+		},
+		{
+			expression: `res.metadata.name == 'test-resource' && claims.sub == 'system:serviceaccount:apps:deployer' && claims.repository == 'hello-world'`,
+			request:    testNewHTTPRequest(t, http.MethodPost, "/test", nil),
+			claims: map[string]any{
+				"sub":        "system:serviceaccount:apps:deployer",
+				"repository": "hello-world",
+			},
+			resource: &apiv1.Receiver{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-resource",
+				},
+			},
+			wantResult: true,
+		},
+		{
+			expression: `claims.environment == 'production'`,
+			request:    testNewHTTPRequest(t, http.MethodPost, "/test", nil),
+			claims: map[string]any{
+				"environment": "staging",
+			},
+			resource: &apiv1.Receiver{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-resource",
+				},
+			},
+			wantResult: false,
 		},
 		{
 			expression: `req.bool == true`,
@@ -132,7 +178,7 @@ func TestCELEvaluation(t *testing.T) {
 	for _, tt := range evaluationTests {
 		t.Run(tt.expression, func(t *testing.T) {
 			g := NewWithT(t)
-			resourceFilter, err := newResourceFilter(tt.expression, tt.request)
+			resourceFilter, err := newResourceFilter(tt.expression, tt.request, &validationResult{claims: tt.claims})
 			g.Expect(err).To(Succeed())
 
 			result, err := resourceFilter(context.Background(), tt.resource)

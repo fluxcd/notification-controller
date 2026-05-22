@@ -31,22 +31,62 @@ import (
 
 type resourceFilter func(context.Context, client.Object) (*bool, error)
 
+// ResourceFilterOption configures the CEL environment used to compile and
+// evaluate a Receiver resource filter expression.
+type ResourceFilterOption func(*resourceFilterOptions)
+
+type resourceFilterOptions struct {
+	withClaims bool
+}
+
+// WithClaims declares the claims variable in the filter CEL environment. It is
+// used by generic-oidc receivers to expose the verified OIDC token claims to
+// the expression.
+func WithClaims() ResourceFilterOption {
+	return func(o *resourceFilterOptions) {
+		o.withClaims = true
+	}
+}
+
 // ValidateResourceFilter accepts a CEL expression and will parse and check that
 // it's valid, if it's not valid an error is returned.
-func ValidateResourceFilter(s string) error {
-	_, err := newFilterExpression(s)
+func ValidateResourceFilter(s string, opts ...ResourceFilterOption) error {
+	_, err := newFilterExpression(s, opts...)
 	return err
 }
 
-func newFilterExpression(s string) (*cel.Expression, error) {
+func newFilterExpression(s string, opts ...ResourceFilterOption) (*cel.Expression, error) {
+	var o resourceFilterOptions
+	for _, opt := range opts {
+		opt(&o)
+	}
+
+	vars := []string{"res", "req"}
+	if o.withClaims {
+		vars = append(vars, "claims")
+	}
+
 	return cel.NewExpression(s,
 		cel.WithCompile(),
 		cel.WithOutputType(types.BoolType),
-		cel.WithStructVariables("res", "req"))
+		cel.WithStructVariables(vars...))
 }
 
-func newResourceFilter(expr string, r *http.Request) (resourceFilter, error) {
-	celExpr, err := newFilterExpression(expr)
+// newResourceFilter compiles the CEL expression and returns a filter that
+// evaluates it against each resource. When the validation result carries OIDC
+// token claims (generic-oidc receivers), they are exposed as the claims variable.
+func newResourceFilter(expr string, r *http.Request, result *validationResult) (resourceFilter, error) {
+	var claims map[string]any
+	if result != nil {
+		claims = result.claims
+	}
+
+	var opts []ResourceFilterOption
+	if claims != nil {
+		opts = append(opts, WithClaims())
+	}
+
+	celExpr, err := newFilterExpression(expr, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,10 +106,15 @@ func newResourceFilter(expr string, r *http.Request) (resourceFilter, error) {
 			return nil, err
 		}
 
-		result, err := celExpr.EvaluateBoolean(ctx, map[string]any{
+		vars := map[string]any{
 			"res": res,
 			"req": req,
-		})
+		}
+		if claims != nil {
+			vars["claims"] = claims
+		}
+
+		result, err := celExpr.EvaluateBoolean(ctx, vars)
 		if err != nil {
 			return nil, err
 		}
