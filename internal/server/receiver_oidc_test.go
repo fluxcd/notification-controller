@@ -118,11 +118,11 @@ func newOIDCReceiver(name string, providers []apiv1.OIDCProvider) *apiv1.Receive
 		Spec: apiv1.ReceiverSpec{
 			Type:          apiv1.GenericOIDCReceiver,
 			OIDCProviders: providers,
-			Resources: []apiv1.CrossNamespaceObjectReference{{
+			Resources: []apiv1.ReceiverResource{{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
 				APIVersion: apiv1.GroupVersion.String(),
 				Kind:       apiv1.ReceiverKind,
 				Name:       "target",
-			}},
+			}}},
 		},
 		Status: apiv1.ReceiverStatus{
 			WebhookPath: apiv1.ReceiverWebhookPath,

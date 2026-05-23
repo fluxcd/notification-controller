@@ -121,22 +121,24 @@ func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resourceFilter := func(ctx context.Context, o client.Object) (*bool, error) {
-		accept := true
-		return &accept, nil
+	resourceFilters, err := newResourceFilters(r, receiver, result)
+	if err != nil {
+		logger.Error(err, "unable to create resource filters")
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
-	if receiver.Spec.ResourceFilter != "" {
-		resourceFilter, err = newResourceFilter(receiver.Spec.ResourceFilter, r, result)
-		if err != nil {
-			logger.Error(err, "unable to create resource filter")
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+
+	acceptAll := func(ctx context.Context, o client.Object) (*bool, error) {
+		return new(true), nil
 	}
 
 	var withErrors bool
-	for _, resource := range receiver.Spec.Resources {
-		if err := s.requestReconciliation(ctx, logger, resource, receiver.Namespace, resourceFilter); err != nil {
+	for i, resource := range receiver.Spec.Resources {
+		resourceFilter := acceptAll
+		if resourceFilters[i] != nil {
+			resourceFilter = resourceFilters[i]
+		}
+		if err := s.requestReconciliation(ctx, logger, resource.CrossNamespaceObjectReference, receiver.Namespace, resourceFilter); err != nil {
 			logger.Error(err, "unable to request reconciliation", "resource", resource)
 			withErrors = true
 		}
