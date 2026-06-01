@@ -216,7 +216,10 @@ spec:
                       minLength: 1
                       type: string
                     namespace:
-                      description: Namespace of the referent
+                      description: |-
+                        Namespace of the referent
+                        If multiple resources across all namespaces are targeted `*` may be set,
+                        which requires the name to also be set to `*`.
                       maxLength: 253
                       minLength: 1
                       type: string
@@ -457,7 +460,10 @@ spec:
                       minLength: 1
                       type: string
                     namespace:
-                      description: Namespace of the referent
+                      description: |-
+                        Namespace of the referent
+                        If multiple resources across all namespaces are targeted `*` may be set,
+                        which requires the name to also be set to `*`.
                       maxLength: 253
                       minLength: 1
                       type: string

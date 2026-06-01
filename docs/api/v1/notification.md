@@ -273,7 +273,9 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Namespace of the referent</p>
+<p>Namespace of the referent
+If multiple resources across all namespaces are targeted <code>*</code> may be set,
+which requires the name to also be set to <code>*</code>.</p>
 </td>
 </tr>
 <tr>
