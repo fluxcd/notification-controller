@@ -430,6 +430,7 @@ func TestGetNotificationParams(t *testing.T) {
 		secretData              map[string][]byte
 		noCrossNSRefs           bool
 		enableObjLevelWI        bool
+		eventSeverity           string
 		eventMetadata           map[string]string
 		wantErr                 bool
 		wantDroppedCommitStatus bool
@@ -504,6 +505,12 @@ func TestGetNotificationParams(t *testing.T) {
 			wantDroppedCommitStatus: true,
 		},
 		{
+			name:          "commit status provider does not drop failure event without commit key",
+			providerType:  apiv1beta3.GitHubProvider,
+			eventSeverity: eventv1.EventSeverityError,
+			wantErr:       true, // proceeds past the guard and fails on notifier creation
+		},
+		{
 			name:         "commit status provider does not drop commit status update event without commit key",
 			providerType: apiv1beta3.GitHubProvider,
 			eventMetadata: map[string]string{
@@ -563,6 +570,9 @@ func TestGetNotificationParams(t *testing.T) {
 			}
 			if tt.secretData != nil {
 				secret.Data = tt.secretData
+			}
+			if tt.eventSeverity != "" {
+				event.Severity = tt.eventSeverity
 			}
 			if tt.eventMetadata != nil {
 				event.Metadata = tt.eventMetadata
