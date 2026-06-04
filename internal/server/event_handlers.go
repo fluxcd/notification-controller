@@ -323,9 +323,14 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, droppedProviders{}, nil
 	}
 
-	// Skip if the provider is a commit status provider but the event doesn't have the commit metadata key
-	// and the event is not a commit status update.
-	if isCommitStatusProvider(provider.Spec.Type) && !hasCommitKey(event) && !isCommitStatusUpdate(event) {
+	// Skip if the provider is a commit status provider and the event is neither a commit
+	// status update, nor carries the commit metadata key, nor is a failure event. Producing
+	// controllers do not mark failure events as commit status updates, so they must be
+	// allowed through for failures to be reported on the commit.
+	if isCommitStatusProvider(provider.Spec.Type) &&
+		!hasCommitKey(event) &&
+		!isCommitStatusUpdate(event) &&
+		event.Severity != eventv1.EventSeverityError {
 		// Return true on dropped event for a commit status provider
 		// when the event doesn't have the commit metadata key.
 		return nil, droppedProviders{commitStatus: true}, nil
