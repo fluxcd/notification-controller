@@ -22,7 +22,7 @@ import (
 	"errors"
 	"fmt"
 
-	"cloud.google.com/go/pubsub"
+	"cloud.google.com/go/pubsub/v2"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -97,8 +97,9 @@ func (g *googlePubSubClient) publish(ctx context.Context, eventPayload []byte) e
 		attrs = nil
 	}
 	topic := fmt.Sprintf("projects/%s/topics/%s", projectID, topicID)
-	serverID, err := client.
-		Topic(topicID).
+	publisher := client.Publisher(topicID)
+	defer publisher.Stop()
+	serverID, err := publisher.
 		Publish(ctx, &pubsub.Message{
 			Data:       eventPayload,
 			Attributes: attrs,
