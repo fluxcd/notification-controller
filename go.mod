@@ -6,16 +6,16 @@ replace github.com/fluxcd/notification-controller/api => ./api
 
 require (
 	cloud.google.com/go/pubsub v1.50.1
-	code.gitea.io/sdk/gitea v0.23.2
+	code.gitea.io/sdk/gitea v0.25.1
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.21.1
-	github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs/v2 v2.0.1
-	github.com/DataDog/datadog-api-client-go/v2 v2.54.0
+	github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs/v2 v2.0.2
+	github.com/DataDog/datadog-api-client-go/v2 v2.60.0
 	github.com/PagerDuty/go-pagerduty v1.8.0
-	github.com/cdevents/sdk-go v0.4.1
+	github.com/cdevents/sdk-go v0.5.0
 	github.com/chainguard-dev/git-urls v1.0.2
-	github.com/coreos/go-oidc/v3 v3.17.0
-	github.com/elazarl/goproxy v1.8.1
+	github.com/coreos/go-oidc/v3 v3.18.0
+	github.com/elazarl/goproxy v1.8.4
 	github.com/fluxcd/cli-utils v1.2.1
 	github.com/fluxcd/notification-controller/api v1.8.0
 	github.com/fluxcd/pkg/apis/event v0.26.0
@@ -27,22 +27,22 @@ require (
 	github.com/fluxcd/pkg/runtime v0.108.0
 	github.com/fluxcd/pkg/ssa v0.75.0
 	github.com/fluxcd/pkg/ssh v0.25.0
-	github.com/getsentry/sentry-go v0.42.0
+	github.com/getsentry/sentry-go v0.46.2
 	github.com/go-logr/logr v1.4.3
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/cel-go v0.27.0
 	github.com/google/go-github/v64 v64.0.0
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/go-retryablehttp v0.7.8
-	github.com/ktrysmt/go-bitbucket v0.9.91
+	github.com/ktrysmt/go-bitbucket v0.10.0
 	github.com/microsoft/azure-devops-go-api/azuredevops/v6 v6.0.1
-	github.com/nats-io/nats.go v1.46.1
-	github.com/nats-io/nkeys v0.4.15
+	github.com/nats-io/nats.go v1.52.0
+	github.com/nats-io/nkeys v0.4.16
 	github.com/onsi/gomega v1.41.0
 	github.com/sethvargo/go-limiter v1.1.0
 	github.com/slok/go-http-metrics v0.13.0
 	github.com/spf13/pflag v1.0.10
-	gitlab.com/gitlab-org/api/client-go v1.33.0
+	gitlab.com/gitlab-org/api/client-go v1.46.0
 	go.opentelemetry.io/otel v1.44.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.44.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.44.0
@@ -50,7 +50,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.44.0
 	golang.org/x/oauth2 v0.36.0
 	golang.org/x/text v0.37.0
-	google.golang.org/api v0.278.0
+	google.golang.org/api v0.283.0
 	k8s.io/api v0.36.1
 	k8s.io/apimachinery v0.36.1
 	k8s.io/client-go v0.36.1
@@ -70,12 +70,12 @@ require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.5.3 // indirect
 	cloud.google.com/go/pubsub/v2 v2.0.0 // indirect
-	github.com/42wim/httpsig v1.2.3 // indirect
+	github.com/42wim/httpsig v1.2.4 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/containers/azcontainerregistry v0.2.3 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.12.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice v1.0.0 // indirect
-	github.com/Azure/go-amqp v1.4.0 // indirect
+	github.com/Azure/go-amqp v1.5.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.6.0 // indirect
 	github.com/DataDog/zstd v1.5.2 // indirect
@@ -134,11 +134,11 @@ require (
 	github.com/google/go-github/v82 v82.0.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.3.15 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.16 // indirect
 	github.com/googleapis/gax-go/v2 v2.22.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-version v1.7.0 // indirect
+	github.com/hashicorp/go-version v1.9.0 // indirect
 	github.com/hiddeco/sshsig v0.2.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect

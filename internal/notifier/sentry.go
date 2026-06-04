@@ -117,7 +117,6 @@ func eventToSpan(event eventv1.Event) *sentry.Event {
 			}.Map(),
 		},
 		Tags:      span.Tags,
-		Extra:     span.Data,
 		Timestamp: span.EndTime,
 		StartTime: span.StartTime,
 		Spans:     []*sentry.Span{span},
@@ -143,7 +142,9 @@ func toSentryEvent(event eventv1.Event) *sentry.Event {
 		Level:       sentry.Level(event.Severity),
 		ServerName:  event.ReportingController,
 		Transaction: eventSummary(event),
-		Extra:       extra,
-		Message:     event.Message,
+		Contexts: map[string]sentry.Context{
+			"metadata": extra,
+		},
+		Message: event.Message,
 	}
 }

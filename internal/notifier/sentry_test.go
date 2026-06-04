@@ -92,9 +92,11 @@ func TestToSentryEvent(t *testing.T) {
 	g.Expect(s.Level).To(Equal(sentry.LevelInfo))
 	g.Expect(s.ServerName).To(Equal("source-controller"))
 	g.Expect(s.Transaction).To(Equal("GitRepository: flux-system/test-app"))
-	g.Expect(s.Extra).To(Equal(map[string]interface{}{
-		"key1": "val1",
-		"key2": "val2",
+	g.Expect(s.Contexts).To(Equal(map[string]sentry.Context{
+		"metadata": {
+			"key1": "val1",
+			"key2": "val2",
+		},
 	}))
 	g.Expect(s.Message).To(Equal("message"))
 }
