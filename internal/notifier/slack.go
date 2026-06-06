@@ -51,6 +51,7 @@ type SlackPayload struct {
 
 // SlackAttachment holds the markdown message body
 type SlackAttachment struct {
+	Fallback   string       `json:"fallback,omitempty"`
 	Color      string       `json:"color"`
 	AuthorName string       `json:"author_name"`
 	Text       string       `json:"text"`
@@ -105,9 +106,11 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 		sfields = append(sfields, SlackField{k, v, false})
 	}
 
+	author := fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace)
 	a := SlackAttachment{
+		Fallback:   fmt.Sprintf("%s: %s", author, strings.Split(event.Message, "\n")[0]),
 		Color:      color,
-		AuthorName: fmt.Sprintf("%s/%s.%s", strings.ToLower(event.InvolvedObject.Kind), event.InvolvedObject.Name, event.InvolvedObject.Namespace),
+		AuthorName: author,
 		Text:       event.Message,
 		MrkdwnIn:   []string{"text"},
 		Fields:     sfields,
