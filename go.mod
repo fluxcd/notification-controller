@@ -18,14 +18,14 @@ require (
 	github.com/elazarl/goproxy v1.8.4
 	github.com/fluxcd/cli-utils v1.2.1
 	github.com/fluxcd/notification-controller/api v1.8.0
-	github.com/fluxcd/pkg/apis/event v0.26.0
-	github.com/fluxcd/pkg/apis/meta v1.29.0
-	github.com/fluxcd/pkg/auth v0.52.0
+	github.com/fluxcd/pkg/apis/event v0.27.0
+	github.com/fluxcd/pkg/apis/meta v1.30.0
+	github.com/fluxcd/pkg/auth v0.53.0
 	github.com/fluxcd/pkg/cache v0.14.0
-	github.com/fluxcd/pkg/git v0.51.0
+	github.com/fluxcd/pkg/git v0.52.0
 	github.com/fluxcd/pkg/masktoken v0.9.0
-	github.com/fluxcd/pkg/runtime v0.109.0
-	github.com/fluxcd/pkg/ssa v0.75.0
+	github.com/fluxcd/pkg/runtime v0.110.0
+	github.com/fluxcd/pkg/ssa v0.76.0
 	github.com/fluxcd/pkg/ssh v0.25.0
 	github.com/getsentry/sentry-go v0.46.2
 	github.com/go-logr/logr v1.4.3
@@ -101,7 +101,7 @@ require (
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fluxcd/pkg/apis/acl v0.10.0 // indirect
-	github.com/fluxcd/pkg/apis/kustomize v1.18.0 // indirect
+	github.com/fluxcd/pkg/apis/kustomize v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.5 // indirect
@@ -219,12 +219,12 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.36.0 // indirect
-	k8s.io/cli-runtime v0.36.0 // indirect
-	k8s.io/component-base v0.36.0 // indirect
+	k8s.io/apiextensions-apiserver v0.36.1 // indirect
+	k8s.io/cli-runtime v0.36.1 // indirect
+	k8s.io/component-base v0.36.1 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a // indirect
-	k8s.io/kubectl v0.36.0 // indirect
+	k8s.io/kubectl v0.36.1 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kustomize/api v0.21.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.21.1 // indirect
