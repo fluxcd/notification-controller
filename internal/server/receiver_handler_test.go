@@ -553,6 +553,139 @@ func Test_handlePayload(t *testing.T) {
 			expectedResponseCode:       http.StatusOK,
 		},
 		{
+			name: "annotating resources by label match across all namespaces",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: &meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "*",
+							Namespace:  "*",
+							MatchLabels: map[string]string{
+								"label": "match",
+							},
+						}},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret: testSecretWithToken,
+			resources: []client.Object{
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "dummy-resource-ns-a",
+						Namespace: "namespace-a",
+						Labels: map[string]string{
+							"label": "match",
+						},
+					},
+				},
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "dummy-resource-ns-b",
+						Namespace: "namespace-b",
+						Labels: map[string]string{
+							"label": "match",
+						},
+					},
+				},
+				&apiv1.Receiver{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       apiv1.ReceiverKind,
+						APIVersion: apiv1.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "dummy-resource-no-match",
+						Namespace: "namespace-c",
+						Labels: map[string]string{
+							"label": "does-not-match",
+						},
+					},
+				},
+			},
+			expectedResourcesAnnotated: 2,
+			expectedResponseCode:       http.StatusOK,
+		},
+		{
+			name: "cannot annotate across all namespaces if namespace is * but name is not *",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: &meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "dummy-resource",
+							Namespace:  "*",
+						}},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret:               testSecretWithToken,
+			expectedResponseCode: http.StatusInternalServerError,
+		},
+		{
+			name: "cannot annotate across all namespaces if cross-namespace refs are disabled",
+			receiver: &apiv1.Receiver{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "receiver",
+				},
+				Spec: apiv1.ReceiverSpec{
+					Type: apiv1.GenericReceiver,
+					SecretRef: &meta.LocalObjectReference{
+						Name: "token",
+					},
+					Resources: []apiv1.ReceiverResource{
+						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+							APIVersion: apiv1.GroupVersion.String(),
+							Kind:       apiv1.ReceiverKind,
+							Name:       "*",
+							Namespace:  "*",
+							MatchLabels: map[string]string{
+								"label": "match",
+							},
+						}},
+					},
+				},
+				Status: apiv1.ReceiverStatus{
+					WebhookPath: apiv1.ReceiverWebhookPath,
+					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
+				},
+			},
+			secret:               testSecretWithToken,
+			noCrossNamespaceRefs: true,
+			expectedResponseCode: http.StatusInternalServerError,
+		},
+		{
 			name: "annotating resource by name",
 			receiver: &apiv1.Receiver{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1511,7 +1644,7 @@ func Test_handlePayload(t *testing.T) {
 				logger:               logger.NewLogger(logger.Options{}),
 				kubeClient:           client,
 				noCrossNamespaceRefs: tt.noCrossNamespaceRefs,
-				gcrTokenValidator: func(_ context.Context, bearer string, expectedEmail string, expectedAudience string) error {
+				gcrTokenValidator: func(_ context.Context, bearer, expectedEmail, expectedAudience string) error {
 					if bearer == "" {
 						return fmt.Errorf("missing authorization header")
 					}

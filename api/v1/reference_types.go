@@ -36,6 +36,8 @@ type CrossNamespaceObjectReference struct {
 	Name string `json:"name"`
 
 	// Namespace of the referent
+	// If multiple resources across all namespaces are targeted `*` may be set,
+	// which requires the name to also be set to `*`.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Optional

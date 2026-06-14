@@ -186,7 +186,7 @@ func (s *ReceiverServer) notifyDynamicResources(ctx context.Context, logger logr
 	}
 
 	logger.V(1).Info(fmt.Sprintf("annotate resources by matchLabel for kind %q in %q",
-		resource.Kind, namespace), "matchLabels", resource.MatchLabels)
+		resource.Kind, resource.Namespace), "matchLabels", resource.MatchLabels)
 
 	var resources metav1.PartialObjectMetadataList
 	resources.SetGroupVersionKind(schema.GroupVersionKind{
@@ -195,10 +195,14 @@ func (s *ReceiverServer) notifyDynamicResources(ctx context.Context, logger logr
 		Version: version,
 	})
 
-	if err := s.kubeClient.List(ctx, &resources,
-		client.InNamespace(namespace),
-		client.MatchingLabels(resource.MatchLabels),
-	); err != nil {
+	// List resources matching the labels in the specified namespace
+	// or across all namespaces if namespace is '*' (kube client list all resources when namespace is not specified).
+	listOpts := []client.ListOption{client.MatchingLabels(resource.MatchLabels)}
+	if namespace != "*" {
+		listOpts = append(listOpts, client.InNamespace(namespace))
+	}
+
+	if err := s.kubeClient.List(ctx, &resources, listOpts...); err != nil {
 		return fmt.Errorf("failed listing resources in namespace %q by matching labels %q: %w", namespace, resource.MatchLabels, err)
 	}
 
@@ -571,6 +575,9 @@ func (s *ReceiverServer) requestReconciliation(ctx context.Context, logger logr.
 		if s.noCrossNamespaceRefs && resource.Namespace != defaultNamespace {
 			return fmt.Errorf("cross-namespace references are not allowed")
 		}
+		if resource.Namespace == "*" && resource.Name != "*" {
+			return fmt.Errorf("name must be set to '*' when namespace is set to '*'")
+		}
 		namespace = resource.Namespace
 	}
 
@@ -623,7 +630,7 @@ func (s *ReceiverServer) annotate(ctx context.Context, resource *metav1.PartialO
 
 // authenticateGCRRequest validates the OIDC ID token according to
 // https://docs.cloud.google.com/pubsub/docs/authenticate-push-subscriptions#go.
-func authenticateGCRRequest(ctx context.Context, bearer string, expectedEmail string, expectedAudience string) error {
+func authenticateGCRRequest(ctx context.Context, bearer, expectedEmail, expectedAudience string) error {
 	const bearerPrefix = "Bearer "
 	if !strings.HasPrefix(bearer, bearerPrefix) {
 		return fmt.Errorf("the Authorization header is missing or malformed")
