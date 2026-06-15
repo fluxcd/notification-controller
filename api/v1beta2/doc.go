@@ -15,6 +15,9 @@ limitations under the License.
 */
 
 // Package v1beta2 contains API Schema definitions for the notification v1beta2 API group.
+//
+// Deprecated: v1beta2 is no longer supported, use v1 and v1beta3 instead.
+//
 // +kubebuilder:object:generate=true
 // +groupName=notification.toolkit.fluxcd.io
 package v1beta2
