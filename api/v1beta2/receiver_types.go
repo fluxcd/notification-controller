@@ -130,11 +130,7 @@ func (in *Receiver) GetInterval() time.Duration {
 
 // +genclient
 // +kubebuilder:object:root=true
-// +kubebuilder:subresource:status
-// +kubebuilder:deprecatedversion:warning="v1beta2 Receiver is deprecated, upgrade to v1"
-// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
-// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status",description=""
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].message",description=""
+// +kubebuilder:skipversion
 
 // Receiver is the Schema for the receivers API.
 type Receiver struct {
