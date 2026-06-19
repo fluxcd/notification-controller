@@ -2,6 +2,76 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.9.0
+
+**Release date:** 2026-06-19
+
+This minor release removes the deprecated `notification.toolkit.fluxcd.io/v1beta2`
+API group, introduces a new secret-less `generic-oidc` Receiver with fine-grained
+resource filtering, and enforces the GCR Receiver security fix for CVE-2026-40109.
+
+⚠️ **Action required:** The `notification.toolkit.fluxcd.io/v1beta2` API group has
+reached end-of-life and has been removed from the CRDs. Before upgrading, migrate
+any remaining `v1beta2` resources to `v1`. See the
+[Flux 2.9 upgrade procedure](https://github.com/fluxcd/flux2/discussions/5572) for
+both the Flux CLI and Flux Operator migration paths.
+
+⚠️ **Breaking change:** GCR Receivers now require the `email` and `audience` fields
+in the referenced Secret, enforcing the fix for
+[CVE-2026-40109](https://github.com/advisories/GHSA-h9cx-xjg6-5v2w).
+
+### Receiver
+
+A new `generic-oidc` Receiver type has been introduced, allowing webhook senders to
+authenticate with OIDC tokens validated against configured providers using CEL
+expressions, removing the need for a shared HMAC secret. The Receiver can be made
+fully secret-less and the OIDC audience is optional.
+
+Receiver filtering has been enhanced: OIDC claims are now available in the
+`.spec.resourceFilter` CEL context, and a new per-resource `.spec.resources[].filter`
+field allows scoping which resources each request may trigger. The two filters are
+AND'd together.
+
+### General updates
+
+In addition, the Kubernetes dependencies have been updated to v1.36 and the
+controller is now built with Go 1.26. The Google Pub/Sub and Sentry provider SDKs
+have been upgraded to their latest versions.
+
+Fixes:
+- Fix error events being dropped by commit status providers
+  [#1317](https://github.com/fluxcd/notification-controller/pull/1317)
+
+Improvements:
+- Introduce `generic-oidc` Receiver
+  [#1306](https://github.com/fluxcd/notification-controller/pull/1306)
+- Make Receiver OIDC audience optional
+  [#1309](https://github.com/fluxcd/notification-controller/pull/1309)
+- Reject `secretRef` for `generic-oidc` Receiver
+  [#1311](https://github.com/fluxcd/notification-controller/pull/1311)
+- Enrich Receiver `resourceFilter` with OIDC claims
+  [#1313](https://github.com/fluxcd/notification-controller/pull/1313)
+- Introduce resource-level filter for Receiver
+  [#1314](https://github.com/fluxcd/notification-controller/pull/1314)
+- Enforce fix for CVE-2026-40109
+  [#1298](https://github.com/fluxcd/notification-controller/pull/1298)
+- Add a fallback to the slack notification provider
+  [#1322](https://github.com/fluxcd/notification-controller/pull/1322)
+- Remove deprecated APIs in group `notification.toolkit.fluxcd.io/v1beta2`
+  [#1327](https://github.com/fluxcd/notification-controller/pull/1327)
+- Update to Kubernetes 1.36 and Go 1.26
+  [#1318](https://github.com/fluxcd/notification-controller/pull/1318)
+- Upgrade Google pubsub and Sentry to latest
+  [#1319](https://github.com/fluxcd/notification-controller/pull/1319)
+- Various dependency updates
+  [#1316](https://github.com/fluxcd/notification-controller/pull/1316)
+  [#1320](https://github.com/fluxcd/notification-controller/pull/1320)
+  [#1321](https://github.com/fluxcd/notification-controller/pull/1321)
+  [#1323](https://github.com/fluxcd/notification-controller/pull/1323)
+  [#1324](https://github.com/fluxcd/notification-controller/pull/1324)
+  [#1325](https://github.com/fluxcd/notification-controller/pull/1325)
+  [#1326](https://github.com/fluxcd/notification-controller/pull/1326)
+
 ## 1.8.4
 
 **Release date:** 2026-04-21
