@@ -80,6 +80,7 @@ type AlertSpec struct {
 // +genclient
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:categories=all;fluxcd;fluxcd-notifications
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 
 // Alert is the Schema for the alerts API
