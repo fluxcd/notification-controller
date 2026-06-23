@@ -251,6 +251,7 @@ func (in *Receiver) GetInterval() time.Duration {
 // +genclient
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:categories=all;fluxcd;fluxcd-notifications
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.conditions[?(@.type==\"Ready\")].status",description=""
