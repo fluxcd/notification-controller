@@ -8,6 +8,10 @@ metadata:
 spec:
   group: notification.toolkit.fluxcd.io
   names:
+    categories:
+    - all
+    - fluxcd
+    - fluxcd-notifications
     kind: Alert
     listKind: AlertList
     plural: alerts
