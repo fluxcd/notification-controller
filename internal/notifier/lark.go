@@ -53,7 +53,7 @@ type LarkText struct {
 func NewLark(address string) (*Lark, error) {
 	_, err := url.ParseRequestURI(address)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Slack hook URL %s", address)
+		return nil, fmt.Errorf("invalid Lark hook URL %s", address)
 	}
 
 	return &Lark{
