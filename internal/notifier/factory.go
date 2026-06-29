@@ -304,7 +304,7 @@ func matrixNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func opsgenieNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewOpsgenie(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
+	return NewOpsgenie(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token, opts.ProviderUID)
 }
 
 func alertmanagerNotifierFunc(opts notifierOptions) (Interface, error) {
