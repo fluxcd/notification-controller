@@ -20,7 +20,6 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
-	kuberecorder "k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,6 +27,8 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
+	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/fluxcd/pkg/runtime/patch"
 )
 
@@ -37,7 +38,7 @@ import (
 // AlertReconciler reconciles an Alert object to migrate it to static Alert.
 type AlertReconciler struct {
 	client.Client
-	kuberecorder.EventRecorder
+	events.EventRecorder
 
 	ControllerName string
 }
@@ -88,7 +89,7 @@ func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (resu
 	controllerutil.RemoveFinalizer(obj, apiv1.NotificationFinalizer)
 
 	log.Info("removed finalizer from Alert to migrate to static Alert")
-	r.Event(obj, corev1.EventTypeNormal, "Migration", "removed finalizer from Alert to migrate to static Alert")
+	r.Eventf(obj, nil, corev1.EventTypeNormal, "Migration", eventv1.ActionReconciled, "%s", "removed finalizer from Alert to migrate to static Alert")
 
 	return
 }

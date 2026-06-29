@@ -25,7 +25,7 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 )
 
 type GiteaPullRequestComment struct {

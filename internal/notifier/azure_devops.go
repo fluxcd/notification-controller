@@ -27,7 +27,7 @@ import (
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/auth/azure"
 	"github.com/fluxcd/pkg/cache"
