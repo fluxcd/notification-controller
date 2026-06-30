@@ -17,7 +17,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.18.0
 	github.com/elazarl/goproxy v1.8.4
 	github.com/fluxcd/cli-utils v1.2.2
-	github.com/fluxcd/notification-controller/api v1.9.0
+	github.com/fluxcd/notification-controller/api v1.9.1
 	github.com/fluxcd/pkg/apis/event v0.27.1
 	github.com/fluxcd/pkg/apis/meta v1.30.1
 	github.com/fluxcd/pkg/auth v0.54.1
