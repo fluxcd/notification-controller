@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.9.1
+
+**Release date:** 2026-06-30
+
+This patch release updates Kubernetes to 1.36.2 and the fluxcd/pkg dependencies,
+adds kubectl categories to the notification CRDs and documents the controller's
+command-line options.
+
+Improvements:
+- Add categories to notification CRDs
+  [#1335](https://github.com/fluxcd/notification-controller/pull/1335)
+- Document controller options
+  [#1338](https://github.com/fluxcd/notification-controller/pull/1338)
+- Update fluxcd/pkg dependencies
+  [#1336](https://github.com/fluxcd/notification-controller/pull/1336)
+
 ## 1.9.0
 
 **Release date:** 2026-06-19
