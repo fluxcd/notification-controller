@@ -172,6 +172,7 @@ type ProviderSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:categories=all;fluxcd;fluxcd-notifications
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
+// +kubebuilder:metadata:annotations="kustomize.toolkit.fluxcd.io/substitute=disabled"
 
 // Provider is the Schema for the providers API
 type Provider struct {
