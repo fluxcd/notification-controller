@@ -82,6 +82,7 @@ type AlertSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:categories=all;fluxcd;fluxcd-notifications
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
+// +kubebuilder:metadata:annotations="kustomize.toolkit.fluxcd.io/substitute=disabled"
 
 // Alert is the Schema for the alerts API
 type Alert struct {
