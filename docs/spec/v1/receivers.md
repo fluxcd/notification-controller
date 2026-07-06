@@ -468,11 +468,12 @@ the `X-Event-Key` header to the list of [Events](#events). For a list of
 available event keys, refer to the [Bitbucket Server
 documentation](https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html#Eventpayload-Repositoryevents).
 
-**Note:** Bitbucket Cloud does not support signing webhook requests
-([BCLOUD-14683](https://jira.atlassian.com/browse/BCLOUD-14683),
-[BCLOUD-12195](https://jira.atlassian.com/browse/BCLOUD-12195)). If your
-repositories are on Bitbucket Cloud, you will need to use a [Generic
-Receiver](#generic) instead.
+Bitbucket Cloud also supports signed webhooks using the same `X-Hub-Signature`
+header validation. Configure a webhook secret in your repository settings and
+use the `bitbucket` receiver type with the appropriate Cloud event keys (for
+example `repo:push`). See the [Bitbucket Cloud webhook
+documentation](https://support.atlassian.com/bitbucket-cloud/docs/manage-webhooks/)
+for setup details.
 
 ##### Bitbucket Server example
 
@@ -499,6 +500,27 @@ The above example makes use of the [`.spec.events` field](#events) to filter
 incoming events from Bitbucket Server, instructing the controller to only
 respond to [`repo:refs_changed` (Push)](https://confluence.atlassian.com/bitbucketserver/event-payload-938025882.html#Eventpayload-Push)
 events.
+
+##### Bitbucket Cloud example
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Receiver
+metadata:
+  name: bitbucket-cloud-receiver
+  namespace: default
+spec:
+  type: bitbucket
+  events:
+    - "repo:push"
+  secretRef:
+    name: webhook-token
+  resources:
+    - apiVersion: source.toolkit.fluxcd.io/v1
+      kind: GitRepository
+      name: webapp
+```
 
 #### Harbor
 
