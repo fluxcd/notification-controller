@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.9.2
+
+**Release date:** 2026-07-07
+
+This patch release disables Flux variable substitution on the notification
+CRDs. The CRDs are now annotated with
+`kustomize.toolkit.fluxcd.io/substitute: disabled` so that Kustomizations with
+post-build substitution enabled no longer corrupt the CRD schemas when they
+contain `${...}` sequences.
+
+Fixes:
+- Disable variable substitution in CRDs
+  [#1345](https://github.com/fluxcd/notification-controller/pull/1345)
+
 ## 1.9.1
 
 **Release date:** 2026-06-30
