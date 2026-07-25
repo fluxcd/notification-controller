@@ -330,13 +330,16 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 
 		g.Expect(k8sClient.Delete(context.Background(), secret)).To(Succeed())
 
-		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)).To(Succeed())
-
 		reconcileRequestAt := metav1.Now().String()
-		resultR.SetAnnotations(map[string]string{
-			meta.ReconcileRequestAnnotation: reconcileRequestAt,
-		})
-		g.Expect(k8sClient.Update(context.Background(), resultR)).To(Succeed())
+		g.Eventually(func() error {
+			if err := k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR); err != nil {
+				return err
+			}
+			resultR.SetAnnotations(map[string]string{
+				meta.ReconcileRequestAnnotation: reconcileRequestAt,
+			})
+			return k8sClient.Update(context.Background(), resultR)
+		}, timeout, time.Second).Should(Succeed())
 
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
@@ -377,13 +380,16 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 	t.Run("handles reconcileAt", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)).To(Succeed())
-
 		reconcileRequestAt := metav1.Now().String()
-		resultR.SetAnnotations(map[string]string{
-			meta.ReconcileRequestAnnotation: reconcileRequestAt,
-		})
-		g.Expect(k8sClient.Update(context.Background(), resultR)).To(Succeed())
+		g.Eventually(func() error {
+			if err := k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR); err != nil {
+				return err
+			}
+			resultR.SetAnnotations(map[string]string{
+				meta.ReconcileRequestAnnotation: reconcileRequestAt,
+			})
+			return k8sClient.Update(context.Background(), resultR)
+		}, timeout, time.Second).Should(Succeed())
 
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
@@ -394,10 +400,13 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 	t.Run("finalizes suspended object", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)).To(Succeed())
-
-		resultR.Spec.Suspend = true
-		g.Expect(k8sClient.Update(context.Background(), resultR)).To(Succeed())
+		g.Eventually(func() error {
+			if err := k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR); err != nil {
+				return err
+			}
+			resultR.Spec.Suspend = true
+			return k8sClient.Update(context.Background(), resultR)
+		}, timeout, time.Second).Should(Succeed())
 
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
@@ -506,10 +515,13 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 	t.Run("doesn't update the URL on spec updates", func(t *testing.T) {
 		g := NewWithT(t)
 
-		g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)).To(Succeed())
-
-		resultR.Spec.Events = []string{"ping", "push"}
-		g.Expect(k8sClient.Update(context.Background(), resultR)).To(Succeed())
+		g.Eventually(func() error {
+			if err := k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR); err != nil {
+				return err
+			}
+			resultR.Spec.Events = []string{"ping", "push"}
+			return k8sClient.Update(context.Background(), resultR)
+		}, timeout, time.Second).Should(Succeed())
 
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)
