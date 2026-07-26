@@ -58,13 +58,14 @@ const (
 	ZulipProvider                     string = "zulip"
 	OTELProvider                      string = "otel"
 	ZoomProvider                      string = "zoom"
+	IncidentioProvider                string = "incidentio"
 )
 
 // ProviderSpec defines the desired state of the Provider.
 // +kubebuilder:validation:XValidation:rule="self.type == 'github' || self.type == 'gitlab' || self.type == 'gitea' || self.type == 'bitbucketserver' || self.type == 'bitbucket' || self.type == 'azuredevops' || !has(self.commitStatusExpr)", message="spec.commitStatusExpr is only supported for the 'github', 'gitlab', 'gitea', 'bitbucketserver', 'bitbucket', 'azuredevops' provider types"
 type ProviderSpec struct {
 	// Type specifies which Provider implementation to use.
-	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;giteapullrequestcomment;bitbucketserver;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;githubpullrequestcomment;gitlabmergerequestcomment;pagerduty;datadog;nats;zulip;otel;zoom
+	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;giteapullrequestcomment;bitbucketserver;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;githubpullrequestcomment;gitlabmergerequestcomment;pagerduty;datadog;nats;zulip;otel;zoom;incidentio
 	// +required
 	Type string `json:"type"`
 
