@@ -66,6 +66,7 @@ var (
 		apiv1.ZulipProvider:                     zulipNotifierFunc,
 		apiv1.OTELProvider:                      otelNotifierFunc,
 		apiv1.ZoomProvider:                      zoomNotifierFunc,
+		apiv1.IncidentioProvider:                incidentioNotifierFunc,
 	}
 )
 
@@ -389,4 +390,8 @@ func otelNotifierFunc(opts notifierOptions) (Interface, error) {
 
 func zoomNotifierFunc(opts notifierOptions) (Interface, error) {
 	return NewZoom(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
+}
+
+func incidentioNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewIncidentio(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
 }
