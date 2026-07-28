@@ -148,10 +148,6 @@ type ProviderList struct {
 	Items           []Provider `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&Provider{}, &ProviderList{})
-}
-
 func (in *Provider) GetTimeout() time.Duration {
 	duration := 15 * time.Second
 	if in.Spec.Timeout != nil {

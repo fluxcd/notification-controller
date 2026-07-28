@@ -119,7 +119,3 @@ type AlertList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Alert `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&Alert{}, &AlertList{})
-}
