@@ -163,10 +163,6 @@ type ProviderList struct {
 	Items           []Provider `json:"items"`
 }
 
-func init() {
-	SchemeBuilder.Register(&Provider{}, &ProviderList{})
-}
-
 // GetTimeout returns the timeout value with a default of 15s for this Provider.
 func (in *Provider) GetTimeout() time.Duration {
 	duration := 15 * time.Second

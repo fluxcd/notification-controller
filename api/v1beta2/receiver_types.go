@@ -150,7 +150,3 @@ type ReceiverList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Receiver `json:"items"`
 }
-
-func init() {
-	SchemeBuilder.Register(&Receiver{}, &ReceiverList{})
-}
