@@ -96,7 +96,7 @@ The supported alerting providers are:
 | [Google Chat](#google-chat)                             | `googlechat`     |
 | [Google Pub/Sub](#google-pubsub)                        | `googlepubsub`   |
 | [Grafana](#grafana)                                     | `grafana`        |
-| [incident.io](#incidentio)                              | `incidentio`     |
+| [incident.io](#incidentio)                              | `incident.io`    |
 | [Lark](#lark)                                           | `lark`           |
 | [Matrix](#matrix)                                       | `matrix`         |
 | [Microsoft Teams](#microsoft-teams)                     | `msteams`        |
@@ -1362,7 +1362,7 @@ stringData:
 
 ##### incident.io
 
-When `.spec.type` is set to `incidentio`, the controller will send a payload for
+When `.spec.type` is set to `incident.io`, the controller will send a payload for
 an [Event](events.md#event-structure) to the provided incident.io
 [HTTP alert source](https://docs.incident.io/alerts/custom-http-sources) [Address](#address).
 
@@ -1394,7 +1394,7 @@ To configure a Provider for incident.io, create an
 [HTTP alert source](https://docs.incident.io/alerts/custom-http-sources) in the
 incident.io dashboard to obtain the endpoint URL and the API token, then create
 a Secret with [the `address`](#address-example) set to the endpoint URL,
-[the `token`](#token-example) set to the API token, and an `incidentio`
+[the `token`](#token-example) set to the API token, and an `incident.io`
 Provider with a [Secret reference](#secret-reference).
 
 ```yaml
@@ -1405,7 +1405,7 @@ metadata:
   name: incidentio
   namespace: default
 spec:
-  type: incidentio
+  type: incident.io
   secretRef:
     name: incidentio-alert-source
 ---

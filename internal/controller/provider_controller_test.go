@@ -134,6 +134,10 @@ func TestProviderReconciler_APIServerValidation(t *testing.T) {
 			providerType:     "github",
 			commitStatusExpr: "",
 		},
+		{
+			name:         "incident.io provider type can create providers",
+			providerType: apiv1beta3.IncidentioProvider,
+		},
 	}
 
 	for _, tt := range tests {
