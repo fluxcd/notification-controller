@@ -23,7 +23,7 @@ import (
 	"os"
 
 	"code.gitea.io/sdk/gitea"
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/apis/meta"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
