@@ -54,6 +54,39 @@ func Test_postMessage(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 }
 
+func Test_postMessage_accepts2xxStatusCodes(t *testing.T) {
+	for _, code := range []int{
+		http.StatusOK,
+		http.StatusCreated,
+		http.StatusAccepted,
+		http.StatusNoContent,
+	} {
+		t.Run(http.StatusText(code), func(t *testing.T) {
+			g := NewWithT(t)
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				w.WriteHeader(code)
+			}))
+			defer ts.Close()
+
+			err := postMessage(context.Background(), ts.URL, map[string]string{"status": "success"})
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+
+	t.Run(http.StatusText(http.StatusBadRequest), func(t *testing.T) {
+		g := NewWithT(t)
+		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte("nope"))
+		}))
+		defer ts.Close()
+
+		err := postMessage(context.Background(), ts.URL, map[string]string{"status": "success"})
+		g.Expect(err).To(HaveOccurred())
+		g.Expect(err.Error()).To(ContainSubstring("request failed with status code 400"))
+	})
+}
+
 func Test_postMessage_timeout(t *testing.T) {
 	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -43,7 +43,7 @@ type postOption func(*postOptions)
 
 func postMessage(ctx context.Context, address string, payload any, opts ...postOption) error {
 	options := &postOptions{
-		// Default validateResponse function verifies that the response status code is 200, 202 or 201.
+		// Default validateResponse accepts any 2xx status (including 204 No Content).
 		responseValidator: func(resp *http.Response) error {
 			s := resp.StatusCode
 			if 200 <= s && s < 300 {
