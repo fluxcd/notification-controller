@@ -127,10 +127,17 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 // request context.
 func (s *EventServer) eventMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
+		// Read the request body up to the maximum allowed size.
+		body, err := io.ReadAll(io.LimitReader(r.Body, maxRequestSizeBytes+1))
 		if err != nil {
 			s.logger.Error(err, "reading the request body failed")
 			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		if len(body) > maxRequestSizeBytes {
+			s.logger.Error(fmt.Errorf("request body exceeds the maximum size of %d bytes", maxRequestSizeBytes),
+				"reading the request body failed")
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
 			return
 		}
 		if err := r.Body.Close(); err != nil {

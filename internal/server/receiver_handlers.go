@@ -51,7 +51,8 @@ import (
 const (
 	WebhookPathIndexKey string = ".metadata.webhookPath"
 
-	// maxRequestSizeBytes is the maximum size of a request to the API server
+	// maxRequestSizeBytes is the maximum size of a request body accepted by
+	// the webhook receiver and the event server.
 	maxRequestSizeBytes = 3 * 1024 * 1024
 )
 
