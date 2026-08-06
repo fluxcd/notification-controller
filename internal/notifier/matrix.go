@@ -43,7 +43,7 @@ func NewMatrix(serverURL, token, roomId string, tlsConfig *tls.Config) (*Matrix,
 func (m *Matrix) Post(ctx context.Context, event eventv1.Event) error {
 	txId, err := sha1sum(event)
 	if err != nil {
-		return fmt.Errorf("unable to generate unique tx id: %s", err)
+		return fmt.Errorf("unable to generate unique tx id: %w", err)
 	}
 	fullURL := fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message/%s",
 		m.URL, m.RoomId, txId)
