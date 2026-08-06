@@ -630,6 +630,70 @@ func TestCleanupMetadata(t *testing.T) {
 	}
 }
 
+func TestEventMiddlewareMaxRequestSize(t *testing.T) {
+	// eventPayload returns a valid event JSON payload of exactly size bytes,
+	// padded through the message field.
+	eventPayload := func(g *WithT, size int) []byte {
+		event := &eventv1.Event{Message: "x"}
+		b, err := json.Marshal(event)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(size).To(BeNumerically(">=", len(b)))
+		event.Message = strings.Repeat("x", size-len(b)+1)
+		b, err = json.Marshal(event)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(b).To(HaveLen(size))
+		return b
+	}
+
+	tests := []struct {
+		name       string
+		body       func(g *WithT) []byte
+		wantStatus int
+		wantServed bool
+	}{
+		{
+			name:       "body at the limit is accepted",
+			body:       func(g *WithT) []byte { return eventPayload(g, maxRequestSizeBytes) },
+			wantStatus: http.StatusOK,
+			wantServed: true,
+		},
+		{
+			name:       "body over the limit is rejected",
+			body:       func(g *WithT) []byte { return eventPayload(g, maxRequestSizeBytes+1) },
+			wantStatus: http.StatusRequestEntityTooLarge,
+			wantServed: false,
+		},
+		{
+			name: "body over the limit is rejected before decoding",
+			body: func(g *WithT) []byte {
+				return bytes.Repeat([]byte("A"), maxRequestSizeBytes*2)
+			},
+			wantStatus: http.StatusRequestEntityTooLarge,
+			wantServed: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var served bool
+			s := &EventServer{logger: log.Log}
+			handler := s.eventMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				served = true
+				w.WriteHeader(http.StatusOK)
+			}))
+
+			rr := httptest.NewRecorder()
+			req := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(tt.body(g)))
+			handler.ServeHTTP(rr, req)
+
+			g.Expect(rr.Code).To(Equal(tt.wantStatus))
+			g.Expect(served).To(Equal(tt.wantServed))
+		})
+	}
+}
+
 func readManifest(path, namespace string) (*unstructured.Unstructured, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
