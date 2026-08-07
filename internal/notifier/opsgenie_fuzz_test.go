@@ -45,7 +45,7 @@ func Fuzz_OpsGenie(f *testing.F) {
 		var tlsConfig tls.Config
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		opsgenie, err := NewOpsgenie(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &tlsConfig, token)
+		opsgenie, err := NewOpsgenie(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &tlsConfig, token, "")
 		if err != nil {
 			return
 		}
