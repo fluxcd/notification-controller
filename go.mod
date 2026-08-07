@@ -39,7 +39,7 @@ require (
 	github.com/nats-io/nats.go v1.52.0
 	github.com/nats-io/nkeys v0.4.16
 	github.com/onsi/gomega v1.41.0
-	github.com/sethvargo/go-limiter v1.1.0
+	github.com/sethvargo/go-limiter v1.2.0
 	github.com/slok/go-http-metrics v0.13.0
 	github.com/spf13/pflag v1.0.10
 	gitlab.com/gitlab-org/api/client-go v1.46.0
