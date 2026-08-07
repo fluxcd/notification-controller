@@ -63,8 +63,11 @@ func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.
 	}
 	h := std.Handler(handlerID, mdlw, mux)
 	srv := &http.Server{
-		Addr:    s.port,
-		Handler: h,
+		Addr:              s.port,
+		Handler:           h,
+		ReadTimeout:       readTimeout,
+		ReadHeaderTimeout: readHeaderTimeout,
+		MaxHeaderBytes:    maxHeaderBytes,
 	}
 
 	go func() {
