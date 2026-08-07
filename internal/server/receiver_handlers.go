@@ -48,12 +48,9 @@ import (
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
-const (
-	WebhookPathIndexKey string = ".metadata.webhookPath"
-
-	// maxRequestSizeBytes is the maximum size of a request to the API server
-	maxRequestSizeBytes = 3 * 1024 * 1024
-)
+// WebhookPathIndexKey is the key used for indexing the receivers
+// by their webhook path.
+const WebhookPathIndexKey string = ".metadata.webhookPath"
 
 // defaultFluxAPIVersions is a map of Flux API kinds to their API versions.
 var defaultFluxAPIVersions = map[string]string{
@@ -81,6 +78,11 @@ func (s *ReceiverServer) handlePayload(w http.ResponseWriter, r *http.Request) {
 	digest := url.PathEscape(strings.TrimPrefix(r.RequestURI, apiv1.ReceiverWebhookPath))
 
 	s.logger.Info(fmt.Sprintf("handling request: %s", digest))
+
+	// Enforce the request body size limit and return 413 if cap is reached.
+	if _, ok := readRequestBodyWithLimit(s.logger, w, r); !ok {
+		return
+	}
 
 	var allReceivers apiv1.ReceiverList
 	err := s.kubeClient.List(ctx, &allReceivers, client.MatchingFields{
@@ -228,22 +230,13 @@ type validationResult struct {
 // validate authenticates the incoming request against the Receiver's
 // configuration. It returns nil on failure and a non-nil result on success.
 func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, r *http.Request) (*validationResult, error) {
-	// Validate payload size before doing anything else in case we are being DDoSed.
-	b, err := io.ReadAll(io.LimitReader(r.Body, maxRequestSizeBytes+1))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read request body: %w", err)
-	}
-	if len(b) > maxRequestSizeBytes {
-		return nil, fmt.Errorf("request body exceeds the maximum size of %d bytes", maxRequestSizeBytes)
-	}
-	r.Body = io.NopCloser(bytes.NewReader(b))
-
 	// Fetch the secret and extract the token, when a secretRef is set. Only
 	// generic-oidc receivers omit secretRef; they authenticate requests using
 	// the OIDC token instead of the webhook token.
 	var secret *corev1.Secret
 	var token string
 	if receiver.Spec.SecretRef != nil {
+		var err error
 		secret, err = s.secret(ctx, receiver)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read secret, error: %w", err)
@@ -481,8 +474,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		raw, _ := base64.StdEncoding.DecodeString(p.Message.Data)
 
 		var d data
-		err = json.Unmarshal(raw, &d)
-		if err != nil {
+		if err := json.Unmarshal(raw, &d); err != nil {
 			return nil, fmt.Errorf("cannot decode GCR webhook body: %w", err)
 		}
 
