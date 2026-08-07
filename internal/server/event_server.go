@@ -17,12 +17,10 @@ limitations under the License.
 package server
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -97,8 +95,11 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 	}
 	h := std.Handler(handlerID, mdlw, mux)
 	srv := &http.Server{
-		Addr:    s.port,
-		Handler: h,
+		Addr:              s.port,
+		Handler:           h,
+		ReadTimeout:       readTimeout,
+		ReadHeaderTimeout: readHeaderTimeout,
+		MaxHeaderBytes:    maxHeaderBytes,
 	}
 
 	go func() {
@@ -127,22 +128,13 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 // request context.
 func (s *EventServer) eventMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
-		if err != nil {
-			s.logger.Error(err, "reading the request body failed")
-			w.WriteHeader(http.StatusBadRequest)
+		body, ok := readRequestBodyWithLimit(s.logger, w, r)
+		if !ok {
 			return
 		}
-		if err := r.Body.Close(); err != nil {
-			s.logger.Error(err, "closing the request body failed")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		r.Body = io.NopCloser(bytes.NewBuffer(body))
 
 		event := &eventv1.Event{}
-		err = json.Unmarshal(body, event)
-		if err != nil {
+		if err := json.Unmarshal(body, event); err != nil {
 			s.logger.Error(err, "decoding the request body failed")
 			w.WriteHeader(http.StatusBadRequest)
 			return

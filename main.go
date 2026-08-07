@@ -267,8 +267,14 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	ctx := ctrl.SetupSignalHandler()
+	// Sweep the rate limiter store at every interval and purge entries
+	// older than two intervals, to bound the memory usage of the store.
+	// A bucket becomes irrelevant once the rate limit interval has passed,
+	// as the token gets replenished on the next event.
 	store, err := memorystore.New(&memorystore.Config{
-		Interval: rateLimitInterval,
+		Interval:      rateLimitInterval,
+		SweepInterval: rateLimitInterval,
+		SweepMinTTL:   2 * rateLimitInterval,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to create middleware store")
