@@ -700,7 +700,7 @@ func Test_handlePayload(t *testing.T) {
 					Conditions:  []metav1.Condition{{Type: meta.ReadyCondition, Status: metav1.ConditionTrue}},
 				},
 			},
-			expectedResponseCode: http.StatusBadRequest,
+			expectedResponseCode: http.StatusRequestEntityTooLarge,
 		},
 		{
 			name: "resource matchLabels is ignored if name is not *",
