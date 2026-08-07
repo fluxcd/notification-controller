@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.9.3
+
+**Release date:** 2026-08-07
+
+This patch release unifies the request limits of the two HTTP servers exposed by
+the controller. The event server and the receiver server now share the same
+request body limit of 3 MiB, enforced by a common helper that rejects oversized
+bodies with HTTP 413, with the receiver limit applied before the receiver lookup
+and payload validation. Both servers now set a read timeout of 30s, a read
+header timeout of 10s and a maximum header size of 256 KiB. The event rate
+limiter store sweeps stale entries at the configured `--rate-limit-interval` and
+purges them after twice that interval, and `sethvargo/go-limiter` has been
+updated to v1.2.0 to reduce lock contention in the store. In addition, the
+Bitbucket Cloud receiver documentation has been updated.
+
+Fixes:
+- Unify HTTP server request limits
+  [#1363](https://github.com/fluxcd/notification-controller/pull/1363)
+
+Improvements:
+- Update Bitbucket Cloud receiver guidance
+  [#1350](https://github.com/fluxcd/notification-controller/pull/1350)
+
 ## 1.9.2
 
 **Release date:** 2026-07-07
