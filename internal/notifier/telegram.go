@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
+	"slices"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -57,7 +59,8 @@ func (t *Telegram) Post(ctx context.Context, event eventv1.Event) error {
 	heading := fmt.Sprintf("%s %s/%s/%s", emoji, strings.ToLower(event.InvolvedObject.Kind),
 		event.InvolvedObject.Name, event.InvolvedObject.Namespace)
 	var metadata string
-	for k, v := range event.Metadata {
+	for _, k := range slices.Sorted(maps.Keys(event.Metadata)) {
+		v := event.Metadata[k]
 		metadata = metadata + fmt.Sprintf("\\- *%s*: %s\n", escapeString(k), escapeString(v))
 	}
 	message := fmt.Sprintf("*%s*\n%s\n%s", escapeString(heading), escapeString(event.Message), metadata)

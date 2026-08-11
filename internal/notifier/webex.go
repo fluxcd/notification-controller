@@ -20,7 +20,9 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"maps"
 	"net/url"
+	"slices"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -88,7 +90,8 @@ func (s *Webex) CreateMarkdown(event *eventv1.Event) string {
 	fmt.Fprintf(&b, "%s\n", event.Message)
 
 	if len(event.Metadata) > 0 {
-		for k, v := range event.Metadata {
+		for _, k := range slices.Sorted(maps.Keys(event.Metadata)) {
+			v := event.Metadata[k]
 			fmt.Fprintf(&b, ">**%s**: %s\n", k, v)
 		}
 	}
