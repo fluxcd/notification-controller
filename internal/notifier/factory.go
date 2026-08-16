@@ -67,6 +67,7 @@ var (
 		apiv1.OTELProvider:                      otelNotifierFunc,
 		apiv1.ZoomProvider:                      zoomNotifierFunc,
 		apiv1.IncidentioProvider:                incidentioNotifierFunc,
+		apiv1.MastodonProvider:                  mastodonNotifierFunc,
 	}
 )
 
@@ -394,4 +395,8 @@ func zoomNotifierFunc(opts notifierOptions) (Interface, error) {
 
 func incidentioNotifierFunc(opts notifierOptions) (Interface, error) {
 	return NewIncidentio(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
+}
+
+func mastodonNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewMastodon(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
 }
