@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"maps"
 	"net/url"
 	"slices"
 	"strings"
@@ -173,7 +174,8 @@ func (s *MSTeams) Post(ctx context.Context, event eventv1.Event) error {
 
 func buildMSTeamsDeprecatedConnectorPayload(event *eventv1.Event, objName string) *MSTeamsPayload {
 	facts := make([]MSTeamsField, 0, len(event.Metadata))
-	for k, v := range event.Metadata {
+	for _, k := range slices.Sorted(maps.Keys(event.Metadata)) {
+		v := event.Metadata[k]
 		facts = append(facts, MSTeamsField{
 			Name:  k,
 			Value: v,

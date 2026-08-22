@@ -21,7 +21,9 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
+	"slices"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -111,7 +113,8 @@ func (s *Zoom) Post(ctx context.Context, event eventv1.Event) error {
 
 	if len(event.Metadata) > 0 {
 		fields := make([]ZoomField, 0, len(event.Metadata))
-		for k, v := range event.Metadata {
+		for _, k := range slices.Sorted(maps.Keys(event.Metadata)) {
+			v := event.Metadata[k]
 			fields = append(fields, ZoomField{
 				Key:   k,
 				Value: v,

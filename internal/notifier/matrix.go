@@ -6,8 +6,10 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
@@ -53,7 +55,8 @@ func (m *Matrix) Post(ctx context.Context, event eventv1.Event) error {
 		emoji = "🚨"
 	}
 	var metadata string
-	for k, v := range event.Metadata {
+	for _, k := range slices.Sorted(maps.Keys(event.Metadata)) {
+		v := event.Metadata[k]
 		metadata = metadata + fmt.Sprintf("- %s: %s\n", k, v)
 	}
 	heading := fmt.Sprintf("%s %s/%s.%s", emoji, strings.ToLower(event.InvolvedObject.Kind),

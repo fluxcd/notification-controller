@@ -66,3 +66,46 @@ func TestSlack_ValidateResponse(t *testing.T) {
 	err = validateSlackResponse(resp.Result())
 	g.Expect(err).To(MatchError(ContainSubstring("Slack responded with error: too_many_attachments")))
 }
+
+// Go randomises map iteration, so the fields shuffled between messages and the
+// same four keys arrived in a different order every time. Ten posts of one event
+// is enough for an unsorted map to disagree with itself.
+func TestSlack_PostFieldsAreSorted(t *testing.T) {
+	g := NewWithT(t)
+
+	var got [][]string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		b, err := io.ReadAll(r.Body)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		var payload SlackPayload
+		g.Expect(json.Unmarshal(b, &payload)).To(Succeed())
+
+		keys := make([]string, 0, len(payload.Attachments[0].Fields))
+		for _, f := range payload.Attachments[0].Fields {
+			keys = append(keys, f.Title)
+		}
+		got = append(got, keys)
+	}))
+	defer ts.Close()
+
+	slack, err := NewSlack(ts.URL, "", "", nil, "", "test")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	event := testEvent()
+	event.Metadata = map[string]string{
+		"revision":  "main/1234",
+		"cluster":   "staging",
+		"image-tag": "v1.2.3",
+		"env":       "staging",
+	}
+
+	for i := 0; i < 10; i++ {
+		g.Expect(slack.Post(context.TODO(), event)).To(Succeed())
+	}
+
+	want := []string{"cluster", "env", "image-tag", "revision"}
+	for i, keys := range got {
+		g.Expect(keys).To(Equal(want), "post %d returned fields out of order", i)
+	}
+}
