@@ -109,9 +109,9 @@ func (b Bitbucket) Post(ctx context.Context, event eventv1.Event) error {
 		return err
 	}
 
-	name, desc := formatNameAndDescription(event)
+	// Use CommitStatus as Name (and its SHA-1 as Key) so commitStatusExpr is visible.
+	_, desc := formatNameAndDescription(event)
 	id := b.CommitStatus
-	// key has a limitation of 40 characters in bitbucket api
 	key := sha1String(id)
 
 	cmo := &bitbucket.CommitsOptions{
@@ -122,7 +122,7 @@ func (b Bitbucket) Post(ctx context.Context, event eventv1.Event) error {
 	cso := &bitbucket.CommitStatusOptions{
 		State:       state,
 		Key:         key,
-		Name:        name,
+		Name:        id,
 		Description: desc,
 		Url:         "https://bitbucket.org",
 	}
