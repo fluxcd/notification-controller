@@ -3,8 +3,8 @@ module github.com/fluxcd/notification-controller/api
 go 1.26.0
 
 require (
-	github.com/fluxcd/pkg/apis/meta v1.30.1
-	k8s.io/apimachinery v0.36.2
+	github.com/fluxcd/pkg/apis/meta v1.30.2
+	k8s.io/apimachinery v0.36.4
 	sigs.k8s.io/controller-runtime v0.24.1
 )
 
@@ -18,8 +18,8 @@ require (
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
-	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/text v0.39.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
@@ -27,5 +27,5 @@ require (
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.3.2 // indirect
+	sigs.k8s.io/structured-merge-diff/v6 v6.3.3 // indirect
 )
