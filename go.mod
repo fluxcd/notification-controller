@@ -24,7 +24,7 @@ require (
 	github.com/fluxcd/pkg/cache v0.14.0
 	github.com/fluxcd/pkg/git v0.52.0
 	github.com/fluxcd/pkg/masktoken v0.9.0
-	github.com/fluxcd/pkg/runtime v0.110.2
+	github.com/fluxcd/pkg/runtime v0.110.3
 	github.com/fluxcd/pkg/ssa v0.76.2
 	github.com/fluxcd/pkg/ssh v0.25.0
 	github.com/getsentry/sentry-go v0.46.2
