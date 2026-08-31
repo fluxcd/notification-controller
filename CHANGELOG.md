@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.9.4
+
+**Release date:** 2026-08-31
+
+This patch release updates the fluxcd/pkg dependencies, which bring Kubernetes
+to 1.36.4.
+
+Improvements:
+- Update fluxcd/pkg dependencies
+  [#1374](https://github.com/fluxcd/notification-controller/pull/1374)
+  [#1375](https://github.com/fluxcd/notification-controller/pull/1375)
+
 ## 1.9.3
 
 **Release date:** 2026-08-07
