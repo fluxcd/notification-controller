@@ -23,10 +23,9 @@ import (
 	"testing"
 	"time"
 
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/fluxcd/pkg/apis/event/v1beta1"
 )
 
 func TestOTEL_Post(t *testing.T) {
@@ -44,11 +43,11 @@ func TestOTEL_Post(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		event func() v1beta1.Event
+		event func() eventv1.Event
 	}{
 		{
 			name: "test event",
-			event: func() v1beta1.Event {
+			event: func() eventv1.Event {
 				e := testEvent()
 				// Mocking the data provided by alert.eventMetadata
 				e.Metadata["cluster"] = "my-cluster"
