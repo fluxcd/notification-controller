@@ -97,6 +97,7 @@ The supported alerting providers are:
 | [Google Pub/Sub](#google-pubsub)                        | `googlepubsub`   |
 | [Grafana](#grafana)                                     | `grafana`        |
 | [incident.io](#incidentio)                              | `incident.io`    |
+| [Mastodon](#mastodon)                                   | `mastodon`       |
 | [Lark](#lark)                                           | `lark`           |
 | [Matrix](#matrix)                                       | `matrix`         |
 | [Microsoft Teams](#microsoft-teams)                     | `msteams`        |
@@ -1417,6 +1418,63 @@ metadata:
 stringData:
   address: https://api.incident.io/v2/alert_events/http/<alert_source_config_id>
   token: <incident.io API token>
+```
+
+##### Mastodon
+
+When `.spec.type` is set to `mastodon`, the controller will publish an
+[Event](events.md#event-structure) as a
+[status](https://docs.joinmastodon.org/methods/statuses/#create) on the
+Mastodon account owning the referenced access token.
+
+The [Address](#address) is the Mastodon server root URL, e.g.
+`https://mastodon.social` (the `/api/v1/statuses` path is appended
+automatically). An optional `visibility` query parameter (`public`,
+`unlisted` or `private`) overrides the app's default status visibility,
+e.g. `https://mastodon.social?visibility=unlisted`.
+
+The status text contains the involved object, the event message and the event
+metadata as key-value lines. Statuses longer than 500 characters (the default
+Mastodon server limit) are truncated. An `Idempotency-Key` header derived from
+the event is sent to prevent duplicate statuses on retried requests.
+
+The access token must be provided in the `token` key of the referenced Secret,
+it is sent as a bearer token in the `Authorization` header of the POST request.
+The token can be generated in the Mastodon web interface under
+`Preferences → Development → New application` and requires the
+`write:statuses` scope.
+
+This Provider type does support the configuration of a [proxy URL](#https-proxy)
+and [certificate secret reference](#certificate-secret-reference).
+
+###### Mastodon example
+
+To configure a Provider for Mastodon, create an application with the
+`write:statuses` scope in the Mastodon web interface to obtain the access
+token, then create a Secret with [the `address`](#address-example) set to the
+server root URL, [the `token`](#token-example) set to the access token, and a
+`mastodon` Provider with a [Secret reference](#secret-reference).
+
+```yaml
+---
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: mastodon
+  namespace: default
+spec:
+  type: mastodon
+  secretRef:
+    name: mastodon-app
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mastodon-app
+  namespace: default
+stringData:
+  address: https://mastodon.social
+  token: <Mastodon access token>
 ```
 
 
