@@ -21,13 +21,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	testproxy "github.com/fluxcd/notification-controller/tests/proxy"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	testproxy "github.com/fluxcd/notification-controller/tests/proxy"
+
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 

@@ -28,7 +28,7 @@ import (
 	"testing"
 
 	fuzz "github.com/AdaLogics/go-fuzz-headers"
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 )
 
 const apiLocations = `{"count":0,"value":[{"area":"","id":"428dd4fb-fda5-4722-af02-9313b80305da","routeTemplate":"","resourceName":"","maxVersion":"6.0","minVersion":"5.0","releasedVersion":"6.0"}]}`

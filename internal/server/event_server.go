@@ -31,12 +31,12 @@ import (
 	"github.com/sethvargo/go-limiter/httplimit"
 	"github.com/slok/go-http-metrics/middleware"
 	"github.com/slok/go-http-metrics/middleware/std"
-	kuberecorder "k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/cache"
+	"github.com/fluxcd/pkg/runtime/events"
 )
 
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
@@ -53,18 +53,18 @@ type EventServer struct {
 	noCrossNamespaceRefs  bool
 	exportHTTPPathMetrics bool
 	tokenCache            *cache.TokenCache
-	kuberecorder.EventRecorder
+	events.Recorder
 }
 
 // NewEventServer returns an HTTP server that handles events
 func NewEventServer(port string, logger logr.Logger, kubeClient client.Client,
-	eventRecorder kuberecorder.EventRecorder, noCrossNamespaceRefs bool,
+	eventRecorder events.Recorder, noCrossNamespaceRefs bool,
 	exportHTTPPathMetrics bool, tokenCache *cache.TokenCache) *EventServer {
 	return &EventServer{
 		port:                  port,
 		logger:                logger.WithName("event-server"),
 		kubeClient:            kubeClient,
-		EventRecorder:         eventRecorder,
+		Recorder:              eventRecorder,
 		noCrossNamespaceRefs:  noCrossNamespaceRefs,
 		exportHTTPPathMetrics: exportHTTPPathMetrics,
 		tokenCache:            tokenCache,

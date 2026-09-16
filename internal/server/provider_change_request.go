@@ -17,7 +17,7 @@ limitations under the License.
 package server
 
 import (
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 )

@@ -31,7 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -186,8 +186,8 @@ func TestReceiverReconciler_deleteBeforeFinalizer(t *testing.T) {
 	g.Expect(k8sClient.Delete(ctx, receiver)).NotTo(HaveOccurred())
 
 	r := &ReceiverReconciler{
-		Client:        k8sClient,
-		EventRecorder: record.NewFakeRecorder(32),
+		Client:   k8sClient,
+		Recorder: events.NewFakeRecorder(32),
 	}
 	// NOTE: Only a real API server responds with an error in this scenario.
 	_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(receiver)})
@@ -301,7 +301,7 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 
 		// Revert to the original type and clear the providers so subsequent subtests start clean.
 		// generic requires secretRef, so restore it alongside the type change.
-		patch = []byte(fmt.Sprintf(`{"spec":{"type":"generic","oidcProviders":null,"secretRef":{"name":%q}}}`, secretName))
+		patch = fmt.Appendf(nil, `{"spec":{"type":"generic","oidcProviders":null,"secretRef":{"name":%q}}}`, secretName)
 		g.Expect(k8sClient.Patch(context.Background(), resultR, client.RawPatch(types.MergePatchType, patch))).To(Succeed())
 		g.Eventually(func() bool {
 			_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(receiver), resultR)

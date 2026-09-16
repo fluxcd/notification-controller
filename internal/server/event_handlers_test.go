@@ -38,11 +38,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/tools/events"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/auth"
 
@@ -289,9 +289,9 @@ func TestFilterAlertsForEvent(t *testing.T) {
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 			builder.WithObjects(testProvider)
 			eventServer := EventServer{
-				kubeClient:    builder.Build(),
-				logger:        log.Log,
-				EventRecorder: record.NewFakeRecorder(32),
+				kubeClient: builder.Build(),
+				logger:     log.Log,
+				Recorder:   events.NewFakeRecorder(32),
 			}
 
 			result := eventServer.filterAlertsForEvent(context.TODO(), alerts, testEvent)
@@ -373,9 +373,9 @@ func TestDispatchNotification(t *testing.T) {
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 			builder.WithObjects(provider)
 			eventServer := EventServer{
-				kubeClient:    builder.Build(),
-				logger:        log.Log,
-				EventRecorder: record.NewFakeRecorder(32),
+				kubeClient: builder.Build(),
+				logger:     log.Log,
+				Recorder:   events.NewFakeRecorder(32),
 			}
 
 			_, err := eventServer.dispatchNotification(context.TODO(), testEvent, alert)
@@ -593,7 +593,7 @@ func TestGetNotificationParams(t *testing.T) {
 				kubeClient:           builder.Build(),
 				logger:               log.Log,
 				noCrossNamespaceRefs: tt.noCrossNSRefs,
-				EventRecorder:        record.NewFakeRecorder(32),
+				Recorder:             events.NewFakeRecorder(32),
 			}
 
 			params, dropped, err := eventServer.getNotificationParams(context.TODO(), event, alert)
@@ -866,7 +866,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 				SecretRef: &meta.LocalObjectReference{Name: secretName},
 			},
 			secretData: map[string][]byte{
-				"address": []byte(fmt.Sprintf("https://example.org/%s", strings.Repeat("a", 2029))),
+				"address": fmt.Appendf(nil, "https://example.org/%s", strings.Repeat("a", 2029)),
 			},
 			wantErr: true,
 		},
@@ -877,7 +877,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 				SecretRef: &meta.LocalObjectReference{Name: secretName},
 			},
 			secretData: map[string][]byte{
-				"address": []byte(fmt.Sprintf("https://example.org/%s", strings.Repeat("a", 2028))),
+				"address": fmt.Appendf(nil, "https://example.org/%s", strings.Repeat("a", 2028)),
 			},
 			wantErr: false,
 		},
@@ -1378,9 +1378,9 @@ func TestEventMatchesAlert(t *testing.T) {
 			}
 
 			eventServer := EventServer{
-				kubeClient:    builder.Build(),
-				logger:        log.Log,
-				EventRecorder: record.NewFakeRecorder(32),
+				kubeClient: builder.Build(),
+				logger:     log.Log,
+				Recorder:   events.NewFakeRecorder(32),
 			}
 			alert := &apiv1beta3.Alert{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1452,7 +1452,7 @@ func TestCombineEventMetadata(t *testing.T) {
 			expectedMetadata: map[string]string{
 				"summary": "alertSummary",
 			},
-			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information) map[summary:involved object annotations, Alert object .spec.summary]",
+			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information)",
 		},
 		"alert event metadata is overriden by summary": {
 			event: eventv1.Event{},
@@ -1467,7 +1467,7 @@ func TestCombineEventMetadata(t *testing.T) {
 			expectedMetadata: map[string]string{
 				"summary": "alertSummary",
 			},
-			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information) map[summary:Alert object .spec.eventMetadata, Alert object .spec.summary]",
+			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information)",
 		},
 		"summary is overriden by controller metadata": {
 			event: eventv1.Event{
@@ -1483,7 +1483,7 @@ func TestCombineEventMetadata(t *testing.T) {
 			expectedMetadata: map[string]string{
 				"summary": "controllerSummary",
 			},
-			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information) map[summary:Alert object .spec.summary, involved object controller metadata]",
+			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information)",
 		},
 		"precedence order in RFC 0008 is honered": {
 			event: eventv1.Event{
@@ -1513,16 +1513,16 @@ func TestCombineEventMetadata(t *testing.T) {
 				"alertMetadataOverridenByController":  "controllerMetadataValue2",
 				"controllerMetadata":                  "controllerMetadataValue3",
 			},
-			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information) map[alertMetadataOverridenByController:Alert object .spec.eventMetadata, involved object controller metadata objectMetadataOverridenByAlert:involved object annotations, Alert object .spec.eventMetadata objectMetadataOverridenByController:involved object annotations, involved object controller metadata]",
+			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information)",
 		},
 	} {
 		t.Run(name, func(t *testing.T) {
 			g := NewGomegaWithT(t)
 
-			eventRecorder := record.NewFakeRecorder(1)
+			eventRecorder := events.NewFakeRecorder(1)
 			s := &EventServer{
-				logger:        log.Log,
-				EventRecorder: eventRecorder,
+				logger:   log.Log,
+				Recorder: eventRecorder,
 			}
 
 			tt.event.InvolvedObject.APIVersion = "kustomize.toolkit.fluxcd.io/v1"
