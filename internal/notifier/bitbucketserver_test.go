@@ -148,6 +148,46 @@ func TestNewBitbucketServerEmptyCommitStatus(t *testing.T) {
 	g.Expect(err.Error()).To(Equal("commit status cannot be empty"))
 }
 
+func TestBitbucketServer_Post_UsesCommitStatusAsName(t *testing.T) {
+	g := NewWithT(t)
+
+	commitStatus := "custom/status/from-expr"
+	var gotName, gotKey string
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			w.WriteHeader(http.StatusNotFound)
+		case http.MethodPost:
+			body, err := io.ReadAll(r.Body)
+			g.Expect(err).ToNot(HaveOccurred())
+			var payload bbServerBuildStatusSetRequest
+			g.Expect(json.Unmarshal(body, &payload)).To(Succeed())
+			gotName = payload.Name
+			gotKey = payload.Key
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer ts.Close()
+
+	b, err := NewBitbucketServer(commitStatus, ts.URL+"/scm/projectfoo/repobar.git", "token", nil, "", "")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	event := generateTestEventKustomization("info", map[string]string{
+		eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
+	})
+	g.Expect(b.Post(context.Background(), event)).To(Succeed())
+
+	_, desc := formatNameAndDescription(event)
+	g.Expect(gotName).To(Equal(commitStatus + " [" + desc + "]"))
+	g.Expect(gotKey).To(Equal(sha1String(commitStatus)))
+
+	formattedName, _ := formatNameAndDescription(event)
+	g.Expect(gotName).ToNot(Equal(formattedName + " [" + desc + "]"))
+}
+
 func TestPostBitbucketServerBadCommitHash(t *testing.T) {
 	g := NewWithT(t)
 	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
@@ -368,8 +408,8 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 					if tt.name == "Validate duplicate commit status successful match" {
 						w.WriteHeader(http.StatusOK)
 						w.Header().Add("Content-Type", "application/json")
-						name, desc := formatNameAndDescription(tt.event)
-						name = name + " [" + desc + "]"
+						_, desc := formatNameAndDescription(tt.event)
+						name := tt.commitStatus + " [" + desc + "]"
 						jsondata, _ := json.Marshal(&bbServerBuildStatus{
 							Name:        name,
 							Description: desc,
@@ -439,8 +479,8 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 					// Validate description
 					g.Expect(payload.Description).To(Equal("reason"))
 
-					// Validate name(with description appended)
-					g.Expect(payload.Name).To(Equal("kustomization/hello-world" + " [" + payload.Description + "]"))
+					// Name must use CommitStatus (commitStatusExpr), not formatNameAndDescription.
+					g.Expect(payload.Name).To(Equal(tt.commitStatus + " [" + payload.Description + "]"))
 
 					g.Expect(payload.Url).To(ContainSubstring("/scm/projectfoo/repobar.git"))
 

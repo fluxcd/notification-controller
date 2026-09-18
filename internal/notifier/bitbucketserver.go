@@ -138,9 +138,11 @@ func (b BitbucketServer) Post(ctx context.Context, event eventv1.Event) error {
 		return fmt.Errorf("couldn't convert to bitbucket server state: %w", err)
 	}
 
-	name, desc := formatNameAndDescription(event)
-	name = name + " [" + desc + "]" //Bitbucket server displays this data on browser. Thus adding description here.
+	// Use CommitStatus as Name (plus Description for the Bitbucket Server UI), matching
+	// Bitbucket Cloud / GitHub / GitLab / Azure DevOps so commitStatusExpr is visible.
+	_, desc := formatNameAndDescription(event)
 	id := b.CommitStatus
+	name := id + " [" + desc + "]" // Bitbucket Server shows Name in the browser.
 	// key has a limitation of 40 characters in bitbucket api
 	key := sha1String(id)
 
