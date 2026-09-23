@@ -454,6 +454,12 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		options = append(options, notifier.WithCommitStatus(commitStatus))
 	}
 
+	// The event key computed by eventMiddleware identifies the event across
+	// the controller, see notifier.EventKey.
+	if eventKey, ok := ctx.Value(eventKeyContextKey{}).(string); ok {
+		options = append(options, notifier.WithEventKey(eventKey))
+	}
+
 	if provider.Spec.Channel != "" {
 		options = append(options, notifier.WithChannel(provider.Spec.Channel))
 	}

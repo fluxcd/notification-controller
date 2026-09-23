@@ -49,6 +49,7 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
 func TestEventServer(t *testing.T) {
@@ -330,6 +331,101 @@ func TestEventServer(t *testing.T) {
 	}
 }
 
+// TestEventServer_MastodonIdempotencyKey verifies that the event key computed
+// by the event server middleware reaches the Mastodon provider through the
+// notifier options and is sent as the Idempotency-Key header.
+func TestEventServer_MastodonIdempotencyKey(t *testing.T) {
+	g := NewWithT(t)
+
+	testNamespace := "foo-ns"
+	headers := make(chan http.Header, 1)
+	mastodonServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		headers <- r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer mastodonServer.Close()
+
+	secret := &corev1.Secret{}
+	secret.Name = "mastodon-secret"
+	secret.Namespace = testNamespace
+	secret.Data = map[string][]byte{"token": []byte("token")}
+
+	provider := &apiv1beta3.Provider{}
+	provider.Name = "provider-mastodon"
+	provider.Namespace = testNamespace
+	provider.Spec = apiv1beta3.ProviderSpec{
+		Type:      apiv1beta3.MastodonProvider,
+		Address:   mastodonServer.URL,
+		SecretRef: &meta.LocalObjectReference{Name: secret.Name},
+	}
+
+	alert := &apiv1beta3.Alert{}
+	alert.Name = "alert-mastodon"
+	alert.Namespace = testNamespace
+	alert.Spec = apiv1beta3.AlertSpec{
+		ProviderRef:   meta.LocalObjectReference{Name: provider.Name},
+		EventSeverity: "info",
+		EventSources: []apiv1.CrossNamespaceObjectReference{
+			{Kind: "Bucket", Name: "*"},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	g.Expect(apiv1beta3.AddToScheme(scheme)).ToNot(HaveOccurred())
+	g.Expect(corev1.AddToScheme(scheme)).ToNot(HaveOccurred())
+	kclient := fakeclient.NewClientBuilder().WithScheme(scheme).
+		WithObjects(secret, provider, alert).Build()
+
+	l, err := net.Listen("tcp", ":0")
+	g.Expect(err).ToNot(HaveOccurred())
+	eventServerPort := strconv.Itoa(l.Addr().(*net.TCPAddr).Port)
+	g.Expect(l.Close()).ToNot(HaveOccurred())
+
+	// No metrics recorder: the Prometheus one is registered globally by
+	// TestEventServer and cannot be registered twice.
+	eventMdlw := middleware.New(middleware.Config{})
+	store, err := memorystore.New(&memorystore.Config{
+		Interval: 5 * time.Minute,
+	})
+	g.Expect(err).ToNot(HaveOccurred())
+	eventServer := NewEventServer("127.0.0.1:"+eventServerPort,
+		log.Log, kclient, record.NewFakeRecorder(32), true, true, nil)
+	stopCh := make(chan struct{})
+	go eventServer.ListenAndServe(stopCh, eventMdlw, store)
+	defer close(stopCh)
+
+	event := eventv1.Event{
+		InvolvedObject: corev1.ObjectReference{
+			APIVersion: "source.toolkit.fluxcd.io/v1",
+			Kind:       "Bucket",
+			Name:       "hyacinth",
+			Namespace:  testNamespace,
+		},
+		Severity:            "info",
+		Timestamp:           metav1.Now(),
+		Message:             "well that happened",
+		Reason:              "event-happened",
+		ReportingController: "source-controller",
+		Metadata: map[string]string{
+			"source.toolkit.fluxcd.io/revision": "main@sha1:abc",
+		},
+	}
+
+	buf := &bytes.Buffer{}
+	g.Expect(json.NewEncoder(buf).Encode(event)).To(Succeed())
+	res, err := http.Post("http://localhost:"+eventServerPort, "application/json", buf)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(res.StatusCode).To(Equal(http.StatusAccepted))
+
+	var got http.Header
+	g.Eventually(headers, "2s", "0.1s").Should(Receive(&got))
+	// The key is derived from the event as seen by the rate limiter, i.e.
+	// after metadata cleanup and before per-alert mutation.
+	want := event.DeepCopy()
+	cleanupMetadata(want)
+	g.Expect(got.Get("Idempotency-Key")).To(Equal(notifier.EventKey(want)))
+}
+
 func TestEventKeyFunc(t *testing.T) {
 	g := NewWithT(t)
 
@@ -560,6 +656,7 @@ func TestEventKeyFunc(t *testing.T) {
 			res := httptest.NewRecorder()
 			req := httptest.NewRequest("POST", "/", bytes.NewBuffer(eventData))
 			ctxWithEvent := context.WithValue(req.Context(), eventContextKey{}, event)
+			ctxWithEvent = context.WithValue(ctxWithEvent, eventKeyContextKey{}, notifier.EventKey(event))
 			reqWithEvent := req.WithContext(ctxWithEvent)
 			handler.ServeHTTP(res, reqWithEvent)
 

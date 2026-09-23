@@ -1780,6 +1780,35 @@ func generateTestCertificates(t *testing.T) (caCert, clientCert, clientKey []byt
 	return caCertPEM, clientCertPEM, clientKeyPEM
 }
 
+func TestCreateNotifier_EventKey(t *testing.T) {
+	g := NewWithT(t)
+
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).ToNot(HaveOccurred())
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "mastodon-secret"},
+		Data:       map[string][]byte{"token": []byte("token")},
+	}
+	kclient := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
+
+	provider := apiv1beta3.Provider{Spec: apiv1beta3.ProviderSpec{
+		Type:      apiv1beta3.MastodonProvider,
+		Address:   "https://mastodon.example.com",
+		SecretRef: &meta.LocalObjectReference{Name: secret.Name},
+	}}
+
+	ctx := context.WithValue(context.TODO(), eventKeyContextKey{}, "event-key")
+	n, _, err := createNotifier(ctx, kclient, &provider, "", nil)
+	g.Expect(err).ToNot(HaveOccurred())
+	m, ok := n.(*notifier.Mastodon)
+	g.Expect(ok).To(BeTrue(), "expected a Mastodon notifier, got %T", n)
+	g.Expect(m.EventKey).To(Equal("event-key"))
+
+	n, _, err = createNotifier(context.TODO(), kclient, &provider, "", nil)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(n.(*notifier.Mastodon).EventKey).To(BeEmpty())
+}
+
 // getNotifierTLSConfig extracts TLSConfig from postMessage-based notifiers for testing
 func getNotifierTLSConfig(n notifier.Interface) *tls.Config {
 	switch v := n.(type) {
