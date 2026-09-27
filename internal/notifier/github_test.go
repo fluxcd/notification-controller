@@ -20,11 +20,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
 	"github.com/fluxcd/pkg/auth/githubapp"
 	"github.com/fluxcd/pkg/ssh"
 
@@ -187,6 +190,92 @@ func TestDuplicateGithubStatus(t *testing.T) {
 
 	for _, test := range tests {
 		gm.Expect(duplicateGithubStatus(test.ss, test.s)).To(Equal(test.dup))
+	}
+}
+
+func TestGitHubPostDuplicateOnLaterPage(t *testing.T) {
+	const sha = "8f1e9a2b3c4d5e6f708192a3b4c5d6e7f8091a2b"
+
+	for _, tt := range []struct {
+		name string
+		// latest status of the notifier's context, served on the second page
+		// of the combined status after 100 other contexts; nil when absent.
+		latest    *github.RepoStatus
+		wantPosts int
+	}{
+		{
+			name:      "same state and description",
+			latest:    ghStatus("success", "flux/ks", "reconciliation succeeded"),
+			wantPosts: 0,
+		},
+		{
+			name:      "different description",
+			latest:    ghStatus("success", "flux/ks", "health check failed"),
+			wantPosts: 1,
+		},
+		{
+			name:      "different state",
+			latest:    ghStatus("failure", "flux/ks", "reconciliation succeeded"),
+			wantPosts: 1,
+		},
+		{
+			name:      "context absent",
+			wantPosts: 1,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			posts := 0
+			mux := http.NewServeMux()
+			mux.HandleFunc("GET /repos/foo/bar/commits/"+sha+"/status", func(w http.ResponseWriter, r *http.Request) {
+				var statuses []*github.RepoStatus
+				if p := r.URL.Query().Get("page"); p == "" || p == "1" {
+					for i := range 100 {
+						statuses = append(statuses, ghStatus("success", fmt.Sprintf("flux/other-%d", i), "reconciliation succeeded"))
+					}
+					w.Header().Set("Link", fmt.Sprintf(`<http://%s%s?page=2>; rel="next"`, r.Host, r.URL.Path))
+				} else if tt.latest != nil {
+					statuses = []*github.RepoStatus{tt.latest}
+				}
+				g.Expect(json.NewEncoder(w).Encode(&github.CombinedStatus{Statuses: statuses})).To(Succeed())
+			})
+			// Every status ever posted on the commit, newest first: the notifier's
+			// latest status sits behind 60 newer ones from other contexts.
+			mux.HandleFunc("GET /repos/foo/bar/commits/"+sha+"/statuses", func(w http.ResponseWriter, r *http.Request) {
+				var statuses []*github.RepoStatus
+				for i := range 60 {
+					statuses = append(statuses, ghStatus("success", fmt.Sprintf("flux/other-%d", i), "reconciliation succeeded"))
+				}
+				if tt.latest != nil {
+					statuses = append(statuses, tt.latest)
+				}
+				if perPage := r.URL.Query().Get("per_page"); perPage == "50" {
+					statuses = statuses[:50]
+				}
+				g.Expect(json.NewEncoder(w).Encode(statuses)).To(Succeed())
+			})
+			mux.HandleFunc("POST /repos/foo/bar/statuses/"+sha, func(w http.ResponseWriter, r *http.Request) {
+				posts++
+				w.WriteHeader(http.StatusCreated)
+				_, _ = w.Write([]byte("{}"))
+			})
+			srv := httptest.NewServer(mux)
+			t.Cleanup(srv.Close)
+
+			client := github.NewClient(nil)
+			baseURL, err := url.Parse(srv.URL + "/")
+			g.Expect(err).ToNot(HaveOccurred())
+			client.BaseURL = baseURL
+
+			n := &GitHub{Owner: "foo", Repo: "bar", CommitStatus: "flux/ks", Client: client}
+			event := testEvent()
+			event.Reason = "ReconciliationSucceeded"
+			event.Metadata = map[string]string{eventv1.MetaRevisionKey: "main@sha1:" + sha}
+
+			g.Expect(n.Post(context.Background(), event)).To(Succeed())
+			g.Expect(posts).To(Equal(tt.wantPosts))
+		})
 	}
 }
 

@@ -80,12 +80,11 @@ func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 		Description: &desc,
 	}
 
-	opts := &github.ListOptions{PerPage: 50}
-	statuses, _, err := g.Client.Repositories.ListStatuses(ctx, g.Owner, g.Repo, rev, opts)
+	dup, err := g.isDuplicateStatus(ctx, rev, status)
 	if err != nil {
-		return fmt.Errorf("could not list commit statuses: %v", err)
+		return err
 	}
-	if duplicateGithubStatus(statuses, status) {
+	if dup {
 		return nil
 	}
 
@@ -95,6 +94,33 @@ func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	return nil
+}
+
+// isDuplicateStatus reports whether the latest status on rev with the
+// context of status already has its state and description.
+//
+// It reads the combined status, which holds the latest status of each
+// context, rather than the list of all statuses: every event for a context
+// adds to that list, so once other contexts have posted enough statuses on
+// the same commit, the previous status of this context is no longer on the
+// first page and would not be found.
+func (g *GitHub) isDuplicateStatus(ctx context.Context, rev string, status *github.RepoStatus) (bool, error) {
+	opts := &github.ListOptions{PerPage: 100}
+	for {
+		combined, resp, err := g.Client.Repositories.GetCombinedStatus(ctx, g.Owner, g.Repo, rev, opts)
+		if err != nil {
+			return false, fmt.Errorf("could not get combined commit status: %w", err)
+		}
+		for _, s := range combined.Statuses {
+			if s.GetContext() == status.GetContext() {
+				return duplicateGithubStatus([]*github.RepoStatus{s}, status), nil
+			}
+		}
+		if resp.NextPage == 0 {
+			return false, nil
+		}
+		opts.Page = resp.NextPage
+	}
 }
 
 func toGitHubState(severity string) (string, error) {
