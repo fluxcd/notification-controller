@@ -23,7 +23,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 )
 
 func TestNewGooglePubSub(t *testing.T) {
@@ -89,12 +89,12 @@ func TestGooglePubSubPost(t *testing.T) {
 			event: eventv1.Event{
 				Metadata: map[string]string{"foo": "bar"},
 			},
-			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","metadata":{"foo":"bar"},"reportingController":""}`,
+			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","action":"","metadata":{"foo":"bar"},"reportingController":""}`,
 			publishShouldExecute: true,
 		},
 		{
 			name:                 "publish error is relayed",
-			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","reportingController":""}`,
+			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","action":"","reportingController":""}`,
 			topicName:            "projects/projectID/topics/topicID",
 			publishErr:           errors.New("publish error"),
 			expectedErr:          errors.New("publish error"),
@@ -104,7 +104,7 @@ func TestGooglePubSubPost(t *testing.T) {
 			name:                 "topic and attributes are relayed to the internal client",
 			topicID:              "topicID",
 			attrs:                map[string]string{"foo": "bar"},
-			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","reportingController":""}`,
+			expectedEventPayload: `{"involvedObject":{},"severity":"","timestamp":null,"message":"","reason":"","action":"","reportingController":""}`,
 			publishShouldExecute: true,
 		},
 	}

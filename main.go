@@ -43,6 +43,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/acl"
 	"github.com/fluxcd/pkg/runtime/client"
 	runtimeCtrl "github.com/fluxcd/pkg/runtime/controller"
+	"github.com/fluxcd/pkg/runtime/events"
 	feathelper "github.com/fluxcd/pkg/runtime/features"
 	"github.com/fluxcd/pkg/runtime/leaderelection"
 	"github.com/fluxcd/pkg/runtime/logger"
@@ -233,10 +234,21 @@ func main() {
 	}
 	watchConfigs := !disableConfigWatchers
 
+	// eventRecorder records Kubernetes Events for notification-controller's own
+	// resources. Unlike the other Flux controllers, notification-controller is
+	// the event sink itself, so the webhook address is left empty to disable
+	// posting events back to itself; it only emits either core/v1 (default)
+	// or events/v1 Kubernetes Events.
+	eventRecorder, err := events.NewRecorder(ctrl.Log, "", controllerName, events.WithManager(mgr))
+	if err != nil {
+		setupLog.Error(err, "unable to create event recorder")
+		os.Exit(1)
+	}
+
 	if err = (&controller.ProviderReconciler{
-		Client:        mgr.GetClient(),
-		EventRecorder: mgr.GetEventRecorderFor(controllerName),
-		TokenCache:    tokenCache,
+		Client:     mgr.GetClient(),
+		Recorder:   eventRecorder,
+		TokenCache: tokenCache,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Provider")
 		os.Exit(1)
@@ -245,7 +257,7 @@ func main() {
 	if err = (&controller.AlertReconciler{
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
-		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
+		Recorder:       eventRecorder,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Alert")
 		os.Exit(1)
@@ -255,7 +267,7 @@ func main() {
 		Client:         mgr.GetClient(),
 		ControllerName: controllerName,
 		Metrics:        metricsH,
-		EventRecorder:  mgr.GetEventRecorderFor(controllerName),
+		Recorder:       eventRecorder,
 	}).SetupWithManager(mgr, controller.ReceiverReconcilerOptions{
 		RateLimiter:           runtimeCtrl.GetRateLimiter(rateLimiterOptions),
 		WatchConfigs:          watchConfigs,
@@ -288,7 +300,7 @@ func main() {
 			Registry: ctrlmetrics.Registry,
 		}),
 	})
-	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), mgr.GetEventRecorderFor(controllerName), aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics, tokenCache)
+	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), eventRecorder, aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics, tokenCache)
 	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)
