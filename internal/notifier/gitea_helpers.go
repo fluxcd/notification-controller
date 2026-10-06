@@ -84,9 +84,9 @@ func WithGiteaFetchUserLogin() GiteaClientOption {
 	}
 }
 
-// giteaIdleConnTimeout is how long an idle keep-alive connection to the
-// Gitea server is kept open.
-var giteaIdleConnTimeout = 30 * time.Second
+// giteaIdleConnTimeout overrides the idle timeout of the cloned default
+// transport when set. Tests use it to avoid waiting for the default.
+var giteaIdleConnTimeout time.Duration
 
 // NewGiteaClient creates a new GiteaClient with the provided options.
 func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
@@ -114,7 +114,10 @@ func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
 	}
 
 	// A client is created per event, so idle connections must not outlive it.
-	tr := &http.Transport{IdleConnTimeout: giteaIdleConnTimeout}
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	if giteaIdleConnTimeout > 0 {
+		tr.IdleConnTimeout = giteaIdleConnTimeout
+	}
 	if o.tlsConfig != nil {
 		tr.TLSClientConfig = o.tlsConfig
 	}
