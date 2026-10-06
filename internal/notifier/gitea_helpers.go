@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"code.gitea.io/sdk/gitea"
 )
@@ -83,6 +84,10 @@ func WithGiteaFetchUserLogin() GiteaClientOption {
 	}
 }
 
+// giteaIdleConnTimeout is how long an idle keep-alive connection to the
+// Gitea server is kept open.
+var giteaIdleConnTimeout = 30 * time.Second
+
 // NewGiteaClient creates a new GiteaClient with the provided options.
 func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
 	var o giteaClientOptions
@@ -108,7 +113,8 @@ func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
 		return nil, fmt.Errorf("invalid repository id %q", id)
 	}
 
-	tr := &http.Transport{}
+	// A client is created per event, so idle connections must not outlive it.
+	tr := &http.Transport{IdleConnTimeout: giteaIdleConnTimeout}
 	if o.tlsConfig != nil {
 		tr.TLSClientConfig = o.tlsConfig
 	}
