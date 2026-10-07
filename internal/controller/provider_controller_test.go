@@ -138,6 +138,10 @@ func TestProviderReconciler_APIServerValidation(t *testing.T) {
 			name:         "incident.io provider type can create providers",
 			providerType: apiv1beta3.IncidentioProvider,
 		},
+		{
+			name:         "mastodon provider type can create providers",
+			providerType: apiv1beta3.MastodonProvider,
+		},
 	}
 
 	for _, tt := range tests {
