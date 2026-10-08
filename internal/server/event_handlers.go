@@ -317,9 +317,10 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 	}
 
 	// Skip if the event has commit status update metadata but the provider is not a git provider
-	// or a generic provider. Git providers (github, gitlab, etc.) are the ones that set commit
-	// statuses. Generic providers forward commit status events as-is to the configured webhook.
-	if !isCommitStatusProvider(provider.Spec.Type) && !isGenericProvider(provider.Spec.Type) && isCommitStatusUpdate(event) {
+	// or a forwarding provider. Git providers (github, gitlab, etc.) are the ones that set commit
+	// statuses. Forwarding providers (generic, generic-hmac, nats) hand every event as-is to a
+	// consumer, which may track reconciliations from the commit status updates.
+	if !isCommitStatusProvider(provider.Spec.Type) && !forwardsCommitStatusUpdates(provider.Spec.Type) && isCommitStatusUpdate(event) {
 		return nil, droppedProviders{}, nil
 	}
 

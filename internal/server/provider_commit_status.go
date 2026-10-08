@@ -89,9 +89,15 @@ func newCommitStatus(ctx context.Context, expr string, notification *eventv1.Eve
 	return result, nil
 }
 
-// isGenericProvider returns true if the provider type is a generic provider.
-func isGenericProvider(providerType string) bool {
-	return providerType == apiv1beta3.GenericProvider || providerType == apiv1beta3.GenericHMACProvider
+// forwardsCommitStatusUpdates returns true if the provider type forwards
+// every event as-is to a consumer, commit status updates included: the
+// generic webhook providers and NATS.
+func forwardsCommitStatusUpdates(providerType string) bool {
+	switch providerType {
+	case apiv1beta3.GenericProvider, apiv1beta3.GenericHMACProvider, apiv1beta3.NATSProvider:
+		return true
+	}
+	return false
 }
 
 // isCommitStatusProvider returns true if the provider type is a Git provider.

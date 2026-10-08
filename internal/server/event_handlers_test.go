@@ -423,6 +423,7 @@ func TestGetNotificationParams(t *testing.T) {
 		alertSummary            string
 		alertEventMetadata      map[string]string
 		providerType            string
+		providerChannel         string
 		providerNamespace       string
 		providerSuspended       bool
 		providerServiceAccount  string
@@ -535,6 +536,23 @@ func TestGetNotificationParams(t *testing.T) {
 			},
 			wantParams: true,
 		},
+		{
+			name:            "nats provider does not drop commit status update event",
+			providerType:    apiv1beta3.NATSProvider,
+			providerChannel: "flux.events",
+			eventMetadata: map[string]string{
+				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
+			},
+			wantParams: true,
+		},
+		{
+			name:         "slack provider drops commit status update event",
+			providerType: apiv1beta3.SlackProvider,
+			eventMetadata: map[string]string{
+				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
+			},
+			wantParams: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -559,6 +577,9 @@ func TestGetNotificationParams(t *testing.T) {
 			}
 			if tt.providerType != "" {
 				provider.Spec.Type = tt.providerType
+			}
+			if tt.providerChannel != "" {
+				provider.Spec.Channel = tt.providerChannel
 			}
 			if tt.providerNamespace != "" {
 				provider.Namespace = tt.providerNamespace

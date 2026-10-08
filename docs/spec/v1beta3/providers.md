@@ -1115,6 +1115,11 @@ When `.spec.type` is set to `nats`, the controller will publish the payload of
 an [Event](events.md#event-structure) on the [NATS Subject](https://docs.nats.io/nats-concepts/subjects) provided in the
 [Channel](#channel) field, using the server specified in the [Address](#address) field.
 
+Like the [Generic webhook](#generic-webhook), this Provider type forwards every event as-is,
+including the commit status update events (such as `ReconciliationSucceeded` with the
+`commit_status: update` metadata) that other notification Provider types drop, so a NATS
+consumer can track reconciliations to completion.
+
 This Provider type supports multiple authentication methods through the [Secret reference](#secret-reference):
 
 1. **User Credentials (JWT)** - [NATS 2.0+ authentication](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_intro/jwt) using JWT tokens and NKeys (recommended)
