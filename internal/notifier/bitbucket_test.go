@@ -26,7 +26,7 @@ import (
 	"strings"
 	"testing"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 )

@@ -20,7 +20,8 @@ import (
 	"context"
 	"testing"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
+	"github.com/fluxcd/pkg/apis/meta"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -159,7 +160,7 @@ func Test_generateDefaultCommitStatus(t *testing.T) {
 					Kind: "Kustomization",
 					Name: "gitops-system",
 				},
-				Reason: "ApplySucceeded",
+				Reason: meta.ReconciliationSucceededReason,
 			},
 			want: "kustomization/gitops-system/0c9c2e41",
 		},

@@ -26,7 +26,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/fluxcd/pkg/apis/event/v1beta1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	. "github.com/onsi/gomega"
 )
 
@@ -44,7 +44,7 @@ func TestOpsgenie_Post(t *testing.T) {
 
 	tests := []struct {
 		name  string
-		event func() v1beta1.Event
+		event func() eventv1.Event
 	}{
 		{
 			name:  "test event",
@@ -52,7 +52,7 @@ func TestOpsgenie_Post(t *testing.T) {
 		},
 		{
 			name: "test event with empty metadata",
-			event: func() v1beta1.Event {
+			event: func() eventv1.Event {
 				events := testEvent()
 				events.Metadata = nil
 				return events
@@ -88,7 +88,7 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		event         func() v1beta1.Event
+		event         func() eventv1.Event
 		expectedAlias string
 	}{
 		{
@@ -99,7 +99,7 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 		},
 		{
 			name: "alias is stable for same event",
-			event: func() v1beta1.Event {
+			event: func() eventv1.Event {
 				e := testEvent()
 				e.Message = "different message should not change alias"
 				return e
@@ -109,7 +109,7 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 		},
 		{
 			name: "alias differs for different reason",
-			event: func() v1beta1.Event {
+			event: func() eventv1.Event {
 				e := testEvent()
 				e.Reason = "HealthCheckFailed"
 				return e
@@ -119,7 +119,7 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 		},
 		{
 			name: "alias differs for different namespace",
-			event: func() v1beta1.Event {
+			event: func() eventv1.Event {
 				e := testEvent()
 				e.InvolvedObject.Namespace = "production"
 				return e
@@ -129,7 +129,7 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 		},
 		{
 			name: "alias with empty metadata",
-			event: func() v1beta1.Event {
+			event: func() eventv1.Event {
 				e := testEvent()
 				e.Metadata = nil
 				return e
