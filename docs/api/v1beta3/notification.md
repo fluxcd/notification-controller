@@ -437,6 +437,23 @@ bitbucket, azuredevops). Supported variables are: event, provider,
 and alert.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>notifyCommitStatusUpdates</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NotifyCommitStatusUpdates controls whether commit status update events
+are sent to this Provider. When true, they are sent for any Provider
+type. When false, they are dropped for any Provider type. When unset,
+they are sent only to the Git commit status Provider types (github,
+gitlab, gitea, bitbucketserver, bitbucket, azuredevops) and to the
+generic and generic-hmac types.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -783,6 +800,23 @@ that can be used to generate a custom commit status message for use
 with eligible Provider types (github, gitlab, gitea, bitbucketserver,
 bitbucket, azuredevops). Supported variables are: event, provider,
 and alert.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>notifyCommitStatusUpdates</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NotifyCommitStatusUpdates controls whether commit status update events
+are sent to this Provider. When true, they are sent for any Provider
+type. When false, they are dropped for any Provider type. When unset,
+they are sent only to the Git commit status Provider types (github,
+gitlab, gitea, bitbucketserver, bitbucket, azuredevops) and to the
+generic and generic-hmac types.</p>
 </td>
 </tr>
 </tbody>
