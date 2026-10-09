@@ -1689,6 +1689,33 @@ e.g. `5m30s` for a timeout of five minutes and thirty seconds.
 When set to `true`, the controller will stop sending events to this provider.
 When the field is set to `false` or removed, it will resume.
 
+### Notify commit status updates
+
+`.spec.notifyCommitStatusUpdates` is an optional field to control whether
+commit status update events are sent to the Provider. Flux controllers mark
+these events with the `<group>/commit_status: update` metadata, e.g.
+`kustomize.toolkit.fluxcd.io/commit_status: update`.
+
+- When set to `true`, the events are sent, whatever the Provider type.
+- When set to `false`, the events are dropped, whatever the Provider type.
+  Other events, such as failures, are not affected.
+- When unset, the events are sent only to the
+  [types supporting Git commit status updates](#types-supporting-git-commit-status-updates)
+  and to the `generic` and `generic-hmac` types.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Provider
+metadata:
+  name: nats-provider
+  namespace: desired-namespace
+spec:
+  type: nats
+  address: <NATS Server URL>
+  channel: <Subject>
+  notifyCommitStatusUpdates: true
+```
+
 ## Working with Providers
 
 
