@@ -505,7 +505,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		if err != nil {
 			return nil, "", fmt.Errorf("failed to get proxy URL: %w", err)
 		}
-		options = append(options, notifier.WithProxyURL(proxyURL.String()))
+		options = append(options, notifier.WithProxyURL(proxyURL))
 	}
 
 	if provider.Spec.CertSecretRef != nil {

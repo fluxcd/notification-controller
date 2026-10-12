@@ -38,13 +38,13 @@ const NotificationHeader = "gotk-component"
 // body as an HTTP request using an optional proxy.
 type Forwarder struct {
 	URL       string
-	ProxyURL  string
+	ProxyURL  *url.URL
 	Headers   map[string]string
 	TLSConfig *tls.Config
 	HMACKey   []byte
 }
 
-func NewForwarder(hookURL string, proxyURL string, headers map[string]string, tlsConfig *tls.Config, hmacKey []byte) (*Forwarder, error) {
+func NewForwarder(hookURL string, proxyURL *url.URL, headers map[string]string, tlsConfig *tls.Config, hmacKey []byte) (*Forwarder, error) {
 	if _, err := url.ParseRequestURI(hookURL); err != nil {
 		return nil, fmt.Errorf("invalid hook URL %s: %w", hookURL, err)
 	}
@@ -89,7 +89,7 @@ func (f *Forwarder) Post(ctx context.Context, event eventv1.Event) error {
 			}
 		}),
 	}
-	if f.ProxyURL != "" {
+	if f.ProxyURL != nil {
 		opts = append(opts, withProxy(f.ProxyURL))
 	}
 	if f.TLSConfig != nil {

@@ -33,7 +33,7 @@ import (
 // and its API token.
 type Incidentio struct {
 	URL       string
-	ProxyURL  string
+	ProxyURL  *url.URL
 	Token     string
 	TLSConfig *tls.Config
 }
@@ -51,7 +51,7 @@ type IncidentioPayload struct {
 
 // NewIncidentio validates the alert source endpoint URL and token
 // and returns an Incidentio object.
-func NewIncidentio(endpointURL string, proxyURL string, tlsConfig *tls.Config, token string) (*Incidentio, error) {
+func NewIncidentio(endpointURL string, proxyURL *url.URL, tlsConfig *tls.Config, token string) (*Incidentio, error) {
 	_, err := url.ParseRequestURI(endpointURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid incident.io alert source URL %s: '%w'", endpointURL, err)
@@ -112,7 +112,7 @@ func (i *Incidentio) Post(ctx context.Context, event eventv1.Event) error {
 			req.Header.Set("Authorization", "Bearer "+i.Token)
 		}),
 	}
-	if i.ProxyURL != "" {
+	if i.ProxyURL != nil {
 		opts = append(opts, withProxy(i.ProxyURL))
 	}
 	if i.TLSConfig != nil {

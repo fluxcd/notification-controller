@@ -63,7 +63,7 @@ func TestOpsgenie_Post(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			opsgenie, err := NewOpsgenie(ts.URL, "", nil, "token", "")
+			opsgenie, err := NewOpsgenie(ts.URL, nil, nil, "token", "")
 			g.Expect(err).ToNot(HaveOccurred())
 
 			err = opsgenie.Post(context.TODO(), tt.event())
@@ -142,7 +142,7 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			opsgenie, err := NewOpsgenie(ts.URL, "", nil, "token", providerUID)
+			opsgenie, err := NewOpsgenie(ts.URL, nil, nil, "token", providerUID)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			err = opsgenie.Post(context.TODO(), tt.event())

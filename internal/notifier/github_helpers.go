@@ -48,7 +48,7 @@ type gitHubClientOptions struct {
 	address           string
 	token             string
 	tlsConfig         *tls.Config
-	proxyURL          string
+	proxyURL          *url.URL
 	providerName      string
 	providerNamespace string
 	fetchUserLogin    bool
@@ -81,7 +81,7 @@ func WithGitHubTLSConfig(cfg *tls.Config) GitHubClientOption {
 }
 
 // WithGitHubProxyURL sets the proxy URL.
-func WithGitHubProxyURL(proxyURL string) GitHubClientOption {
+func WithGitHubProxyURL(proxyURL *url.URL) GitHubClientOption {
 	return func(o *gitHubClientOptions) {
 		o.proxyURL = proxyURL
 	}
@@ -181,12 +181,8 @@ func getGitHubAppToken(ctx context.Context, o *gitHubClientOptions) (*githubapp.
 		githubapp.WithAppData(o.secretData),
 	}
 
-	if o.proxyURL != "" {
-		proxyURL, err := url.Parse(o.proxyURL)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing proxy URL '%s': %w", o.proxyURL, err)
-		}
-		githubOpts = append(githubOpts, githubapp.WithProxyURL(proxyURL))
+	if o.proxyURL != nil {
+		githubOpts = append(githubOpts, githubapp.WithProxyURL(o.proxyURL))
 	}
 
 	if o.tokenCache != nil {

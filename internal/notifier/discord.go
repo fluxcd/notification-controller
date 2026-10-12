@@ -31,13 +31,13 @@ import (
 // Discord holds the hook URL
 type Discord struct {
 	URL      string
-	ProxyURL string
+	ProxyURL *url.URL
 	Username string
 	Channel  string
 }
 
 // NewDiscord validates the URL and returns a Discord object
-func NewDiscord(hookURL string, proxyURL string, username string, channel string) (*Discord, error) {
+func NewDiscord(hookURL string, proxyURL *url.URL, username string, channel string) (*Discord, error) {
 	webhook, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Discord hook URL %s: '%w'", hookURL, err)
@@ -89,7 +89,7 @@ func (s *Discord) Post(ctx context.Context, event eventv1.Event) error {
 	payload.Attachments = []SlackAttachment{a}
 
 	var opts []postOption
-	if s.ProxyURL != "" {
+	if s.ProxyURL != nil {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
 

@@ -56,7 +56,7 @@ func Fuzz_AzureDevOps(f *testing.F) {
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
 		tlsConfig := &tls.Config{RootCAs: &cert}
-		azureDevOps, err := NewAzureDevOps(context.TODO(), commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, tlsConfig, "", "", "", "", nil, nil)
+		azureDevOps, err := NewAzureDevOps(context.TODO(), commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, tlsConfig, nil, "", "", "", nil, nil)
 		if err != nil {
 			return
 		}

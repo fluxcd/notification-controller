@@ -73,10 +73,7 @@ func (g *googlePubSubClient) publish(ctx context.Context, eventPayload []byte) e
 	topicID := g.opts.Channel
 
 	// Build client.
-	opts, err := buildGCPClientOptions(ctx, *g.opts)
-	if err != nil {
-		return err
-	}
+	opts := buildGCPClientOptions(ctx, *g.opts)
 	client, err := pubsub.NewClient(ctx, projectID, opts...)
 	if err != nil {
 		return err

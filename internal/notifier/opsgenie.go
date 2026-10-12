@@ -30,7 +30,7 @@ import (
 
 type Opsgenie struct {
 	URL         string
-	ProxyURL    string
+	ProxyURL    *url.URL
 	TLSConfig   *tls.Config
 	ApiKey      string
 	ProviderUID string
@@ -43,7 +43,7 @@ type OpsgenieAlert struct {
 	Details     map[string]string `json:"details"`
 }
 
-func NewOpsgenie(hookURL string, proxyURL string, tlsConfig *tls.Config, token string, providerUID string) (*Opsgenie, error) {
+func NewOpsgenie(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config, token string, providerUID string) (*Opsgenie, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Opsgenie hook URL %s: '%w'", hookURL, err)
@@ -89,7 +89,7 @@ func (s *Opsgenie) Post(ctx context.Context, event eventv1.Event) error {
 			req.Header.Set("Authorization", "GenieKey "+s.ApiKey)
 		}),
 	}
-	if s.ProxyURL != "" {
+	if s.ProxyURL != nil {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
 	if s.TLSConfig != nil {

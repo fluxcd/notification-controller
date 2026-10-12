@@ -18,8 +18,6 @@ package notifier
 
 import (
 	"context"
-	"fmt"
-	"net/url"
 
 	"google.golang.org/api/option"
 
@@ -32,7 +30,7 @@ import (
 
 // buildGCPClientOptions builds client options for GCP services.
 // Authentication precedence: JSON credentials take priority over workload identity.
-func buildGCPClientOptions(ctx context.Context, opts notifierOptions) ([]option.ClientOption, error) {
+func buildGCPClientOptions(ctx context.Context, opts notifierOptions) []option.ClientOption {
 	var clientOpts []option.ClientOption
 
 	if opts.Token != "" {
@@ -57,17 +55,13 @@ func buildGCPClientOptions(ctx context.Context, opts notifierOptions) ([]option.
 			authOpts = append(authOpts, auth.WithServiceAccountName(opts.ServiceAccountName))
 		}
 
-		if opts.ProxyURL != "" {
-			proxyURL, err := url.Parse(opts.ProxyURL)
-			if err != nil {
-				return nil, fmt.Errorf("error parsing proxy URL: %w", err)
-			}
-			authOpts = append(authOpts, auth.WithProxyURL(*proxyURL))
+		if opts.ProxyURL != nil {
+			authOpts = append(authOpts, auth.WithProxyURL(*opts.ProxyURL))
 		}
 
 		tokenSource := gcp.NewTokenSource(ctx, authOpts...)
 		clientOpts = append(clientOpts, option.WithTokenSource(tokenSource))
 	}
 
-	return clientOpts, nil
+	return clientOpts
 }

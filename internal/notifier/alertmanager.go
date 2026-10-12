@@ -33,7 +33,7 @@ import (
 
 type Alertmanager struct {
 	URL       string
-	ProxyURL  string
+	ProxyURL  *url.URL
 	TLSConfig *tls.Config
 	Token     string
 	Username  string
@@ -76,7 +76,7 @@ func (a *AlertManagerTime) UnmarshalJSON(jsonRepr []byte) error {
 	return nil
 }
 
-func NewAlertmanager(hookURL string, proxyURL string, tlsConfig *tls.Config, token, user, pass string) (*Alertmanager, error) {
+func NewAlertmanager(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config, token, user, pass string) (*Alertmanager, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Alertmanager URL %s: '%w'", hookURL, err)
@@ -137,7 +137,7 @@ func (s *Alertmanager) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	var opts []postOption
-	if s.ProxyURL != "" {
+	if s.ProxyURL != nil {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
 	if s.TLSConfig != nil {
