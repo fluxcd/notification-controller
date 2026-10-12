@@ -32,7 +32,7 @@ import (
 type Grafana struct {
 	URL       string
 	Token     string
-	ProxyURL  string
+	ProxyURL  *url.URL
 	TLSConfig *tls.Config
 	Username  string
 	Password  string
@@ -46,7 +46,7 @@ type GraphitePayload struct {
 }
 
 // NewGrafana validates the Grafana URL and returns a Grafana object
-func NewGrafana(URL string, proxyURL string, token string, tlsConfig *tls.Config, username string, password string) (*Grafana, error) {
+func NewGrafana(URL string, proxyURL *url.URL, token string, tlsConfig *tls.Config, username string, password string) (*Grafana, error) {
 	_, err := url.ParseRequestURI(URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Grafana URL %s", URL)
@@ -92,7 +92,7 @@ func (g *Grafana) Post(ctx context.Context, event eventv1.Event) error {
 			}
 		}),
 	}
-	if g.ProxyURL != "" {
+	if g.ProxyURL != nil {
 		opts = append(opts, withProxy(g.ProxyURL))
 	}
 	if g.TLSConfig != nil {

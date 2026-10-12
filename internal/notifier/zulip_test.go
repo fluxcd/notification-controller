@@ -34,7 +34,7 @@ func TestNewZulip(t *testing.T) {
 	t.Run("invalid endpoint", func(t *testing.T) {
 		g := NewWithT(t)
 
-		z, err := notifier.NewZulip(string([]byte{0x7f}), "general/announcements", "", nil, "user@example.com", "password")
+		z, err := notifier.NewZulip(string([]byte{0x7f}), "general/announcements", nil, nil, "user@example.com", "password")
 
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(err.Error()).To(ContainSubstring("invalid Zulip endpoint URL"))
@@ -44,7 +44,7 @@ func TestNewZulip(t *testing.T) {
 	t.Run("invalid channel format", func(t *testing.T) {
 		g := NewWithT(t)
 
-		z, err := notifier.NewZulip("https://zulip.example.com/api/v1/messages", "invalid_format", "", nil, "user@example.com", "password")
+		z, err := notifier.NewZulip("https://zulip.example.com/api/v1/messages", "invalid_format", nil, nil, "user@example.com", "password")
 
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(err.Error()).To(Equal("invalid Zulip channel format, expected <channel>/<topic>, got 'invalid_format'"))
@@ -54,7 +54,7 @@ func TestNewZulip(t *testing.T) {
 	t.Run("valid channel format", func(t *testing.T) {
 		g := NewWithT(t)
 
-		z, err := notifier.NewZulip("https://zulip.example.com/api/v1/messages", "general/announcements", "", nil, "user@example.com", "password")
+		z, err := notifier.NewZulip("https://zulip.example.com/api/v1/messages", "general/announcements", nil, nil, "user@example.com", "password")
 
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(z).NotTo(BeNil())
@@ -93,7 +93,7 @@ func TestZulip_Post(t *testing.T) {
 			}))
 			t.Cleanup(s.Close)
 
-			z, err := notifier.NewZulip(s.URL, "general/announcements", "", nil, "user", "pass")
+			z, err := notifier.NewZulip(s.URL, "general/announcements", nil, nil, "user", "pass")
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(z).NotTo(BeNil())
 

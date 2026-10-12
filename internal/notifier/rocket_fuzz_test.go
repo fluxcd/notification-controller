@@ -41,7 +41,7 @@ func Fuzz_Rocket(f *testing.F) {
 		}))
 		defer ts.Close()
 
-		rocket, err := NewRocket(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", nil, username, channel)
+		rocket, err := NewRocket(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, nil, username, channel)
 		if err != nil {
 			return
 		}

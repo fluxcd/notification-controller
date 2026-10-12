@@ -32,11 +32,11 @@ import (
 type PagerDuty struct {
 	Endpoint   string
 	RoutingKey string
-	ProxyURL   string
+	ProxyURL   *url.URL
 	TLSConfig  *tls.Config
 }
 
-func NewPagerDuty(endpoint string, proxyURL string, tlsConfig *tls.Config, routingKey string) (*PagerDuty, error) {
+func NewPagerDuty(endpoint string, proxyURL *url.URL, tlsConfig *tls.Config, routingKey string) (*PagerDuty, error) {
 	URL, err := url.ParseRequestURI(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid PagerDuty endpoint URL %q: '%w'", endpoint, err)
@@ -56,7 +56,7 @@ func (p *PagerDuty) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	var opts []postOption
-	if p.ProxyURL != "" {
+	if p.ProxyURL != nil {
 		opts = append(opts, withProxy(p.ProxyURL))
 	}
 	if p.TLSConfig != nil {

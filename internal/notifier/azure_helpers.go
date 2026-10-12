@@ -31,7 +31,7 @@ import (
 )
 
 // newManagedIdentityToken is used to attempt credential-free authentication.
-func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, defaultServiceAccount string,
+func newManagedIdentityToken(ctx context.Context, proxy *url.URL, serviceAccountName, defaultServiceAccount string,
 	providerName, providerNamespace, scope string,
 	tokenClient client.Client, tokenCache *cache.TokenCache, spiffeBroker fluxbroker.Interface) (string, error) {
 
@@ -43,12 +43,8 @@ func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, def
 	}
 	opts = append(opts, auth.WithScopes(scope))
 
-	if proxy != "" {
-		proxyURL, err := url.Parse(proxy)
-		if err != nil {
-			return "", fmt.Errorf("error parsing proxy URL: %w", err)
-		}
-		opts = append(opts, auth.WithProxyURL(*proxyURL))
+	if proxy != nil {
+		opts = append(opts, auth.WithProxyURL(*proxy))
 	}
 
 	credential, err := auth.NewAccessCredential(ctx, azure.Provider{}, opts...)

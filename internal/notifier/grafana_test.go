@@ -47,7 +47,7 @@ func TestGrafana_Post(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		grafana, err := NewGrafana(ts.URL, "", "", nil, "", "")
+		grafana, err := NewGrafana(ts.URL, nil, "", nil, "", "")
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = grafana.Post(context.TODO(), testEvent())

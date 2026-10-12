@@ -25,6 +25,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -215,4 +216,27 @@ func testEvent() eventv1.Event {
 		ReportingController: "source-controller",
 		ReportingInstance:   "source-controller-xyz",
 	}
+}
+
+func TestPostMessageWithParsedProxy(t *testing.T) {
+	g := NewWithT(t)
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		g.Expect(r.URL.String()).To(Equal("http://notification.invalid/events"))
+		g.Expect(r.Header.Get("Proxy-Authorization")).To(Equal("Basic dXNlcjpwYXNz"))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer proxy.Close()
+	proxyURL, err := url.Parse(proxy.URL)
+	g.Expect(err).ToNot(HaveOccurred())
+	proxyURL.User = url.UserPassword("user", "pass")
+	g.Expect(postMessage(context.Background(), "http://notification.invalid/events", map[string]string{"message": "test"}, withProxy(proxyURL))).To(Succeed())
+}
+
+func parseProxyURL(t testing.TB, value string) *url.URL {
+	t.Helper()
+	parsed, err := url.Parse(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return parsed
 }

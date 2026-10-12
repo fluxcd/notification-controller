@@ -19,7 +19,7 @@ const (
 
 type Telegram struct {
 	url      string
-	ProxyURL string
+	ProxyURL *url.URL
 	Channel  string
 	Token    string
 }
@@ -33,7 +33,7 @@ type TelegramPayload struct {
 	ParseMode       string `json:"parse_mode"`                  // Mode for parsing entities in the message text
 }
 
-func NewTelegram(proxyURL, channel, token string) (*Telegram, error) {
+func NewTelegram(proxyURL *url.URL, channel, token string) (*Telegram, error) {
 	if channel == "" {
 		return nil, errors.New("empty Telegram channel")
 	}
@@ -83,7 +83,7 @@ func (t *Telegram) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	var opts []postOption
-	if t.ProxyURL != "" {
+	if t.ProxyURL != nil {
 		opts = append(opts, withProxy(t.ProxyURL))
 	}
 

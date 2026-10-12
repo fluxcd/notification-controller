@@ -45,7 +45,7 @@ func Fuzz_Webex(f *testing.F) {
 		var tlsConfig tls.Config
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		webex, err := NewWebex(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", &tlsConfig, channel, token)
+		webex, err := NewWebex(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, &tlsConfig, channel, token)
 		if err != nil {
 			return
 		}

@@ -41,7 +41,7 @@ func Fuzz_Discord(f *testing.F) {
 		}))
 		defer ts.Close()
 
-		discord, err := NewDiscord(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", username, channel)
+		discord, err := NewDiscord(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, username, channel)
 		if err != nil {
 			return
 		}

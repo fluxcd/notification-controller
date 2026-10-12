@@ -62,7 +62,7 @@ func TestForwarder_New(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			_, err := NewForwarder("http://example.org", "", nil, nil, tt.hmacKey)
+			_, err := NewForwarder("http://example.org", nil, nil, nil, tt.hmacKey)
 			if tt.err {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -126,7 +126,7 @@ func TestForwarder_Post(t *testing.T) {
 			if tt.xSigHeader != "" {
 				headers["X-Signature"] = tt.xSigHeader
 			}
-			forwarder, err := NewForwarder(ts.URL, "", headers, nil, tt.hmacKey)
+			forwarder, err := NewForwarder(ts.URL, nil, headers, nil, tt.hmacKey)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			ev := testEvent()

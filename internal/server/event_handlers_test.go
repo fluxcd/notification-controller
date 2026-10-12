@@ -866,6 +866,16 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			wantErr: true,
 		},
 		{
+			name: "ProxySecretRef rejects an invalid proxy URL before creating a notifier",
+			providerSpec: &apiv1.ProviderSpec{
+				Type:           "generic",
+				Address:        "https://example.com",
+				ProxySecretRef: &meta.LocalObjectReference{Name: proxySecretName},
+			},
+			proxySecretData: map[string][]byte{"address": []byte("http://wrong\nURL")},
+			wantErr:         true,
+		},
+		{
 			name: "ProxySecretRef missing address field",
 			providerSpec: &apiv1.ProviderSpec{
 				Type:           "generic",
@@ -1724,4 +1734,40 @@ func getNotifierTLSConfig(n notifier.Interface) *tls.Config {
 	default:
 		return nil
 	}
+}
+
+func TestCreateNotifierPostsThroughProxySecretRef(t *testing.T) {
+	g := NewWithT(t)
+	requests := make(chan string, 1)
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests <- r.URL.String() + " " + r.Header.Get("Proxy-Authorization")
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer proxy.Close()
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "proxy", Namespace: "default"},
+		Data: map[string][]byte{
+			"address":  []byte(proxy.URL),
+			"username": []byte("user"),
+			"password": []byte("pass"),
+		},
+	}
+	kubeClient := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
+	provider := &apiv1.Provider{
+		ObjectMeta: metav1.ObjectMeta{Name: "provider", Namespace: "default"},
+		Spec: apiv1.ProviderSpec{
+			Type:           apiv1.GenericProvider,
+			Address:        "http://notification.invalid/events",
+			ProxySecretRef: &meta.LocalObjectReference{Name: secret.Name},
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	eventServer := EventServer{kubeClient: kubeClient}
+	n, _, err := eventServer.createNotifier(ctx, provider, "")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(n.Post(ctx, eventv1.Event{Message: "test"})).To(Succeed())
+	g.Expect(requests).To(Receive(Equal("http://notification.invalid/events Basic dXNlcjpwYXNz")))
 }

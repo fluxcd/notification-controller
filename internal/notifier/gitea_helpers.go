@@ -40,7 +40,7 @@ type GiteaClient struct {
 type giteaClientOptions struct {
 	address        string
 	token          string
-	proxyURL       string
+	proxyURL       *url.URL
 	tlsConfig      *tls.Config
 	fetchUserLogin bool
 }
@@ -63,7 +63,7 @@ func WithGiteaToken(token string) GiteaClientOption {
 }
 
 // WithGiteaProxyURL sets the proxy URL.
-func WithGiteaProxyURL(proxyURL string) GiteaClientOption {
+func WithGiteaProxyURL(proxyURL *url.URL) GiteaClientOption {
 	return func(o *giteaClientOptions) {
 		o.proxyURL = proxyURL
 	}
@@ -122,12 +122,8 @@ func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
 		tr.TLSClientConfig = o.tlsConfig
 	}
 
-	if o.proxyURL != "" {
-		parsedProxyURL, err := url.Parse(o.proxyURL)
-		if err != nil {
-			return nil, errors.New("invalid proxy URL")
-		}
-		tr.Proxy = http.ProxyURL(parsedProxyURL)
+	if o.proxyURL != nil {
+		tr.Proxy = http.ProxyURL(o.proxyURL)
 	}
 
 	client, err := gitea.NewClient(host, gitea.SetToken(o.token), gitea.SetHTTPClient(&http.Client{Transport: tr}))
