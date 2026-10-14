@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v64/github"
+	"github.com/google/go-github/v90/github"
 	. "github.com/onsi/gomega"
 
 	"github.com/fluxcd/pkg/auth/githubapp"

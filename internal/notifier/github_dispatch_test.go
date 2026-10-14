@@ -40,7 +40,7 @@ func TestNewGitHubDispatchBasic(t *testing.T) {
 	gomega.Expect(err).ToNot(HaveOccurred())
 	gomega.Expect(github.Owner).To(Equal("foo"))
 	gomega.Expect(github.Repo).To(Equal("bar"))
-	gomega.Expect(github.Client.BaseURL.Host).To(Equal("api.github.com"))
+	gomega.Expect(github.Client.BaseURL()).To(HavePrefix("https://api.github.com/"))
 }
 
 func TestNewEnterpriseGitHubDispatchBasic(t *testing.T) {
@@ -52,7 +52,7 @@ func TestNewEnterpriseGitHubDispatchBasic(t *testing.T) {
 	gomega.Expect(err).ToNot(HaveOccurred())
 	gomega.Expect(github.Owner).To(Equal("foo"))
 	gomega.Expect(github.Repo).To(Equal("bar"))
-	gomega.Expect(github.Client.BaseURL.Host).To(Equal("foobar.com"))
+	gomega.Expect(github.Client.BaseURL()).To(HavePrefix("https://foobar.com/"))
 }
 
 func TestNewGitHubDispatchInvalidUrl(t *testing.T) {

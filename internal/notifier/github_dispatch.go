@@ -21,7 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/google/go-github/v64/github"
+	"github.com/google/go-github/v90/github"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 )

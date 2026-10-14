@@ -37,7 +37,7 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/runtime/conditions"
 	"github.com/go-logr/logr"
-	"github.com/google/go-github/v64/github"
+	"github.com/google/go-github/v90/github"
 	"google.golang.org/api/idtoken"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

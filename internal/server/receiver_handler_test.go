@@ -31,7 +31,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/google/go-github/v64/github"
+	"github.com/google/go-github/v90/github"
 	"github.com/google/uuid"
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
