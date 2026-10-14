@@ -21,7 +21,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/google/go-github/v64/github"
+	"github.com/google/go-github/v90/github"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/apis/meta"
@@ -89,7 +89,7 @@ func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 		return nil
 	}
 
-	_, _, err = g.Client.Repositories.CreateStatus(ctx, g.Owner, g.Repo, rev, status)
+	_, _, err = g.Client.Repositories.CreateStatus(ctx, g.Owner, g.Repo, rev, *status)
 	if err != nil {
 		return fmt.Errorf("could not create commit status: %v", err)
 	}

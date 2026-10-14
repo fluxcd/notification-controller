@@ -28,7 +28,7 @@ import (
 	"github.com/fluxcd/pkg/auth/githubapp"
 	"github.com/fluxcd/pkg/ssh"
 
-	"github.com/google/go-github/v64/github"
+	"github.com/google/go-github/v90/github"
 	. "github.com/onsi/gomega"
 )
 
@@ -41,7 +41,7 @@ func TestNewGitHubBasic(t *testing.T) {
 	gm.Expect(err).ToNot(HaveOccurred())
 	gm.Expect(g.Owner).To(Equal("foo"))
 	gm.Expect(g.Repo).To(Equal("bar"))
-	gm.Expect(g.Client.BaseURL.Host).To(Equal("api.github.com"))
+	gm.Expect(g.Client.BaseURL()).To(HavePrefix("https://api.github.com/"))
 	gm.Expect(g.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
 }
 
@@ -54,7 +54,7 @@ func TestNewEmterpriseGitHubBasic(t *testing.T) {
 	gm.Expect(err).ToNot(HaveOccurred())
 	gm.Expect(g.Owner).To(Equal("foo"))
 	gm.Expect(g.Repo).To(Equal("bar"))
-	gm.Expect(g.Client.BaseURL.Host).To(Equal("foobar.com"))
+	gm.Expect(g.Client.BaseURL()).To(HavePrefix("https://foobar.com/"))
 	gm.Expect(g.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
 }
 

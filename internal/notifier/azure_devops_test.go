@@ -22,7 +22,7 @@ import (
 	"time"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
-	"github.com/microsoft/azure-devops-go-api/azuredevops/v6/git"
+	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 )

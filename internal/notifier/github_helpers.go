@@ -25,7 +25,7 @@ import (
 	"net/url"
 	"strings"
 
-	gogithub "github.com/google/go-github/v64/github"
+	gogithub "github.com/google/go-github/v90/github"
 	"golang.org/x/oauth2"
 
 	"github.com/fluxcd/pkg/auth/githubapp"
@@ -226,7 +226,7 @@ func createGitHubClient(ctx context.Context, host, token string, tlsConfig *tls.
 	tc := oauth2.NewClient(ctx, ts)
 
 	if baseURL.Host == "github.com" {
-		return gogithub.NewClient(tc), nil
+		return gogithub.NewClient(gogithub.WithHTTPClient(tc))
 	}
 
 	// Enterprise GitHub
@@ -239,7 +239,7 @@ func createGitHubClient(ctx context.Context, host, token string, tlsConfig *tls.
 		tc = oauth2.NewClient(ctx, ts)
 	}
 
-	client, err := gogithub.NewClient(tc).WithEnterpriseURLs(host, host)
+	client, err := gogithub.NewClient(gogithub.WithHTTPClient(tc), gogithub.WithEnterpriseURLs(host, host))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create enterprise GitHub client: %v", err)
 	}
