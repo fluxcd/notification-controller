@@ -15,7 +15,7 @@ require (
 	github.com/cdevents/sdk-go v0.5.1
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/coreos/go-oidc/v3 v3.21.0
-	github.com/elazarl/goproxy v1.8.4
+	github.com/elazarl/goproxy v1.9.2
 	github.com/fluxcd/cli-utils v1.4.0
 	github.com/fluxcd/notification-controller/api v1.9.0
 	github.com/fluxcd/pkg/apis/event v0.32.0
@@ -38,7 +38,7 @@ require (
 	github.com/microsoft/azure-devops-go-api/azuredevops/v7 v7.1.0
 	github.com/nats-io/nats.go v1.54.0
 	github.com/nats-io/nkeys v0.4.16
-	github.com/onsi/gomega v1.43.0
+	github.com/onsi/gomega v1.44.0
 	github.com/sethvargo/go-limiter v1.2.0
 	github.com/slok/go-http-metrics v0.13.0
 	github.com/spf13/pflag v1.0.10
