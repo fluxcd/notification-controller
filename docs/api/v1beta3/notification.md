@@ -323,19 +323,6 @@ Kubernetes meta/v1.Duration
 </tr>
 <tr>
 <td>
-<code>proxy</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Proxy the HTTP/S address of the proxy server.
-Deprecated: Use ProxySecretRef instead. Will be removed in v1.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>proxySecretRef</code><br>
 <em>
 <a href="https://pkg.go.dev/github.com/fluxcd/pkg/apis/meta#LocalObjectReference">
@@ -667,19 +654,6 @@ Kubernetes meta/v1.Duration
 <td>
 <em>(Optional)</em>
 <p>Timeout for sending alerts to the Provider.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>proxy</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Proxy the HTTP/S address of the proxy server.
-Deprecated: Use ProxySecretRef instead. Will be removed in v1.</p>
 </td>
 </tr>
 <tr>
