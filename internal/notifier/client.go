@@ -30,7 +30,7 @@ import (
 )
 
 type postOptions struct {
-	proxy             string
+	proxy             *url.URL
 	tlsConfig         *tls.Config
 	contentType       string
 	username          string
@@ -65,10 +65,7 @@ func postMessage(ctx context.Context, address string, payload any, opts ...postO
 		o(options)
 	}
 
-	httpClient, err := newHTTPClient(options)
-	if err != nil {
-		return err
-	}
+	httpClient := newHTTPClient(options)
 
 	contentType := options.contentType
 	var data []byte
@@ -112,7 +109,7 @@ func postMessage(ctx context.Context, address string, payload any, opts ...postO
 	return nil
 }
 
-func withProxy(proxy string) postOption {
+func withProxy(proxy *url.URL) postOption {
 	return func(opts *postOptions) {
 		opts.proxy = proxy
 	}
@@ -149,7 +146,7 @@ func withResponseValidator(respValidator func(resp *http.Response) error) postOp
 	}
 }
 
-func newHTTPClient(opts *postOptions) (*retryablehttp.Client, error) {
+func newHTTPClient(opts *postOptions) *retryablehttp.Client {
 	httpClient := retryablehttp.NewClient()
 
 	transport := httpClient.HTTPClient.Transport.(*http.Transport)
@@ -158,12 +155,8 @@ func newHTTPClient(opts *postOptions) (*retryablehttp.Client, error) {
 		transport.TLSClientConfig = opts.tlsConfig
 	}
 
-	if opts.proxy != "" {
-		proxyURL, err := url.Parse(opts.proxy)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse proxy URL: %w", err)
-		}
-		transport.Proxy = http.ProxyURL(proxyURL)
+	if opts.proxy != nil {
+		transport.Proxy = http.ProxyURL(opts.proxy)
 	}
 
 	// Disable the timeout for the HTTP client,
@@ -175,5 +168,5 @@ func newHTTPClient(opts *postOptions) (*retryablehttp.Client, error) {
 	httpClient.RetryMax = 4
 	httpClient.Logger = nil
 
-	return httpClient, nil
+	return httpClient
 }

@@ -126,7 +126,7 @@ func TestNewGiteaWithProxyURL(t *testing.T) {
 	gitea, err := NewGitea("kustomization/gitops-system/0c9c2e41",
 		WithGiteaAddress(srv.URL+"/foo/bar"),
 		WithGiteaToken("foobar"),
-		WithGiteaProxyURL(proxyURL),
+		WithGiteaProxyURL(parseProxyURL(t, proxyURL)),
 	)
 	gomega.Expect(err).ToNot(HaveOccurred())
 	gomega.Expect(gitea.Owner).To(Equal("foo"))
@@ -148,7 +148,7 @@ func TestNewGiteaWithProxyURLAndCertPool(t *testing.T) {
 	gitea, err := NewGitea("kustomization/gitops-system/0c9c2e41",
 		WithGiteaAddress(srv.URL+"/foo/bar"),
 		WithGiteaToken("foobar"),
-		WithGiteaProxyURL(proxyURL),
+		WithGiteaProxyURL(parseProxyURL(t, proxyURL)),
 		WithGiteaTLSConfig(tlsConfig),
 	)
 	gomega.Expect(err).ToNot(HaveOccurred())
@@ -166,16 +166,6 @@ func TestNewGiteaInvalidUrl(t *testing.T) {
 		WithGiteaToken("foobar"),
 	)
 	g.Expect(err).To(MatchError(ContainSubstring("invalid repository id")))
-}
-
-func TestNewGiteaInvalidProxyUrl(t *testing.T) {
-	g := NewWithT(t)
-	_, err := NewGitea("kustomization/gitops-system/0c9c2e41",
-		WithGiteaAddress("/foo/bar"),
-		WithGiteaToken("foobar"),
-		WithGiteaProxyURL("wrong\nURL"),
-	)
-	g.Expect(err).To(MatchError(ContainSubstring("invalid proxy URL")))
 }
 
 func TestNewGiteaEmptyToken(t *testing.T) {

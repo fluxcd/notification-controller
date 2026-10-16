@@ -31,19 +31,15 @@ import (
 )
 
 // newManagedIdentityToken is used to attempt credential-free authentication.
-func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, providerName, providerNamespace, scope string, tokenClient client.Client, tokenCache *cache.TokenCache) (string, error) {
+func newManagedIdentityToken(ctx context.Context, proxy *url.URL, serviceAccountName, providerName, providerNamespace, scope string, tokenClient client.Client, tokenCache *cache.TokenCache) (string, error) {
 	opts := []auth.Option{
 		auth.WithScopes(scope),
 		auth.WithClient(tokenClient),
 		auth.WithServiceAccountNamespace(providerNamespace),
 	}
 
-	if proxy != "" {
-		proxyURL, err := url.Parse(proxy)
-		if err != nil {
-			return "", fmt.Errorf("error parsing proxy URL: %w", err)
-		}
-		opts = append(opts, auth.WithProxyURL(*proxyURL))
+	if proxy != nil {
+		opts = append(opts, auth.WithProxyURL(*proxy))
 	}
 
 	if serviceAccountName != "" {

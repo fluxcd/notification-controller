@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -40,7 +41,7 @@ type AzureEventHub struct {
 }
 
 // NewAzureEventHub creates a eventhub client
-func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace, proxy,
+func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace string, proxy *url.URL,
 	serviceAccountName, providerName, providerNamespace string, tokenClient client.Client,
 	tokenCache *cache.TokenCache) (*AzureEventHub, error) {
 	var producerClient *eventhub.ProducerClient

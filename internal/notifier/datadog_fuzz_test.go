@@ -36,7 +36,7 @@ func Fuzz_DataDog(f *testing.F) {
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
 		tlsConfig := &tls.Config{RootCAs: &cert}
-		dd, err := NewDataDog(ts.URL, "", tlsConfig, apiKey)
+		dd, err := NewDataDog(ts.URL, nil, tlsConfig, apiKey)
 		if err != nil {
 			return
 		}

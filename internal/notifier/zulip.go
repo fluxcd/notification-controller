@@ -30,13 +30,13 @@ type Zulip struct {
 	endpoint  string
 	channel   string
 	topic     string
-	proxyURL  string
+	proxyURL  *url.URL
 	tlsConfig *tls.Config
 	username  string
 	password  string
 }
 
-func NewZulip(endpoint, channel, proxyURL string, tlsConfig *tls.Config, username, password string) (*Zulip, error) {
+func NewZulip(endpoint, channel string, proxyURL *url.URL, tlsConfig *tls.Config, username, password string) (*Zulip, error) {
 	u, err := url.Parse(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Zulip endpoint URL: %w", err)

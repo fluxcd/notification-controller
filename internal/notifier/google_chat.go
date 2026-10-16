@@ -30,7 +30,7 @@ import (
 // Slack holds the hook URL
 type GoogleChat struct {
 	URL      string
-	ProxyURL string
+	ProxyURL *url.URL
 	Username string
 	Channel  string
 }
@@ -75,7 +75,7 @@ type GoogleChatCardWidgetKeyValue struct {
 }
 
 // NewGoogleChat validates the Google Chat URL and returns a GoogleChat object
-func NewGoogleChat(hookURL string, proxyURL string) (*GoogleChat, error) {
+func NewGoogleChat(hookURL string, proxyURL *url.URL) (*GoogleChat, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Google Chat hook URL %s", hookURL)
@@ -141,7 +141,7 @@ func (s *GoogleChat) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	var opts []postOption
-	if s.ProxyURL != "" {
+	if s.ProxyURL != nil {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
 

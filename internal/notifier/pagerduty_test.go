@@ -26,21 +26,21 @@ const (
 func TestNewPagerDuty(t *testing.T) {
 	t.Run("US endpoint", func(t *testing.T) {
 		g := NewWithT(t)
-		p, err := NewPagerDuty("https://events.pagerduty.com/v2/enqueue", "", nil, routingKey)
+		p, err := NewPagerDuty("https://events.pagerduty.com/v2/enqueue", nil, nil, routingKey)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p.RoutingKey).To(Equal(routingKey))
 		g.Expect(p.Endpoint).ToNot(Equal(pagerdutyEUv2EventsAPIURL))
 	})
 	t.Run("EU endpoint", func(t *testing.T) {
 		g := NewWithT(t)
-		p, err := NewPagerDuty("https://events.eu.pagerduty.com/v2/enqueue", "", nil, routingKey)
+		p, err := NewPagerDuty("https://events.eu.pagerduty.com/v2/enqueue", nil, nil, routingKey)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p.RoutingKey).To(Equal(routingKey))
 		g.Expect(p.Endpoint).To(Equal(pagerdutyEUv2EventsAPIURL))
 	})
 	t.Run("invalid URL", func(t *testing.T) {
 		g := NewWithT(t)
-		_, err := NewPagerDuty("not a url", "", nil, routingKey)
+		_, err := NewPagerDuty("not a url", nil, nil, routingKey)
 		g.Expect(err).To(HaveOccurred())
 	})
 }
@@ -65,7 +65,7 @@ func TestPagerDutyPost(t *testing.T) {
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
 
-	pd, err := NewPagerDuty(ts.URL, "", nil, "token")
+	pd, err := NewPagerDuty(ts.URL, nil, nil, "token")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = pd.Post(context.TODO(), testEvent())

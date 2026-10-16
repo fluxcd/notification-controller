@@ -41,7 +41,7 @@ func TestSlack_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	slack, err := NewSlack(ts.URL, "", "", nil, "", "test")
+	slack, err := NewSlack(ts.URL, nil, "", nil, "", "test")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = slack.Post(context.TODO(), testEvent())
@@ -89,7 +89,7 @@ func TestSlack_PostFieldsAreSorted(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	slack, err := NewSlack(ts.URL, "", "", nil, "", "test")
+	slack, err := NewSlack(ts.URL, nil, "", nil, "", "test")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	event := testEvent()

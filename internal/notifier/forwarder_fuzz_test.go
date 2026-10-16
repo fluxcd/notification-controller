@@ -47,7 +47,7 @@ func Fuzz_Forwarder(f *testing.F) {
 		header := make(map[string]string)
 		_ = fuzz.NewConsumer(seed).FuzzMap(&header)
 
-		forwarder, err := NewForwarder(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), "", header, &tlsConfig, hmacKey)
+		forwarder, err := NewForwarder(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, header, &tlsConfig, hmacKey)
 		if err != nil {
 			return
 		}

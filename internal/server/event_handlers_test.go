@@ -656,7 +656,6 @@ func TestCreateNotifier(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		// TODO: Remove deprecated secret proxy key tests when Provider v1 is released.
 		{
 			name: "reference to secret with valid address, proxy, headers",
 			providerSpec: &apiv1beta3.ProviderSpec{
@@ -667,17 +666,6 @@ func TestCreateNotifier(t *testing.T) {
 				"address": []byte("https://example.com"),
 				"proxy":   []byte("https://exampleproxy.com"),
 				"headers": []byte(`foo: bar`),
-			},
-		},
-		{
-			name: "reference to secret with invalid proxy",
-			providerSpec: &apiv1beta3.ProviderSpec{
-				Type:      "slack",
-				SecretRef: &meta.LocalObjectReference{Name: secretName},
-			},
-			secretData: map[string][]byte{
-				"address": []byte("https://example.com"),
-				"proxy":   []byte("https://exampleproxy.com|"),
 			},
 			wantErr: true,
 		},
@@ -702,19 +690,6 @@ func TestCreateNotifier(t *testing.T) {
 			},
 			secretData: map[string][]byte{
 				"address": []byte("https://example.com"),
-			},
-		},
-		// TODO: Remove deprecated spec.proxy field tests when Provider v1 is released.
-		{
-			name: "invalid spec proxy overridden by valid secret ref proxy",
-			providerSpec: &apiv1beta3.ProviderSpec{
-				Type:      "slack",
-				SecretRef: &meta.LocalObjectReference{Name: secretName},
-				Proxy:     "https://example.com|",
-			},
-			secretData: map[string][]byte{
-				"address": []byte("https://example.com"),
-				"proxy":   []byte("https://example.com"),
 			},
 		},
 		{
@@ -915,6 +890,16 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			wantErr: true,
 		},
 		{
+			name: "ProxySecretRef rejects an invalid proxy URL before creating a notifier",
+			providerSpec: &apiv1beta3.ProviderSpec{
+				Type:           "generic",
+				Address:        "https://example.com",
+				ProxySecretRef: &meta.LocalObjectReference{Name: proxySecretName},
+			},
+			proxySecretData: map[string][]byte{"address": []byte("http://wrong\nURL")},
+			wantErr:         true,
+		},
+		{
 			name: "ProxySecretRef missing address field",
 			providerSpec: &apiv1beta3.ProviderSpec{
 				Type:           "generic",
@@ -925,15 +910,6 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 				"username": []byte("proxyuser"),
 			},
 			wantErr: true,
-		},
-		// TODO: Remove deprecated spec.proxy field tests when Provider v1 is released.
-		{
-			name: "deprecated spec.proxy field",
-			providerSpec: &apiv1beta3.ProviderSpec{
-				Type:    "generic",
-				Address: "https://example.com",
-				Proxy:   "http://proxy.example.com:8080",
-			},
 		},
 		{
 			name: "provider type that does not require address field",
@@ -1806,4 +1782,39 @@ func getNotifierTLSConfig(n notifier.Interface) *tls.Config {
 	default:
 		return nil
 	}
+}
+
+func TestCreateNotifierPostsThroughProxySecretRef(t *testing.T) {
+	g := NewWithT(t)
+	requests := make(chan string, 1)
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests <- r.URL.String() + " " + r.Header.Get("Proxy-Authorization")
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer proxy.Close()
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "proxy", Namespace: "default"},
+		Data: map[string][]byte{
+			"address":  []byte(proxy.URL),
+			"username": []byte("user"),
+			"password": []byte("pass"),
+		},
+	}
+	kubeClient := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
+	provider := &apiv1beta3.Provider{
+		ObjectMeta: metav1.ObjectMeta{Name: "provider", Namespace: "default"},
+		Spec: apiv1beta3.ProviderSpec{
+			Type:           apiv1beta3.GenericProvider,
+			Address:        "http://notification.invalid/events",
+			ProxySecretRef: &meta.LocalObjectReference{Name: secret.Name},
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	n, _, err := createNotifier(ctx, kubeClient, provider, "", nil)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(n.Post(ctx, eventv1.Event{Message: "test"})).To(Succeed())
+	g.Expect(requests).To(Receive(Equal("http://notification.invalid/events Basic dXNlcjpwYXNz")))
 }

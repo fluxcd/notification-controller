@@ -67,7 +67,7 @@ func TestOTEL_Post(t *testing.T) {
 			}
 			ctx := WithAlertMetadata(context.Background(), *alertMetadata)
 
-			otelTrace, err := NewOTLPTracer(ctx, ts.URL, "", nil, nil, "", "")
+			otelTrace, err := NewOTLPTracer(ctx, ts.URL, nil, nil, nil, "", "")
 			g.Expect(err).ToNot(HaveOccurred())
 
 			err = otelTrace.Post(ctx, tt.event())
@@ -95,4 +95,14 @@ func TestOTEL_Post(t *testing.T) {
 			g.Expect(body).To(ContainSubstring("prod"))       // env value
 		})
 	}
+}
+
+func TestOTELProxyCredentialsDoNotMutateInput(t *testing.T) {
+	g := NewWithT(t)
+	proxyURL := parseProxyURL(t, "http://original:credentials@proxy.invalid:8080")
+	original := proxyURL.String()
+	tracer, err := NewOTLPTracer(context.Background(), "http://collector.invalid", proxyURL, nil, nil, "user", "pass")
+	g.Expect(err).ToNot(HaveOccurred())
+	defer tracer.tracerExporter.Shutdown(context.Background())
+	g.Expect(proxyURL.String()).To(Equal(original))
 }
