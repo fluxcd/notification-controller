@@ -231,9 +231,8 @@ func createGitHubClient(ctx context.Context, host, token string, tlsConfig *tls.
 
 	// Enterprise GitHub
 	if tlsConfig != nil {
-		tr := &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
+		tr := http.DefaultTransport.(*http.Transport).Clone()
+		tr.TLSClientConfig = tlsConfig
 		hc := &http.Client{Transport: tr}
 		ctx = context.WithValue(ctx, oauth2.HTTPClient, hc)
 		tc = oauth2.NewClient(ctx, ts)
