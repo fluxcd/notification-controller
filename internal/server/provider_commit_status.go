@@ -94,6 +94,17 @@ func isGenericProvider(providerType string) bool {
 	return providerType == apiv1beta3.GenericProvider || providerType == apiv1beta3.GenericHMACProvider
 }
 
+// notifyCommitStatusUpdates returns true if commit status update events
+// should be sent to the provider. When spec.notifyCommitStatusUpdates is
+// unset, only Git providers, which set commit statuses, and generic
+// providers, which forward events as-is, receive them.
+func notifyCommitStatusUpdates(provider *apiv1beta3.Provider) bool {
+	if v := provider.Spec.NotifyCommitStatusUpdates; v != nil {
+		return *v
+	}
+	return isCommitStatusProvider(provider.Spec.Type) || isGenericProvider(provider.Spec.Type)
+}
+
 // isCommitStatusProvider returns true if the provider type is a Git provider.
 func isCommitStatusProvider(providerType string) bool {
 	gitProviderTypes := []string{

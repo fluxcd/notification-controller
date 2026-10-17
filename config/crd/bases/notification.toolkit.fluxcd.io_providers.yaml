@@ -93,6 +93,15 @@ spec:
                   Deprecated and not used in v1beta3.
                 pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
                 type: string
+              notifyCommitStatusUpdates:
+                description: |-
+                  NotifyCommitStatusUpdates controls whether commit status update events
+                  are sent to this Provider. When true, they are sent for any Provider
+                  type. When false, they are dropped for any Provider type. When unset,
+                  they are sent only to the Git commit status Provider types (github,
+                  gitlab, gitea, bitbucketserver, bitbucket, azuredevops) and to the
+                  generic and generic-hmac types.
+                type: boolean
               proxy:
                 description: |-
                   Proxy the HTTP/S address of the proxy server.

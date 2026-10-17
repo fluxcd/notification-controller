@@ -418,23 +418,25 @@ func TestGetNotificationParams(t *testing.T) {
 	testEvent := &eventv1.Event{InvolvedObject: involvedObj}
 
 	tests := []struct {
-		name                    string
-		alertNamespace          string
-		alertSummary            string
-		alertEventMetadata      map[string]string
-		providerType            string
-		providerNamespace       string
-		providerSuspended       bool
-		providerServiceAccount  string
-		secretNamespace         string
-		secretData              map[string][]byte
-		noCrossNSRefs           bool
-		enableObjLevelWI        bool
-		eventSeverity           string
-		eventMetadata           map[string]string
-		wantErr                 bool
-		wantDroppedCommitStatus bool
-		wantParams              bool
+		name                              string
+		alertNamespace                    string
+		alertSummary                      string
+		alertEventMetadata                map[string]string
+		providerType                      string
+		providerChannel                   string
+		providerNamespace                 string
+		providerSuspended                 bool
+		providerNotifyCommitStatusUpdates *bool
+		providerServiceAccount            string
+		secretNamespace                   string
+		secretData                        map[string][]byte
+		noCrossNSRefs                     bool
+		enableObjLevelWI                  bool
+		eventSeverity                     string
+		eventMetadata                     map[string]string
+		wantErr                           bool
+		wantDroppedCommitStatus           bool
+		wantParams                        bool
 	}{
 		{
 			name:              "event src and alert in diff NS",
@@ -535,6 +537,59 @@ func TestGetNotificationParams(t *testing.T) {
 			},
 			wantParams: true,
 		},
+		{
+			name:            "nats provider drops commit status update event when notifyCommitStatusUpdates is unset",
+			providerType:    apiv1beta3.NATSProvider,
+			providerChannel: "flux.events",
+			eventMetadata: map[string]string{
+				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
+			},
+			wantParams: false,
+		},
+		{
+			name:                              "nats provider with notifyCommitStatusUpdates true does not drop commit status update event",
+			providerType:                      apiv1beta3.NATSProvider,
+			providerChannel:                   "flux.events",
+			providerNotifyCommitStatusUpdates: new(true),
+			eventMetadata: map[string]string{
+				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
+			},
+			wantParams: true,
+		},
+		{
+			name:                              "slack provider with notifyCommitStatusUpdates true does not drop commit status update event",
+			providerType:                      apiv1beta3.SlackProvider,
+			providerNotifyCommitStatusUpdates: new(true),
+			eventMetadata: map[string]string{
+				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
+			},
+			wantParams: true,
+		},
+		{
+			name:                              "generic provider with notifyCommitStatusUpdates false drops commit status update event",
+			providerType:                      apiv1beta3.GenericProvider,
+			providerNotifyCommitStatusUpdates: new(false),
+			eventMetadata: map[string]string{
+				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
+			},
+			wantParams: false,
+		},
+		{
+			name:                              "commit status provider with notifyCommitStatusUpdates false drops commit status update event",
+			providerType:                      apiv1beta3.GitHubProvider,
+			providerNotifyCommitStatusUpdates: new(false),
+			eventMetadata: map[string]string{
+				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
+			},
+			wantParams: false,
+		},
+		{
+			name:                              "commit status provider with notifyCommitStatusUpdates false does not drop failure event",
+			providerType:                      apiv1beta3.GitHubProvider,
+			providerNotifyCommitStatusUpdates: new(false),
+			eventSeverity:                     eventv1.EventSeverityError,
+			wantErr:                           true, // proceeds past the guards and fails on notifier creation
+		},
 	}
 
 	for _, tt := range tests {
@@ -560,10 +615,14 @@ func TestGetNotificationParams(t *testing.T) {
 			if tt.providerType != "" {
 				provider.Spec.Type = tt.providerType
 			}
+			if tt.providerChannel != "" {
+				provider.Spec.Channel = tt.providerChannel
+			}
 			if tt.providerNamespace != "" {
 				provider.Namespace = tt.providerNamespace
 			}
 			provider.Spec.Suspend = tt.providerSuspended
+			provider.Spec.NotifyCommitStatusUpdates = tt.providerNotifyCommitStatusUpdates
 			provider.Spec.ServiceAccountName = tt.providerServiceAccount
 			if tt.secretNamespace != "" {
 				secret.Namespace = tt.secretNamespace

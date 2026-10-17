@@ -167,6 +167,15 @@ type ProviderSpec struct {
 	// and alert.
 	// +optional
 	CommitStatusExpr string `json:"commitStatusExpr,omitempty"`
+
+	// NotifyCommitStatusUpdates controls whether commit status update events
+	// are sent to this Provider. When true, they are sent for any Provider
+	// type. When false, they are dropped for any Provider type. When unset,
+	// they are sent only to the Git commit status Provider types (github,
+	// gitlab, gitea, bitbucketserver, bitbucket, azuredevops) and to the
+	// generic and generic-hmac types.
+	// +optional
+	NotifyCommitStatusUpdates *bool `json:"notifyCommitStatusUpdates,omitempty"`
 }
 
 // +genclient
