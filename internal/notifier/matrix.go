@@ -65,7 +65,7 @@ func (m *Matrix) Post(ctx context.Context, event eventv1.Event) error {
 
 	payload := MatrixPayload{
 		Body:    msg,
-		MsgType: "m.text",
+		MsgType: "m.notice",
 	}
 
 	opts := []postOption{
