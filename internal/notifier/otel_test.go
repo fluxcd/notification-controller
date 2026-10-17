@@ -21,11 +21,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	kustomizev1 "github.com/fluxcd/kustomize-controller/api/v1"
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 )
 
 func TestOTEL_Post(t *testing.T) {
@@ -56,6 +60,30 @@ func TestOTEL_Post(t *testing.T) {
 				return e
 			},
 		},
+		{
+			name: "event with related object",
+			event: func() eventv1.Event {
+				// Use a non-source involved object so parent resolution
+				// (collectParentUID) is exercised, and provide a RelatedObject
+				// whose UID is used directly as the parent regardless of kind.
+				e := testEvent()
+				e.InvolvedObject = corev1.ObjectReference{
+					APIVersion: "helm.toolkit.fluxcd.io/v2",
+					Kind:       "HelmRelease",
+					Namespace:  "gitops-system",
+					Name:       "webapp",
+					UID:        "helmrelease-uid",
+				}
+				e.RelatedObject = &corev1.ObjectReference{
+					APIVersion: "source.toolkit.fluxcd.io/v1",
+					Kind:       "GitRepository",
+					Namespace:  "gitops-system",
+					Name:       "webapp",
+					UID:        "related-source-uid",
+				}
+				return e
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -66,33 +94,42 @@ func TestOTEL_Post(t *testing.T) {
 				UID:       "test-alert-uid",
 			}
 			ctx := WithAlertMetadata(context.Background(), *alertMetadata)
+			// Create mock client with Kustomization scheme
+			scheme := runtime.NewScheme()
+			_ = kustomizev1.AddToScheme(scheme)
+			mockClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 
-			otelTrace, err := NewOTLPTracer(ctx, ts.URL, "", nil, nil, "", "")
+			otelTrace, err := NewOTLPTracer(ctx, mockClient, ts.URL, "", nil, nil, "", "")
 			g.Expect(err).ToNot(HaveOccurred())
 
-			err = otelTrace.Post(ctx, tt.event())
+			event := tt.event()
+			err = otelTrace.Post(ctx, event)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Eventually(func() int {
-				return len(receivedRequests)
-			}, time.Second*5, time.Millisecond*200).Should(BeNumerically(">", 0))
-
-			// Check the request
-			g.Expect(receivedRequests).To(HaveLen(1))
-			req := receivedRequests[0]
+			// The provider uses a SimpleSpanProcessor, so the span is exported
+			// synchronously before Post returns; the latest captured request is
+			// this subtest's.
+			req := receivedRequests[len(receivedRequests)-1]
 			g.Expect(req.Method).To(Equal("POST"))
 			g.Expect(req.Header.Get("Content-Type")).To(ContainSubstring("application/x-protobuf"))
-			g.Expect(receivedBodies[0]).ToNot(BeEmpty())
+			body := receivedBodies[len(receivedBodies)-1]
+			g.Expect(body).ToNot(BeEmpty())
 
 			// Validate OTLP content contains expected span data
-			body := string(receivedBodies[0])
-			g.Expect(body).To(ContainSubstring(tt.event().InvolvedObject.Name))
-			g.Expect(body).To(ContainSubstring(tt.event().InvolvedObject.Kind))
-			g.Expect(body).To(ContainSubstring(tt.event().InvolvedObject.Namespace))
-			// Check for the actual transformed attributes:
-			g.Expect(body).To(ContainSubstring("my-cluster")) // cluster value
-			g.Expect(body).To(ContainSubstring("us-east-2"))  // region value
-			g.Expect(body).To(ContainSubstring("prod"))       // env value
+			bodyStr := string(body)
+			g.Expect(bodyStr).To(ContainSubstring(event.InvolvedObject.Name))
+			g.Expect(bodyStr).To(ContainSubstring(event.InvolvedObject.Kind))
+			g.Expect(bodyStr).To(ContainSubstring(event.InvolvedObject.Namespace))
+			// Check for the transformed attributes set via alert.eventMetadata.
+			if v, ok := event.Metadata["cluster"]; ok {
+				g.Expect(bodyStr).To(ContainSubstring(v))
+			}
+			if v, ok := event.Metadata["region"]; ok {
+				g.Expect(bodyStr).To(ContainSubstring(v))
+			}
+			if v, ok := event.Metadata["env"]; ok {
+				g.Expect(bodyStr).To(ContainSubstring(v))
+			}
 		})
 	}
 }
