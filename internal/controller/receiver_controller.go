@@ -153,6 +153,20 @@ func (r *ReceiverReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 	obj := &apiv1.Receiver{}
 	if err := r.Get(ctx, req.NamespacedName, obj); err != nil {
+		if apierrors.IsNotFound(err) {
+			// The object is gone from the cluster, so the deferred metrics
+			// recording below never runs for it. Drop its duration series
+			// here directly, otherwise objects deleted without a reconcile
+			// pass that observes the deletion accumulate in the registry
+			// until the controller restarts.
+			if r.Metrics.MetricsRecorder != nil {
+				r.Metrics.MetricsRecorder.DeleteDuration(corev1.ObjectReference{
+					Kind:      apiv1.ReceiverKind,
+					Name:      req.Name,
+					Namespace: req.Namespace,
+				})
+			}
+		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
