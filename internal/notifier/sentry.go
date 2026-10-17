@@ -78,7 +78,7 @@ func (s *Sentry) Post(ctx context.Context, event eventv1.Event) error {
 // Convert a controller event to a Sentry trace
 // Sentry traces work slightly different compared to normal events, they don't cause
 // alerts by default and are saved differently.
-// They are shown in a dashobard with graphs, so they can be used to check if and how often
+// They are shown in a dashboard with graphs, so they can be used to check if and how often
 // flux tasks are running
 func eventToSpan(event eventv1.Event) *sentry.Event {
 	obj := event.InvolvedObject
