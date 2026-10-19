@@ -47,27 +47,32 @@ type eventContextKey struct{}
 
 // EventServer handles event POST requests
 type EventServer struct {
-	port                  string
-	logger                logr.Logger
-	kubeClient            client.Client
-	noCrossNamespaceRefs  bool
-	exportHTTPPathMetrics bool
-	tokenCache            *cache.TokenCache
+	port                        string
+	logger                      logr.Logger
+	kubeClient                  client.Client
+	noCrossNamespaceRefs        bool
+	exportHTTPPathMetrics       bool
+	tokenCache                  *cache.TokenCache
+	objectLevelWorkloadIdentity bool
+	defaultServiceAccount       string
 	events.Recorder
 }
 
 // NewEventServer returns an HTTP server that handles events
 func NewEventServer(port string, logger logr.Logger, kubeClient client.Client,
 	eventRecorder events.Recorder, noCrossNamespaceRefs bool,
-	exportHTTPPathMetrics bool, tokenCache *cache.TokenCache) *EventServer {
+	exportHTTPPathMetrics bool, tokenCache *cache.TokenCache,
+	objectLevelWorkloadIdentity bool, defaultServiceAccount string) *EventServer {
 	return &EventServer{
-		port:                  port,
-		logger:                logger.WithName("event-server"),
-		kubeClient:            kubeClient,
-		Recorder:              eventRecorder,
-		noCrossNamespaceRefs:  noCrossNamespaceRefs,
-		exportHTTPPathMetrics: exportHTTPPathMetrics,
-		tokenCache:            tokenCache,
+		port:                        port,
+		logger:                      logger.WithName("event-server"),
+		kubeClient:                  kubeClient,
+		Recorder:                    eventRecorder,
+		noCrossNamespaceRefs:        noCrossNamespaceRefs,
+		exportHTTPPathMetrics:       exportHTTPPathMetrics,
+		tokenCache:                  tokenCache,
+		objectLevelWorkloadIdentity: objectLevelWorkloadIdentity,
+		defaultServiceAccount:       defaultServiceAccount,
 	}
 }
 

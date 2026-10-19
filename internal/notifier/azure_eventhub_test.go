@@ -97,7 +97,7 @@ func TestNewAzureEventHub(t *testing.T) {
 			g := NewWithT(t)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			client, err := NewAzureEventHub(ctx, tt.endpointURL, tt.token, tt.eventHubNamespace, "", tt.serviceAccountName, "", "", nil, nil)
+			client, err := NewAzureEventHub(ctx, tt.endpointURL, tt.token, tt.eventHubNamespace, "", tt.serviceAccountName, "", "", nil, nil, "", false)
 			if tt.err != nil {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err).To(MatchError(ContainSubstring(tt.err.Error())))

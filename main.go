@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -132,20 +133,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	switch enabled, err := features.Enabled(auth.FeatureGateObjectLevelWorkloadIdentity); {
-	case err != nil:
+	objectLevelWorkloadIdentity, err := features.Enabled(auth.FeatureGateObjectLevelWorkloadIdentity)
+	if err != nil {
 		setupLog.Error(err, "unable to check feature gate "+auth.FeatureGateObjectLevelWorkloadIdentity)
 		os.Exit(1)
-	case enabled:
-		auth.EnableObjectLevelWorkloadIdentity()
 	}
 
-	if defaultServiceAccount != "" {
-		auth.SetDefaultServiceAccount(defaultServiceAccount)
-	}
-
-	if auth.InconsistentObjectLevelConfiguration() {
-		setupLog.Error(auth.ErrInconsistentObjectLevelConfiguration, "invalid configuration")
+	if defaultServiceAccount != "" && !objectLevelWorkloadIdentity {
+		setupLog.Error(errors.New("cannot set the default service account when the "+
+			auth.FeatureGateObjectLevelWorkloadIdentity+" feature gate is not enabled"), "invalid configuration")
 		os.Exit(1)
 	}
 
@@ -300,7 +296,7 @@ func main() {
 			Registry: ctrlmetrics.Registry,
 		}),
 	})
-	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), eventRecorder, aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics, tokenCache)
+	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), eventRecorder, aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics, tokenCache, objectLevelWorkloadIdentity, defaultServiceAccount)
 	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)

@@ -23,11 +23,9 @@ import (
 
 	"google.golang.org/api/option"
 
+	cryptov1 "github.com/fluxcd/pkg/apis/crypto/v1"
 	"github.com/fluxcd/pkg/auth"
 	"github.com/fluxcd/pkg/auth/gcp"
-	"github.com/fluxcd/pkg/cache"
-
-	"github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
 // buildGCPClientOptions builds client options for GCP services.
@@ -38,23 +36,11 @@ func buildGCPClientOptions(ctx context.Context, opts notifierOptions) ([]option.
 	if opts.Token != "" {
 		clientOpts = append(clientOpts, option.WithCredentialsJSON([]byte(opts.Token)))
 	} else {
-		authOpts := []auth.Option{
-			auth.WithClient(opts.TokenClient),
-			auth.WithServiceAccountNamespace(opts.ProviderNamespace),
-		}
-
-		if opts.TokenCache != nil {
-			involvedObject := cache.InvolvedObject{
-				Kind:      v1beta3.ProviderKind,
-				Name:      opts.ProviderName,
-				Namespace: opts.ProviderNamespace,
-				Operation: OperationPost,
-			}
-			authOpts = append(authOpts, auth.WithCache(*opts.TokenCache, involvedObject))
-		}
-
-		if opts.ServiceAccountName != "" {
-			authOpts = append(authOpts, auth.WithServiceAccountName(opts.ServiceAccountName))
+		authOpts, err := newAuthOptions(ctx, cryptov1.ProviderGCP, opts.ServiceAccountName,
+			opts.DefaultServiceAccount, opts.ObjectLevelWorkloadIdentity, opts.ProviderName,
+			opts.ProviderNamespace, opts.TokenClient, opts.TokenCache)
+		if err != nil {
+			return nil, err
 		}
 
 		if opts.ProxyURL != "" {

@@ -42,7 +42,8 @@ type AzureEventHub struct {
 // NewAzureEventHub creates a eventhub client
 func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace, proxy,
 	serviceAccountName, providerName, providerNamespace string, tokenClient client.Client,
-	tokenCache *cache.TokenCache) (*AzureEventHub, error) {
+	tokenCache *cache.TokenCache, defaultServiceAccount string,
+	objectLevelWorkloadIdentity bool) (*AzureEventHub, error) {
 	var producerClient *eventhub.ProducerClient
 	var err error
 
@@ -58,7 +59,8 @@ func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace
 	} else {
 		// if token doesn't exist, try to create a new token using managed identity
 		if token == "" {
-			token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName, providerName,
+			token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName,
+				defaultServiceAccount, objectLevelWorkloadIdentity, providerName,
 				providerNamespace, azure.ScopeEventHubs, tokenClient, tokenCache)
 			if err != nil {
 				return nil, fmt.Errorf("failed to create a eventhub using managed identity: %w", err)

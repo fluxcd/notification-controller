@@ -44,7 +44,6 @@ import (
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/apis/meta"
-	"github.com/fluxcd/pkg/auth"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
@@ -578,11 +577,6 @@ func TestGetNotificationParams(t *testing.T) {
 				event.Metadata = tt.eventMetadata
 			}
 
-			if tt.enableObjLevelWI {
-				auth.EnableObjectLevelWorkloadIdentity()
-				t.Cleanup(auth.DisableObjectLevelWorkloadIdentity)
-			}
-
 			// Create fake objects and event server.
 			scheme := runtime.NewScheme()
 			g.Expect(apiv1beta3.AddToScheme(scheme)).ToNot(HaveOccurred())
@@ -590,10 +584,11 @@ func TestGetNotificationParams(t *testing.T) {
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 			builder.WithObjects(provider, secret)
 			eventServer := EventServer{
-				kubeClient:           builder.Build(),
-				logger:               log.Log,
-				noCrossNamespaceRefs: tt.noCrossNSRefs,
-				Recorder:             events.NewFakeRecorder(32),
+				kubeClient:                  builder.Build(),
+				logger:                      log.Log,
+				noCrossNamespaceRefs:        tt.noCrossNSRefs,
+				objectLevelWorkloadIdentity: tt.enableObjLevelWI,
+				Recorder:                    events.NewFakeRecorder(32),
 			}
 
 			params, dropped, err := eventServer.getNotificationParams(context.TODO(), event, alert)
@@ -983,7 +978,8 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			}
 			provider := apiv1beta3.Provider{Spec: *tt.providerSpec}
 
-			notifier, _, err := createNotifier(context.TODO(), builder.Build(), &provider, "", nil)
+			eventServer := EventServer{kubeClient: builder.Build()}
+			notifier, _, err := eventServer.createNotifier(context.TODO(), &provider, "")
 			g.Expect(err != nil).To(Equal(tt.wantErr))
 
 			if !tt.wantErr && tt.wantTLSConfig != nil {

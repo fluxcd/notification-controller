@@ -18,13 +18,14 @@ require (
 	github.com/elazarl/goproxy v1.8.4
 	github.com/fluxcd/cli-utils v1.4.0
 	github.com/fluxcd/notification-controller/api v1.9.0
+	github.com/fluxcd/pkg/apis/crypto v0.4.1-0.20261020182949-c5194b17fdad
 	github.com/fluxcd/pkg/apis/event v0.32.0
-	github.com/fluxcd/pkg/apis/meta v1.35.0
-	github.com/fluxcd/pkg/auth v0.62.0
-	github.com/fluxcd/pkg/cache v0.17.0
+	github.com/fluxcd/pkg/apis/meta v1.36.1-0.20261020182949-c5194b17fdad
+	github.com/fluxcd/pkg/auth v0.63.1-0.20261020182949-c5194b17fdad
+	github.com/fluxcd/pkg/cache v0.17.1-0.20261020182949-c5194b17fdad
 	github.com/fluxcd/pkg/git v0.55.0
 	github.com/fluxcd/pkg/masktoken v0.10.0
-	github.com/fluxcd/pkg/runtime v0.119.0
+	github.com/fluxcd/pkg/runtime v0.120.1-0.20261020182949-c5194b17fdad
 	github.com/fluxcd/pkg/ssa v0.80.0
 	github.com/fluxcd/pkg/ssh v0.28.0
 	github.com/getsentry/sentry-go v0.50.0
@@ -179,6 +180,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
+	github.com/spiffe/go-spiffe/v2 v2.9.0 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect

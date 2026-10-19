@@ -190,8 +190,12 @@ func getGitHubAppToken(ctx context.Context, o *gitHubClientOptions) (*githubapp.
 	}
 
 	if o.tokenCache != nil {
-		githubOpts = append(githubOpts, githubapp.WithCache(o.tokenCache,
-			v1beta3.ProviderKind, o.providerName, o.providerNamespace, OperationPost))
+		githubOpts = append(githubOpts, githubapp.WithCache(o.tokenCache, cache.InvolvedObject{
+			Kind:      v1beta3.ProviderKind,
+			Name:      o.providerName,
+			Namespace: o.providerNamespace,
+			Operation: OperationPost,
+		}))
 	}
 
 	if o.fetchUserLogin {
