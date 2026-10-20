@@ -18,6 +18,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"net/http"
 	"os"
 	"time"
@@ -37,19 +38,21 @@ type ReceiverServer struct {
 	kubeClient            client.Client
 	noCrossNamespaceRefs  bool
 	exportHTTPPathMetrics bool
+	tlsConfig             *tls.Config
 	// gcrTokenValidator overrides the default GCR OIDC token validation function.
 	// Used in tests to avoid calling Google's servers.
 	gcrTokenValidator func(ctx context.Context, bearer string, expectedEmail string, expectedAudience string) error
 }
 
 // NewReceiverServer returns an HTTP server that handles webhooks
-func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client, noCrossNamespaceRefs bool, exportHTTPPathMetrics bool) *ReceiverServer {
+func NewReceiverServer(port string, logger logr.Logger, kubeClient client.Client, noCrossNamespaceRefs bool, exportHTTPPathMetrics bool, tlsConfig *tls.Config) *ReceiverServer {
 	return &ReceiverServer{
 		port:                  port,
 		logger:                logger.WithName("receiver-server"),
 		kubeClient:            kubeClient,
 		noCrossNamespaceRefs:  noCrossNamespaceRefs,
 		exportHTTPPathMetrics: exportHTTPPathMetrics,
+		tlsConfig:             tlsConfig,
 	}
 }
 
@@ -68,10 +71,17 @@ func (s *ReceiverServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.
 		ReadTimeout:       readTimeout,
 		ReadHeaderTimeout: readHeaderTimeout,
 		MaxHeaderBytes:    maxHeaderBytes,
+		TLSConfig:         s.tlsConfig,
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		var err error
+		if s.tlsConfig != nil {
+			err = srv.ListenAndServeTLS("", "")
+		} else {
+			err = srv.ListenAndServe()
+		}
+		if err != http.ErrServerClosed {
 			s.logger.Error(err, "Receiver server crashed")
 			os.Exit(1)
 		}

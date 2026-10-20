@@ -19,6 +19,7 @@ package server
 import (
 	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -55,6 +56,7 @@ type EventServer struct {
 	tokenCache                  *cache.TokenCache
 	objectLevelWorkloadIdentity bool
 	defaultServiceAccount       string
+	tlsConfig                   *tls.Config
 	events.Recorder
 }
 
@@ -62,7 +64,8 @@ type EventServer struct {
 func NewEventServer(port string, logger logr.Logger, kubeClient client.Client,
 	eventRecorder events.Recorder, noCrossNamespaceRefs bool,
 	exportHTTPPathMetrics bool, tokenCache *cache.TokenCache,
-	objectLevelWorkloadIdentity bool, defaultServiceAccount string) *EventServer {
+	objectLevelWorkloadIdentity bool, defaultServiceAccount string,
+	tlsConfig *tls.Config) *EventServer {
 	return &EventServer{
 		port:                        port,
 		logger:                      logger.WithName("event-server"),
@@ -73,6 +76,7 @@ func NewEventServer(port string, logger logr.Logger, kubeClient client.Client,
 		tokenCache:                  tokenCache,
 		objectLevelWorkloadIdentity: objectLevelWorkloadIdentity,
 		defaultServiceAccount:       defaultServiceAccount,
+		tlsConfig:                   tlsConfig,
 	}
 }
 
@@ -105,10 +109,17 @@ func (s *EventServer) ListenAndServe(stopCh <-chan struct{}, mdlw middleware.Mid
 		ReadTimeout:       readTimeout,
 		ReadHeaderTimeout: readHeaderTimeout,
 		MaxHeaderBytes:    maxHeaderBytes,
+		TLSConfig:         s.tlsConfig,
 	}
 
 	go func() {
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		var err error
+		if s.tlsConfig != nil {
+			err = srv.ListenAndServeTLS("", "")
+		} else {
+			err = srv.ListenAndServe()
+		}
+		if err != http.ErrServerClosed {
 			s.logger.Error(err, "Event server crashed")
 			os.Exit(1)
 		}

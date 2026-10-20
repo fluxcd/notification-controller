@@ -26,6 +26,7 @@ require (
 	github.com/fluxcd/pkg/git v0.55.0
 	github.com/fluxcd/pkg/masktoken v0.10.0
 	github.com/fluxcd/pkg/runtime v0.120.1-0.20261020182949-c5194b17fdad
+	github.com/fluxcd/pkg/spiffe v0.0.0-20261020182949-c5194b17fdad
 	github.com/fluxcd/pkg/ssa v0.80.0
 	github.com/fluxcd/pkg/ssh v0.28.0
 	github.com/getsentry/sentry-go v0.50.0
@@ -43,6 +44,7 @@ require (
 	github.com/sethvargo/go-limiter v1.2.0
 	github.com/slok/go-http-metrics v0.13.0
 	github.com/spf13/pflag v1.0.10
+	github.com/spiffe/go-spiffe/v2 v2.9.0
 	gitlab.com/gitlab-org/api/client-go v1.46.0
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.47.0
@@ -180,7 +182,6 @@ require (
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/skeema/knownhosts v1.3.1 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect
-	github.com/spiffe/go-spiffe/v2 v2.9.0 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect

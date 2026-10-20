@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"os"
@@ -26,6 +27,7 @@ import (
 	prommetrics "github.com/slok/go-http-metrics/metrics/prometheus"
 	"github.com/slok/go-http-metrics/middleware"
 	flag "github.com/spf13/pflag"
+	"github.com/spiffe/go-spiffe/v2/workloadapi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -51,6 +53,7 @@ import (
 	"github.com/fluxcd/pkg/runtime/metrics"
 	"github.com/fluxcd/pkg/runtime/pprof"
 	"github.com/fluxcd/pkg/runtime/probes"
+	fluxspiffe "github.com/fluxcd/pkg/spiffe"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	apiv1b2 "github.com/fluxcd/notification-controller/api/v1beta2"
@@ -99,6 +102,8 @@ func main() {
 		tokenCacheOptions     pkgcache.TokenFlags
 		watchOptions          runtimeCtrl.WatchOptions
 		defaultServiceAccount string
+		authorizedNotifiers   []string
+		authorizedReceivers   []string
 	)
 
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -123,6 +128,10 @@ func main() {
 	tokenCacheOptions.BindFlags(flag.CommandLine, tokenCacheDefaultMaxSize)
 	flag.StringVar(&defaultServiceAccount, auth.ControllerFlagDefaultServiceAccount,
 		"", "Default service account to use for workload identity when not specified in resources.")
+	flag.StringArrayVar(&authorizedNotifiers, fluxspiffe.ControllerFlagAuthorizedNotifierSPIFFEID, nil,
+		"SPIFFE ID of a notifier authorized to send events. Can be repeated.")
+	flag.StringArrayVar(&authorizedReceivers, fluxspiffe.ControllerFlagAuthorizedReceiverSPIFFEID, nil,
+		"SPIFFE ID of a receiver authorized to send requests. Can be repeated.")
 
 	flag.Parse()
 
@@ -275,6 +284,39 @@ func main() {
 	// +kubebuilder:scaffold:builder
 
 	ctx := ctrl.SetupSignalHandler()
+
+	var eventTLSConfig, receiverTLSConfig *tls.Config
+	if len(authorizedNotifiers) > 0 || len(authorizedReceivers) > 0 {
+		source, err := workloadapi.NewX509Source(ctx)
+		if err != nil {
+			setupLog.Error(err, "unable to create SPIFFE X.509 source")
+			os.Exit(1)
+		}
+		defer func() {
+			if err := source.Close(); err != nil {
+				setupLog.Error(err, "unable to close SPIFFE X.509 source")
+			}
+		}()
+
+		if len(authorizedNotifiers) > 0 {
+			eventTLSConfig, err = fluxspiffe.BuildTLSConfig(source, authorizedNotifiers...)
+			if err != nil {
+				setupLog.Error(err, "unable to configure SPIFFE mTLS for the event server")
+				os.Exit(1)
+			}
+			setupLog.Info("event server will use inter-controller mTLS via SPIFFE", "spiffeIDs", authorizedNotifiers)
+		}
+
+		if len(authorizedReceivers) > 0 {
+			receiverTLSConfig, err = fluxspiffe.BuildTLSConfig(source, authorizedReceivers...)
+			if err != nil {
+				setupLog.Error(err, "unable to configure SPIFFE mTLS for the receiver server")
+				os.Exit(1)
+			}
+			setupLog.Info("receiver server will use inter-controller mTLS via SPIFFE", "spiffeIDs", authorizedReceivers)
+		}
+	}
+
 	// Sweep the rate limiter store at every interval and purge entries
 	// older than two intervals, to bound the memory usage of the store.
 	// A bucket becomes irrelevant once the rate limit interval has passed,
@@ -296,11 +338,11 @@ func main() {
 			Registry: ctrlmetrics.Registry,
 		}),
 	})
-	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), eventRecorder, aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics, tokenCache, objectLevelWorkloadIdentity, defaultServiceAccount)
+	eventServer := server.NewEventServer(eventsAddr, ctrl.Log, mgr.GetClient(), eventRecorder, aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics, tokenCache, objectLevelWorkloadIdentity, defaultServiceAccount, eventTLSConfig)
 	go eventServer.ListenAndServe(ctx.Done(), eventMdlw, store)
 
 	setupLog.Info("starting webhook receiver server", "addr", receiverAddr)
-	receiverServer := server.NewReceiverServer(receiverAddr, ctrl.Log, mgr.GetClient(), aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics)
+	receiverServer := server.NewReceiverServer(receiverAddr, ctrl.Log, mgr.GetClient(), aclOptions.NoCrossNamespaceRefs, exportHTTPPathMetrics, receiverTLSConfig)
 	receiverMdlw := middleware.New(middleware.Config{
 		Recorder: prommetrics.NewRecorder(prommetrics.Config{
 			Prefix:   "gotk_receiver",
