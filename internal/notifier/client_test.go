@@ -208,6 +208,7 @@ func testEvent() eventv1.Event {
 		Severity:  "info",
 		Timestamp: metav1.Now(),
 		Message:   "message",
+		Action:    "action",
 		Reason:    "reason",
 		Metadata: map[string]string{
 			"test": "metadata",
