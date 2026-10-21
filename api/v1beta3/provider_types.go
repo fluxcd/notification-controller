@@ -137,7 +137,6 @@ type ProviderSpec struct {
 	// When unspecified, controller-level authentication is used (single-tenant).
 	//
 	// An error is thrown if static credentials are also defined in SecretRef.
-	// This field requires the ObjectLevelWorkloadIdentity feature gate to be enabled.
 	//
 	// +optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`

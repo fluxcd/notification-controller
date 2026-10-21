@@ -384,8 +384,7 @@ This enables multi-tenant authentication without storing static credentials.</p>
 2. Exchange it for cloud provider credentials via STS
 3. Use the obtained credentials for API authentication</p>
 <p>When unspecified, controller-level authentication is used (single-tenant).</p>
-<p>An error is thrown if static credentials are also defined in SecretRef.
-This field requires the ObjectLevelWorkloadIdentity feature gate to be enabled.</p>
+<p>An error is thrown if static credentials are also defined in SecretRef.</p>
 </td>
 </tr>
 <tr>
@@ -732,8 +731,7 @@ This enables multi-tenant authentication without storing static credentials.</p>
 2. Exchange it for cloud provider credentials via STS
 3. Use the obtained credentials for API authentication</p>
 <p>When unspecified, controller-level authentication is used (single-tenant).</p>
-<p>An error is thrown if static credentials are also defined in SecretRef.
-This field requires the ObjectLevelWorkloadIdentity feature gate to be enabled.</p>
+<p>An error is thrown if static credentials are also defined in SecretRef.</p>
 </td>
 </tr>
 <tr>

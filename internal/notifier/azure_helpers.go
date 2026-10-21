@@ -27,16 +27,17 @@ import (
 	"github.com/fluxcd/pkg/auth"
 	"github.com/fluxcd/pkg/auth/azure"
 	"github.com/fluxcd/pkg/cache"
+	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
 )
 
 // newManagedIdentityToken is used to attempt credential-free authentication.
 func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, defaultServiceAccount string,
-	objectLevelWorkloadIdentity bool, providerName, providerNamespace, scope string,
-	tokenClient client.Client, tokenCache *cache.TokenCache) (string, error) {
+	providerName, providerNamespace, scope string,
+	tokenClient client.Client, tokenCache *cache.TokenCache, spiffeBroker fluxbroker.Interface) (string, error) {
 
 	opts, err := newAuthOptions(ctx, cryptov1.ProviderAzure, serviceAccountName,
-		defaultServiceAccount, objectLevelWorkloadIdentity, providerName, providerNamespace,
-		tokenClient, tokenCache)
+		defaultServiceAccount, providerName, providerNamespace,
+		tokenClient, tokenCache, spiffeBroker)
 	if err != nil {
 		return "", err
 	}
@@ -50,10 +51,10 @@ func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, def
 		opts = append(opts, auth.WithProxyURL(*proxyURL))
 	}
 
-	token, err := auth.GetAccessToken(ctx, azure.Provider{}, opts...)
+	credential, err := auth.NewAccessCredential(ctx, azure.Provider{}, opts...)
 	if err != nil {
 		return "", fmt.Errorf("failed to get token: %w", err)
 	}
 
-	return token.(*azure.Token).Token, nil
+	return credential.(*azure.AccessToken).Token, nil
 }

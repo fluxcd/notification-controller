@@ -38,6 +38,7 @@ import (
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/runtime/events"
+	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
 )
 
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
@@ -48,15 +49,15 @@ type eventContextKey struct{}
 
 // EventServer handles event POST requests
 type EventServer struct {
-	port                        string
-	logger                      logr.Logger
-	kubeClient                  client.Client
-	noCrossNamespaceRefs        bool
-	exportHTTPPathMetrics       bool
-	tokenCache                  *cache.TokenCache
-	objectLevelWorkloadIdentity bool
-	defaultServiceAccount       string
-	tlsConfig                   *tls.Config
+	port                  string
+	logger                logr.Logger
+	kubeClient            client.Client
+	noCrossNamespaceRefs  bool
+	exportHTTPPathMetrics bool
+	tokenCache            *cache.TokenCache
+	defaultServiceAccount string
+	tlsConfig             *tls.Config
+	spiffeBroker          fluxbroker.Interface
 	events.Recorder
 }
 
@@ -64,19 +65,19 @@ type EventServer struct {
 func NewEventServer(port string, logger logr.Logger, kubeClient client.Client,
 	eventRecorder events.Recorder, noCrossNamespaceRefs bool,
 	exportHTTPPathMetrics bool, tokenCache *cache.TokenCache,
-	objectLevelWorkloadIdentity bool, defaultServiceAccount string,
-	tlsConfig *tls.Config) *EventServer {
+	defaultServiceAccount string,
+	tlsConfig *tls.Config, spiffeBroker fluxbroker.Interface) *EventServer {
 	return &EventServer{
-		port:                        port,
-		logger:                      logger.WithName("event-server"),
-		kubeClient:                  kubeClient,
-		Recorder:                    eventRecorder,
-		noCrossNamespaceRefs:        noCrossNamespaceRefs,
-		exportHTTPPathMetrics:       exportHTTPPathMetrics,
-		tokenCache:                  tokenCache,
-		objectLevelWorkloadIdentity: objectLevelWorkloadIdentity,
-		defaultServiceAccount:       defaultServiceAccount,
-		tlsConfig:                   tlsConfig,
+		port:                  port,
+		logger:                logger.WithName("event-server"),
+		kubeClient:            kubeClient,
+		Recorder:              eventRecorder,
+		noCrossNamespaceRefs:  noCrossNamespaceRefs,
+		exportHTTPPathMetrics: exportHTTPPathMetrics,
+		tokenCache:            tokenCache,
+		defaultServiceAccount: defaultServiceAccount,
+		tlsConfig:             tlsConfig,
+		spiffeBroker:          spiffeBroker,
 	}
 }
 

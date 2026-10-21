@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/fluxcd/pkg/cache"
+	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1beta3"
 )
@@ -86,19 +87,19 @@ type notifierOptions struct {
 	Headers  map[string]string
 	// CertPool is kept for Git platform providers (GitHub, GitLab, etc.) that use third-party SDKs.
 	// TODO: Remove this field once all notifiers support client certificate authentication via TLSConfig.
-	CertPool                    *x509.CertPool
-	TLSConfig                   *tls.Config
-	Password                    string
-	CommitStatus                string
-	ProviderUID                 string
-	ProviderName                string
-	ProviderNamespace           string
-	SecretData                  map[string][]byte
-	ServiceAccountName          string
-	DefaultServiceAccount       string
-	ObjectLevelWorkloadIdentity bool
-	TokenCache                  *cache.TokenCache
-	TokenClient                 client.Client
+	CertPool              *x509.CertPool
+	TLSConfig             *tls.Config
+	Password              string
+	CommitStatus          string
+	ProviderUID           string
+	ProviderName          string
+	ProviderNamespace     string
+	SecretData            map[string][]byte
+	ServiceAccountName    string
+	DefaultServiceAccount string
+	TokenCache            *cache.TokenCache
+	TokenClient           client.Client
+	SPIFFEBroker          fluxbroker.Interface
 }
 
 type Factory struct {
@@ -206,6 +207,14 @@ func WithTokenCache(cache *cache.TokenCache) Option {
 	}
 }
 
+// WithSPIFFEBroker sets the client used to fetch JWT-SVIDs for the `spiffe`
+// credential provider.
+func WithSPIFFEBroker(client fluxbroker.Interface) Option {
+	return func(o *notifierOptions) {
+		o.SPIFFEBroker = client
+	}
+}
+
 // WithTokenClient sets the token client for the notifier.
 func WithTokenClient(kubeClient client.Client) Option {
 	return func(o *notifierOptions) {
@@ -225,14 +234,6 @@ func WithServiceAccount(serviceAccountName string) Option {
 func WithDefaultServiceAccount(serviceAccountName string) Option {
 	return func(o *notifierOptions) {
 		o.DefaultServiceAccount = serviceAccountName
-	}
-}
-
-// WithObjectLevelWorkloadIdentity indicates whether object-level workload
-// identity is enabled.
-func WithObjectLevelWorkloadIdentity() Option {
-	return func(o *notifierOptions) {
-		o.ObjectLevelWorkloadIdentity = true
 	}
 }
 
@@ -308,7 +309,7 @@ func sentryNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func azureEventHubNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewAzureEventHub(opts.Context, opts.URL, opts.Token, opts.Channel, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName, opts.ProviderNamespace, opts.TokenClient, opts.TokenCache, opts.DefaultServiceAccount, opts.ObjectLevelWorkloadIdentity)
+	return NewAzureEventHub(opts.Context, opts.URL, opts.Token, opts.Channel, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName, opts.ProviderNamespace, opts.TokenClient, opts.TokenCache, opts.SPIFFEBroker, opts.DefaultServiceAccount)
 }
 
 func telegramNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -392,8 +393,8 @@ func bitbucketNotifierFunc(opts notifierOptions) (Interface, error) {
 func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {
 	return NewAzureDevOps(opts.Context, opts.CommitStatus, opts.URL, opts.Token,
 		opts.TLSConfig, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName,
-		opts.ProviderNamespace, opts.TokenClient, opts.TokenCache,
-		opts.DefaultServiceAccount, opts.ObjectLevelWorkloadIdentity)
+		opts.ProviderNamespace, opts.TokenClient, opts.TokenCache, opts.SPIFFEBroker,
+		opts.DefaultServiceAccount)
 }
 
 func zulipNotifierFunc(opts notifierOptions) (Interface, error) {

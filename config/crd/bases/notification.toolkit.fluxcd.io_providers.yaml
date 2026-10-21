@@ -140,7 +140,6 @@ spec:
                   When unspecified, controller-level authentication is used (single-tenant).
 
                   An error is thrown if static credentials are also defined in SecretRef.
-                  This field requires the ObjectLevelWorkloadIdentity feature gate to be enabled.
                 type: string
               suspend:
                 description: |-

@@ -37,8 +37,8 @@ func buildGCPClientOptions(ctx context.Context, opts notifierOptions) ([]option.
 		clientOpts = append(clientOpts, option.WithCredentialsJSON([]byte(opts.Token)))
 	} else {
 		authOpts, err := newAuthOptions(ctx, cryptov1.ProviderGCP, opts.ServiceAccountName,
-			opts.DefaultServiceAccount, opts.ObjectLevelWorkloadIdentity, opts.ProviderName,
-			opts.ProviderNamespace, opts.TokenClient, opts.TokenCache)
+			opts.DefaultServiceAccount, opts.ProviderName,
+			opts.ProviderNamespace, opts.TokenClient, opts.TokenCache, opts.SPIFFEBroker)
 		if err != nil {
 			return nil, err
 		}

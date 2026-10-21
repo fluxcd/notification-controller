@@ -31,6 +31,7 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/auth/azure"
 	"github.com/fluxcd/pkg/cache"
+	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
 )
 
 const genre string = "fluxcd"
@@ -51,14 +52,14 @@ type AzureDevOps struct {
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
 func NewAzureDevOps(ctx context.Context, commitStatus string, addr string, token string,
 	tlsConfig *tls.Config, proxy, serviceAccountName, providerName, providerNamespace string,
-	tokenClient client.Client, tokenCache *cache.TokenCache, defaultServiceAccount string,
-	objectLevelWorkloadIdentity bool) (*AzureDevOps, error) {
+	tokenClient client.Client, tokenCache *cache.TokenCache, spiffeBroker fluxbroker.Interface,
+	defaultServiceAccount string) (*AzureDevOps, error) {
 	var err error
 	if len(token) == 0 {
 		// if token doesn't exist, try to create a new token using managed identity
 		token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName,
-			defaultServiceAccount, objectLevelWorkloadIdentity, providerName,
-			providerNamespace, azure.ScopeDevOps, tokenClient, tokenCache)
+			defaultServiceAccount, providerName,
+			providerNamespace, azure.ScopeDevOps, tokenClient, tokenCache, spiffeBroker)
 		if err != nil {
 			return nil, fmt.Errorf("failed to acquire azure devops token: %w", err)
 		}

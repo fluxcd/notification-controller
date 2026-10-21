@@ -58,7 +58,7 @@ func TestNewAzureEventHub(t *testing.T) {
 			endpointURL:       "azure-nc-eventhub",
 			token:             "",
 			eventHubNamespace: "namespace",
-			err:               errors.New("failed to create a eventhub using managed identity: failed to get token: failed to create provider access token for the controller: ManagedIdentityCredential"),
+			err:               errors.New("failed to create a eventhub using managed identity: failed to get token: failed to create provider access credential for the controller: ManagedIdentityCredential"),
 		},
 		{
 			name:               "SAS auth with serviceAccountName set",
@@ -97,7 +97,7 @@ func TestNewAzureEventHub(t *testing.T) {
 			g := NewWithT(t)
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			client, err := NewAzureEventHub(ctx, tt.endpointURL, tt.token, tt.eventHubNamespace, "", tt.serviceAccountName, "", "", nil, nil, "", false)
+			client, err := NewAzureEventHub(ctx, tt.endpointURL, tt.token, tt.eventHubNamespace, "", tt.serviceAccountName, "", "", nil, nil, nil, "")
 			if tt.err != nil {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err).To(MatchError(ContainSubstring(tt.err.Error())))

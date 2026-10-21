@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/yaml"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
-	"github.com/fluxcd/pkg/auth"
 	"github.com/fluxcd/pkg/masktoken"
 	"github.com/fluxcd/pkg/runtime/secrets"
 
@@ -343,13 +342,6 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, droppedProviders{changeRequest: true}, nil
 	}
 
-	// Check object-level workload identity feature gate.
-	if provider.Spec.ServiceAccountName != "" && !s.objectLevelWorkloadIdentity {
-		return nil, droppedProviders{}, fmt.Errorf(
-			"to use spec.serviceAccountName for provider authentication please enable the %s feature gate in the controller",
-			auth.FeatureGateObjectLevelWorkloadIdentity)
-	}
-
 	// Create a copy of the event and combine event metadata
 	notification := *event.DeepCopy()
 	s.combineEventMetadata(ctx, &notification, alert)
@@ -469,12 +461,11 @@ func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1beta3.P
 		options = append(options, notifier.WithDefaultServiceAccount(s.defaultServiceAccount))
 	}
 
-	if s.objectLevelWorkloadIdentity {
-		options = append(options, notifier.WithObjectLevelWorkloadIdentity())
-	}
-
 	if s.tokenCache != nil {
 		options = append(options, notifier.WithTokenCache(s.tokenCache))
+	}
+	if s.spiffeBroker != nil {
+		options = append(options, notifier.WithSPIFFEBroker(s.spiffeBroker))
 	}
 
 	// TODO: Remove deprecated proxy handling when Provider v1 is released.
