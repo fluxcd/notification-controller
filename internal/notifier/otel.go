@@ -64,19 +64,25 @@ func NewOTLPTracer(ctx context.Context, urlStr string, proxyURL *url.URL, header
 		otlptracehttp.WithEndpointURL(urlStr),
 	}
 
-	// Add headers if available
-	if len(headers) > 0 {
-		// Add authentication header, if it doesn't exist yet
-		if headers["Authorization"] == "" {
-			// If username is not set, password is considered as token
-			if username == "" {
-				headers["Authorization"] = "Bearer " + password
-			} else if password != "" {
-				auth := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
-				headers["Authorization"] = "Basic " + auth
-			}
+	// Copy the headers so the caller's map is not modified.
+	reqHeaders := make(map[string]string, len(headers)+1)
+	for k, v := range headers {
+		reqHeaders[k] = v
+	}
+
+	// Add the collector authentication header, unless one is already set.
+	// If username is not set, password is considered as token.
+	if reqHeaders["Authorization"] == "" && password != "" {
+		if username == "" {
+			reqHeaders["Authorization"] = "Bearer " + password
+		} else {
+			auth := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+			reqHeaders["Authorization"] = "Basic " + auth
 		}
-		httpOptions = append(httpOptions, otlptracehttp.WithHeaders(headers))
+	}
+
+	if len(reqHeaders) > 0 {
+		httpOptions = append(httpOptions, otlptracehttp.WithHeaders(reqHeaders))
 	}
 
 	// Add TLS config if available
@@ -84,13 +90,9 @@ func NewOTLPTracer(ctx context.Context, urlStr string, proxyURL *url.URL, header
 		httpOptions = append(httpOptions, otlptracehttp.WithTLSClientConfig(tlsConfig))
 	}
 
-	// Add proxy if available
+	// Proxy credentials come from the proxy secret and are part of the URL.
 	if proxyURL != nil {
-		proxy := *proxyURL
-		if username != "" && password != "" {
-			proxy.User = url.UserPassword(username, password)
-		}
-		httpOptions = append(httpOptions, otlptracehttp.WithProxy(http.ProxyURL(&proxy)))
+		httpOptions = append(httpOptions, otlptracehttp.WithProxy(http.ProxyURL(proxyURL)))
 	}
 
 	exporter, err := otlptracehttp.New(ctx, httpOptions...)
