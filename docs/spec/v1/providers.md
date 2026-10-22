@@ -1893,6 +1893,10 @@ The Azure Event Hub provider supports the following authentication methods,
 - [SAS](https://docs.microsoft.com/en-us/azure/event-hubs/authorize-access-shared-access-signature)
   based.
 
+Static JWT authentication with the `token` key in the Secret referenced by
+`.spec.secretRef` is not supported, and the Provider will fail with an error
+if the key is set.
+
 #### Managed Identity
 
 Managed identity authentication can be setup using Azure Workload identity. 

@@ -35,10 +35,11 @@ func TestNewAzureEventHub(t *testing.T) {
 		err                error
 	}{
 		{
-			name:              "JWT Authentication",
+			name:              "static JWT authentication is rejected",
 			endpointURL:       "azure-nc-eventhub",
 			token:             "jwt-token",
 			eventHubNamespace: "namespace",
+			err:               errors.New("invalid authentication options: static JWT authentication with the 'token' key is no longer supported"),
 		},
 		{
 			name:              "SAS Authentication",
@@ -73,7 +74,7 @@ func TestNewAzureEventHub(t *testing.T) {
 			endpointURL:       "Endpoint=sb://example.com/;SharedAccessKeyName=keyName;SharedAccessKey=key;EntityPath=eventhub",
 			token:             "test-token",
 			eventHubNamespace: "namespace",
-			err:               errors.New("invalid authentication options: jwt token and SAS authentication cannot be set at the same time"),
+			err:               errors.New("invalid authentication options: static JWT authentication with the 'token' key is no longer supported"),
 		},
 		{
 			name:               "token auth with serviceAccountName set",
@@ -81,7 +82,7 @@ func TestNewAzureEventHub(t *testing.T) {
 			token:              "test-token",
 			serviceAccountName: "test-service-account",
 			eventHubNamespace:  "namespace",
-			err:                errors.New("invalid authentication options: serviceAccountName and jwt token authentication cannot be set at the same time"),
+			err:                errors.New("invalid authentication options: static JWT authentication with the 'token' key is no longer supported"),
 		},
 		{
 			name:              "empty endpoint URL",
