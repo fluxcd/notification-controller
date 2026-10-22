@@ -18,15 +18,15 @@ require (
 	github.com/elazarl/goproxy v1.8.4
 	github.com/fluxcd/cli-utils v1.4.0
 	github.com/fluxcd/notification-controller/api v1.9.0
-	github.com/fluxcd/pkg/apis/crypto v0.4.1-0.20261020182949-c5194b17fdad
+	github.com/fluxcd/pkg/apis/crypto v0.5.0
 	github.com/fluxcd/pkg/apis/event v0.32.0
-	github.com/fluxcd/pkg/apis/meta v1.36.1-0.20261020182949-c5194b17fdad
-	github.com/fluxcd/pkg/auth v0.63.1-0.20261020182949-c5194b17fdad
-	github.com/fluxcd/pkg/cache v0.17.1-0.20261020182949-c5194b17fdad
+	github.com/fluxcd/pkg/apis/meta v1.37.0
+	github.com/fluxcd/pkg/auth v0.65.0
+	github.com/fluxcd/pkg/cache v0.18.0
 	github.com/fluxcd/pkg/git v0.55.0
 	github.com/fluxcd/pkg/masktoken v0.10.0
-	github.com/fluxcd/pkg/runtime v0.120.1-0.20261020182949-c5194b17fdad
-	github.com/fluxcd/pkg/spiffe v0.0.0-20261020182949-c5194b17fdad
+	github.com/fluxcd/pkg/runtime v0.121.0
+	github.com/fluxcd/pkg/spiffe v0.1.0
 	github.com/fluxcd/pkg/ssa v0.80.0
 	github.com/fluxcd/pkg/ssh v0.28.0
 	github.com/getsentry/sentry-go v0.50.0
@@ -133,6 +133,7 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.22.0 // indirect
+	github.com/gobuffalo/flect v1.0.3 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect

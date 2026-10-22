@@ -51,7 +51,7 @@ func TestNewAuthOptions(t *testing.T) {
 	t.Run("no service account uses controller-level authentication", func(t *testing.T) {
 		g := NewWithT(t)
 		opts, err := newAuthOptions(context.Background(), cryptov1.ProviderAzure,
-			"", "", false, "provider", "apps", newClient(), nil)
+			"", "", "provider", "apps", newClient(), nil, nil)
 		g.Expect(err).NotTo(HaveOccurred())
 
 		var o auth.Options
@@ -60,17 +60,10 @@ func TestNewAuthOptions(t *testing.T) {
 		g.Expect(o.ObjectReference.Namespace).To(Equal("apps"))
 	})
 
-	t.Run("service account requires the feature gate", func(t *testing.T) {
-		g := NewWithT(t)
-		_, err := newAuthOptions(context.Background(), cryptov1.ProviderAzure,
-			"auth-sa", "", false, "provider", "apps", newClient(sa), nil)
-		g.Expect(err).To(MatchError(auth.ErrObjectLevelWorkloadIdentityNotEnabled))
-	})
-
 	t.Run("resolves the explicit service account", func(t *testing.T) {
 		g := NewWithT(t)
 		opts, err := newAuthOptions(context.Background(), cryptov1.ProviderAzure,
-			"auth-sa", "", true, "provider", "apps", newClient(sa), nil)
+			"auth-sa", "", "provider", "apps", newClient(sa), nil, nil)
 		g.Expect(err).NotTo(HaveOccurred())
 
 		var o auth.Options
@@ -83,7 +76,7 @@ func TestNewAuthOptions(t *testing.T) {
 	t.Run("resolves the default service account", func(t *testing.T) {
 		g := NewWithT(t)
 		opts, err := newAuthOptions(context.Background(), cryptov1.ProviderGCP,
-			"", "auth-sa", true, "provider", "apps", newClient(sa), nil)
+			"", "auth-sa", "provider", "apps", newClient(sa), nil, nil)
 		g.Expect(err).NotTo(HaveOccurred())
 
 		var o auth.Options
@@ -94,7 +87,7 @@ func TestNewAuthOptions(t *testing.T) {
 	t.Run("missing service account", func(t *testing.T) {
 		g := NewWithT(t)
 		_, err := newAuthOptions(context.Background(), cryptov1.ProviderGCP,
-			"missing", "", true, "provider", "apps", newClient(), nil)
+			"missing", "", "provider", "apps", newClient(), nil, nil)
 		g.Expect(err).To(MatchError(ContainSubstring("failed to get service account 'apps/missing'")))
 	})
 
@@ -105,7 +98,7 @@ func TestNewAuthOptions(t *testing.T) {
 			cryptov1.AnnotationCredentialProvider: cryptov1.CredentialProviderKubernetes,
 		}
 		_, err := newAuthOptions(context.Background(), cryptov1.ProviderAzure,
-			"auth-sa", "", true, "provider", "apps", newClient(invalidSA), nil)
+			"auth-sa", "", "provider", "apps", newClient(invalidSA), nil, nil)
 		g.Expect(err).To(MatchError(ContainSubstring("must be set together")))
 	})
 }
@@ -126,8 +119,8 @@ func TestNewAuthOptionsCache(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 
 	opts, err := newAuthOptions(context.Background(), cryptov1.ProviderAzure,
-		"auth-sa", "", true, "provider", "apps",
-		fake.NewClientBuilder().WithScheme(scheme).WithObjects(sa).Build(), tokenCache)
+		"auth-sa", "", "provider", "apps",
+		fake.NewClientBuilder().WithScheme(scheme).WithObjects(sa).Build(), tokenCache, nil)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	var o auth.Options

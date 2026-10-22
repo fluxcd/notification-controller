@@ -27,6 +27,7 @@ import (
 	cryptov1 "github.com/fluxcd/pkg/apis/crypto/v1"
 	"github.com/fluxcd/pkg/auth"
 	"github.com/fluxcd/pkg/cache"
+	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
 
 	"github.com/fluxcd/notification-controller/api/v1beta3"
 )
@@ -37,9 +38,9 @@ import (
 // .spec.serviceAccountName nor the default ServiceAccount is set, which makes
 // the caller fall back to controller-level authentication.
 func newAuthOptions(ctx context.Context, serviceProvider, serviceAccountName,
-	defaultServiceAccount string, objectLevelWorkloadIdentity bool,
+	defaultServiceAccount string,
 	providerName, providerNamespace string, tokenClient client.Client,
-	tokenCache *cache.TokenCache) ([]auth.Option, error) {
+	tokenCache *cache.TokenCache, spiffeBroker fluxbroker.Interface) ([]auth.Option, error) {
 
 	saName := serviceAccountName
 	if saName == "" {
@@ -48,9 +49,6 @@ func newAuthOptions(ctx context.Context, serviceProvider, serviceAccountName,
 
 	var sa *corev1.ServiceAccount
 	if saName != "" {
-		if !objectLevelWorkloadIdentity {
-			return nil, auth.ErrObjectLevelWorkloadIdentityNotEnabled
-		}
 		sa = &corev1.ServiceAccount{}
 		saRef := client.ObjectKey{Namespace: providerNamespace, Name: saName}
 		if err := tokenClient.Get(ctx, saRef, sa); err != nil {
@@ -87,6 +85,9 @@ func newAuthOptions(ctx context.Context, serviceProvider, serviceAccountName,
 		opts = append(opts,
 			auth.WithCache(*tokenCache),
 			auth.WithCacheOperation(OperationPost))
+	}
+	if spiffeBroker != nil {
+		opts = append(opts, auth.WithSPIFFEBroker(spiffeBroker))
 	}
 	return opts, nil
 }

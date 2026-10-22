@@ -428,7 +428,6 @@ func TestGetNotificationParams(t *testing.T) {
 		secretNamespace         string
 		secretData              map[string][]byte
 		noCrossNSRefs           bool
-		enableObjLevelWI        bool
 		eventSeverity           string
 		eventMetadata           map[string]string
 		wantErr                 bool
@@ -487,15 +486,8 @@ func TestGetNotificationParams(t *testing.T) {
 			wantParams: true,
 		},
 		{
-			name:                   "object level workload identity feature gate disabled",
+			name:                   "object level workload identity with service account",
 			providerServiceAccount: "foo",
-			enableObjLevelWI:       false,
-			wantErr:                true,
-		},
-		{
-			name:                   "object level workload identity feature gate enabled",
-			providerServiceAccount: "foo",
-			enableObjLevelWI:       true,
 			wantParams:             true,
 		},
 		{
@@ -584,11 +576,10 @@ func TestGetNotificationParams(t *testing.T) {
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 			builder.WithObjects(provider, secret)
 			eventServer := EventServer{
-				kubeClient:                  builder.Build(),
-				logger:                      log.Log,
-				noCrossNamespaceRefs:        tt.noCrossNSRefs,
-				objectLevelWorkloadIdentity: tt.enableObjLevelWI,
-				Recorder:                    events.NewFakeRecorder(32),
+				kubeClient:           builder.Build(),
+				logger:               log.Log,
+				noCrossNamespaceRefs: tt.noCrossNSRefs,
+				Recorder:             events.NewFakeRecorder(32),
 			}
 
 			params, dropped, err := eventServer.getNotificationParams(context.TODO(), event, alert)

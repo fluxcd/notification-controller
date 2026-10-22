@@ -855,12 +855,6 @@ metadata:
     gcp.auth.fluxcd.io/workload-identity-provider: projects/<PROJECT_NUMBER>/locations/global/workloadIdentityPools/<POOL_ID>/providers/<PROVIDER_ID>
 ```
 
-**Note:** Object-level authentication requires the `ObjectLevelWorkloadIdentity` feature gate to be enabled:
-
-```bash
---feature-gates=ObjectLevelWorkloadIdentity=true
-```
-
 ##### Opsgenie
 
 When `.spec.type` is set to `opsgenie`, the controller will send a payload for
@@ -1536,6 +1530,18 @@ metadata:
 stringData:
   proxy: "http://username:password@proxy_url:proxy_port"
 ```
+
+### Service account reference
+
+`.spec.serviceAccountName` is an optional field to specify a ServiceAccount in
+the same namespace as the Provider, used for object-level workload identity with
+supported cloud provider services. When unset, the controller ServiceAccount is
+used.
+
+For a complete guide to the ServiceAccount annotations used for object-level
+workload identity, including the `spiffe` credential provider, see the
+[ServiceAccount annotations](/flux/integrations/serviceaccount-annotations)
+docs.
 
 ### Certificate secret reference
 
@@ -2225,12 +2231,6 @@ metadata:
   annotations:
     azure.workload.identity/client-id: <client-id-of-managed-identity>
     azure.workload.identity/tenant-id: <tenant-id>
-```
-
-**Note:** Object-level authentication requires the `ObjectLevelWorkloadIdentity` feature gate to be enabled:
-
-```bash
---feature-gates=ObjectLevelWorkloadIdentity=true
 ```
 
 #### PAT
