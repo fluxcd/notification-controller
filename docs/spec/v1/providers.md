@@ -1307,6 +1307,11 @@ stringData:
   password: <OTEL Password>
 ```
 
+The credentials are sent to the collector in the `Authorization` header.
+If only `password` (or `token`) is set, it is sent as a bearer token.
+An `Authorization` entry in the Secret's `headers` field takes precedence.
+Proxy credentials are configured separately in the [proxy Secret](#https-proxy).
+
 ##### Zoom
 
 When `.spec.type` is set to `zoom`, the controller will send a payload for

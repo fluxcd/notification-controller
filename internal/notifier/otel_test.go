@@ -18,8 +18,11 @@ package notifier
 
 import (
 	"context"
+	"encoding/base64"
+	"maps"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -97,12 +100,119 @@ func TestOTEL_Post(t *testing.T) {
 	}
 }
 
-func TestOTELProxyCredentialsDoNotMutateInput(t *testing.T) {
+func TestOTEL_Authorization(t *testing.T) {
+	basic := "Basic " + base64.StdEncoding.EncodeToString([]byte("user:pass"))
+	tests := []struct {
+		name       string
+		headers    map[string]string
+		username   string
+		password   string
+		wantAuth   string
+		wantHeader map[string]string
+	}{
+		{
+			name:     "basic auth without headers",
+			username: "user",
+			password: "pass",
+			wantAuth: basic,
+		},
+		{
+			name:     "bearer token without headers",
+			password: "token",
+			wantAuth: "Bearer token",
+		},
+		{
+			name:       "basic auth with custom headers",
+			headers:    map[string]string{"X-Custom": "value"},
+			username:   "user",
+			password:   "pass",
+			wantAuth:   basic,
+			wantHeader: map[string]string{"X-Custom": "value"},
+		},
+		{
+			name:     "explicit Authorization header takes precedence",
+			headers:  map[string]string{"Authorization": "Custom abc"},
+			username: "user",
+			password: "pass",
+			wantAuth: "Custom abc",
+		},
+		{
+			name:       "no credentials",
+			headers:    map[string]string{"X-Custom": "value"},
+			wantAuth:   "",
+			wantHeader: map[string]string{"X-Custom": "value"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			requests := make(chan http.Header, 1)
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests <- r.Header.Clone()
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer ts.Close()
+
+			var headersCopy map[string]string
+			if tt.headers != nil {
+				headersCopy = maps.Clone(tt.headers)
+			}
+
+			ctx := WithAlertMetadata(context.Background(), metav1.ObjectMeta{Name: "alert", Namespace: "default"})
+			tracer, err := NewOTLPTracer(ctx, ts.URL, nil, tt.headers, nil, tt.username, tt.password)
+			g.Expect(err).ToNot(HaveOccurred())
+			defer tracer.tracerExporter.Shutdown(context.Background())
+
+			g.Expect(tracer.Post(ctx, testEvent())).To(Succeed())
+
+			var got http.Header
+			g.Eventually(requests, 5*time.Second).Should(Receive(&got))
+			g.Expect(got.Get("Authorization")).To(Equal(tt.wantAuth))
+			for k, v := range tt.wantHeader {
+				g.Expect(got.Get(k)).To(Equal(v))
+			}
+			// The caller's headers map must not be modified.
+			g.Expect(tt.headers).To(Equal(headersCopy))
+		})
+	}
+}
+
+func TestOTEL_ProxyCredentials(t *testing.T) {
 	g := NewWithT(t)
-	proxyURL := parseProxyURL(t, "http://original:credentials@proxy.invalid:8080")
+	type proxyRequest struct {
+		url       string
+		proxyAuth string
+		auth      string
+	}
+	requests := make(chan proxyRequest, 1)
+	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requests <- proxyRequest{
+			url:       r.URL.String(),
+			proxyAuth: r.Header.Get("Proxy-Authorization"),
+			auth:      r.Header.Get("Authorization"),
+		}
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer proxy.Close()
+
+	proxyURL := parseProxyURL(t, proxy.URL)
+	proxyURL.User = url.UserPassword("proxy-user", "proxy-pass")
 	original := proxyURL.String()
-	tracer, err := NewOTLPTracer(context.Background(), "http://collector.invalid", proxyURL, nil, nil, "user", "pass")
+
+	ctx := WithAlertMetadata(context.Background(), metav1.ObjectMeta{Name: "alert", Namespace: "default"})
+	tracer, err := NewOTLPTracer(ctx, "http://collector.invalid/v1/traces", proxyURL, nil, nil, "user", "pass")
 	g.Expect(err).ToNot(HaveOccurred())
 	defer tracer.tracerExporter.Shutdown(context.Background())
+
+	g.Expect(tracer.Post(ctx, testEvent())).To(Succeed())
+
+	var got proxyRequest
+	g.Eventually(requests, 5*time.Second).Should(Receive(&got))
+	g.Expect(got.url).To(Equal("http://collector.invalid/v1/traces"))
+	// The proxy receives the credentials from the proxy secret.
+	g.Expect(got.proxyAuth).To(Equal("Basic " + base64.StdEncoding.EncodeToString([]byte("proxy-user:proxy-pass"))))
+	// The collector credentials are sent only in the Authorization header.
+	g.Expect(got.auth).To(Equal("Basic " + base64.StdEncoding.EncodeToString([]byte("user:pass"))))
 	g.Expect(proxyURL.String()).To(Equal(original))
 }
