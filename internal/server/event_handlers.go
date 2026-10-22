@@ -41,7 +41,6 @@ import (
 	"github.com/fluxcd/pkg/runtime/secrets"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 	"github.com/fluxcd/notification-controller/internal/notifier"
 )
 
@@ -78,8 +77,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 		eventLogger.Info("dispatching event", "message", event.Message)
 
 		// Dispatch notifications.
-		var droppedCommitStatusAlerts []*apiv1beta3.Alert
-		var droppedChangeRequestAlerts []*apiv1beta3.Alert
+		var droppedCommitStatusAlerts []*apiv1.Alert
+		var droppedChangeRequestAlerts []*apiv1.Alert
 		for i := range alerts {
 			alert := &alerts[i]
 			alertLogger := eventLogger.WithValues(
@@ -132,8 +131,8 @@ func (s *EventServer) handleEvent() func(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (s *EventServer) getAllAlertsForEvent(ctx context.Context, event *eventv1.Event) ([]apiv1beta3.Alert, error) {
-	var allAlerts apiv1beta3.AlertList
+func (s *EventServer) getAllAlertsForEvent(ctx context.Context, event *eventv1.Event) ([]apiv1.Alert, error) {
+	var allAlerts apiv1.AlertList
 	err := s.kubeClient.List(ctx, &allAlerts)
 	if err != nil {
 		return nil, fmt.Errorf("failed listing alerts: %w", err)
@@ -145,10 +144,10 @@ func (s *EventServer) getAllAlertsForEvent(ctx context.Context, event *eventv1.E
 // filterAlertsForEvent filters a given set of alerts against a given event,
 // checking if the event matches with any of the alert event sources and is
 // allowed by the exclusion list.
-func (s *EventServer) filterAlertsForEvent(ctx context.Context, alerts []apiv1beta3.Alert, event *eventv1.Event) []apiv1beta3.Alert {
+func (s *EventServer) filterAlertsForEvent(ctx context.Context, alerts []apiv1.Alert, event *eventv1.Event) []apiv1.Alert {
 	logger := log.FromContext(ctx)
 
-	results := make([]apiv1beta3.Alert, 0)
+	results := make([]apiv1.Alert, 0)
 	for i := range alerts {
 		alert := &alerts[i]
 		// Skip suspended alert.
@@ -180,7 +179,7 @@ func (s *EventServer) filterAlertsForEvent(ctx context.Context, alerts []apiv1be
 
 // eventMatchesAlertSources returns if a given event matches with any of the
 // alert sources.
-func (s *EventServer) eventMatchesAlertSources(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) bool {
+func (s *EventServer) eventMatchesAlertSources(ctx context.Context, event *eventv1.Event, alert *apiv1.Alert) bool {
 	for _, source := range alert.Spec.EventSources {
 		if source.Namespace == "" {
 			source.Namespace = alert.Namespace
@@ -194,7 +193,7 @@ func (s *EventServer) eventMatchesAlertSources(ctx context.Context, event *event
 
 // messageIsIncluded returns if the given message matches with the given alert's
 // inclusion rules.
-func (s *EventServer) messageIsIncluded(ctx context.Context, msg string, alert *apiv1beta3.Alert) bool {
+func (s *EventServer) messageIsIncluded(ctx context.Context, msg string, alert *apiv1.Alert) bool {
 	if len(alert.Spec.InclusionList) == 0 {
 		return true
 	}
@@ -215,7 +214,7 @@ func (s *EventServer) messageIsIncluded(ctx context.Context, msg string, alert *
 
 // messageIsExcluded returns if the given message matches with the given alert's
 // exclusion rules.
-func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, alert *apiv1beta3.Alert) bool {
+func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, alert *apiv1.Alert) bool {
 	if len(alert.Spec.ExclusionList) == 0 {
 		return false
 	}
@@ -239,7 +238,7 @@ func (s *EventServer) messageIsExcluded(ctx context.Context, msg string, alert *
 // to being related to a provider that requires a specific metadata key but the
 // event didn't have that key.
 func (s *EventServer) dispatchNotification(ctx context.Context,
-	event *eventv1.Event, alert *apiv1beta3.Alert) (droppedProviders, error) {
+	event *eventv1.Event, alert *apiv1.Alert) (droppedProviders, error) {
 
 	params, dropped, err := s.getNotificationParams(ctx, event, alert)
 	if err != nil {
@@ -292,7 +291,7 @@ type droppedProviders struct {
 // due to being related to a provider that requires a specific metadata key but
 // the event didn't have that key is also returned.
 func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.Event,
-	alert *apiv1beta3.Alert) (*notificationParams, droppedProviders, error) {
+	alert *apiv1.Alert) (*notificationParams, droppedProviders, error) {
 	// Check if event comes from a different namespace.
 	if s.noCrossNamespaceRefs && event.InvolvedObject.Namespace != alert.Namespace {
 		accessDenied := fmt.Errorf(
@@ -301,7 +300,7 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, droppedProviders{}, fmt.Errorf("discarding event, access denied to cross-namespace sources: %w", accessDenied)
 	}
 
-	var provider apiv1beta3.Provider
+	var provider apiv1.Provider
 	providerName := types.NamespacedName{Namespace: alert.Namespace, Name: alert.Spec.ProviderRef.Name}
 
 	err := s.kubeClient.Get(ctx, providerName, &provider)
@@ -370,7 +369,7 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 // Otherwise, a default commit status will be generated using the Provider UID and event metadata.
 // If the provider is not a git provider, the commit status will be an empty string.
 // If the commitStatusExpr fails to compile or is invalid, an error will be returned.
-func createCommitStatus(ctx context.Context, provider *apiv1beta3.Provider, event *eventv1.Event, alert *apiv1beta3.Alert) (commitStatus string, err error) {
+func createCommitStatus(ctx context.Context, provider *apiv1.Provider, event *eventv1.Event, alert *apiv1.Alert) (commitStatus string, err error) {
 	if !isCommitStatusProvider(provider.Spec.Type) {
 		return "", nil
 	}
@@ -432,7 +431,7 @@ func extractAuthFromSecret(ctx context.Context, secret *corev1.Secret) ([]notifi
 
 // createNotifier constructs a notifier interface from the provider configuration,
 // handling authentication, proxy settings, and TLS configuration.
-func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1beta3.Provider,
+func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1.Provider,
 	commitStatus string) (notifier.Interface, string, error) {
 	options := []notifier.Option{
 		notifier.WithTokenClient(s.kubeClient),
@@ -573,7 +572,7 @@ func getTLSConfigForProvider(ctx context.Context, providerCertSecret, providerSe
 
 // eventMatchesAlertSource returns if a given event matches with the given alert
 // source configuration and severity.
-func (s *EventServer) eventMatchesAlertSource(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert, source apiv1.CrossNamespaceObjectReference) bool {
+func (s *EventServer) eventMatchesAlertSource(ctx context.Context, event *eventv1.Event, alert *apiv1.Alert, source apiv1.CrossNamespaceObjectReference) bool {
 	logger := log.FromContext(ctx)
 
 	// No match if the event and source don't have the same namespace and kind.
@@ -644,7 +643,7 @@ func (s *EventServer) eventMatchesAlertSource(ctx context.Context, event *eventv
 // At the end of the process key conflicts are detected and a single
 // info-level log is emitted to warn users about all the conflicts,
 // but only if at least one conflict is found.
-func (s *EventServer) combineEventMetadata(ctx context.Context, event *eventv1.Event, alert *apiv1beta3.Alert) {
+func (s *EventServer) combineEventMetadata(ctx context.Context, event *eventv1.Event, alert *apiv1.Alert) {
 	const (
 		sourceEventGroup         = "involved object annotations"
 		sourceAlertEventMetadata = "Alert object .spec.eventMetadata"

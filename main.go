@@ -56,8 +56,6 @@ import (
 	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1b2 "github.com/fluxcd/notification-controller/api/v1beta2"
-	apiv1b3 "github.com/fluxcd/notification-controller/api/v1beta3"
 	"github.com/fluxcd/notification-controller/internal/controller"
 	"github.com/fluxcd/notification-controller/internal/features"
 	"github.com/fluxcd/notification-controller/internal/server"
@@ -75,8 +73,6 @@ func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
 	_ = apiv1.AddToScheme(scheme)
-	_ = apiv1b2.AddToScheme(scheme)
-	_ = apiv1b3.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 

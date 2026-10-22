@@ -31,7 +31,7 @@ import (
 	"github.com/fluxcd/pkg/auth/githubapp"
 	"github.com/fluxcd/pkg/cache"
 
-	"github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
 // GitHubClient holds the GitHub client and repository information.
@@ -191,7 +191,7 @@ func getGitHubAppToken(ctx context.Context, o *gitHubClientOptions) (*githubapp.
 
 	if o.tokenCache != nil {
 		githubOpts = append(githubOpts, githubapp.WithCache(o.tokenCache, cache.InvolvedObject{
-			Kind:      v1beta3.ProviderKind,
+			Kind:      apiv1.ProviderKind,
 			Name:      o.providerName,
 			Namespace: o.providerNamespace,
 			Operation: OperationPost,

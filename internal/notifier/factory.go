@@ -27,7 +27,7 @@ import (
 	"github.com/fluxcd/pkg/cache"
 	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
 
-	apiv1 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
 var (

@@ -25,7 +25,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 	"github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/fluxcd/pkg/runtime/patch"
@@ -48,12 +47,12 @@ type ProviderReconciler struct {
 
 func (r *ProviderReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&apiv1beta3.Provider{}, builder.WithPredicates(providerPredicate{})).
+		For(&apiv1.Provider{}, builder.WithPredicates(providerPredicate{})).
 		Complete(r)
 }
 
 func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, retErr error) {
-	obj := &apiv1beta3.Provider{}
+	obj := &apiv1.Provider{}
 	if err := r.Get(ctx, req.NamespacedName, obj); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -84,12 +83,12 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 
 // reconcileDelete handles the deletion of the object.
 // It cleans up the caches and removes the finalizer.
-func (r *ProviderReconciler) reconcileDelete(obj *apiv1beta3.Provider) (ctrl.Result, error) {
+func (r *ProviderReconciler) reconcileDelete(obj *apiv1.Provider) (ctrl.Result, error) {
 	// Remove our finalizer from the list
 	controllerutil.RemoveFinalizer(obj, apiv1.NotificationFinalizer)
 
 	// Cleanup caches.
-	r.TokenCache.DeleteEventsForObject(apiv1beta3.ProviderKind,
+	r.TokenCache.DeleteEventsForObject(apiv1.ProviderKind,
 		obj.GetName(), obj.GetNamespace(), notifier.OperationPost)
 
 	// Stop reconciliation as the object is being deleted

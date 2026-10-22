@@ -27,15 +27,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
 func Test_newCommitStatus(t *testing.T) {
 	tests := []struct {
 		expression   string
 		notification *eventv1.Event
-		alert        *apiv1beta3.Alert
-		provider     *apiv1beta3.Provider
+		alert        *apiv1.Alert
+		provider     *apiv1.Provider
 		wantResult   string
 		wantErr      bool
 	}{
@@ -50,12 +50,12 @@ func Test_newCommitStatus(t *testing.T) {
 					"environment": "production",
 				},
 			},
-			alert: &apiv1beta3.Alert{
+			alert: &apiv1.Alert{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-alert",
 				},
 			},
-			provider: &apiv1beta3.Provider{
+			provider: &apiv1.Provider{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 				},
@@ -73,12 +73,12 @@ func Test_newCommitStatus(t *testing.T) {
 					"environment": "production",
 				},
 			},
-			alert: &apiv1beta3.Alert{
+			alert: &apiv1.Alert{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-alert",
 				},
 			},
-			provider: &apiv1beta3.Provider{
+			provider: &apiv1.Provider{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 				},
@@ -96,12 +96,12 @@ func Test_newCommitStatus(t *testing.T) {
 					"environment": "production",
 				},
 			},
-			alert: &apiv1beta3.Alert{
+			alert: &apiv1.Alert{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-alert",
 				},
 			},
-			provider: &apiv1beta3.Provider{
+			provider: &apiv1.Provider{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 				},
@@ -116,12 +116,12 @@ func Test_newCommitStatus(t *testing.T) {
 					Name: "gitops-system",
 				},
 			},
-			provider: &apiv1beta3.Provider{
+			provider: &apiv1.Provider{
 				ObjectMeta: metav1.ObjectMeta{
 					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 				},
 			},
-			alert: &apiv1beta3.Alert{
+			alert: &apiv1.Alert{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-alert",
 				},
@@ -135,7 +135,7 @@ func Test_newCommitStatus(t *testing.T) {
 			g := NewWithT(t)
 
 			scheme := runtime.NewScheme()
-			g.Expect(apiv1beta3.AddToScheme(scheme)).ToNot(HaveOccurred())
+			g.Expect(apiv1.AddToScheme(scheme)).ToNot(HaveOccurred())
 			g.Expect(corev1.AddToScheme(scheme)).ToNot(HaveOccurred())
 
 			result, err := newCommitStatus(context.Background(), tt.expression, tt.notification, tt.alert, tt.provider)

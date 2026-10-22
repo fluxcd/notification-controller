@@ -35,6 +35,10 @@ var (
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
+		&Alert{},
+		&AlertList{},
+		&Provider{},
+		&ProviderList{},
 		&Receiver{},
 		&ReceiverList{},
 	)

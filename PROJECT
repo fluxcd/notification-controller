@@ -10,8 +10,8 @@ resources:
   version: v1
 - group: notification
   kind: Provider
-  version: v1beta3
+  version: v1
 - group: notification
   kind: Alert
-  version: v1beta3
+  version: v1
 version: "2"
