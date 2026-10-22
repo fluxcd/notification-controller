@@ -27,7 +27,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	eventhub "github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/auth/azure"
@@ -57,18 +56,13 @@ func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace
 			return nil, fmt.Errorf("failed to create a eventhub using SAS: %w", err)
 		}
 	} else {
-		// if token doesn't exist, try to create a new token using managed identity
-		if token == "" {
-			token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName,
-				defaultServiceAccount, providerName,
-				providerNamespace, azure.ScopeEventHubs, tokenClient, tokenCache, spiffeBroker)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create a eventhub using managed identity: %w", err)
-			}
-		} else {
-			log.FromContext(ctx).Error(nil, "warning: static JWT authentication is deprecated and will be removed in Provider v1 GA, prefer workload identity: https://fluxcd.io/flux/components/notification/providers/#managed-identity")
+		accessToken, err := newManagedIdentityToken(ctx, proxy, serviceAccountName,
+			defaultServiceAccount, providerName,
+			providerNamespace, azure.ScopeEventHubs, tokenClient, tokenCache, spiffeBroker)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create a eventhub using managed identity: %w", err)
 		}
-		producerClient, err = newJWTHub(endpointURL, token, eventHubNamespace)
+		producerClient, err = newJWTHub(endpointURL, accessToken, eventHubNamespace)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create a eventhub using authentication token: %w", err)
 		}
@@ -127,7 +121,7 @@ func (j *PureJWT) GetToken(ctx context.Context, options policy.TokenRequestOptio
 	}, nil
 }
 
-// newJWTHub used when address is a JWT token
+// newJWTHub creates a producer client authenticated with the given access token.
 func newJWTHub(eventhubName, token, eventHubNamespace string) (*eventhub.ProducerClient, error) {
 	provider := NewJWTProvider(token)
 	fullyQualifiedNamespace := ensureFullyQualifiedNamespace(eventHubNamespace)
@@ -154,12 +148,13 @@ func validateAuthOptions(endpointURL, token, serviceAccountName string) error {
 		return fmt.Errorf("endpoint URL cannot be empty")
 	}
 
-	if isSASAuth(endpointURL) {
-		if err := validateSASAuth(token, serviceAccountName); err != nil {
-			return err
-		}
-	} else if serviceAccountName != "" && token != "" {
-		return fmt.Errorf("serviceAccountName and jwt token authentication cannot be set at the same time")
+	if token != "" {
+		return fmt.Errorf("static JWT authentication with the 'token' key is no longer supported, " +
+			"use workload identity or SAS authentication instead")
+	}
+
+	if isSASAuth(endpointURL) && serviceAccountName != "" {
+		return fmt.Errorf("serviceAccountName and SAS authentication cannot be set at the same time")
 	}
 
 	return nil
@@ -168,18 +163,6 @@ func validateAuthOptions(endpointURL, token, serviceAccountName string) error {
 // isSASAuth checks if the endpoint URL contains SAS authentication parameters
 func isSASAuth(endpointURL string) bool {
 	return strings.Contains(endpointURL, "SharedAccessKey")
-}
-
-// validateSASAuth checks if SAS authentication is used correctly
-func validateSASAuth(token, serviceAccountName string) error {
-	if serviceAccountName != "" {
-		return fmt.Errorf("serviceAccountName and SAS authentication cannot be set at the same time")
-	}
-	if token != "" {
-		return fmt.Errorf("jwt token and SAS authentication cannot be set at the same time")
-	}
-
-	return nil
 }
 
 // getEventHubSuffixFromAuthorityHost maps AZURE_AUTHORITY_HOST to the correct suffix
