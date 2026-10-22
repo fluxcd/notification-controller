@@ -18,8 +18,6 @@ package notifier
 
 import (
 	"context"
-	"fmt"
-	"net/url"
 
 	"google.golang.org/api/option"
 
@@ -43,12 +41,8 @@ func buildGCPClientOptions(ctx context.Context, opts notifierOptions) ([]option.
 			return nil, err
 		}
 
-		if opts.ProxyURL != "" {
-			proxyURL, err := url.Parse(opts.ProxyURL)
-			if err != nil {
-				return nil, fmt.Errorf("error parsing proxy URL: %w", err)
-			}
-			authOpts = append(authOpts, auth.WithProxyURL(*proxyURL))
+		if opts.ProxyURL != nil {
+			authOpts = append(authOpts, auth.WithProxyURL(*opts.ProxyURL))
 		}
 
 		tokenSource := gcp.NewTokenSource(ctx, authOpts...)

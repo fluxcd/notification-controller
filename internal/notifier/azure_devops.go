@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
@@ -51,7 +52,7 @@ type AzureDevOps struct {
 
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
 func NewAzureDevOps(ctx context.Context, commitStatus string, addr string, token string,
-	tlsConfig *tls.Config, proxy, serviceAccountName, providerName, providerNamespace string,
+	tlsConfig *tls.Config, proxy *url.URL, serviceAccountName, providerName, providerNamespace string,
 	tokenClient client.Client, tokenCache *cache.TokenCache, spiffeBroker fluxbroker.Interface,
 	defaultServiceAccount string) (*AzureDevOps, error) {
 	var err error

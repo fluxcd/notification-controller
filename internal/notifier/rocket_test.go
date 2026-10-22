@@ -41,7 +41,7 @@ func TestRocket_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	rocket, err := NewRocket(ts.URL, "", nil, "test", "test")
+	rocket, err := NewRocket(ts.URL, nil, nil, "test", "test")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = rocket.Post(context.TODO(), testEvent())
@@ -62,7 +62,7 @@ func TestRocket_PostWithoutChannelOrUser(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	rocket, err := NewRocket(ts.URL, "", nil, "", "")
+	rocket, err := NewRocket(ts.URL, nil, nil, "", "")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = rocket.Post(context.TODO(), testEvent())

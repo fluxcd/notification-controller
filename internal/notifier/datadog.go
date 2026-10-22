@@ -40,7 +40,7 @@ type DataDog struct {
 // url: The DataDog API endpoint to use. Examples: https://api.datadoghq.com, https://api.datadoghq.eu, etc.
 // token: The DataDog API key (not the application key).
 // headers: A map of extra tags to add to the event
-func NewDataDog(address string, proxyUrl string, tlsConfig *tls.Config, token string) (*DataDog, error) {
+func NewDataDog(address string, proxyUrl *url.URL, tlsConfig *tls.Config, token string) (*DataDog, error) {
 	conf := datadog.NewConfiguration()
 
 	if token == "" {
@@ -55,16 +55,11 @@ func NewDataDog(address string, proxyUrl string, tlsConfig *tls.Config, token st
 	conf.Host = baseUrl.Host
 	conf.Scheme = baseUrl.Scheme
 
-	if proxyUrl != "" || tlsConfig != nil {
+	if proxyUrl != nil || tlsConfig != nil {
 		transport := &http.Transport{}
 
-		if proxyUrl != "" {
-			proxy, err := url.Parse(proxyUrl)
-			if err != nil {
-				return nil, fmt.Errorf("failed to parse proxy URL %q: %w", proxyUrl, err)
-			}
-
-			transport.Proxy = http.ProxyURL(proxy)
+		if proxyUrl != nil {
+			transport.Proxy = http.ProxyURL(proxyUrl)
 		}
 
 		if tlsConfig != nil {

@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net/url"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -80,7 +81,7 @@ type factoryFunc func(opts notifierOptions) (Interface, error)
 type notifierOptions struct {
 	Context  context.Context
 	URL      string
-	ProxyURL string
+	ProxyURL *url.URL
 	Username string
 	Channel  string
 	Token    string
@@ -110,9 +111,9 @@ type Factory struct {
 type Option func(*notifierOptions)
 
 // WithProxyURL sets the proxy URL for the notifier.
-func WithProxyURL(url string) Option {
+func WithProxyURL(proxyURL *url.URL) Option {
 	return func(o *notifierOptions) {
-		o.ProxyURL = url
+		o.ProxyURL = proxyURL
 	}
 }
 

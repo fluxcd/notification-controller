@@ -34,7 +34,7 @@ import (
 // Slack holds the hook URL
 type Slack struct {
 	URL       string
-	ProxyURL  string
+	ProxyURL  *url.URL
 	Token     string
 	Username  string
 	Channel   string
@@ -68,7 +68,7 @@ type SlackField struct {
 }
 
 // NewSlack validates the Slack URL and returns a Slack object
-func NewSlack(hookURL string, proxyURL string, token string, tlsConfig *tls.Config, username string, channel string) (*Slack, error) {
+func NewSlack(hookURL string, proxyURL *url.URL, token string, tlsConfig *tls.Config, username string, channel string) (*Slack, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Slack hook URL %s: '%w'", hookURL, err)
@@ -128,7 +128,7 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 			}
 		}),
 	}
-	if s.ProxyURL != "" {
+	if s.ProxyURL != nil {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
 	if s.TLSConfig != nil {

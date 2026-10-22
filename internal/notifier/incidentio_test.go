@@ -54,7 +54,7 @@ func TestIncidentio_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	incidentio, err := NewIncidentio(ts.URL, "", nil, "token")
+	incidentio, err := NewIncidentio(ts.URL, nil, nil, "token")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	event := testEvent()
@@ -78,7 +78,7 @@ func TestIncidentio_PostErrorSeverity(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	incidentio, err := NewIncidentio(ts.URL, "", nil, "token")
+	incidentio, err := NewIncidentio(ts.URL, nil, nil, "token")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	event := testEvent()
@@ -95,7 +95,7 @@ func TestIncidentio_PostSkipsProgressing(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	incidentio, err := NewIncidentio(ts.URL, "", nil, "token")
+	incidentio, err := NewIncidentio(ts.URL, nil, nil, "token")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	event := testEvent()
@@ -108,9 +108,9 @@ func TestIncidentio_PostSkipsProgressing(t *testing.T) {
 func TestNewIncidentio(t *testing.T) {
 	g := NewWithT(t)
 
-	_, err := NewIncidentio("invalid-url", "", nil, "token")
+	_, err := NewIncidentio("invalid-url", nil, nil, "token")
 	g.Expect(err).To(MatchError(ContainSubstring("invalid incident.io alert source URL")))
 
-	_, err = NewIncidentio("https://api.incident.io/v2/alert_events/http/some-id", "", nil, "")
+	_, err = NewIncidentio("https://api.incident.io/v2/alert_events/http/some-id", nil, nil, "")
 	g.Expect(err).To(MatchError(ContainSubstring("empty incident.io API token")))
 }

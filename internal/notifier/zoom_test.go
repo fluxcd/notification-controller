@@ -50,7 +50,7 @@ func TestZoom_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	zoom, err := NewZoom(ts.URL, "", nil, "token")
+	zoom, err := NewZoom(ts.URL, nil, nil, "token")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = zoom.Post(context.TODO(), testEvent())
@@ -64,7 +64,7 @@ func TestZoom_PostFormatPreserved(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	zoom, err := NewZoom(ts.URL+"?format=message", "", nil, "token")
+	zoom, err := NewZoom(ts.URL+"?format=message", nil, nil, "token")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = zoom.Post(context.TODO(), testEvent())
@@ -74,9 +74,9 @@ func TestZoom_PostFormatPreserved(t *testing.T) {
 func TestNewZoom(t *testing.T) {
 	g := NewWithT(t)
 
-	_, err := NewZoom("invalid-url", "", nil, "token")
+	_, err := NewZoom("invalid-url", nil, nil, "token")
 	g.Expect(err).To(MatchError(ContainSubstring("invalid Zoom incoming webhook URL")))
 
-	_, err = NewZoom("https://integrations.zoom.us/chat/webhooks/incomingwebhook/id", "", nil, "")
+	_, err = NewZoom("https://integrations.zoom.us/chat/webhooks/incomingwebhook/id", nil, nil, "")
 	g.Expect(err).To(MatchError(ContainSubstring("empty Zoom verification token")))
 }

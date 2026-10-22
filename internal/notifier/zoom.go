@@ -34,7 +34,7 @@ import (
 // for a Zoom Team Chat Incoming Webhook chatbot connection.
 type Zoom struct {
 	URL       string
-	ProxyURL  string
+	ProxyURL  *url.URL
 	Token     string
 	TLSConfig *tls.Config
 }
@@ -71,7 +71,7 @@ type ZoomField struct {
 }
 
 // NewZoom validates the Zoom incoming webhook URL and returns a Zoom object
-func NewZoom(hookURL string, proxyURL string, tlsConfig *tls.Config, token string) (*Zoom, error) {
+func NewZoom(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config, token string) (*Zoom, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Zoom incoming webhook URL %s: '%w'", hookURL, err)
@@ -145,7 +145,7 @@ func (s *Zoom) Post(ctx context.Context, event eventv1.Event) error {
 			req.Header.Set("Authorization", s.Token)
 		}),
 	}
-	if s.ProxyURL != "" {
+	if s.ProxyURL != nil {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
 	if s.TLSConfig != nil {

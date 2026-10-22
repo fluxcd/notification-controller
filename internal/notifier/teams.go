@@ -41,7 +41,7 @@ const (
 // MS Teams holds the incoming webhook URL
 type MSTeams struct {
 	URL       string
-	ProxyURL  string
+	ProxyURL  *url.URL
 	Schema    int
 	TLSConfig *tls.Config
 }
@@ -122,7 +122,7 @@ type msAdaptiveCardFact struct {
 }
 
 // NewMSTeams validates the MS Teams URL and returns a MSTeams object
-func NewMSTeams(hookURL string, proxyURL string, tlsConfig *tls.Config) (*MSTeams, error) {
+func NewMSTeams(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config) (*MSTeams, error) {
 	u, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid MS Teams webhook URL %s: '%w'", hookURL, err)
@@ -158,7 +158,7 @@ func (s *MSTeams) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	var opts []postOption
-	if s.ProxyURL != "" {
+	if s.ProxyURL != nil {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
 	if s.TLSConfig != nil {

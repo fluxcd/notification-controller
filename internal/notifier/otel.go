@@ -58,7 +58,7 @@ type OTLPTracer struct {
 	tracerExporter *otlptrace.Exporter
 }
 
-func NewOTLPTracer(ctx context.Context, urlStr string, proxyURL string, headers map[string]string, tlsConfig *tls.Config, username string, password string) (*OTLPTracer, error) {
+func NewOTLPTracer(ctx context.Context, urlStr string, proxyURL *url.URL, headers map[string]string, tlsConfig *tls.Config, username string, password string) (*OTLPTracer, error) {
 	// Set up OTLP exporter options
 	httpOptions := []otlptracehttp.Option{
 		otlptracehttp.WithEndpointURL(urlStr),
@@ -85,18 +85,12 @@ func NewOTLPTracer(ctx context.Context, urlStr string, proxyURL string, headers 
 	}
 
 	// Add proxy if available
-	if proxyURL != "" {
-		proxyURLparsed, err := url.Parse(proxyURL)
-		if err != nil {
-			return nil, fmt.Errorf("failed to proxy URL - %s: %w", proxyURL, err)
-		} else {
-			if username != "" && password != "" {
-				proxyURLparsed.User = url.UserPassword(username, password)
-			}
-			httpOptions = append(httpOptions, otlptracehttp.WithProxy(func(*http.Request) (*url.URL, error) {
-				return proxyURLparsed, nil
-			}))
+	if proxyURL != nil {
+		proxy := *proxyURL
+		if username != "" && password != "" {
+			proxy.User = url.UserPassword(username, password)
 		}
+		httpOptions = append(httpOptions, otlptracehttp.WithProxy(http.ProxyURL(&proxy)))
 	}
 
 	exporter, err := otlptracehttp.New(ctx, httpOptions...)

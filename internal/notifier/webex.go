@@ -53,7 +53,7 @@ type Webex struct {
 	Token string
 
 	// optional: use a proxy as needed
-	ProxyURL  string
+	ProxyURL  *url.URL
 	TLSConfig *tls.Config
 }
 
@@ -64,7 +64,7 @@ type WebexPayload struct {
 }
 
 // NewWebex validates the Webex URL and returns a Webex object
-func NewWebex(hookURL, proxyURL string, tlsConfig *tls.Config, channel string, token string) (*Webex, error) {
+func NewWebex(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config, channel string, token string) (*Webex, error) {
 
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
@@ -110,7 +110,7 @@ func (s *Webex) Post(ctx context.Context, event eventv1.Event) error {
 			req.Header.Add("Authorization", "Bearer "+s.Token)
 		}),
 	}
-	if s.ProxyURL != "" {
+	if s.ProxyURL != nil {
 		opts = append(opts, withProxy(s.ProxyURL))
 	}
 	if s.TLSConfig != nil {
