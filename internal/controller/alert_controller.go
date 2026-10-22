@@ -26,7 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 	"github.com/fluxcd/pkg/runtime/events"
 	"github.com/fluxcd/pkg/runtime/patch"
 )
@@ -44,14 +43,14 @@ type AlertReconciler struct {
 
 func (r *AlertReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&apiv1beta3.Alert{}, builder.WithPredicates(finalizerPredicate{})).
+		For(&apiv1.Alert{}, builder.WithPredicates(finalizerPredicate{})).
 		Complete(r)
 }
 
 func (r *AlertReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	obj := &apiv1beta3.Alert{}
+	obj := &apiv1.Alert{}
 	if err := r.Get(ctx, req.NamespacedName, obj); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}

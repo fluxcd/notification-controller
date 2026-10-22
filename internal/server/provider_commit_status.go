@@ -28,7 +28,7 @@ import (
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/runtime/cel"
 
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
 // newCommitStatusExpression creates a new CEL expression for the commit status ID.
@@ -48,7 +48,7 @@ func generateDefaultCommitStatus(providerUID string, event eventv1.Event) string
 }
 
 // newCommitStatus evaluates the commit status expression.
-func newCommitStatus(ctx context.Context, expr string, notification *eventv1.Event, alert *apiv1beta3.Alert, provider *apiv1beta3.Provider) (string, error) {
+func newCommitStatus(ctx context.Context, expr string, notification *eventv1.Event, alert *apiv1.Alert, provider *apiv1.Provider) (string, error) {
 	celExpr, err := newCommitStatusExpression(expr)
 	if err != nil {
 		return "", fmt.Errorf("failed to compile expression: %w", err)
@@ -91,18 +91,18 @@ func newCommitStatus(ctx context.Context, expr string, notification *eventv1.Eve
 
 // isGenericProvider returns true if the provider type is a generic provider.
 func isGenericProvider(providerType string) bool {
-	return providerType == apiv1beta3.GenericProvider || providerType == apiv1beta3.GenericHMACProvider
+	return providerType == apiv1.GenericProvider || providerType == apiv1.GenericHMACProvider
 }
 
 // isCommitStatusProvider returns true if the provider type is a Git provider.
 func isCommitStatusProvider(providerType string) bool {
 	gitProviderTypes := []string{
-		apiv1beta3.GitHubProvider,
-		apiv1beta3.GitLabProvider,
-		apiv1beta3.GiteaProvider,
-		apiv1beta3.BitbucketServerProvider,
-		apiv1beta3.BitbucketProvider,
-		apiv1beta3.AzureDevOpsProvider,
+		apiv1.GitHubProvider,
+		apiv1.GitLabProvider,
+		apiv1.GiteaProvider,
+		apiv1.BitbucketServerProvider,
+		apiv1.BitbucketProvider,
+		apiv1.AzureDevOpsProvider,
 	}
 
 	return slices.Contains(gitProviderTypes, providerType)

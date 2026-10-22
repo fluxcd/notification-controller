@@ -39,7 +39,7 @@ import (
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
 // Context key
@@ -169,7 +169,7 @@ func (t *OTLPTracer) Post(ctx context.Context, event eventv1.Event) error {
 
 	defer span.End()
 
-	serviceName := fmt.Sprintf("%s: %s/%s", apiv1beta3.AlertKind, alert.Namespace, alert.Name)
+	serviceName := fmt.Sprintf("%s: %s/%s", apiv1.AlertKind, alert.Namespace, alert.Name)
 	logger.Info("Successfully sent trace to OTLP endpoint",
 		"alert", serviceName,
 	)

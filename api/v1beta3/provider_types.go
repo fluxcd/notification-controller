@@ -169,9 +169,9 @@ type ProviderSpec struct {
 }
 
 // +genclient
-// +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:categories=all;fluxcd;fluxcd-notifications
+// +kubebuilder:deprecatedversion:warning="v1beta3 Provider is deprecated, upgrade to v1"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description=""
 // +kubebuilder:metadata:annotations="kustomize.toolkit.fluxcd.io/substitute=disabled"
 

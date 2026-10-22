@@ -29,7 +29,7 @@ import (
 	"github.com/fluxcd/pkg/cache"
 	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
 
-	"github.com/fluxcd/notification-controller/api/v1beta3"
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
 // newAuthOptions resolves the ServiceAccount used for object-level workload
@@ -67,7 +67,7 @@ func newAuthOptions(ctx context.Context, serviceProvider, serviceAccountName,
 		return nil, fmt.Errorf("failed to validate configuration: %w", err)
 	}
 
-	provider := &v1beta3.Provider{
+	provider := &apiv1.Provider{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      providerName,
 			Namespace: providerNamespace,
@@ -75,7 +75,7 @@ func newAuthOptions(ctx context.Context, serviceProvider, serviceAccountName,
 	}
 	opts := []auth.Option{
 		auth.WithClient(tokenClient),
-		auth.WithObject(v1beta3.GroupVersion.Group, v1beta3.ProviderKind, provider),
+		auth.WithObject(apiv1.GroupVersion.Group, apiv1.ProviderKind, provider),
 	}
 	opts = append(opts, auth.OptionsFromSpec(spec.Auth)...)
 	if sa != nil {

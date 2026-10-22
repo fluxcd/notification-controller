@@ -29,7 +29,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
 func TestProviderReconciler(t *testing.T) {
@@ -44,7 +43,7 @@ func TestProviderReconciler(t *testing.T) {
 		g.Expect(testEnv.Cleanup(ctx, testns)).ToNot(HaveOccurred())
 	})
 
-	provider := &apiv1beta3.Provider{
+	provider := &apiv1.Provider{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("provider-%s", randStringRunes(5)),
 			Namespace: testns.Name,
@@ -53,7 +52,7 @@ func TestProviderReconciler(t *testing.T) {
 	providerKey := client.ObjectKeyFromObject(provider)
 
 	// Create without finalizer.
-	provider.Spec = apiv1beta3.ProviderSpec{
+	provider.Spec = apiv1.ProviderSpec{
 		Type: "generic",
 	}
 	g.Expect(testEnv.Create(ctx, provider)).ToNot(HaveOccurred())
@@ -136,7 +135,7 @@ func TestProviderReconciler_APIServerValidation(t *testing.T) {
 		},
 		{
 			name:         "incident.io provider type can create providers",
-			providerType: apiv1beta3.IncidentioProvider,
+			providerType: apiv1.IncidentioProvider,
 		},
 	}
 
@@ -144,12 +143,12 @@ func TestProviderReconciler_APIServerValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			obj := &apiv1beta3.Provider{
+			obj := &apiv1.Provider{
 				ObjectMeta: metav1.ObjectMeta{
 					GenerateName: "provider-reconcile-",
 					Namespace:    "default",
 				},
-				Spec: apiv1beta3.ProviderSpec{
+				Spec: apiv1.ProviderSpec{
 					Type:             tt.providerType,
 					CommitStatusExpr: tt.commitStatusExpr,
 				},

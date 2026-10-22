@@ -21,7 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
 // providerPredicate implements predicate functions for the Provider API.
@@ -36,7 +35,7 @@ func (providerPredicate) Update(e event.UpdateEvent) bool {
 		return false
 	}
 	return !controllerutil.ContainsFinalizer(e.ObjectNew, apiv1.NotificationFinalizer) ||
-		!e.ObjectNew.(*apiv1beta3.Provider).ObjectMeta.DeletionTimestamp.IsZero()
+		!e.ObjectNew.(*apiv1.Provider).ObjectMeta.DeletionTimestamp.IsZero()
 }
 
 func (providerPredicate) Delete(e event.DeleteEvent) bool {

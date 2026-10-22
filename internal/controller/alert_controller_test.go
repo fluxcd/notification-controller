@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
-	apiv1beta3 "github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
 func TestAlertReconciler(t *testing.T) {
@@ -45,7 +44,7 @@ func TestAlertReconciler(t *testing.T) {
 		g.Expect(testEnv.Cleanup(ctx, testns)).ToNot(HaveOccurred())
 	})
 
-	alert := &apiv1beta3.Alert{
+	alert := &apiv1.Alert{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("alert-%s", randStringRunes(5)),
 			Namespace: testns.Name,
@@ -56,7 +55,7 @@ func TestAlertReconciler(t *testing.T) {
 	// Remove finalizer at create.
 
 	alert.ObjectMeta.Finalizers = append(alert.ObjectMeta.Finalizers, "foo.bar", apiv1.NotificationFinalizer)
-	alert.Spec = apiv1beta3.AlertSpec{
+	alert.Spec = apiv1.AlertSpec{
 		ProviderRef:  meta.LocalObjectReference{Name: "foo-provider"},
 		EventSources: []apiv1.CrossNamespaceObjectReference{},
 	}
