@@ -87,13 +87,6 @@ spec:
                   bitbucket, azuredevops). Supported variables are: event, provider,
                   and alert.
                 type: string
-              proxy:
-                description: |-
-                  Proxy the HTTP/S address of the proxy server.
-                  Deprecated: Use ProxySecretRef instead.
-                maxLength: 2048
-                pattern: ^(http|https)://.*$
-                type: string
               proxySecretRef:
                 description: |-
                   ProxySecretRef specifies the Secret containing the proxy configuration
