@@ -61,14 +61,6 @@ type AlertSpec struct {
 	// +optional
 	ExclusionList []string `json:"exclusionList,omitempty"`
 
-	// Summary holds a short description of the impact and affected cluster.
-	// Deprecated: Use EventMetadata instead.
-	//
-	// +kubebuilder:validation:MaxLength:=255
-	// +optional
-	// +deprecated
-	Summary string `json:"summary,omitempty"`
-
 	// Suspend tells the controller to suspend subsequent
 	// events handling for this Alert.
 	// +optional

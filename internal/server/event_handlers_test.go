@@ -418,7 +418,6 @@ func TestGetNotificationParams(t *testing.T) {
 	tests := []struct {
 		name                    string
 		alertNamespace          string
-		alertSummary            string
 		alertEventMetadata      map[string]string
 		providerType            string
 		providerNamespace       string
@@ -461,20 +460,6 @@ func TestGetNotificationParams(t *testing.T) {
 			name:            "provider secret in different NS, fail to create notifier",
 			secretNamespace: "bar-ns",
 			wantErr:         true,
-		},
-		{
-			name:         "alert with summary, no event metadata",
-			alertSummary: "some summary text",
-			wantParams:   true,
-		},
-		{
-			name:         "alert with summary, with event metadata",
-			alertSummary: "some summary text",
-			eventMetadata: map[string]string{
-				"foo":     "bar",
-				"summary": "baz",
-			},
-			wantParams: true,
 		},
 		{
 			name: "alert with event metadata",
@@ -541,9 +526,6 @@ func TestGetNotificationParams(t *testing.T) {
 			if tt.alertNamespace != "" {
 				alert.Namespace = tt.alertNamespace
 			}
-			if tt.alertSummary != "" {
-				alert.Spec.Summary = tt.alertSummary
-			}
 			if tt.alertEventMetadata != nil {
 				alert.Spec.EventMetadata = tt.alertEventMetadata
 			}
@@ -585,9 +567,6 @@ func TestGetNotificationParams(t *testing.T) {
 			g.Expect(err != nil).To(Equal(tt.wantErr), "unexpected error: %v", err)
 			g.Expect(dropped.commitStatus).To(Equal(tt.wantDroppedCommitStatus))
 			g.Expect(params != nil).To(Equal(tt.wantParams), "unexpected params: %v", params)
-			if tt.alertSummary != "" {
-				g.Expect(params.event.Metadata["summary"]).To(Equal(tt.alertSummary))
-			}
 			// NOTE: This is performing simple check. Thorough test for event
 			// metadata is performed in TestCombineEventMetadata.
 			if tt.alertEventMetadata != nil {
@@ -1407,7 +1386,6 @@ func TestCombineEventMetadata(t *testing.T) {
 			},
 			alert: apiv1.Alert{
 				Spec: apiv1.AlertSpec{
-					Summary: "summaryValue",
 					EventMetadata: map[string]string{
 						"foo": "bar",
 						"baz": "qux",
@@ -1419,41 +1397,9 @@ func TestCombineEventMetadata(t *testing.T) {
 				"baz":                 "qux",
 				"controllerMetadata1": "controllerMetadataValue1",
 				"controllerMetadata2": "controllerMetadataValue2",
-				"summary":             "summaryValue",
 				"objectMetadata1":     "objectMetadataValue1",
 				"objectMetadata2":     "objectMetadataValue2",
 			},
-		},
-		"object metadata is overriden by summary": {
-			event: eventv1.Event{
-				Metadata: map[string]string{
-					"event.toolkit.fluxcd.io/summary": "objectSummary",
-				},
-			},
-			alert: apiv1.Alert{
-				Spec: apiv1.AlertSpec{
-					Summary: "alertSummary",
-				},
-			},
-			expectedMetadata: map[string]string{
-				"summary": "alertSummary",
-			},
-			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information)",
-		},
-		"alert event metadata is overriden by summary": {
-			event: eventv1.Event{},
-			alert: apiv1.Alert{
-				Spec: apiv1.AlertSpec{
-					Summary: "alertSummary",
-					EventMetadata: map[string]string{
-						"summary": "eventMetadataSummary",
-					},
-				},
-			},
-			expectedMetadata: map[string]string{
-				"summary": "alertSummary",
-			},
-			conflictEvent: "Warning MetadataAppendFailed metadata key conflicts detected (please refer to the Alert API docs and Flux RFC 0008 for more information)",
 		},
 		"summary is overriden by controller metadata": {
 			event: eventv1.Event{
@@ -1463,7 +1409,9 @@ func TestCombineEventMetadata(t *testing.T) {
 			},
 			alert: apiv1.Alert{
 				Spec: apiv1.AlertSpec{
-					Summary: "alertSummary",
+					EventMetadata: map[string]string{
+						"summary": "alertSummary",
+					},
 				},
 			},
 			expectedMetadata: map[string]string{
