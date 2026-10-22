@@ -23,20 +23,24 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	cryptov1 "github.com/fluxcd/pkg/apis/crypto/v1"
 	"github.com/fluxcd/pkg/auth"
 	"github.com/fluxcd/pkg/auth/azure"
 	"github.com/fluxcd/pkg/cache"
-
-	"github.com/fluxcd/notification-controller/api/v1beta3"
 )
 
 // newManagedIdentityToken is used to attempt credential-free authentication.
-func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, providerName, providerNamespace, scope string, tokenClient client.Client, tokenCache *cache.TokenCache) (string, error) {
-	opts := []auth.Option{
-		auth.WithScopes(scope),
-		auth.WithClient(tokenClient),
-		auth.WithServiceAccountNamespace(providerNamespace),
+func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, defaultServiceAccount string,
+	objectLevelWorkloadIdentity bool, providerName, providerNamespace, scope string,
+	tokenClient client.Client, tokenCache *cache.TokenCache) (string, error) {
+
+	opts, err := newAuthOptions(ctx, cryptov1.ProviderAzure, serviceAccountName,
+		defaultServiceAccount, objectLevelWorkloadIdentity, providerName, providerNamespace,
+		tokenClient, tokenCache)
+	if err != nil {
+		return "", err
 	}
+	opts = append(opts, auth.WithScopes(scope))
 
 	if proxy != "" {
 		proxyURL, err := url.Parse(proxy)
@@ -44,20 +48,6 @@ func newManagedIdentityToken(ctx context.Context, proxy, serviceAccountName, pro
 			return "", fmt.Errorf("error parsing proxy URL: %w", err)
 		}
 		opts = append(opts, auth.WithProxyURL(*proxyURL))
-	}
-
-	if serviceAccountName != "" {
-		opts = append(opts, auth.WithServiceAccountName(serviceAccountName))
-	}
-
-	if tokenCache != nil {
-		involvedObject := cache.InvolvedObject{
-			Kind:      v1beta3.ProviderKind,
-			Name:      providerName,
-			Namespace: providerNamespace,
-			Operation: OperationPost,
-		}
-		opts = append(opts, auth.WithCache(*tokenCache, involvedObject))
 	}
 
 	token, err := auth.GetAccessToken(ctx, azure.Provider{}, opts...)

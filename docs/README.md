@@ -4,6 +4,8 @@
 
 | Name                                  | Type          | Description                                                                                                                        |
 |---------------------------------------|---------------|------------------------------------------------------------------------------------------------------------------------------------|
+| `--authorized-notifier-spiffe-id`     | strings       | SPIFFE ID of a notifier authorized to send events to the event server. Can be repeated. When set, the event server uses SPIFFE mTLS. |
+| `--authorized-receiver-spiffe-id`     | strings       | SPIFFE ID of a receiver authorized to send requests to the receiver server. Can be repeated. When set, the receiver server uses SPIFFE mTLS. |
 | `--concurrent`                        | int           | The number of concurrent notification reconciles. (default 4)                                                                      |
 | `--default-service-account`           | string        | Default service account to use for workload identity when not specified in resources.                                             |
 | `--enable-leader-election`            | boolean       | Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.              |
@@ -24,6 +26,35 @@
 | `--watch-all-namespaces`              | boolean       | Watch for custom resources in all namespaces, if set to false it will only watch the runtime namespace. (default true)             |
 | `--feature-gates`                     | mapStringBool | A comma separated list of key=value pairs defining the state of experimental features.                                             |
 
+### SPIFFE mTLS
+
+When at least one of the repeatable flags `--authorized-notifier-spiffe-id` or
+`--authorized-receiver-spiffe-id` is set, notification-controller acquires an
+X.509-SVID from the SPIFFE Workload API. The `SPIFFE_ENDPOINT_SOCKET` environment
+variable must point to the Workload API socket.
+
+- `--authorized-notifier-spiffe-id` authorizes the given SPIFFE IDs of
+  notifiers to send events to the event server. When set, the event server uses
+  mTLS.
+- `--authorized-receiver-spiffe-id` authorizes the given SPIFFE IDs of
+  receivers to send requests to the receiver server. When set, the receiver
+  server uses mTLS.
+
+Each traffic type is protected independently.
+
+Each flag value is interpreted as follows:
+
+- `spiffe://<trust domain>/<path>` authorizes exactly that SPIFFE ID.
+- `spiffe://<trust domain>/<path>/` (with a trailing slash) authorizes any
+  SPIFFE ID with that path prefix.
+- `spiffe://<trust domain>` (without a path) authorizes any SPIFFE ID in that
+  trust domain.
+
+Whenever `<trust domain>` equals the special value `self`,
+notification-controller understands it as the trust domain of the controller's
+own X509-SVID.
+
+Invalid values cause notification-controller to fail at startup.
 
 ### Feature Gates
 

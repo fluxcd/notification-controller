@@ -86,17 +86,19 @@ type notifierOptions struct {
 	Headers  map[string]string
 	// CertPool is kept for Git platform providers (GitHub, GitLab, etc.) that use third-party SDKs.
 	// TODO: Remove this field once all notifiers support client certificate authentication via TLSConfig.
-	CertPool           *x509.CertPool
-	TLSConfig          *tls.Config
-	Password           string
-	CommitStatus       string
-	ProviderUID        string
-	ProviderName       string
-	ProviderNamespace  string
-	SecretData         map[string][]byte
-	ServiceAccountName string
-	TokenCache         *cache.TokenCache
-	TokenClient        client.Client
+	CertPool                    *x509.CertPool
+	TLSConfig                   *tls.Config
+	Password                    string
+	CommitStatus                string
+	ProviderUID                 string
+	ProviderName                string
+	ProviderNamespace           string
+	SecretData                  map[string][]byte
+	ServiceAccountName          string
+	DefaultServiceAccount       string
+	ObjectLevelWorkloadIdentity bool
+	TokenCache                  *cache.TokenCache
+	TokenClient                 client.Client
 }
 
 type Factory struct {
@@ -218,6 +220,22 @@ func WithServiceAccount(serviceAccountName string) Option {
 	}
 }
 
+// WithDefaultServiceAccount sets the default service account for the notifier,
+// used when .spec.serviceAccountName is not specified.
+func WithDefaultServiceAccount(serviceAccountName string) Option {
+	return func(o *notifierOptions) {
+		o.DefaultServiceAccount = serviceAccountName
+	}
+}
+
+// WithObjectLevelWorkloadIdentity indicates whether object-level workload
+// identity is enabled.
+func WithObjectLevelWorkloadIdentity() Option {
+	return func(o *notifierOptions) {
+		o.ObjectLevelWorkloadIdentity = true
+	}
+}
+
 // WithURL sets the webhook URL for the notifier.
 func WithURL(url string) Option {
 	return func(o *notifierOptions) {
@@ -290,7 +308,7 @@ func sentryNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func azureEventHubNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewAzureEventHub(opts.Context, opts.URL, opts.Token, opts.Channel, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName, opts.ProviderNamespace, opts.TokenClient, opts.TokenCache)
+	return NewAzureEventHub(opts.Context, opts.URL, opts.Token, opts.Channel, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName, opts.ProviderNamespace, opts.TokenClient, opts.TokenCache, opts.DefaultServiceAccount, opts.ObjectLevelWorkloadIdentity)
 }
 
 func telegramNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -374,7 +392,8 @@ func bitbucketNotifierFunc(opts notifierOptions) (Interface, error) {
 func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {
 	return NewAzureDevOps(opts.Context, opts.CommitStatus, opts.URL, opts.Token,
 		opts.TLSConfig, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName,
-		opts.ProviderNamespace, opts.TokenClient, opts.TokenCache)
+		opts.ProviderNamespace, opts.TokenClient, opts.TokenCache,
+		opts.DefaultServiceAccount, opts.ObjectLevelWorkloadIdentity)
 }
 
 func zulipNotifierFunc(opts notifierOptions) (Interface, error) {

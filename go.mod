@@ -18,13 +18,15 @@ require (
 	github.com/elazarl/goproxy v1.8.4
 	github.com/fluxcd/cli-utils v1.4.0
 	github.com/fluxcd/notification-controller/api v1.9.0
+	github.com/fluxcd/pkg/apis/crypto v0.4.1-0.20261020182949-c5194b17fdad
 	github.com/fluxcd/pkg/apis/event v0.32.0
-	github.com/fluxcd/pkg/apis/meta v1.35.0
-	github.com/fluxcd/pkg/auth v0.62.0
-	github.com/fluxcd/pkg/cache v0.17.0
+	github.com/fluxcd/pkg/apis/meta v1.36.1-0.20261020182949-c5194b17fdad
+	github.com/fluxcd/pkg/auth v0.63.1-0.20261020182949-c5194b17fdad
+	github.com/fluxcd/pkg/cache v0.17.1-0.20261020182949-c5194b17fdad
 	github.com/fluxcd/pkg/git v0.55.0
 	github.com/fluxcd/pkg/masktoken v0.10.0
-	github.com/fluxcd/pkg/runtime v0.119.0
+	github.com/fluxcd/pkg/runtime v0.120.1-0.20261020182949-c5194b17fdad
+	github.com/fluxcd/pkg/spiffe v0.0.0-20261020182949-c5194b17fdad
 	github.com/fluxcd/pkg/ssa v0.80.0
 	github.com/fluxcd/pkg/ssh v0.28.0
 	github.com/getsentry/sentry-go v0.50.0
@@ -42,6 +44,7 @@ require (
 	github.com/sethvargo/go-limiter v1.2.0
 	github.com/slok/go-http-metrics v0.13.0
 	github.com/spf13/pflag v1.0.10
+	github.com/spiffe/go-spiffe/v2 v2.9.0
 	gitlab.com/gitlab-org/api/client-go v1.46.0
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.47.0

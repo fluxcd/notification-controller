@@ -137,7 +137,7 @@ func TestEventServer(t *testing.T) {
 		t.Fatalf("failed to create memory storage")
 	}
 	eventServer := NewEventServer("127.0.0.1:"+eventServerPort,
-		log.Log, kclient, events.NewFakeRecorder(32), true, true, nil)
+		log.Log, kclient, events.NewFakeRecorder(32), true, true, nil, false, "", nil)
 	stopCh := make(chan struct{})
 	go eventServer.ListenAndServe(stopCh, eventMdlw, store)
 	defer close(stopCh)

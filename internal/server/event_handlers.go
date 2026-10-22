@@ -38,7 +38,6 @@ import (
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/auth"
-	"github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/masktoken"
 	"github.com/fluxcd/pkg/runtime/secrets"
 
@@ -345,7 +344,7 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 	}
 
 	// Check object-level workload identity feature gate.
-	if provider.Spec.ServiceAccountName != "" && !auth.IsObjectLevelWorkloadIdentityEnabled() {
+	if provider.Spec.ServiceAccountName != "" && !s.objectLevelWorkloadIdentity {
 		return nil, droppedProviders{}, fmt.Errorf(
 			"to use spec.serviceAccountName for provider authentication please enable the %s feature gate in the controller",
 			auth.FeatureGateObjectLevelWorkloadIdentity)
@@ -361,7 +360,7 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, droppedProviders{}, fmt.Errorf("failed to create commit status: %w", err)
 	}
 
-	sender, token, err := createNotifier(ctx, s.kubeClient, &provider, commitStatus, s.tokenCache)
+	sender, token, err := s.createNotifier(ctx, &provider, commitStatus)
 	if err != nil {
 		return nil, droppedProviders{}, fmt.Errorf("failed to initialize notifier for provider '%s': %w", provider.Name, err)
 	}
@@ -441,10 +440,10 @@ func extractAuthFromSecret(ctx context.Context, secret *corev1.Secret) ([]notifi
 
 // createNotifier constructs a notifier interface from the provider configuration,
 // handling authentication, proxy settings, and TLS configuration.
-func createNotifier(ctx context.Context, kubeClient client.Client, provider *apiv1beta3.Provider,
-	commitStatus string, tokenCache *cache.TokenCache) (notifier.Interface, string, error) {
+func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1beta3.Provider,
+	commitStatus string) (notifier.Interface, string, error) {
 	options := []notifier.Option{
-		notifier.WithTokenClient(kubeClient),
+		notifier.WithTokenClient(s.kubeClient),
 		notifier.WithProviderUID(string(provider.UID)),
 		notifier.WithProviderName(provider.Name),
 		notifier.WithProviderNamespace(provider.Namespace),
@@ -466,8 +465,16 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 		options = append(options, notifier.WithServiceAccount(provider.Spec.ServiceAccountName))
 	}
 
-	if tokenCache != nil {
-		options = append(options, notifier.WithTokenCache(tokenCache))
+	if s.defaultServiceAccount != "" {
+		options = append(options, notifier.WithDefaultServiceAccount(s.defaultServiceAccount))
+	}
+
+	if s.objectLevelWorkloadIdentity {
+		options = append(options, notifier.WithObjectLevelWorkloadIdentity())
+	}
+
+	if s.tokenCache != nil {
+		options = append(options, notifier.WithTokenCache(s.tokenCache))
 	}
 
 	// TODO: Remove deprecated proxy handling when Provider v1 is released.
@@ -483,7 +490,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 	var err error
 
 	if provider.Spec.SecretRef != nil {
-		providerSecret, err = getSecret(ctx, kubeClient, provider.Spec.SecretRef.Name, provider.GetNamespace())
+		providerSecret, err = getSecret(ctx, s.kubeClient, provider.Spec.SecretRef.Name, provider.GetNamespace())
 		if err != nil {
 			return nil, "", err
 		}
@@ -507,7 +514,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 	}
 
 	if provider.Spec.ProxySecretRef != nil {
-		proxySecret, err := getSecret(ctx, kubeClient, provider.Spec.ProxySecretRef.Name, provider.GetNamespace())
+		proxySecret, err := getSecret(ctx, s.kubeClient, provider.Spec.ProxySecretRef.Name, provider.GetNamespace())
 		if err != nil {
 			return nil, "", err
 		}
@@ -519,7 +526,7 @@ func createNotifier(ctx context.Context, kubeClient client.Client, provider *api
 	}
 
 	if provider.Spec.CertSecretRef != nil {
-		providerCertSecret, err = getSecret(ctx, kubeClient, provider.Spec.CertSecretRef.Name, provider.GetNamespace())
+		providerCertSecret, err = getSecret(ctx, s.kubeClient, provider.Spec.CertSecretRef.Name, provider.GetNamespace())
 		if err != nil {
 			return nil, "", err
 		}

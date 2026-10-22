@@ -51,11 +51,14 @@ type AzureDevOps struct {
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
 func NewAzureDevOps(ctx context.Context, commitStatus string, addr string, token string,
 	tlsConfig *tls.Config, proxy, serviceAccountName, providerName, providerNamespace string,
-	tokenClient client.Client, tokenCache *cache.TokenCache) (*AzureDevOps, error) {
+	tokenClient client.Client, tokenCache *cache.TokenCache, defaultServiceAccount string,
+	objectLevelWorkloadIdentity bool) (*AzureDevOps, error) {
 	var err error
 	if len(token) == 0 {
 		// if token doesn't exist, try to create a new token using managed identity
-		token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName, providerName, providerNamespace, azure.ScopeDevOps, tokenClient, tokenCache)
+		token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName,
+			defaultServiceAccount, objectLevelWorkloadIdentity, providerName,
+			providerNamespace, azure.ScopeDevOps, tokenClient, tokenCache)
 		if err != nil {
 			return nil, fmt.Errorf("failed to acquire azure devops token: %w", err)
 		}
