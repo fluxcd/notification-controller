@@ -1564,10 +1564,16 @@ func TestGetTLSConfigForProvider(t *testing.T) {
 			wantErr:            true,
 		},
 		{
-			name:           "providerSecret in ca.crt with valid CA (git provider)",
+			name:           "providerSecret with ca.crt (git provider) returns error",
 			providerType:   apiv1.GitHubProvider,
 			providerSecret: getSecret("git-secret", map[string][]byte{"ca.crt": caCert}),
-			wantTLSConfig:  &tls.Config{RootCAs: caPool},
+			wantErr:        true,
+		},
+		{
+			name:           "providerSecret with legacy caFile (git provider) returns error",
+			providerType:   apiv1.GitLabProvider,
+			providerSecret: getSecret("git-secret", map[string][]byte{"caFile": caCert}),
+			wantErr:        true,
 		},
 		{
 			name:           "providerSecret without ca.crt (git provider) returns nil TLS config",
@@ -1575,7 +1581,7 @@ func TestGetTLSConfigForProvider(t *testing.T) {
 			providerSecret: getSecret("git-secret-no-ca", map[string][]byte{"foo": []byte("bar")}),
 		},
 		{
-			name:           "providerSecret in ca.crt with invalid CA (git provider) returns error",
+			name:           "providerSecret with invalid ca.crt (git provider) returns error",
 			providerType:   apiv1.GitHubProvider,
 			providerSecret: getSecret("git-secret", map[string][]byte{"ca.crt": []byte("aaa")}),
 			wantErr:        true,
@@ -1592,10 +1598,10 @@ func TestGetTLSConfigForProvider(t *testing.T) {
 			wantTLSConfig:      &tls.Config{RootCAs: caPool, Certificates: []tls.Certificate{clientCertPair}},
 		},
 		{
-			name:           "providerSecret with (mTLS)",
+			name:           "providerSecret with mTLS keys (git provider) returns error",
 			providerType:   apiv1.GitHubProvider,
-			providerSecret: getSecret("cert-secret", map[string][]byte{"ca.crt": caCert, "tls.crt": clientCert, "tls.key": clientKey}),
-			wantTLSConfig:  &tls.Config{RootCAs: caPool, Certificates: []tls.Certificate{clientCertPair}},
+			providerSecret: getSecret("cert-secret", map[string][]byte{"tls.crt": clientCert, "tls.key": clientKey}),
+			wantErr:        true,
 		},
 	}
 

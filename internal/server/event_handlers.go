@@ -542,32 +542,37 @@ func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1.Provid
 	return sender, token, nil
 }
 
-// getTLSConfigForProvider - retrieves the TLS configuration from the provider's certSecretRef or secretRef.
-func getTLSConfigForProvider(ctx context.Context, providerCertSecret, providerSecret *corev1.Secret, providerType string) (tlsConfig *tls.Config, err error) {
-	// providerCertSecret takes precedence over providerSecret as it is explicitly specified for TLS configuration
+// getTLSConfigForProvider retrieves the TLS configuration from the provider's certSecretRef.
+// For commit status providers, it returns an error if the Secret referenced by
+// secretRef contains TLS data, as this is no longer supported.
+func getTLSConfigForProvider(ctx context.Context, providerCertSecret, providerSecret *corev1.Secret, providerType string) (*tls.Config, error) {
 	if providerCertSecret != nil {
-		tlsConfig, err = secrets.TLSConfigFromSecret(ctx, providerCertSecret)
+		tlsConfig, err := secrets.TLSConfigFromSecret(ctx, providerCertSecret)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get TLS config: %w", err)
 		}
-		return
+		return tlsConfig, nil
 	}
-	// if providerCertSecret is not specified, and if the provider is a commit status
-	// provider then attempt to get TLS config from providerSecret if ca.crt exists
-	if isCommitStatusProvider(providerType) && providerSecret != nil {
-		authMethods, err := secrets.AuthMethodsFromSecret(ctx, providerSecret)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get TLS config: %w", err)
-		}
-		// only proceed to create TLS config if ca.crt exists in the secret
-		if authMethods != nil && authMethods.HasTLS() {
-			tlsConfig, err = secrets.TLSConfigFromSecret(ctx, providerSecret)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get TLS config: %w", err)
-			}
+
+	if isCommitStatusProvider(providerType) && providerSecret != nil && hasTLSData(providerSecret) {
+		return nil, fmt.Errorf("TLS configuration in the Secret referenced by .spec.secretRef is no longer supported, " +
+			"use .spec.certSecretRef instead")
+	}
+
+	return nil, nil
+}
+
+// hasTLSData returns true if the Secret contains any of the TLS certificate or key entries.
+func hasTLSData(secret *corev1.Secret) bool {
+	for _, key := range []string{
+		secrets.KeyCACert, secrets.KeyTLSCert, secrets.KeyTLSPrivateKey,
+		secrets.LegacyKeyCACert, secrets.LegacyKeyTLSCert, secrets.LegacyKeyTLSPrivateKey,
+	} {
+		if _, ok := secret.Data[key]; ok {
+			return true
 		}
 	}
-	return
+	return false
 }
 
 // eventMatchesAlertSource returns if a given event matches with the given alert

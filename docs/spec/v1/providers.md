@@ -1554,6 +1554,11 @@ secure communication. The secret must be of type `kubernetes.io/tls` or `Opaque`
 - **Mutual TLS (mTLS)**: Client certificate authentication (provide `tls.crt` + `tls.key`, optionally with `ca.crt`)
 - **CA-only**: Server authentication (provide `ca.crt` only)
 
+TLS certificates and keys are read only from the Secret referenced by `.spec.certSecretRef`.
+For the `github`, `gitlab`, `gitea`, `bitbucketserver`, `bitbucket` and `azuredevops`
+Provider types, the Provider will fail with an error if `.spec.certSecretRef` is not set
+and the Secret referenced by `.spec.secretRef` contains TLS data.
+
 #### Mutual TLS Authentication
 
 Mutual TLS authentication allows for secure client-server communication using
@@ -1797,10 +1802,12 @@ installed with the necessary permissions and the GitHub app secret is created as
 described
 [here](https://fluxcd.io/flux/components/source/gitrepositories/#github).
 
-**NOTE:** (For GitHub Enterprise Server) If the GitHub Server uses a private CA, the CA certificate can be referenced either via `.spec.certSecretRef`
-as described [here](#certificate-secret-reference) or the CA certificate can be added in the GitHub App secret referenced via `.spec.secretRef`.
-If the `.spec.secretRef` contains `tls.crt`, `tls.key` then mutual TLS configuration will be automatically enabled. Omit these keys if the GitHub server does not support mutual TLS.
-If both secret references are specified, then the CA specified in `.spec.certSecretRef` takes precedence over the CA specified in the GitHub App secret.
+**NOTE:** (For GitHub Enterprise Server) If the GitHub Server uses a private CA,
+or requires mutual TLS, the CA certificate and the client certificate and key must be
+provided in the Secret referenced by `.spec.certSecretRef` as described
+[here](#certificate-secret-reference). TLS data in the GitHub App Secret referenced by
+`.spec.secretRef` is not supported, and the Provider will fail with an error if
+`.spec.certSecretRef` is not set and the `ca.crt`, `tls.crt` or `tls.key` keys are present.
 
 #### Setting up a GitHub workflow
 
@@ -2068,10 +2075,12 @@ permissions to update the commit status and the github app secret is created as
 described
 [here](https://fluxcd.io/flux/components/source/gitrepositories/#github).
 
-**NOTE:** (For GitHub Enterprise Server) If the GitHub Server uses a private CA, the CA certificate can be referenced either via `.spec.certSecretRef`
-as described [here](#certificate-secret-reference) or the CA certificate can be added in the GitHub App secret referenced via `.spec.secretRef`.
-If the `.spec.secretRef` contains `tls.crt`, `tls.key` then mutual TLS configuration will be automatically enabled. Omit these keys if the GitHub server does not support mutual TLS.
-If both secret references are specified, then the CA specified in `.spec.certSecretRef` takes precedence over the CA specified in the GitHub App secret.
+**NOTE:** (For GitHub Enterprise Server) If the GitHub Server uses a private CA,
+or requires mutual TLS, the CA certificate and the client certificate and key must be
+provided in the Secret referenced by `.spec.certSecretRef` as described
+[here](#certificate-secret-reference). TLS data in the GitHub App Secret referenced by
+`.spec.secretRef` is not supported, and the Provider will fail with an error if
+`.spec.certSecretRef` is not set and the `ca.crt`, `tls.crt` or `tls.key` keys are present.
 
 #### GitLab
 
