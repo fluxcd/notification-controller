@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -83,6 +84,47 @@ func TestProviderReconciler(t *testing.T) {
 		}
 		return false
 	}, timeout).Should(BeTrue())
+}
+
+func TestProviderReconciler_V1Beta3Interval(t *testing.T) {
+	g := NewWithT(t)
+
+	timeout := 10 * time.Second
+
+	testns, err := testEnv.CreateNamespace(ctx, "provider-test")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	t.Cleanup(func() {
+		g.Expect(testEnv.Cleanup(ctx, testns)).ToNot(HaveOccurred())
+	})
+
+	// Create a v1beta3 Provider with the deprecated interval field.
+	name := fmt.Sprintf("provider-%s", randStringRunes(5))
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion(apiv1.GroupVersion.Group + "/v1beta3")
+	obj.SetKind(apiv1.ProviderKind)
+	obj.SetName(name)
+	obj.SetNamespace(testns.Name)
+	g.Expect(unstructured.SetNestedField(obj.Object, "generic", "spec", "type")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(obj.Object, "10m", "spec", "interval")).To(Succeed())
+	g.Expect(testEnv.Create(ctx, obj)).To(Succeed())
+
+	// The v1 object should be reconciled and served without the interval field.
+	providerKey := client.ObjectKey{Name: name, Namespace: testns.Name}
+	provider := &apiv1.Provider{}
+	g.Eventually(func() bool {
+		_ = testEnv.Get(ctx, providerKey, provider)
+		return controllerutil.ContainsFinalizer(provider, apiv1.NotificationFinalizer)
+	}, timeout, time.Second).Should(BeTrue())
+
+	v1Obj := &unstructured.Unstructured{}
+	v1Obj.SetGroupVersionKind(apiv1.GroupVersion.WithKind(apiv1.ProviderKind))
+	g.Expect(testEnv.Get(ctx, providerKey, v1Obj)).To(Succeed())
+	_, found, err := unstructured.NestedFieldNoCopy(v1Obj.Object, "spec", "interval")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(found).To(BeFalse())
+
+	g.Expect(testEnv.Delete(ctx, provider)).To(Succeed())
 }
 
 func TestProviderReconciler_APIServerValidation(t *testing.T) {

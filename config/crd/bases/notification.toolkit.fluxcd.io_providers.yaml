@@ -87,12 +87,6 @@ spec:
                   bitbucket, azuredevops). Supported variables are: event, provider,
                   and alert.
                 type: string
-              interval:
-                description: |-
-                  Interval at which to reconcile the Provider with its Secret references.
-                  Deprecated and not used.
-                pattern: ^([0-9]+(\.[0-9]+)?(ms|s|m|h))+$
-                type: string
               proxy:
                 description: |-
                   Proxy the HTTP/S address of the proxy server.
