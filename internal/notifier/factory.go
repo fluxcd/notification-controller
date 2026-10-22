@@ -69,6 +69,7 @@ var (
 		apiv1.OTELProvider:                      otelNotifierFunc,
 		apiv1.ZoomProvider:                      zoomNotifierFunc,
 		apiv1.IncidentioProvider:                incidentioNotifierFunc,
+		apiv1.MastodonProvider:                  mastodonNotifierFunc,
 	}
 )
 
@@ -101,6 +102,9 @@ type notifierOptions struct {
 	TokenCache            *cache.TokenCache
 	TokenClient           client.Client
 	SPIFFEBroker          fluxbroker.Interface
+	// EventKey is the identity of the event being dispatched, computed by
+	// the event server. Notifiers may use it as an idempotency token.
+	EventKey string
 }
 
 type Factory struct {
@@ -114,6 +118,13 @@ type Option func(*notifierOptions)
 func WithProxyURL(proxyURL *url.URL) Option {
 	return func(o *notifierOptions) {
 		o.ProxyURL = proxyURL
+	}
+}
+
+// WithEventKey sets the key identifying the event being dispatched.
+func WithEventKey(key string) Option {
+	return func(o *notifierOptions) {
+		o.EventKey = key
 	}
 }
 
@@ -415,4 +426,8 @@ func zoomNotifierFunc(opts notifierOptions) (Interface, error) {
 
 func incidentioNotifierFunc(opts notifierOptions) (Interface, error) {
 	return NewIncidentio(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
+}
+
+func mastodonNotifierFunc(opts notifierOptions) (Interface, error) {
+	return NewMastodon(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token, opts.EventKey)
 }
