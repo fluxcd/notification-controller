@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -117,4 +118,46 @@ func TestAlertReconciler(t *testing.T) {
 		}
 		return false
 	}, timeout).Should(BeTrue())
+}
+
+func TestAlertReconciler_V1Beta3Summary(t *testing.T) {
+	g := NewWithT(t)
+
+	testns, err := testEnv.CreateNamespace(ctx, "alert-test")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	t.Cleanup(func() {
+		g.Expect(testEnv.Cleanup(ctx, testns)).ToNot(HaveOccurred())
+	})
+
+	// Create a v1beta3 Alert with the deprecated summary field.
+	name := fmt.Sprintf("alert-%s", randStringRunes(5))
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion(apiv1.GroupVersion.Group + "/v1beta3")
+	obj.SetKind(apiv1.AlertKind)
+	obj.SetName(name)
+	obj.SetNamespace(testns.Name)
+	g.Expect(unstructured.SetNestedField(obj.Object, "provider", "spec", "providerRef", "name")).To(Succeed())
+	g.Expect(unstructured.SetNestedSlice(obj.Object, []interface{}{
+		map[string]interface{}{"kind": "Bucket", "name": "*"},
+	}, "spec", "eventSources")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(obj.Object, "cluster impacted", "spec", "summary")).To(Succeed())
+	g.Expect(testEnv.Create(ctx, obj)).To(Succeed())
+
+	// The v1 object should be served without the summary field.
+	alertKey := client.ObjectKey{Name: name, Namespace: testns.Name}
+	alert := &apiv1.Alert{}
+	g.Eventually(func() error {
+		return testEnv.Get(ctx, alertKey, alert)
+	}, 10*time.Second, time.Second).Should(Succeed())
+	g.Expect(alert.Spec.EventSources).To(HaveLen(1))
+
+	v1Obj := &unstructured.Unstructured{}
+	v1Obj.SetGroupVersionKind(apiv1.GroupVersion.WithKind(apiv1.AlertKind))
+	g.Expect(testEnv.Get(ctx, alertKey, v1Obj)).To(Succeed())
+	_, found, err := unstructured.NestedFieldNoCopy(v1Obj.Object, "spec", "summary")
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(found).To(BeFalse())
+
+	g.Expect(testEnv.Delete(ctx, alert)).To(Succeed())
 }

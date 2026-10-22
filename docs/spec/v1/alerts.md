@@ -80,18 +80,6 @@ valid [DNS subdomain name](https://kubernetes.io/docs/concepts/overview/working-
 An Alert also needs a
 [`.spec` section](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#spec-and-status).
 
-### Summary
-
-`.spec.summary` is an optional field to specify a short description of the impact.
-
-The summary max length can't be greater than 255 characters.
-
-**Warning:** Support for `.spec.summary` has been deprecated and will be removed in
-Alert API v1 GA. If you have any Alerts using this field, the controller will log a
-deprecation warning. Please use [`.spec.eventMetadata.summary`](#event-metadata) or
-[object annotations](#event-metadata-from-object-annotations) for defining alert
-summary instead.
-
 ### Provider reference
 
 `.spec.providerRef.name` is a required field to specify a name reference to a
@@ -185,14 +173,13 @@ spec:
 
 ### Event metadata from object annotations
 
-Event metadata has four sources. They are listed below in order of precedence,
+Event metadata has three sources. They are listed below in order of precedence,
 from lowest to highest:
 
 1. User-defined metadata on Flux objects, set with the `event.toolkit.fluxcd.io/`
 prefix in the keys of the object's `.metadata.annotations`.
 2. User-defined metadata on the Alert object, set with [`.spec.eventMetadata`](#event-metadata).
-3. User-defined summary on the Alert object, set with [`.spec.summary`](#summary) (deprecated, see docs).
-4. Controller-defined metadata, set with the `<controller group>.toolkit.fluxcd.io/`
+3. Controller-defined metadata, set with the `<controller group>.toolkit.fluxcd.io/`
 prefix in the metadata keys of the event payload.
 
 If there are any metadata key conflicts between the sources, the higher

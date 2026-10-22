@@ -156,19 +156,6 @@ to be used for excluding messages.</p>
 </tr>
 <tr>
 <td>
-<code>summary</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Summary holds a short description of the impact and affected cluster.
-Deprecated: Use EventMetadata instead.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>suspend</code><br>
 <em>
 bool
@@ -727,19 +714,6 @@ log is printed.</p>
 <em>(Optional)</em>
 <p>ExclusionList specifies a list of Golang regular expressions
 to be used for excluding messages.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>summary</code><br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Summary holds a short description of the impact and affected cluster.
-Deprecated: Use EventMetadata instead.</p>
 </td>
 </tr>
 <tr>

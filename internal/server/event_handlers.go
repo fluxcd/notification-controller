@@ -636,9 +636,7 @@ func (s *EventServer) eventMatchesAlertSource(ctx context.Context, event *eventv
 //
 // 2) Alert .spec.eventMetadata with the keys as they are.
 //
-// 3) Alert .spec.summary with the key "summary".
-//
-// 4) Event metadata keys prefixed with the involved object's API Group stripped of the prefix.
+// 3) Event metadata keys prefixed with the involved object's API Group stripped of the prefix.
 //
 // At the end of the process key conflicts are detected and a single
 // info-level log is emitted to warn users about all the conflicts,
@@ -647,10 +645,7 @@ func (s *EventServer) combineEventMetadata(ctx context.Context, event *eventv1.E
 	const (
 		sourceEventGroup         = "involved object annotations"
 		sourceAlertEventMetadata = "Alert object .spec.eventMetadata"
-		sourceAlertSummary       = "Alert object .spec.summary"
 		sourceObjectGroup        = "involved object controller metadata"
-
-		summaryKey = "summary"
 	)
 
 	l := log.FromContext(ctx)
@@ -673,14 +668,7 @@ func (s *EventServer) combineEventMetadata(ctx context.Context, event *eventv1.E
 		metadataSources[k] = append(metadataSources[k], sourceAlertEventMetadata)
 	}
 
-	// 3) Alert .spec.summary with the key "summary".
-	if alert.Spec.Summary != "" {
-		metadata[summaryKey] = alert.Spec.Summary
-		metadataSources[summaryKey] = append(metadataSources[summaryKey], sourceAlertSummary)
-		l.Info("warning: specifying an alert summary with '.spec.summary' is deprecated, use '.spec.eventMetadata.summary' instead")
-	}
-
-	// 4) Event metadata keys prefixed with the involved object's API Group stripped of the prefix.
+	// 3) Event metadata keys prefixed with the involved object's API Group stripped of the prefix.
 	objectGroupPrefix := event.InvolvedObject.GroupVersionKind().Group + "/"
 	for k, v := range event.Metadata {
 		if strings.HasPrefix(k, objectGroupPrefix) {
