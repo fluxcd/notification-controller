@@ -22,7 +22,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -396,13 +395,8 @@ func extractAuthFromSecret(ctx context.Context, secret *corev1.Secret) ([]notifi
 		}
 	}
 
-	if val, ok := secret.Data["proxy"]; ok {
-		deprecatedProxy := strings.TrimSpace(string(val))
-		if _, err := url.Parse(deprecatedProxy); err != nil {
-			return nil, nil, fmt.Errorf("invalid 'proxy' in secret '%s/%s'", secret.Namespace, secret.Name)
-		}
-		log.FromContext(ctx).Error(nil, "warning: specifying proxy with 'proxy' key in the referenced secret is deprecated, use spec.proxySecretRef with 'address' key instead. Support for the 'proxy' key will be removed in v1.")
-		options = append(options, notifier.WithProxyURL(deprecatedProxy))
+	if _, ok := secret.Data["proxy"]; ok {
+		return nil, nil, errors.New("the 'proxy' key in the provider secret is no longer supported, use spec.proxySecretRef with an 'address' key instead")
 	}
 
 	if h, ok := secret.Data["headers"]; ok {
@@ -465,12 +459,6 @@ func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1.Provid
 	}
 	if s.spiffeBroker != nil {
 		options = append(options, notifier.WithSPIFFEBroker(s.spiffeBroker))
-	}
-
-	// TODO: Remove deprecated proxy handling when Provider v1 is released.
-	if provider.Spec.Proxy != "" {
-		log.FromContext(ctx).Error(nil, "warning: spec.proxy is deprecated, please use spec.proxySecretRef instead. Support for this field will be removed in v1.")
-		options = append(options, notifier.WithProxyURL(provider.Spec.Proxy))
 	}
 
 	webhook := provider.Spec.Address
