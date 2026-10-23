@@ -62,7 +62,7 @@ func (g *GitHubDispatch) Post(ctx context.Context, event eventv1.Event) error {
 	}
 	_, _, err = g.Client.Repositories.Dispatch(ctx, g.Owner, g.Repo, opts)
 	if err != nil {
-		return fmt.Errorf("could not send github repository dispatch webhook: %v", err)
+		return fmt.Errorf("could not send github repository dispatch webhook: %w", err)
 	}
 
 	return nil

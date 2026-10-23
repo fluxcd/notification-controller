@@ -48,7 +48,7 @@ func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace
 	var err error
 
 	if err := validateAuthOptions(endpointURL, token, serviceAccountName); err != nil {
-		return nil, fmt.Errorf("invalid authentication options: %v", err)
+		return nil, fmt.Errorf("invalid authentication options: %w", err)
 	}
 
 	if isSASAuth(endpointURL) {

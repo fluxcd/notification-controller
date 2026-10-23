@@ -120,7 +120,7 @@ func (b Bitbucket) Post(ctx context.Context, event eventv1.Event) error {
 	existingCommitStatus, err := b.Client.Repositories.Commits.GetCommitStatus(cmo, cso.Key)
 	var statusErr *bitbucket.UnexpectedResponseStatusError
 	if err != nil && !(errors.As(err, &statusErr) && strings.Contains(statusErr.Status, http.StatusText(http.StatusNotFound))) {
-		return fmt.Errorf("could not get commit status: %v", err)
+		return fmt.Errorf("could not get commit status: %w", err)
 	}
 	dupe, err := duplicateBitbucketStatus(existingCommitStatus, cso)
 	if err != nil {
