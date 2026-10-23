@@ -151,7 +151,7 @@ func NewGitHubClient(ctx context.Context, opts ...GitHubClientOption) (*GitHubCl
 	}
 
 	// Create client.
-	client, err := createGitHubClient(ctx, host, token, o.tlsConfig)
+	client, err := createGitHubClient(ctx, host, token, o.proxyURL, o.tlsConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -216,13 +216,15 @@ func getGitHubAppToken(ctx context.Context, o *gitHubClientOptions) (*githubapp.
 }
 
 // createGitHubClient creates a GitHub API client for the given host.
-func createGitHubClient(ctx context.Context, host, token string, tlsConfig *tls.Config) (*gogithub.Client, error) {
+func createGitHubClient(ctx context.Context, host, token string, proxyURL *url.URL, tlsConfig *tls.Config) (*gogithub.Client, error) {
 	baseURL, err := url.Parse(host)
 	if err != nil {
 		return nil, err
 	}
 
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	hc := &http.Client{Transport: newTransport(proxyURL, tlsConfig)}
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, hc)
 	tc := oauth2.NewClient(ctx, ts)
 
 	if baseURL.Host == "github.com" {
@@ -230,14 +232,6 @@ func createGitHubClient(ctx context.Context, host, token string, tlsConfig *tls.
 	}
 
 	// Enterprise GitHub
-	if tlsConfig != nil {
-		tr := http.DefaultTransport.(*http.Transport).Clone()
-		tr.TLSClientConfig = tlsConfig
-		hc := &http.Client{Transport: tr}
-		ctx = context.WithValue(ctx, oauth2.HTTPClient, hc)
-		tc = oauth2.NewClient(ctx, ts)
-	}
-
 	client, err := gogithub.NewClient(gogithub.WithHTTPClient(tc), gogithub.WithEnterpriseURLs(host, host))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create enterprise GitHub client: %v", err)

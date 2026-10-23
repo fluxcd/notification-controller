@@ -114,16 +114,9 @@ func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
 	}
 
 	// A client is created per event, so idle connections must not outlive it.
-	tr := http.DefaultTransport.(*http.Transport).Clone()
+	tr := newTransport(o.proxyURL, o.tlsConfig)
 	if giteaIdleConnTimeout > 0 {
 		tr.IdleConnTimeout = giteaIdleConnTimeout
-	}
-	if o.tlsConfig != nil {
-		tr.TLSClientConfig = o.tlsConfig
-	}
-
-	if o.proxyURL != nil {
-		tr.Proxy = http.ProxyURL(o.proxyURL)
 	}
 
 	client, err := gitea.NewClient(host, gitea.SetToken(o.token), gitea.SetHTTPClient(&http.Client{Transport: tr}))

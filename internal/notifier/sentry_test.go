@@ -52,7 +52,7 @@ func TestNewSentry(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			s, err := NewSentry(nil, tt.dsn, tt.environment)
+			s, err := NewSentry(tt.dsn, nil, nil, tt.environment)
 			if tt.err != nil {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err).To(Equal(tt.err))

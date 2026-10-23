@@ -26,6 +26,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"os/exec"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -239,4 +242,108 @@ func parseProxyURL(t testing.TB, value string) *url.URL {
 		t.Fatal(err)
 	}
 	return parsed
+}
+
+func TestNewTransport(t *testing.T) {
+	// ProxyFromEnvironment caches the environment on first use, so isolate this test.
+	if os.Getenv("NOTIFIER_TEST_PROXY_ENV") == "" {
+		t.Setenv("HTTP_PROXY", "http://http-proxy.invalid:8080")
+		t.Setenv("HTTPS_PROXY", "http://https-proxy.invalid:8080")
+		t.Setenv("NO_PROXY", "bypass.invalid")
+		t.Setenv("REQUEST_METHOD", "")
+		cmd := exec.Command(os.Args[0], "-test.run=^TestNewTransport$")
+		cmd.Env = append(os.Environ(), "NOTIFIER_TEST_PROXY_ENV=1")
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("isolated transport test failed: %v\n%s", err, output)
+		}
+		return
+	}
+
+	defaults := http.DefaultTransport.(*http.Transport).Clone()
+	tlsConfig := &tls.Config{RootCAs: x509.NewCertPool(), MinVersion: tls.VersionTLS12}
+	explicitProxy := parseProxyURL(t, "http://explicit-proxy.invalid:8080")
+	for _, tt := range []struct {
+		name      string
+		proxy     *url.URL
+		tlsConfig *tls.Config
+	}{
+		{name: "defaults"},
+		{name: "TLS with environment proxy", tlsConfig: tlsConfig},
+		{name: "explicit proxy", proxy: explicitProxy},
+		{name: "explicit proxy and TLS", proxy: explicitProxy, tlsConfig: tlsConfig},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			tr := newTransport(tt.proxy, tt.tlsConfig)
+			defer tr.CloseIdleConnections()
+			g.Expect(tr).ToNot(BeIdenticalTo(http.DefaultTransport))
+			g.Expect(tr.DialContext).ToNot(BeNil())
+			g.Expect(tr.TLSHandshakeTimeout).To(Equal(defaults.TLSHandshakeTimeout))
+			g.Expect(tr.IdleConnTimeout).To(Equal(defaults.IdleConnTimeout))
+			g.Expect(tr.MaxIdleConns).To(Equal(defaults.MaxIdleConns))
+			g.Expect(tr.ExpectContinueTimeout).To(Equal(defaults.ExpectContinueTimeout))
+			g.Expect(tr.ForceAttemptHTTP2).To(Equal(defaults.ForceAttemptHTTP2))
+			if tt.tlsConfig != nil {
+				g.Expect(tr.TLSClientConfig).ToNot(BeIdenticalTo(tt.tlsConfig))
+				g.Expect(tr.TLSClientConfig).To(Equal(tt.tlsConfig))
+			} else {
+				g.Expect(tr.TLSClientConfig).To(Equal(defaults.TLSClientConfig))
+			}
+
+			for _, scheme := range []string{"http", "https"} {
+				req, err := http.NewRequest(http.MethodGet, scheme+"://notification.invalid", nil)
+				g.Expect(err).ToNot(HaveOccurred())
+				proxy, err := tr.Proxy(req)
+				g.Expect(err).ToNot(HaveOccurred())
+				if tt.proxy != nil {
+					g.Expect(proxy).To(Equal(explicitProxy))
+				} else {
+					g.Expect(proxy.String()).To(Equal("http://" + scheme + "-proxy.invalid:8080"))
+				}
+
+				req.URL.Host = "bypass.invalid"
+				proxy, err = tr.Proxy(req)
+				g.Expect(err).ToNot(HaveOccurred())
+				if tt.proxy != nil {
+					g.Expect(proxy).To(Equal(explicitProxy))
+				} else {
+					g.Expect(proxy).To(BeNil())
+				}
+			}
+		})
+	}
+
+	g := NewWithT(t)
+	g.Expect(http.DefaultTransport.(*http.Transport).TLSClientConfig).To(Equal(defaults.TLSClientConfig))
+	g.Expect(reflect.ValueOf(http.DefaultTransport.(*http.Transport).Proxy).Pointer()).
+		To(Equal(reflect.ValueOf(http.ProxyFromEnvironment).Pointer()))
+}
+
+func TestNewTransportTLSConfigIsolation(t *testing.T) {
+	g := NewWithT(t)
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	defer server.Close()
+
+	pool := x509.NewCertPool()
+	pool.AddCert(server.Certificate())
+	tlsConfig := &tls.Config{RootCAs: pool}
+	for range 2 {
+		transport := newTransport(nil, tlsConfig)
+		defer transport.CloseIdleConnections()
+		client := &http.Client{Transport: transport}
+		req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, server.URL, nil)
+		g.Expect(err).ToNot(HaveOccurred())
+		resp, err := client.Do(req)
+		g.Expect(err).ToNot(HaveOccurred())
+		defer resp.Body.Close()
+
+		g.Expect(resp.ProtoMajor).To(Equal(2))
+		g.Expect(transport.TLSClientConfig.NextProtos).To(ContainElement("h2"))
+		g.Expect(tlsConfig.NextProtos).To(BeNil())
+	}
 }

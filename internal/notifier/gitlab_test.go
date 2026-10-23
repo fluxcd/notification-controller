@@ -24,7 +24,7 @@ import (
 
 func TestNewGitLabBasic(t *testing.T) {
 	gomega := NewWithT(t)
-	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar", "foobar", nil)
+	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar", nil, "foobar", nil)
 	gomega.Expect(err).ToNot(HaveOccurred())
 	gomega.Expect(gitlab.Id).To(Equal("foo/bar"))
 	gomega.Expect(gitlab.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
@@ -32,14 +32,14 @@ func TestNewGitLabBasic(t *testing.T) {
 
 func TestNewGitLabSubgroups(t *testing.T) {
 	gomega := NewWithT(t)
-	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar/baz", "foobar", nil)
+	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar/baz", nil, "foobar", nil)
 	gomega.Expect(err).ToNot(HaveOccurred())
 	gomega.Expect(gitlab.Id).To(Equal("foo/bar/baz"))
 }
 
 func TestNewGitLabSelfHosted(t *testing.T) {
 	gomega := NewWithT(t)
-	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://example.com/foo/bar", "foo:bar", nil)
+	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://example.com/foo/bar", nil, "foo:bar", nil)
 	gomega.Expect(err).ToNot(HaveOccurred())
 	gomega.Expect(gitlab.Id).To(Equal("foo/bar"))
 	gomega.Expect(gitlab.Client.BaseURL().Host).To(Equal("example.com"))
@@ -47,12 +47,12 @@ func TestNewGitLabSelfHosted(t *testing.T) {
 
 func TestNewGitLabEmptyToken(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar", "", nil)
+	_, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar", nil, "", nil)
 	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitLabEmptyCommitStatus(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitLab("", "https://gitlab.com/foo/bar", "foobar", nil)
+	_, err := NewGitLab("", "https://gitlab.com/foo/bar", nil, "foobar", nil)
 	g.Expect(err).To(HaveOccurred())
 }

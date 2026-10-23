@@ -42,7 +42,7 @@ func TestDiscord_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	discord, err := NewDiscord(ts.URL, nil, "test", "test")
+	discord, err := NewDiscord(ts.URL, nil, nil, "test", "test")
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(strings.HasSuffix(discord.URL, "/slack")).To(BeTrue())
 

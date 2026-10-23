@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -37,7 +38,7 @@ type GitLabMergeRequestComment struct {
 	Client    *gitlab.Client
 }
 
-func NewGitLabMergeRequestComment(providerUID string, addr string, token string, tlsConfig *tls.Config) (*GitLabMergeRequestComment, error) {
+func NewGitLabMergeRequestComment(providerUID string, addr string, proxyURL *url.URL, token string, tlsConfig *tls.Config) (*GitLabMergeRequestComment, error) {
 	if providerUID == "" {
 		return nil, errors.New("provider UID cannot be empty")
 	}
@@ -52,11 +53,8 @@ func NewGitLabMergeRequestComment(providerUID string, addr string, token string,
 	}
 
 	opts := []gitlab.ClientOptionFunc{gitlab.WithBaseURL(host)}
-	if tlsConfig != nil {
-		tr := &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
-		hc := &http.Client{Transport: tr}
+	if proxyURL != nil || tlsConfig != nil {
+		hc := &http.Client{Transport: newTransport(proxyURL, tlsConfig)}
 		opts = append(opts, gitlab.WithHTTPClient(hc))
 	}
 

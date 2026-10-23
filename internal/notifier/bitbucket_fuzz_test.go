@@ -47,7 +47,7 @@ func Fuzz_Bitbucket(f *testing.F) {
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
 		tlsConfig := &tls.Config{RootCAs: &cert}
-		bitbucket, err := NewBitbucket(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, tlsConfig)
+		bitbucket, err := NewBitbucket(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, token, tlsConfig)
 		if err != nil {
 			return
 		}

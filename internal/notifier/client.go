@@ -146,6 +146,21 @@ func withResponseValidator(respValidator func(resp *http.Response) error) postOp
 	}
 }
 
+// newTransport clones the default HTTP transport, preserving its timeouts,
+// connection pooling and environment proxy unless an explicit proxy is provided.
+// A non-nil TLS configuration is cloned so HTTP/2 setup does not mutate the
+// caller's configuration.
+func newTransport(proxyURL *url.URL, tlsConfig *tls.Config) *http.Transport {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	if tlsConfig != nil {
+		transport.TLSClientConfig = tlsConfig.Clone()
+	}
+	if proxyURL != nil {
+		transport.Proxy = http.ProxyURL(proxyURL)
+	}
+	return transport
+}
+
 func newHTTPClient(opts *postOptions) *retryablehttp.Client {
 	httpClient := retryablehttp.NewClient()
 

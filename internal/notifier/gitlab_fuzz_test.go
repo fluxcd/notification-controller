@@ -48,7 +48,7 @@ func Fuzz_GitLab(f *testing.F) {
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
 		tlsConfig := &tls.Config{RootCAs: &cert}
-		gitLab, err := NewGitLab(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, tlsConfig)
+		gitLab, err := NewGitLab(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, token, tlsConfig)
 		if err != nil {
 			return
 		}

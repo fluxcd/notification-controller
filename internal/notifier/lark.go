@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"maps"
 	"net/url"
@@ -12,7 +13,9 @@ import (
 )
 
 type Lark struct {
-	URL string
+	URL       string
+	ProxyURL  *url.URL
+	TLSConfig *tls.Config
 }
 
 type LarkPayload struct {
@@ -52,14 +55,16 @@ type LarkText struct {
 	Content string `json:"content"`
 }
 
-func NewLark(address string) (*Lark, error) {
+func NewLark(address string, proxyURL *url.URL, tlsConfig *tls.Config) (*Lark, error) {
 	_, err := url.ParseRequestURI(address)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Slack hook URL %s", address)
 	}
 
 	return &Lark{
-		URL: address,
+		URL:       address,
+		ProxyURL:  proxyURL,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -107,5 +112,13 @@ func (l *Lark) Post(ctx context.Context, event eventv1.Event) error {
 		Card:    card,
 	}
 
-	return postMessage(ctx, l.URL, payload)
+	var opts []postOption
+	if l.ProxyURL != nil {
+		opts = append(opts, withProxy(l.ProxyURL))
+	}
+	if l.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(l.TLSConfig))
+	}
+
+	return postMessage(ctx, l.URL, payload, opts...)
 }

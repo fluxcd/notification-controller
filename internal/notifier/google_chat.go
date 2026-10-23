@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"maps"
 	"net/url"
@@ -29,10 +30,11 @@ import (
 
 // Slack holds the hook URL
 type GoogleChat struct {
-	URL      string
-	ProxyURL *url.URL
-	Username string
-	Channel  string
+	URL       string
+	ProxyURL  *url.URL
+	Username  string
+	Channel   string
+	TLSConfig *tls.Config
 }
 
 // GoogleChatPayload holds the channel and attachments
@@ -75,15 +77,16 @@ type GoogleChatCardWidgetKeyValue struct {
 }
 
 // NewGoogleChat validates the Google Chat URL and returns a GoogleChat object
-func NewGoogleChat(hookURL string, proxyURL *url.URL) (*GoogleChat, error) {
+func NewGoogleChat(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config) (*GoogleChat, error) {
 	_, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Google Chat hook URL %s", hookURL)
 	}
 
 	return &GoogleChat{
-		URL:      hookURL,
-		ProxyURL: proxyURL,
+		URL:       hookURL,
+		ProxyURL:  proxyURL,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -143,6 +146,9 @@ func (s *GoogleChat) Post(ctx context.Context, event eventv1.Event) error {
 	var opts []postOption
 	if s.ProxyURL != nil {
 		opts = append(opts, withProxy(s.ProxyURL))
+	}
+	if s.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(s.TLSConfig))
 	}
 
 	if err := postMessage(ctx, s.URL, payload, opts...); err != nil {
