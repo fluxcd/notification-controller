@@ -1291,6 +1291,8 @@ This Provider type supports authentication via [Secret reference](#secret-refere
 
 **Note:** HelmRepository events are skipped as they are not considered primary sources for tracing.
 
+Trace export failures are reported as `NotificationDispatchFailed` Warning Events on the Alert.
+
 ###### OTEL with Basic Authentication Example
 
 To configure `otel` provider with basic authentication, create a Secret with the

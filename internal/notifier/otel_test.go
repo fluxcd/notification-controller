@@ -18,86 +18,272 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
+	"errors"
+	"io"
 	"maps"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sync/atomic"
 	"testing"
 	"time"
 
-	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
+	"github.com/elazarl/goproxy"
+	"github.com/go-logr/logr/funcr"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestOTEL_Post(t *testing.T) {
-	g := NewWithT(t)
-	var receivedRequests []*http.Request
-	var receivedBodies [][]byte
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		receivedRequests = append(receivedRequests, r)
-		body := make([]byte, r.ContentLength)
-		r.Body.Read(body)
-		receivedBodies = append(receivedBodies, body)
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer ts.Close()
+	// Queue, batch size and delay environment settings must not drop the
+	// single span or export it before ForceFlush reports the export result.
+	t.Setenv("OTEL_BSP_MAX_QUEUE_SIZE", "0")
+	t.Setenv("OTEL_BSP_MAX_EXPORT_BATCH_SIZE", "1")
+	t.Setenv("OTEL_BSP_SCHEDULE_DELAY", "1")
 
-	tests := []struct {
-		name  string
-		event func() eventv1.Event
-	}{
-		{
-			name: "test event",
-			event: func() eventv1.Event {
-				e := testEvent()
-				// Mocking the data provided by alert.eventMetadata
-				e.Metadata["cluster"] = "my-cluster"
-				e.Metadata["region"] = "us-east-2"
-				e.Metadata["env"] = "prod"
-				return e
-			},
-		},
-	}
+	for _, status := range []int{http.StatusOK, http.StatusInternalServerError} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			g := NewWithT(t)
+			bodies := make(chan []byte, 1)
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				g.Expect(r.Method).To(Equal(http.MethodPost))
+				g.Expect(r.Header.Get("Content-Type")).To(ContainSubstring("application/x-protobuf"))
+				body, err := io.ReadAll(io.LimitReader(r.Body, maxResponseBodyBytes))
+				g.Expect(err).ToNot(HaveOccurred())
+				bodies <- body
+				w.WriteHeader(status)
+			}))
+			defer ts.Close()
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			alertMetadata := &metav1.ObjectMeta{
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+			ctx = WithAlertMetadata(ctx, metav1.ObjectMeta{
 				Name:      "test-alert",
 				Namespace: "test-namespace",
 				UID:       "test-alert-uid",
+			})
+			tracer, err := NewOTLPTracer(ctx, ts.URL, nil, nil, nil, "", "")
+			g.Expect(err).ToNot(HaveOccurred())
+			defer tracer.tracerExporter.Shutdown(context.Background())
+
+			event := testEvent()
+			event.Metadata["cluster"] = "my-cluster"
+			event.Metadata["region"] = "us-east-2"
+			event.Metadata["env"] = "prod"
+			err = tracer.Post(ctx, event)
+			if status == http.StatusOK {
+				g.Expect(err).ToNot(HaveOccurred())
+			} else {
+				g.Expect(err).To(MatchError(ContainSubstring("500 Internal Server Error")))
+				g.Expect(errors.Unwrap(err)).ToNot(BeNil())
 			}
-			ctx := WithAlertMetadata(context.Background(), *alertMetadata)
 
-			otelTrace, err := NewOTLPTracer(ctx, ts.URL, nil, nil, nil, "", "")
-			g.Expect(err).ToNot(HaveOccurred())
-
-			err = otelTrace.Post(ctx, tt.event())
-			g.Expect(err).ToNot(HaveOccurred())
-
-			g.Eventually(func() int {
-				return len(receivedRequests)
-			}, time.Second*5, time.Millisecond*200).Should(BeNumerically(">", 0))
-
-			// Check the request
-			g.Expect(receivedRequests).To(HaveLen(1))
-			req := receivedRequests[0]
-			g.Expect(req.Method).To(Equal("POST"))
-			g.Expect(req.Header.Get("Content-Type")).To(ContainSubstring("application/x-protobuf"))
-			g.Expect(receivedBodies[0]).ToNot(BeEmpty())
-
-			// Validate OTLP content contains expected span data
-			body := string(receivedBodies[0])
-			g.Expect(body).To(ContainSubstring(tt.event().InvolvedObject.Name))
-			g.Expect(body).To(ContainSubstring(tt.event().InvolvedObject.Kind))
-			g.Expect(body).To(ContainSubstring(tt.event().InvolvedObject.Namespace))
-			// Check for the actual transformed attributes:
-			g.Expect(body).To(ContainSubstring("my-cluster")) // cluster value
-			g.Expect(body).To(ContainSubstring("us-east-2"))  // region value
-			g.Expect(body).To(ContainSubstring("prod"))       // env value
+			var body []byte
+			g.Expect(bodies).To(Receive(&body))
+			g.Expect(string(body)).To(ContainSubstring(event.InvolvedObject.Name))
+			g.Expect(string(body)).To(ContainSubstring(event.InvolvedObject.Kind))
+			g.Expect(string(body)).To(ContainSubstring(event.InvolvedObject.Namespace))
+			g.Expect(string(body)).To(ContainSubstring("my-cluster"))
+			g.Expect(string(body)).To(ContainSubstring("us-east-2"))
+			g.Expect(string(body)).To(ContainSubstring("prod"))
 		})
 	}
+}
+
+func TestOTEL_PostShutdown(t *testing.T) {
+	shutdownErr := errors.New("shutdown failed")
+	for _, tt := range []struct {
+		name            string
+		status          int
+		skip            bool
+		missingMetadata bool
+		cancelOnExport  bool
+		shutdownErr     error
+		wantErr         string
+	}{
+		{name: "success", status: http.StatusOK},
+		{name: "export failure", status: http.StatusInternalServerError, wantErr: "failed to flush OTEL trace:"},
+		{name: "HelmRepository skipped", skip: true},
+		{name: "missing metadata", missingMetadata: true, wantErr: "alert metadata not found in context"},
+		{name: "canceled export", status: http.StatusOK, cancelOnExport: true, wantErr: "context canceled"},
+		{name: "shutdown failure", status: http.StatusOK, shutdownErr: shutdownErr},
+		{name: "export failure takes precedence", status: http.StatusInternalServerError, shutdownErr: shutdownErr, wantErr: "failed to flush OTEL trace:"},
+		{name: "skipped shutdown failure", skip: true, shutdownErr: shutdownErr},
+		{name: "missing metadata takes precedence", missingMetadata: true, shutdownErr: shutdownErr, wantErr: "alert metadata not found in context"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+			var logs []string
+			ctx = log.IntoContext(ctx, funcr.New(func(prefix, args string) {
+				logs = append(logs, args)
+			}, funcr.Options{Verbosity: 1}))
+			var requests atomic.Int32
+			var closed atomic.Int32
+			ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				requests.Add(1)
+				_, err := io.Copy(io.Discard, r.Body)
+				g.Expect(err).ToNot(HaveOccurred())
+				if tt.cancelOnExport {
+					cancel()
+					<-r.Context().Done()
+					return
+				}
+				w.WriteHeader(tt.status)
+			}))
+			ts.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+				if state == http.StateClosed {
+					closed.Add(1)
+				}
+			}
+			ts.Start()
+			defer ts.Close()
+
+			transport := newTransport(nil, nil)
+			client := &otelShutdownClient{
+				Client: otlptracehttp.NewClient(
+					otlptracehttp.WithEndpointURL(ts.URL),
+					otlptracehttp.WithHTTPClient(&http.Client{Transport: transport, Timeout: 10 * time.Second}),
+				),
+				shutdownErr: tt.shutdownErr,
+			}
+			exporter, err := otlptrace.New(ctx, client)
+			g.Expect(err).ToNot(HaveOccurred())
+			defer exporter.Shutdown(context.Background())
+			tracer := &OTLPTracer{tracerExporter: exporter, transport: transport}
+
+			if !tt.missingMetadata {
+				ctx = WithAlertMetadata(ctx, metav1.ObjectMeta{Name: "alert", Namespace: "default"})
+			}
+			event := testEvent()
+			if tt.skip {
+				event.InvolvedObject.Kind = "HelmRepository"
+			}
+			err = tracer.Post(ctx, event)
+			if tt.wantErr == "" {
+				g.Expect(err).ToNot(HaveOccurred())
+			} else {
+				g.Expect(err).To(MatchError(ContainSubstring(tt.wantErr)))
+			}
+			if tt.shutdownErr != nil {
+				g.Expect(errors.Is(err, shutdownErr)).To(BeFalse())
+				g.Expect(logs).To(ContainElement(ContainSubstring("Failed to shut down OTEL tracer")))
+				g.Expect(logs).To(ContainElement(ContainSubstring(shutdownErr.Error())))
+			}
+			if tt.cancelOnExport {
+				g.Expect(errors.Is(err, context.Canceled)).To(BeTrue())
+			}
+			g.Expect(client.stops.Load()).To(Equal(int32(1)))
+			if tt.skip || tt.missingMetadata {
+				g.Expect(requests.Load()).To(BeZero())
+			} else {
+				g.Expect(requests.Load()).To(Equal(int32(1)))
+				g.Eventually(closed.Load, 5*time.Second).Should(Equal(int32(1)))
+			}
+		})
+	}
+}
+
+func TestOTEL_HTTPTransport(t *testing.T) {
+	for _, mode := range []string{"proxy", "TLS", "proxy and TLS"} {
+		for _, status := range []int{http.StatusOK, http.StatusInternalServerError} {
+			t.Run(mode+"/"+http.StatusText(status), func(t *testing.T) {
+				g := NewWithT(t)
+				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+				defer cancel()
+				ctx = WithAlertMetadata(ctx, metav1.ObjectMeta{Name: "alert", Namespace: "default"})
+
+				var requests, proxyRequests, closed atomic.Int32
+				server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					requests.Add(1)
+					g.Expect(r.Method).To(Equal(http.MethodPost))
+					g.Expect(r.URL.Path).To(Equal("/v1/traces"))
+					if mode == "proxy" {
+						g.Expect(r.URL.IsAbs()).To(BeTrue())
+						g.Expect(r.URL.Host).To(Equal("collector.invalid"))
+						g.Expect(r.Header.Get("Proxy-Authorization")).To(Equal("Basic dXNlcjpwYXNz"))
+						proxyRequests.Add(1)
+					} else {
+						g.Expect(r.TLS).ToNot(BeNil())
+					}
+					_, err := io.Copy(io.Discard, r.Body)
+					g.Expect(err).ToNot(HaveOccurred())
+					w.WriteHeader(status)
+				}))
+				server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+					if state == http.StateClosed {
+						closed.Add(1)
+					}
+				}
+				var proxyURL *url.URL
+				var tlsConfig *tls.Config
+				address := "http://collector.invalid"
+				if mode == "proxy" {
+					server.Start()
+					proxyURL = parseProxyURL(t, server.URL)
+				} else {
+					server.StartTLS()
+					address = server.URL
+					pool := x509.NewCertPool()
+					pool.AddCert(server.Certificate())
+					tlsConfig = &tls.Config{RootCAs: pool}
+					if mode == "proxy and TLS" {
+						proxyHandler := goproxy.NewProxyHttpServer()
+						proxyHandler.ConnectDial = func(network, addr string) (net.Conn, error) {
+							g.Expect(addr).To(Equal(server.Listener.Addr().String()))
+							return net.DialTimeout(network, server.Listener.Addr().String(), time.Second)
+						}
+						proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+							g.Expect(r.Method).To(Equal(http.MethodConnect))
+							g.Expect(r.Header.Get("Proxy-Authorization")).To(Equal("Basic dXNlcjpwYXNz"))
+							proxyRequests.Add(1)
+							proxyHandler.ServeHTTP(w, r)
+						}))
+						defer proxy.Close()
+						proxyURL = parseProxyURL(t, proxy.URL)
+					}
+				}
+				defer server.Close()
+				if proxyURL != nil {
+					proxyURL.User = url.UserPassword("user", "pass")
+				}
+				tracer, err := NewOTLPTracer(ctx, address+"/v1/traces", proxyURL, nil, tlsConfig, "", "")
+				g.Expect(err).ToNot(HaveOccurred())
+				defer tracer.tracerExporter.Shutdown(context.Background())
+
+				err = tracer.Post(ctx, testEvent())
+				if status == http.StatusOK {
+					g.Expect(err).ToNot(HaveOccurred())
+				} else {
+					g.Expect(err).To(MatchError(ContainSubstring("500 Internal Server Error")))
+				}
+				g.Expect(requests.Load()).To(Equal(int32(1)))
+				if proxyURL != nil {
+					g.Expect(proxyRequests.Load()).To(Equal(int32(1)))
+				}
+				g.Eventually(closed.Load, 5*time.Second).Should(Equal(int32(1)))
+			})
+		}
+	}
+}
+
+type otelShutdownClient struct {
+	otlptrace.Client
+	shutdownErr error
+	stops       atomic.Int32
+}
+
+func (c *otelShutdownClient) Stop(ctx context.Context) error {
+	c.stops.Add(1)
+	return errors.Join(c.Client.Stop(ctx), c.shutdownErr)
 }
 
 func TestOTEL_Authorization(t *testing.T) {

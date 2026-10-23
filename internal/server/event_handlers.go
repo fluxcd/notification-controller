@@ -494,6 +494,7 @@ func extractAuthFromSecret(ctx context.Context, secret *corev1.Secret) ([]notifi
 		options = append(options, notifier.WithHeaders(headers))
 	}
 
+	// Intentionally ignore errors: some provider types support partial basic auth Secrets.
 	authMethods, err := secrets.AuthMethodsFromSecret(ctx, secret)
 	if err == nil && authMethods != nil {
 		if authMethods.HasTokenAuth() {

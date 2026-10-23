@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -32,11 +33,49 @@ import (
 
 	"github.com/elazarl/goproxy"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/yaml"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
+
+func TestFactoryProviderTypeEnum(t *testing.T) {
+	g := NewWithT(t)
+	data, err := os.ReadFile("../../config/crd/bases/notification.toolkit.fluxcd.io_providers.yaml")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	type schema struct {
+		Properties map[string]schema `json:"properties"`
+		Enum       []string          `json:"enum"`
+	}
+	var crd struct {
+		Spec struct {
+			Versions []struct {
+				Name   string `json:"name"`
+				Schema struct {
+					OpenAPIV3Schema schema `json:"openAPIV3Schema"`
+				} `json:"schema"`
+			} `json:"versions"`
+		} `json:"spec"`
+	}
+	g.Expect(yaml.Unmarshal(data, &crd)).To(Succeed())
+	for _, version := range crd.Spec.Versions {
+		if version.Name != "v1" {
+			continue
+		}
+		providerTypes := version.Schema.OpenAPIV3Schema.Properties["spec"].Properties["type"].Enum
+		g.Expect(providerTypes).ToNot(BeEmpty())
+
+		factoryTypes := make([]string, 0, len(notifiers))
+		for providerType := range notifiers {
+			factoryTypes = append(factoryTypes, providerType)
+		}
+		g.Expect(providerTypes).To(ConsistOf(factoryTypes))
+		return
+	}
+	t.Fatal("Provider CRD does not contain a v1 schema")
+}
 
 func TestFactoryHTTPTransport(t *testing.T) {
 	for _, tt := range []struct {

@@ -301,6 +301,6 @@ but not uninstalls and tests.
 
 ### Suspend
 
-`.spec.suspend` is an optional field to suspend the altering.
+`.spec.suspend` is an optional field to suspend the alerting.
 When set to `true`, the controller will stop processing events.
 When the field is set to `false` or removed, it will resume.

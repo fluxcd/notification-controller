@@ -83,7 +83,7 @@ func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 	opts := &github.ListOptions{PerPage: 50}
 	statuses, _, err := g.Client.Repositories.ListStatuses(ctx, g.Owner, g.Repo, rev, opts)
 	if err != nil {
-		return fmt.Errorf("could not list commit statuses: %v", err)
+		return fmt.Errorf("could not list commit statuses: %w", err)
 	}
 	if duplicateGithubStatus(statuses, status) {
 		return nil
@@ -91,7 +91,7 @@ func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 
 	_, _, err = g.Client.Repositories.CreateStatus(ctx, g.Owner, g.Repo, rev, *status)
 	if err != nil {
-		return fmt.Errorf("could not create commit status: %v", err)
+		return fmt.Errorf("could not create commit status: %w", err)
 	}
 
 	return nil

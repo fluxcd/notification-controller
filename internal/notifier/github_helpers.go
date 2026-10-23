@@ -161,7 +161,7 @@ func NewGitHubClient(ctx context.Context, opts ...GitHubClientOption) (*GitHubCl
 	if o.fetchUserLogin && appSlug == "" {
 		myUser, _, err := client.Users.Get(ctx, "")
 		if err != nil {
-			return nil, fmt.Errorf("failed to get authenticated user info: %v", err)
+			return nil, fmt.Errorf("failed to get authenticated user info: %w", err)
 		}
 		userLogin = myUser.GetLogin()
 	}
@@ -234,7 +234,7 @@ func createGitHubClient(ctx context.Context, host, token string, proxyURL *url.U
 	// Enterprise GitHub
 	client, err := gogithub.NewClient(gogithub.WithHTTPClient(tc), gogithub.WithEnterpriseURLs(host, host))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create enterprise GitHub client: %v", err)
+		return nil, fmt.Errorf("failed to create enterprise GitHub client: %w", err)
 	}
 
 	return client, nil

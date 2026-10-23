@@ -26,6 +26,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -33,12 +34,90 @@ import (
 	"github.com/elazarl/goproxy"
 	"golang.org/x/oauth2"
 
+	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/auth/githubapp"
 	"github.com/fluxcd/pkg/ssh"
 
 	"github.com/google/go-github/v90/github"
 	. "github.com/onsi/gomega"
 )
+
+func TestGitHubWrappedErrors(t *testing.T) {
+	postStatus := func(ctx context.Context, address string) error {
+		n, err := NewGitHub(ctx, "test-status", WithGitHubAddress(address), WithGitHubToken("test-token"))
+		if err != nil {
+			return err
+		}
+		event := testEvent()
+		event.Metadata[eventv1.MetaRevisionKey] = "main@sha1:69b59063470310ebbd88a9156325322a124e55a3"
+		return n.Post(ctx, event)
+	}
+	for _, tt := range []struct {
+		name   string
+		method string
+		call   func(context.Context, string) error
+		prefix string
+	}{
+		{
+			name:   "authenticated user",
+			method: http.MethodGet,
+			call: func(ctx context.Context, address string) error {
+				_, err := NewGitHubClient(ctx, WithGitHubAddress(address),
+					WithGitHubToken("test-token"), WithGitHubFetchUserLogin())
+				return err
+			},
+			prefix: "failed to get authenticated user info:",
+		},
+		{
+			name:   "list statuses",
+			method: http.MethodGet,
+			call:   postStatus,
+			prefix: "could not list commit statuses:",
+		},
+		{
+			name:   "create status",
+			method: http.MethodPost,
+			call:   postStatus,
+			prefix: "could not create commit status:",
+		},
+		{
+			name:   "repository dispatch",
+			method: http.MethodPost,
+			call: func(ctx context.Context, address string) error {
+				n, err := NewGitHubDispatch(ctx, WithGitHubAddress(address), WithGitHubToken("test-token"))
+				if err != nil {
+					return err
+				}
+				return n.Post(ctx, testEvent())
+			},
+			prefix: "could not send github repository dispatch webhook:",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				body := "[]"
+				if r.Method == tt.method {
+					w.WriteHeader(http.StatusUnauthorized)
+					body = `{"message":"invalid credentials"}`
+				}
+				_, err := io.WriteString(w, body)
+				g.Expect(err).ToNot(HaveOccurred())
+			}))
+			defer server.Close()
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+			err := tt.call(ctx, server.URL+"/foo/bar")
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(strings.HasPrefix(err.Error(), tt.prefix)).To(BeTrue())
+			var responseErr *github.ErrorResponse
+			g.Expect(errors.As(err, &responseErr)).To(BeTrue())
+			g.Expect(responseErr.Response.StatusCode).To(Equal(http.StatusUnauthorized))
+		})
+	}
+}
 
 func TestCreateGitHubClientProxyAndTLS(t *testing.T) {
 	for _, host := range []string{"github.com", "github.enterprise.invalid"} {

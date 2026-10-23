@@ -22,9 +22,11 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"slices"
+	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -56,12 +58,18 @@ func GetAlertMetadata(ctx context.Context) (metav1.ObjectMeta, bool) {
 
 type OTLPTracer struct {
 	tracerExporter *otlptrace.Exporter
+	transport      *http.Transport
 }
 
 func NewOTLPTracer(ctx context.Context, urlStr string, proxyURL *url.URL, headers map[string]string, tlsConfig *tls.Config, username string, password string) (*OTLPTracer, error) {
+	transport := newTransport(proxyURL, tlsConfig)
 	// Set up OTLP exporter options
 	httpOptions := []otlptracehttp.Option{
 		otlptracehttp.WithEndpointURL(urlStr),
+		otlptracehttp.WithHTTPClient(&http.Client{
+			Transport: transport,
+			Timeout:   10 * time.Second,
+		}),
 	}
 
 	// Copy the headers so the caller's map is not modified.
@@ -85,29 +93,32 @@ func NewOTLPTracer(ctx context.Context, urlStr string, proxyURL *url.URL, header
 		httpOptions = append(httpOptions, otlptracehttp.WithHeaders(reqHeaders))
 	}
 
-	// Add TLS config if available
-	if tlsConfig != nil {
-		httpOptions = append(httpOptions, otlptracehttp.WithTLSClientConfig(tlsConfig))
-	}
-
-	// Proxy credentials come from the proxy secret and are part of the URL.
-	if proxyURL != nil {
-		httpOptions = append(httpOptions, otlptracehttp.WithProxy(http.ProxyURL(proxyURL)))
-	}
-
 	exporter, err := otlptracehttp.New(ctx, httpOptions...)
 	if err != nil {
+		transport.CloseIdleConnections()
 		return nil, err
 	}
 
 	log.FromContext(ctx).V(1).Info("Successfully created OTEL tracerExporter")
 	return &OTLPTracer{
 		tracerExporter: exporter,
+		transport:      transport,
 	}, nil
 }
 
 // Post implements the notifier.Interface
 func (t *OTLPTracer) Post(ctx context.Context, event eventv1.Event) error {
+	defer t.transport.CloseIdleConnections()
+	shutdown := t.tracerExporter.Shutdown
+	defer func() {
+		// Cleanup must still run when the notification context has expired.
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+		defer cancel()
+		if shutdownErr := shutdown(shutdownCtx); shutdownErr != nil {
+			log.FromContext(ctx).V(1).Info("Failed to shut down OTEL tracer", "error", shutdownErr)
+		}
+	}()
+
 	logger := log.FromContext(ctx).V(1).WithValues(
 		"event", event.Reason,
 		"object", fmt.Sprintf("%s/%s/%s", event.InvolvedObject.Kind, event.InvolvedObject.Namespace, event.InvolvedObject.Name),
@@ -125,7 +136,14 @@ func (t *OTLPTracer) Post(ctx context.Context, event eventv1.Event) error {
 
 	// Create TraceProvider
 	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSpanProcessor(sdktrace.NewSimpleSpanProcessor(t.tracerExporter)),
+		// Explicit queue, batch size and delay settings keep the single span
+		// buffered until ForceFlush, which returns export errors to Post,
+		// regardless of the corresponding OTEL_BSP_* environment variables.
+		sdktrace.WithBatcher(t.tracerExporter,
+			sdktrace.WithMaxQueueSize(2),
+			sdktrace.WithMaxExportBatchSize(2),
+			sdktrace.WithBatchTimeout(math.MaxInt64),
+		),
 		sdktrace.WithResource(
 			resource.NewWithAttributes(
 				semconv.SchemaURL,
@@ -135,6 +153,7 @@ func (t *OTLPTracer) Post(ctx context.Context, event eventv1.Event) error {
 			),
 		),
 	)
+	shutdown = tp.Shutdown
 
 	// Generate traceID
 	logger.V(1).Info("Generating trace IDs", "alertUID", string(alert.UID), "revision", revision)
@@ -163,7 +182,10 @@ func (t *OTLPTracer) Post(ctx context.Context, event eventv1.Event) error {
 		span.SetStatus(codes.Ok, event.Message)
 	}
 
-	defer span.End()
+	span.End()
+	if err := tp.ForceFlush(ctx); err != nil {
+		return fmt.Errorf("failed to flush OTEL trace: %w", err)
+	}
 
 	serviceName := fmt.Sprintf("%s: %s/%s", apiv1.AlertKind, alert.Namespace, alert.Name)
 	logger.Info("Successfully sent trace to OTLP endpoint",

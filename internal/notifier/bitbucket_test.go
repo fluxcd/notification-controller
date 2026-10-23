@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -78,7 +79,12 @@ func TestBitbucketProviderTimeout(t *testing.T) {
 			event.Metadata[eventv1.MetaRevisionKey] = "main@sha1:69b59063470310ebbd88a9156325322a124e55a3"
 			done := make(chan error, 1)
 			go func() { done <- b.Post(t.Context(), event) }()
-			g.Eventually(done, "2s").Should(Receive(MatchError(ContainSubstring("Client.Timeout"))))
+			var postErr error
+			g.Eventually(done, "2s").Should(Receive(&postErr))
+			g.Expect(postErr).To(MatchError(ContainSubstring("Client.Timeout")))
+			var urlErr *url.Error
+			g.Expect(errors.As(postErr, &urlErr)).To(BeTrue())
+			g.Expect(urlErr.Timeout()).To(BeTrue())
 			g.Eventually(cancelled, "2s").Should(Receive())
 		})
 	}

@@ -19,6 +19,7 @@ package notifier
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -102,6 +103,9 @@ func TestNewAzureEventHub(t *testing.T) {
 			if tt.err != nil {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err).To(MatchError(ContainSubstring(tt.err.Error())))
+				if strings.HasPrefix(tt.err.Error(), "invalid authentication options:") {
+					g.Expect(errors.Unwrap(err)).ToNot(BeNil())
+				}
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(client).ToNot(BeNil())
