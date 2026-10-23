@@ -24,10 +24,40 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/hashicorp/go-retryablehttp"
 )
+
+const (
+	maxErrorBodyBytes    = 4 * 1024
+	maxResponseBodyBytes = 1024 * 1024
+)
+
+var (
+	retryMu      sync.RWMutex
+	retryMax     = 4
+	retryWaitMin = 2 * time.Second
+	retryWaitMax = 30 * time.Second
+)
+
+// SetRetryBackoff overrides retry waits for newly created clients, for tests only.
+// Call it from a non-parallel parent test before starting parallel subtests,
+// and register the returned restore function with the parent's Cleanup.
+func SetRetryBackoff(minWait, maxWait time.Duration) (restore func()) {
+	retryMu.Lock()
+	previousMin, previousMax := retryWaitMin, retryWaitMax
+	retryWaitMin, retryWaitMax = minWait, maxWait
+	retryMu.Unlock()
+
+	return func() {
+		retryMu.Lock()
+		retryWaitMin, retryWaitMax = previousMin, previousMax
+		retryMu.Unlock()
+	}
+}
 
 type postOptions struct {
 	proxy             *url.URL
@@ -52,12 +82,15 @@ func postMessage(ctx context.Context, address string, payload any, opts ...postO
 
 			err := fmt.Errorf("request failed with status code %d", s)
 
-			b, bodyErr := io.ReadAll(resp.Body)
+			b, bodyErr := io.ReadAll(io.LimitReader(resp.Body, maxErrorBodyBytes+1))
 			if bodyErr != nil {
 				return fmt.Errorf("%w: unable to read response body: %w", err, bodyErr)
 			}
 
-			return fmt.Errorf("%w: %s", err, string(b))
+			if len(b) > maxErrorBodyBytes {
+				return fmt.Errorf("%w: %s... (truncated)", err, strings.TrimSpace(string(b[:maxErrorBodyBytes])))
+			}
+			return fmt.Errorf("%w: %s", err, strings.TrimSpace(string(b)))
 		},
 	}
 
@@ -78,7 +111,11 @@ func postMessage(ctx context.Context, address string, payload any, opts ...postO
 			return fmt.Errorf("marshalling notification payload failed: %w", err)
 		}
 	default:
-		data = payload.([]byte)
+		var ok bool
+		data, ok = payload.([]byte)
+		if !ok {
+			return fmt.Errorf("notification payload must be []byte for content type %q, got %T", contentType, payload)
+		}
 	}
 
 	req, err := retryablehttp.NewRequestWithContext(ctx, http.MethodPost, address, data)
@@ -178,9 +215,12 @@ func newHTTPClient(opts *postOptions) *retryablehttp.Client {
 	// as we set the provider timeout on the context.
 	httpClient.HTTPClient.Timeout = 0
 
-	httpClient.RetryWaitMin = 2 * time.Second
-	httpClient.RetryWaitMax = 30 * time.Second
-	httpClient.RetryMax = 4
+	retryMu.RLock()
+	httpClient.RetryWaitMin = retryWaitMin
+	httpClient.RetryWaitMax = retryWaitMax
+	httpClient.RetryMax = retryMax
+	retryMu.RUnlock()
+	httpClient.CheckRetry = retryablehttp.ErrorPropagatedRetryPolicy
 	httpClient.Logger = nil
 
 	return httpClient

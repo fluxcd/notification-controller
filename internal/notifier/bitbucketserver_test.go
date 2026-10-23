@@ -22,7 +22,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
+	"time"
 
 	"net/http"
 	"net/http/httptest"
@@ -32,6 +34,45 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
+
+func TestBitbucketServerLimitsResponseBody(t *testing.T) {
+	g := NewWithT(t)
+	server, written := newLargeResponseServer(http.StatusOK, `{"description":"`, `"}`)
+	defer server.Close()
+	b, err := NewBitbucketServer("status", server.URL+"/scm/project/repo.git", nil, "token", nil, "", "")
+	g.Expect(err).ToNot(HaveOccurred())
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	duplicate, err := b.duplicateBitbucketServerStatus(ctx, "SUCCESSFUL", "name", "description", "key", server.URL)
+	g.Expect(duplicate).To(BeFalse())
+	g.Expect(err).To(MatchError("response body exceeds 1 MiB limit"))
+	g.Eventually(written).Should(Receive(BeNumerically("<", 100*1024*1024)))
+}
+
+func TestBitbucketServerResponseBodyLimitBoundary(t *testing.T) {
+	for _, size := range []int{1024 * 1024, 1024*1024 + 1} {
+		t.Run(fmt.Sprint(size), func(t *testing.T) {
+			g := NewWithT(t)
+			const prefix, suffix = `{"description":"`, `"}`
+			body := prefix + strings.Repeat("x", size-len(prefix)-len(suffix)) + suffix
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if _, err := io.WriteString(w, body); err != nil {
+					return
+				}
+			}))
+			defer server.Close()
+			b, err := NewBitbucketServer("status", server.URL+"/scm/project/repo.git", nil, "token", nil, "", "")
+			g.Expect(err).ToNot(HaveOccurred())
+			duplicate, err := b.duplicateBitbucketServerStatus(t.Context(), "SUCCESSFUL", "name", "description", "key", server.URL)
+			g.Expect(duplicate).To(BeFalse())
+			if size > 1024*1024 {
+				g.Expect(err).To(MatchError("response body exceeds 1 MiB limit"))
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+		})
+	}
+}
 
 func TestNewBitbucketServerBasicNoContext(t *testing.T) {
 	g := NewWithT(t)

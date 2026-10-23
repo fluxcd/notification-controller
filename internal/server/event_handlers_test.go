@@ -24,7 +24,9 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
 	"net/http"
@@ -430,6 +432,7 @@ func TestGetNotificationParams(t *testing.T) {
 		eventSeverity           string
 		eventMetadata           map[string]string
 		wantErr                 bool
+		wantConstructionErr     bool
 		wantDroppedCommitStatus bool
 		wantParams              bool
 	}{
@@ -481,10 +484,11 @@ func TestGetNotificationParams(t *testing.T) {
 			wantDroppedCommitStatus: true,
 		},
 		{
-			name:          "commit status provider does not drop failure event without commit key",
-			providerType:  apiv1.GitHubProvider,
-			eventSeverity: eventv1.EventSeverityError,
-			wantErr:       true, // proceeds past the guard and fails on notifier creation
+			name:                "commit status provider does not drop failure event without commit key",
+			providerType:        apiv1.GitHubProvider,
+			eventSeverity:       eventv1.EventSeverityError,
+			wantParams:          true,
+			wantConstructionErr: true,
 		},
 		{
 			name:         "commit status provider does not drop commit status update event without commit key",
@@ -492,7 +496,8 @@ func TestGetNotificationParams(t *testing.T) {
 			eventMetadata: map[string]string{
 				"kustomize.toolkit.fluxcd.io/" + eventv1.MetaCommitStatusKey: eventv1.MetaCommitStatusUpdateValue,
 			},
-			wantErr: true,
+			wantParams:          true,
+			wantConstructionErr: true,
 		},
 		{
 			name:         "generic provider does not drop commit status update event",
@@ -568,6 +573,13 @@ func TestGetNotificationParams(t *testing.T) {
 			g.Expect(err != nil).To(Equal(tt.wantErr), "unexpected error: %v", err)
 			g.Expect(dropped.commitStatus).To(Equal(tt.wantDroppedCommitStatus))
 			g.Expect(params != nil).To(Equal(tt.wantParams), "unexpected params: %v", params)
+			if tt.wantConstructionErr {
+				_, err := eventServer.dispatchNotification(t.Context(), event, alert)
+				g.Expect(err).ToNot(HaveOccurred())
+				recorder := eventServer.Recorder.(*events.FakeRecorder)
+				g.Eventually(recorder.Events).Should(Receive(ContainSubstring(
+					"failed to initialize notifier for provider 'provider-foo'")))
+			}
 			// NOTE: This is performing simple check. Thorough test for event
 			// metadata is performed in TestCombineEventMetadata.
 			if tt.alertEventMetadata != nil {
@@ -939,14 +951,18 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			provider := apiv1.Provider{Spec: *tt.providerSpec}
 
 			eventServer := EventServer{kubeClient: builder.Build()}
-			notifier, _, err := eventServer.createNotifier(context.TODO(), &provider, "")
+			params, err := eventServer.prepareNotifier(context.TODO(), &provider, "")
+			var sender notifier.Interface
+			if err == nil {
+				sender, err = params.createNotifier(context.TODO())
+			}
 			g.Expect(err != nil).To(Equal(tt.wantErr))
 
 			if !tt.wantErr && tt.wantTLSConfig != nil {
-				g.Expect(notifier).ToNot(BeNil(), "Expected notifier to be created but got nil")
+				g.Expect(sender).ToNot(BeNil(), "Expected notifier to be created but got nil")
 
 				// Get TLS configuration from notifier
-				tlsConfig := getNotifierTLSConfig(notifier)
+				tlsConfig := getNotifierTLSConfig(sender)
 				if tlsConfig == nil {
 					// Notifier doesn't support TLS via postMessage pattern, skip the check
 					return
@@ -987,7 +1003,9 @@ func TestCreateNotifierBitbucketCloudTokenFromSecret(t *testing.T) {
 
 	kubeClient := fakeclient.NewClientBuilder().WithObjects(secret).Build()
 	eventServer := EventServer{kubeClient: kubeClient}
-	n, _, err := eventServer.createNotifier(context.TODO(), &provider, "test-status")
+	params, err := eventServer.prepareNotifier(context.TODO(), &provider, "test-status")
+	g.Expect(err).ToNot(HaveOccurred())
+	n, err := params.createNotifier(context.TODO())
 	g.Expect(err).ToNot(HaveOccurred())
 
 	var authHeaders []string
@@ -1793,13 +1811,17 @@ func TestCreateNotifier_EventKey(t *testing.T) {
 
 	eventServer := EventServer{kubeClient: kclient}
 	ctx := context.WithValue(context.TODO(), eventKeyContextKey{}, "event-key")
-	n, _, err := eventServer.createNotifier(ctx, &provider, "")
+	params, err := eventServer.prepareNotifier(ctx, &provider, "")
+	g.Expect(err).ToNot(HaveOccurred())
+	n, err := params.createNotifier(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 	m, ok := n.(*notifier.Mastodon)
 	g.Expect(ok).To(BeTrue(), "expected a Mastodon notifier, got %T", n)
 	g.Expect(m.EventKey).To(Equal("event-key"))
 
-	n, _, err = eventServer.createNotifier(context.TODO(), &provider, "")
+	params, err = eventServer.prepareNotifier(context.TODO(), &provider, "")
+	g.Expect(err).ToNot(HaveOccurred())
+	n, err = params.createNotifier(context.TODO())
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(n.(*notifier.Mastodon).EventKey).To(BeEmpty())
 }
@@ -1862,8 +1884,402 @@ func TestCreateNotifierPostsThroughProxySecretRef(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	eventServer := EventServer{kubeClient: kubeClient}
-	n, _, err := eventServer.createNotifier(ctx, provider, "")
+	params, err := eventServer.prepareNotifier(ctx, provider, "")
+	g.Expect(err).ToNot(HaveOccurred())
+	n, err := params.createNotifier(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(n.Post(ctx, eventv1.Event{Message: "test"})).To(Succeed())
 	g.Expect(requests).To(Receive(Equal("http://notification.invalid/events Basic dXNlcjpwYXNz")))
+}
+
+func TestMaskSecrets(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		message string
+		token   string
+		address string
+		want    string
+	}{
+		{
+			name:    "spec address",
+			message: "POST https://example.com/private-path?key=private-query: HTTP 500",
+			want:    "POST https://example.com/private-path?key=private-query: HTTP 500",
+		},
+		{
+			name:    "secret address",
+			message: "POST https://example.com/private-path?key=private-query: HTTP 500",
+			address: "https://example.com/private-path?key=private-query",
+			want:    "POST https://example.com/***: HTTP 500",
+		},
+		{
+			name:    "host-only address",
+			message: "POST https://host",
+			address: "https://host",
+			want:    "POST https://host/***",
+		},
+		{
+			name:    "host-only address with API path",
+			message: `POST "https://host/api": HTTP 500`,
+			address: "https://host",
+			want:    `POST "https://host/***": HTTP 500`,
+		},
+		{
+			name:    "host-only address with delimiters",
+			message: `https://host:443 "https://host" 'https://host' (https://host) https://host?q=1 https://host#fragment`,
+			address: "https://host",
+			want:    `https://host/***:443 "https://host/***" 'https://host/***' (https://host/***) https://host/***?q=1 https://host/***#fragment`,
+		},
+		{
+			name:    "longer hostname",
+			message: "POST https://hostname/api",
+			address: "https://host",
+			want:    "POST https://hostname/api",
+		},
+		{
+			name:    "longer hostname labels",
+			message: "https://host.example.com https://host-name https://host_name",
+			address: "https://host",
+			want:    "https://host.example.com https://host-name https://host_name",
+		},
+		{
+			name:    "query escaped host-only address",
+			message: url.QueryEscape("https://host"),
+			address: "https://host",
+			want:    "https://host/***",
+		},
+		{
+			name:    "query escaped longer hostname",
+			message: url.QueryEscape("https://hostname/api"),
+			address: "https://host",
+			want:    url.QueryEscape("https://hostname/api"),
+		},
+		{
+			name:    "URL escaped path",
+			message: `POST "https://example.com/private%20path?key=private-query": HTTP 500`,
+			address: "https://example.com/private path?key=private-query",
+			want:    `POST "https://example.com/***": HTTP 500`,
+		},
+		{
+			name:    "query escaped address",
+			message: url.QueryEscape("https://example.com/private-path?key=private-query"),
+			address: "https://example.com/private-path?key=private-query",
+			want:    "https://example.com/***",
+		},
+		{
+			name:    "appended API path",
+			message: "POST https://example.com/private%20path/slack?key=private-query: HTTP 500",
+			address: "https://example.com/private path?key=private-query",
+			want:    "POST https://example.com/***: HTTP 500",
+		},
+		{
+			name:    "appended API path with fragment",
+			message: "POST https://example.com/private-path/slack#private-fragment: HTTP 500",
+			address: "https://example.com/private-path#private-fragment",
+			want:    "POST https://example.com/***: HTTP 500",
+		},
+		{
+			name:    "normalized path",
+			message: "POST https://example.com/private/path/slack?key=private-query: HTTP 500",
+			address: "https://example.com/private//path?key=private-query",
+			want:    "POST https://example.com/***: HTTP 500",
+		},
+		{
+			name:    "normalized path escapes",
+			message: "POST https://example.com/private/path/slack?key=private-query: HTTP 500",
+			address: "https://example.com/private%2Fpath?key=private-query",
+			want:    "POST https://example.com/***: HTTP 500",
+		},
+		{
+			name:    "userinfo password already redacted",
+			message: "https://user:xxxxx@example.com/private-path?key=private-query",
+			address: "https://user:password@example.com/private-path?key=private-query",
+			want:    "https://example.com/***",
+		},
+		{
+			name:    "invalid path",
+			message: "invalid URL https://example.com/private%zz?key=private-query",
+			address: "https://example.com/private%zz?key=private-query",
+			want:    "invalid URL https://example.com/***",
+		},
+		{
+			name:    "quoted invalid address",
+			message: `parse "https://example.com/private\npath?key=private-query": invalid control character`,
+			address: "https://example.com/private\npath?key=private-query",
+			want:    `parse "https://example.com/***": invalid control character`,
+		},
+		{
+			name:    "address without scheme",
+			message: "invalid URL private-address",
+			address: "private-address",
+			want:    "invalid URL ***",
+		},
+		{
+			name:    "token and address",
+			message: "POST https://example.com/private-token?key=private-query: private-token",
+			address: "https://example.com/private-token?key=private-query",
+			token:   "private-token",
+			want:    "POST https://example.com/***: *****",
+		},
+		{
+			name:    "token in path",
+			message: "POST https://example.com/botprivate-token/sendMessage",
+			token:   "private-token",
+			want:    "POST https://example.com/bot*****/sendMessage",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(maskSecrets(errors.New(tt.message), tt.token, tt.address)).To(MatchError(tt.want))
+		})
+	}
+	NewWithT(t).Expect(maskSecrets(nil, "token", "address")).ToNot(HaveOccurred())
+}
+
+func TestHandleEventRedactsSecretAddress(t *testing.T) {
+	t.Cleanup(notifier.SetRetryBackoff(time.Millisecond, 5*time.Millisecond))
+
+	for _, name := range []string{"HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy"} {
+		t.Setenv(name, "")
+	}
+	for _, providerType := range []string{apiv1.SlackProvider, apiv1.DiscordProvider, apiv1.MSTeamsProvider, apiv1.GenericProvider} {
+		for _, secretAddress := range []bool{false, true} {
+			for _, failure := range []string{"status", "network", "invalid"} {
+				t.Run(fmt.Sprintf("%s/secret=%t/%s", providerType, secretAddress, failure), func(t *testing.T) {
+					t.Parallel()
+					g := NewWithT(t)
+					server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						w.WriteHeader(http.StatusInternalServerError)
+					}))
+					defer server.Close()
+					address := server.URL + "/private path?key=private-query"
+					host := strings.TrimPrefix(server.URL, "http://")
+					if failure == "network" {
+						listener, err := net.Listen("tcp", "127.0.0.1:0")
+						g.Expect(err).ToNot(HaveOccurred())
+						host = listener.Addr().String()
+						g.Expect(listener.Close()).To(Succeed())
+						address = "http://" + host + "/private path?key=private-query"
+					}
+					if failure == "invalid" {
+						address = "https://example.com/private\npath?key=private-query"
+						host = "example.com"
+					}
+
+					provider := &apiv1.Provider{
+						ObjectMeta: metav1.ObjectMeta{Name: "provider", Namespace: "default"},
+						Spec: apiv1.ProviderSpec{
+							Type: providerType, Address: address,
+							Timeout: &metav1.Duration{Duration: time.Minute},
+						},
+					}
+					secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "secret", Namespace: "default"}}
+					if secretAddress {
+						secret.Data = map[string][]byte{"address": []byte(address)}
+						provider.Spec.Address = "https://unused.example.com"
+						provider.Spec.SecretRef = &meta.LocalObjectReference{Name: secret.Name}
+					}
+					alert := &apiv1.Alert{
+						ObjectMeta: metav1.ObjectMeta{Name: "alert", Namespace: "default"},
+						Spec: apiv1.AlertSpec{
+							ProviderRef:   meta.LocalObjectReference{Name: provider.Name},
+							EventSeverity: eventv1.EventSeverityInfo,
+							EventSources:  []apiv1.CrossNamespaceObjectReference{{Kind: "GitRepository", Name: "*"}},
+						},
+					}
+					event := &eventv1.Event{
+						InvolvedObject: corev1.ObjectReference{
+							APIVersion: "source.toolkit.fluxcd.io/v1", Kind: "GitRepository", Name: "source", Namespace: "default",
+						},
+						Message: "test", Severity: eventv1.EventSeverityInfo,
+					}
+					scheme := runtime.NewScheme()
+					g.Expect(apiv1.AddToScheme(scheme)).To(Succeed())
+					g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+					recorder := events.NewFakeRecorder(32)
+					s := EventServer{
+						kubeClient: fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(provider, secret, alert).Build(),
+						Recorder:   recorder,
+					}
+					request := httptest.NewRequest(http.MethodPost, "/", nil)
+					request = request.WithContext(context.WithValue(request.Context(), eventContextKey{}, event))
+					response := httptest.NewRecorder()
+					s.handleEvent()(response, request)
+					g.Expect(response.Code).To(Equal(http.StatusAccepted))
+
+					var message string
+					g.Eventually(recorder.Events, "10s").Should(Receive(&message))
+					g.Expect(message).To(ContainSubstring("Warning " + apiv1.NotificationDispatchFailedReason))
+					g.Expect(message).To(ContainSubstring(host))
+					if failure == "status" {
+						g.Expect(message).To(ContainSubstring("500"))
+					} else if failure == "network" {
+						g.Expect(message).To(ContainSubstring("dial tcp"))
+					} else {
+						g.Expect(message).To(ContainSubstring("failed to dispatch notification"))
+						g.Expect(message).To(ContainSubstring("failed to initialize notifier for provider 'provider'"))
+					}
+					if secretAddress {
+						g.Expect(message).To(ContainSubstring("://" + host + "/***"))
+						g.Expect(message).ToNot(ContainSubstring("private"))
+						g.Expect(message).ToNot(ContainSubstring("key="))
+					} else if failure == "invalid" {
+						g.Expect(message).To(ContainSubstring(address))
+					} else {
+						u, err := url.Parse(address)
+						g.Expect(err).ToNot(HaveOccurred())
+						if providerType == apiv1.DiscordProvider {
+							u = u.JoinPath("slack")
+						}
+						g.Expect(message).To(ContainSubstring(u.String()))
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestGetNotificationParamsRedactsSecretValues(t *testing.T) {
+	g := NewWithT(t)
+	address := "https://example.com/private\npath?key=private-query"
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "secret", Namespace: "default"},
+		Data:       map[string][]byte{"address": []byte(address)},
+	}
+	provider := &apiv1.Provider{
+		ObjectMeta: metav1.ObjectMeta{Name: "provider", Namespace: "default"},
+		Spec: apiv1.ProviderSpec{
+			Type:           apiv1.GenericProvider,
+			SecretRef:      &meta.LocalObjectReference{Name: secret.Name},
+			ProxySecretRef: &meta.LocalObjectReference{Name: secret.Name},
+		},
+	}
+	alert := &apiv1.Alert{
+		ObjectMeta: metav1.ObjectMeta{Name: "alert", Namespace: "default"},
+		Spec:       apiv1.AlertSpec{ProviderRef: meta.LocalObjectReference{Name: provider.Name}},
+	}
+	scheme := runtime.NewScheme()
+	g.Expect(apiv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+	s := EventServer{
+		kubeClient: fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(provider, secret).Build(),
+		Recorder:   events.NewFakeRecorder(32),
+	}
+	_, _, err := s.getNotificationParams(t.Context(), &eventv1.Event{}, alert)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).ToNot(ContainSubstring("private"))
+	g.Expect(err.Error()).To(ContainSubstring("failed to get proxy URL"))
+}
+
+func TestHandleEventConstructsNotifiersAsynchronously(t *testing.T) {
+	for _, providerType := range []string{apiv1.GiteaProvider, apiv1.GitHubProvider} {
+		t.Run(providerType, func(t *testing.T) {
+			g := NewWithT(t)
+			started := make(chan string, 1)
+			cancelled := make(chan struct{}, 1)
+			release := make(chan struct{})
+			slow := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if _, err := io.Copy(io.Discard, r.Body); err != nil {
+					t.Error(err)
+					return
+				}
+				started <- r.URL.Path
+				select {
+				case <-r.Context().Done():
+					cancelled <- struct{}{}
+				case <-release:
+				}
+			}))
+			defer slow.Close()
+			defer close(release)
+			sent := make(chan struct{}, 1)
+			fast := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusNoContent)
+				sent <- struct{}{}
+			}))
+			defer fast.Close()
+
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "secret", Namespace: "default"},
+				Data:       map[string][]byte{"token": []byte("token")},
+			}
+			if providerType == apiv1.GitHubProvider {
+				key, err := rsa.GenerateKey(rand.Reader, 2048)
+				g.Expect(err).ToNot(HaveOccurred())
+				secret.Data = map[string][]byte{
+					"githubAppID":             []byte("123"),
+					"githubAppInstallationID": []byte("456"),
+					"githubAppPrivateKey": pem.EncodeToMemory(&pem.Block{
+						Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key),
+					}),
+					"githubAppBaseURL": []byte(slow.URL),
+				}
+			}
+			slowProvider := &apiv1.Provider{
+				ObjectMeta: metav1.ObjectMeta{Name: "slow", Namespace: "default"},
+				Spec: apiv1.ProviderSpec{
+					Type: providerType, Address: slow.URL + "/foo/bar",
+					SecretRef: &meta.LocalObjectReference{Name: secret.Name},
+					Timeout:   &metav1.Duration{Duration: 2 * time.Second},
+				},
+			}
+			fastProvider := &apiv1.Provider{
+				ObjectMeta: metav1.ObjectMeta{Name: "fast", Namespace: "default"},
+				Spec:       apiv1.ProviderSpec{Type: apiv1.GenericProvider, Address: fast.URL},
+			}
+			slowAlert := &apiv1.Alert{
+				ObjectMeta: metav1.ObjectMeta{Name: "alert-1", Namespace: "default"},
+				Spec: apiv1.AlertSpec{
+					ProviderRef:   meta.LocalObjectReference{Name: slowProvider.Name},
+					EventSeverity: eventv1.EventSeverityInfo,
+					EventSources:  []apiv1.CrossNamespaceObjectReference{{Kind: "GitRepository", Name: "*"}},
+				},
+			}
+			fastAlert := slowAlert.DeepCopy()
+			fastAlert.Name = "alert-2"
+			fastAlert.Spec.ProviderRef.Name = fastProvider.Name
+			event := &eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{
+					APIVersion: "source.toolkit.fluxcd.io/v1", Kind: "GitRepository", Name: "source", Namespace: "default",
+				},
+				Severity: eventv1.EventSeverityInfo, Message: "test",
+				Metadata: map[string]string{
+					eventv1.Group + "/" + eventv1.MetaCommitKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
+				},
+			}
+			scheme := runtime.NewScheme()
+			g.Expect(apiv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			recorder := events.NewFakeRecorder(32)
+			s := EventServer{
+				kubeClient: fakeclient.NewClientBuilder().WithScheme(scheme).
+					WithObjects(slowProvider, fastProvider, slowAlert, fastAlert, secret).Build(),
+				Recorder: recorder,
+			}
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			request := httptest.NewRequestWithContext(context.WithValue(ctx, eventContextKey{}, event), http.MethodPost, "/", nil)
+			returned := make(chan int, 1)
+			go func() {
+				response := httptest.NewRecorder()
+				s.handleEvent()(response, request)
+				returned <- response.Code
+			}()
+			g.Eventually(returned, "5s", "10ms").Should(Receive(Equal(http.StatusAccepted)))
+			cancel()
+			g.Eventually(sent, "5s", "10ms").Should(Receive())
+			wantPath := "/api/v1/version"
+			if providerType == apiv1.GitHubProvider {
+				wantPath = "/app/installations/456/access_tokens"
+			}
+			g.Eventually(started, "5s", "10ms").Should(Receive(Equal(wantPath)))
+			g.Expect(cancelled).ToNot(Receive())
+			g.Eventually(cancelled, "3s").Should(Receive())
+			var message string
+			g.Eventually(recorder.Events, "1s").Should(Receive(&message))
+			g.Expect(message).To(ContainSubstring("Warning " + apiv1.NotificationDispatchFailedReason))
+			g.Expect(message).To(ContainSubstring("failed to dispatch notification for GitRepository/default/source"))
+			g.Expect(message).To(ContainSubstring("failed to initialize notifier for provider 'slow'"))
+			g.Expect(message).To(ContainSubstring("context deadline exceeded"))
+		})
+	}
 }

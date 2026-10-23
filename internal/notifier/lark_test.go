@@ -11,6 +11,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+func TestNewLarkInvalidURL(t *testing.T) {
+	g := NewWithT(t)
+	const address = "https://example.com/private%zz"
+	_, err := NewLark(address, nil, nil)
+	g.Expect(err).To(MatchError("invalid Lark hook URL " + address))
+}
+
 func TestLark_Post(t *testing.T) {
 	g := NewWithT(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

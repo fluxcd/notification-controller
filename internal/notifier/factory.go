@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net/url"
+	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -86,6 +87,7 @@ type notifierOptions struct {
 	Username string
 	Channel  string
 	Token    string
+	Timeout  time.Duration
 	Headers  map[string]string
 	// CertPool is kept for Git platform providers (GitHub, GitLab, etc.) that use third-party SDKs.
 	// TODO: Remove this field once all notifiers support client certificate authentication via TLSConfig.
@@ -113,6 +115,13 @@ type Factory struct {
 
 // Option represents a functional option for configuring a notifier.
 type Option func(*notifierOptions)
+
+// WithTimeout sets the provider timeout for clients without context support.
+func WithTimeout(timeout time.Duration) Option {
+	return func(o *notifierOptions) {
+		o.Timeout = timeout
+	}
+}
 
 // WithProxyURL sets the proxy URL for the notifier.
 func WithProxyURL(proxyURL *url.URL) Option {
@@ -399,7 +408,12 @@ func bitbucketServerNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func bitbucketNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewBitbucket(opts.CommitStatus, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig)
+	b, err := NewBitbucket(opts.CommitStatus, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig)
+	if err != nil {
+		return nil, err
+	}
+	b.Client.HttpClient.Timeout = opts.Timeout
+	return b, nil
 }
 
 func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {

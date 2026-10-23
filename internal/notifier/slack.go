@@ -17,10 +17,12 @@ limitations under the License.
 package notifier
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"net/http"
 	"net/url"
@@ -152,12 +154,20 @@ func (s *Slack) Post(ctx context.Context, event eventv1.Event) error {
 // On the other hand, incoming webhooks return more expressive HTTP status codes.
 // See https://api.slack.com/messaging/webhooks#handling_errors.
 func validateSlackResponse(resp *http.Response) error {
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodyBytes+1))
+	if err != nil {
+		return fmt.Errorf("unable to read response body: %w", err)
+	}
+	if len(body) > maxResponseBodyBytes {
+		return fmt.Errorf("response body exceeds 1 MiB limit")
+	}
+
 	var slackResp struct {
 		Ok    bool   `json:"ok"`
 		Error string `json:"error"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&slackResp); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(body)).Decode(&slackResp); err != nil {
 		return fmt.Errorf("unable to unmarshal response body: %w", err)
 	}
 

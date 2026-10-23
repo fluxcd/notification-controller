@@ -22,8 +22,11 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -247,32 +250,120 @@ func (s *EventServer) dispatchNotification(ctx context.Context,
 		return dropped, nil
 	}
 
-	go func(n notifier.Interface, e eventv1.Event) {
-		pctx, cancel := context.WithTimeout(context.Background(), params.timeout)
+	go func() {
+		pctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), params.timeout)
 		defer cancel()
 		pctx = notifier.WithAlertMetadata(pctx, alert.ObjectMeta)
-		if err := n.Post(pctx, e); err != nil {
-			maskedErrStr, maskErr := masktoken.MaskTokenFromString(err.Error(), params.token)
-			if maskErr != nil {
-				err = maskErr
-			} else {
-				err = errors.New(maskedErrStr)
-			}
+		n, err := params.createNotifier(pctx)
+		if err != nil {
+			log.FromContext(ctx).Error(err, "failed to dispatch notification")
+			s.Eventf(alert, nil, corev1.EventTypeWarning, apiv1.NotificationDispatchFailedReason, apiv1.ActionFailed,
+				"failed to dispatch notification for %s: %s", involvedObjectString(params.event.InvolvedObject), err)
+			return
+		}
+		if err := n.Post(pctx, *params.event); err != nil {
+			err = maskSecrets(err, params.token, params.secretAddress)
 			log.FromContext(ctx).Error(err, "failed to send notification")
 			s.Eventf(alert, nil, corev1.EventTypeWarning, apiv1.NotificationDispatchFailedReason, apiv1.ActionFailed,
-				"failed to send notification for %s: %s", involvedObjectString(e.InvolvedObject), err)
+				"failed to send notification for %s: %s", involvedObjectString(params.event.InvolvedObject), err)
 		}
-	}(params.sender, *params.event)
+	}()
 
 	return droppedProviders{}, nil
 }
 
 // notificationParams holds the results of the getNotificationParams function.
 type notificationParams struct {
-	sender  notifier.Interface
-	event   *eventv1.Event
-	token   string
-	timeout time.Duration
+	provider      *apiv1.Provider
+	options       []notifier.Option
+	event         *eventv1.Event
+	token         string
+	secretAddress string
+	timeout       time.Duration
+}
+
+// createNotifier constructs a sender with the resolved configuration.
+func (p *notificationParams) createNotifier(ctx context.Context) (notifier.Interface, error) {
+	sender, err := notifier.NewFactory(ctx, p.options...).Notifier(p.provider.Spec.Type)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize notifier for provider '%s': failed to initialize notifier: %w",
+			p.provider.Name, maskSecrets(err, p.token, p.secretAddress))
+	}
+	return sender, nil
+}
+
+// maskSecrets redacts secret values while preserving the address scheme and host.
+func maskSecrets(err error, token, secretAddress string) error {
+	if err == nil {
+		return nil
+	}
+	message := err.Error()
+	if secretAddress != "" {
+		replacement := "***"
+		hostOnly := false
+		addresses := []string{secretAddress}
+		if u, parseErr := url.Parse(secretAddress); parseErr == nil {
+			addresses = append(addresses, u.String(), u.Redacted())
+			u.Path, u.RawPath = path.Clean(u.Path), ""
+			addresses = append(addresses, u.String(), u.Redacted())
+		}
+		// Parse the authority separately so invalid paths can still retain the host.
+		if scheme, rest, ok := strings.Cut(secretAddress, "://"); ok {
+			authority := rest
+			if end := strings.IndexAny(authority, "/?#"); end >= 0 {
+				authority = authority[:end]
+			}
+			if u, parseErr := url.Parse(scheme + "://" + authority); parseErr == nil && u.Host != "" {
+				replacement = u.Scheme + "://" + u.Host + "/***"
+				hostOnly = rest == authority
+			}
+		}
+		var patterns, replacements []string
+		for _, address := range addresses {
+			// Some notifiers append an API path before the query or fragment.
+			addressPath, suffix := address, ""
+			if end := strings.IndexAny(address, "?#"); end >= 0 {
+				addressPath, suffix = address[:end], address[end:]
+			}
+			quoted := strconv.Quote(address)
+			pattern := regexp.QuoteMeta(addressPath) + `(?:/[^\s"'<>?#]*)?` + regexp.QuoteMeta(suffix)
+			patterns = append(patterns, pattern)
+			if hostOnly {
+				// Apply the hostname boundary to literal and escaped forms alike.
+				patterns = append(patterns, regexp.QuoteMeta(quoted[1:len(quoted)-1]),
+					regexp.QuoteMeta(url.QueryEscape(address)), regexp.QuoteMeta(url.PathEscape(address)))
+				continue
+			}
+			replacements = append(replacements,
+				address, replacement,
+				quoted[1:len(quoted)-1], replacement,
+				url.QueryEscape(address), replacement,
+				url.PathEscape(address), replacement)
+		}
+		pattern := "(?:" + strings.Join(patterns, "|") + ")"
+		if hostOnly {
+			pattern += `($|[^\pL\pN\pM._%~-]|(?i:%2f|%3f|%23|%3a|%22|%27|%20|%09|%0a|%0d))`
+		}
+		re, compileErr := regexp.Compile(pattern)
+		if compileErr != nil {
+			return errors.New("failed to redact secret address")
+		}
+		message = re.ReplaceAllStringFunc(message, func(match string) string {
+			if hostOnly {
+				return replacement + re.FindStringSubmatch(match)[1]
+			}
+			return replacement
+		})
+		message = strings.NewReplacer(replacements...).Replace(message)
+	}
+	message, maskErr := masktoken.MaskTokenFromString(message, token)
+	if maskErr != nil {
+		return maskErr
+	}
+	if message == err.Error() {
+		return err
+	}
+	return errors.New(message)
 }
 
 // droppedProviders holds boolean values indicating whether the event was dropped
@@ -284,8 +375,8 @@ type droppedProviders struct {
 }
 
 // getNotificationParams constructs the notification parameters from the given
-// event and alert, and returns a notifier, event, token and timeout for sending
-// the notification. The returned event is a mutated form of the input event
+// event and alert, resolving configuration without constructing a notifier.
+// The returned event is a mutated form of the input event
 // based on the alert configuration. A struct indicating if the event was dropped
 // due to being related to a provider that requires a specific metadata key but
 // the event didn't have that key is also returned.
@@ -350,17 +441,13 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, droppedProviders{}, fmt.Errorf("failed to create commit status: %w", err)
 	}
 
-	sender, token, err := s.createNotifier(ctx, &provider, commitStatus)
+	params, err := s.prepareNotifier(ctx, &provider, commitStatus)
 	if err != nil {
-		return nil, droppedProviders{}, fmt.Errorf("failed to initialize notifier for provider '%s': %w", provider.Name, err)
+		return nil, droppedProviders{}, err
 	}
 
-	return &notificationParams{
-		sender:  sender,
-		event:   &notification,
-		token:   token,
-		timeout: provider.GetTimeout(),
-	}, droppedProviders{}, nil
+	params.event = &notification
+	return params, droppedProviders{}, nil
 }
 
 // createCommitStatus creates a commit status for the given provider and event.
@@ -423,11 +510,19 @@ func extractAuthFromSecret(ctx context.Context, secret *corev1.Secret) ([]notifi
 	return options, secret.Data, nil
 }
 
-// createNotifier constructs a notifier interface from the provider configuration,
-// handling authentication, proxy settings, and TLS configuration.
-func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1.Provider,
-	commitStatus string) (notifier.Interface, string, error) {
+// prepareNotifier resolves authentication, proxy settings and TLS configuration.
+// Notifier construction is deferred until dispatch under the provider timeout.
+func (s *EventServer) prepareNotifier(ctx context.Context, provider *apiv1.Provider,
+	commitStatus string) (_ *notificationParams, err error) {
+	params := &notificationParams{provider: provider, timeout: provider.GetTimeout()}
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("failed to initialize notifier for provider '%s': %w",
+				provider.Name, maskSecrets(err, params.token, params.secretAddress))
+		}
+	}()
 	options := []notifier.Option{
+		notifier.WithTimeout(params.timeout),
 		notifier.WithTokenClient(s.kubeClient),
 		notifier.WithProviderUID(string(provider.UID)),
 		notifier.WithProviderName(provider.Name),
@@ -468,19 +563,19 @@ func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1.Provid
 	}
 
 	webhook := provider.Spec.Address
-	var token string
 	var secretData map[string][]byte
 	var providerCertSecret, providerSecret *corev1.Secret
-	var err error
 
 	if provider.Spec.SecretRef != nil {
 		providerSecret, err = getSecret(ctx, s.kubeClient, provider.Spec.SecretRef.Name, provider.GetNamespace())
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
+		params.token = strings.TrimSpace(string(providerSecret.Data[secrets.KeyToken]))
+		params.secretAddress = strings.TrimSpace(string(providerSecret.Data["address"]))
 		secretOptions, sData, err := extractAuthFromSecret(ctx, providerSecret)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		secretData = sData
 		options = append(options, secretOptions...)
@@ -492,19 +587,16 @@ func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1.Provid
 		if val, ok := secretData["address"]; ok {
 			webhook = strings.TrimSpace(string(val))
 		}
-		if val, ok := secretData[secrets.KeyToken]; ok {
-			token = strings.TrimSpace(string(val))
-		}
 	}
 
 	if provider.Spec.ProxySecretRef != nil {
 		proxySecret, err := getSecret(ctx, s.kubeClient, provider.Spec.ProxySecretRef.Name, provider.GetNamespace())
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 		proxyURL, err := secrets.ProxyURLFromSecret(ctx, proxySecret)
 		if err != nil {
-			return nil, "", fmt.Errorf("failed to get proxy URL: %w", err)
+			return nil, fmt.Errorf("failed to get proxy URL: %w", err)
 		}
 		options = append(options, notifier.WithProxyURL(proxyURL))
 	}
@@ -512,13 +604,13 @@ func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1.Provid
 	if provider.Spec.CertSecretRef != nil {
 		providerCertSecret, err = getSecret(ctx, s.kubeClient, provider.Spec.CertSecretRef.Name, provider.GetNamespace())
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 	}
 
 	tlsConfig, err := getTLSConfigForProvider(ctx, providerCertSecret, providerSecret, provider.Spec.Type)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	if tlsConfig != nil {
@@ -528,12 +620,8 @@ func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1.Provid
 		options = append(options, notifier.WithURL(webhook))
 	}
 
-	factory := notifier.NewFactory(ctx, options...)
-	sender, err := factory.Notifier(provider.Spec.Type)
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to initialize notifier: %w", err)
-	}
-	return sender, token, nil
+	params.options = options
+	return params, nil
 }
 
 // getTLSConfigForProvider retrieves the TLS configuration from the provider's certSecretRef.

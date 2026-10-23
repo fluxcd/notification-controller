@@ -17,6 +17,7 @@ limitations under the License.
 package notifier
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -38,6 +39,7 @@ type GiteaClient struct {
 
 // giteaClientOptions holds the configuration for creating a Gitea client.
 type giteaClientOptions struct {
+	context        context.Context
 	address        string
 	token          string
 	proxyURL       *url.URL
@@ -47,6 +49,16 @@ type giteaClientOptions struct {
 
 // GiteaClientOption is a functional option for configuring Gitea client creation.
 type GiteaClientOption func(*giteaClientOptions)
+
+// WithGiteaContext sets the context for construction and subsequent API calls.
+func WithGiteaContext(ctx context.Context) GiteaClientOption {
+	return func(o *giteaClientOptions) {
+		o.context = ctx
+		if o.context == nil {
+			o.context = context.Background()
+		}
+	}
+}
 
 // WithGiteaAddress sets the Gitea repository address.
 func WithGiteaAddress(addr string) GiteaClientOption {
@@ -90,7 +102,7 @@ var giteaIdleConnTimeout time.Duration
 
 // NewGiteaClient creates a new GiteaClient with the provided options.
 func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
-	var o giteaClientOptions
+	o := giteaClientOptions{context: context.Background()}
 	for _, opt := range opts {
 		opt(&o)
 	}
@@ -119,7 +131,7 @@ func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
 		tr.IdleConnTimeout = giteaIdleConnTimeout
 	}
 
-	client, err := gitea.NewClient(host, gitea.SetToken(o.token), gitea.SetHTTPClient(&http.Client{Transport: tr}))
+	client, err := gitea.NewClient(host, gitea.SetContext(o.context), gitea.SetToken(o.token), gitea.SetHTTPClient(&http.Client{Transport: tr}))
 	if err != nil {
 		return nil, fmt.Errorf("failed creating Gitea client: %w", err)
 	}
@@ -149,6 +161,7 @@ func (o *notifierOptions) GiteaClientOptions() []GiteaClientOption {
 		token = o.Password
 	}
 	return []GiteaClientOption{
+		WithGiteaContext(o.Context),
 		WithGiteaAddress(o.URL),
 		WithGiteaToken(token),
 		WithGiteaProxyURL(o.ProxyURL),

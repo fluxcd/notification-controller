@@ -1509,6 +1509,10 @@ If the address contains sensitive information such as tokens or passwords, it is
 recommended to store the address in the Kubernetes secret referenced by `.spec.secretRef.name`.
 When the referenced Secret contains an `address` key, the `.spec.address` value is ignored.
 
+In notification errors and Warning Events, Secret-sourced addresses are redacted
+as `scheme://host/***`, and Secret tokens are masked. Addresses from
+`.spec.address` remain visible in full.
+
 ### Channel
 
 `.spec.channel` is an optional field that specifies the channel where the events are posted.
@@ -1762,7 +1766,8 @@ proxy URL takes precedence over these variables.
 ### Timeout
 
 `.spec.timeout` is an optional field to specify the timeout for the
-HTTP/S request sent to the provider endpoint.
+whole delivery to the provider endpoint. Delivery runs asynchronously from
+event ingestion.
 The value must be in a
 [Go recognized duration string format](https://pkg.go.dev/time#ParseDuration),
 e.g. `5m30s` for a timeout of five minutes and thirty seconds.
