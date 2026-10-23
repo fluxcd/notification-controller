@@ -29,6 +29,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -966,6 +967,60 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			}
 		})
 	}
+}
+
+func TestCreateNotifierBitbucketCloudTokenFromSecret(t *testing.T) {
+	g := NewWithT(t)
+	const secretToken = "test-api-token"
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "bitbucket-token"},
+		Data:       map[string][]byte{"token": []byte(secretToken)},
+	}
+	provider := apiv1.Provider{
+		Spec: apiv1.ProviderSpec{
+			Type:      apiv1.BitbucketProvider,
+			Address:   "https://bitbucket.org/foo/bar",
+			SecretRef: &meta.LocalObjectReference{Name: secret.Name},
+		},
+	}
+
+	kubeClient := fakeclient.NewClientBuilder().WithObjects(secret).Build()
+	eventServer := EventServer{kubeClient: kubeClient}
+	n, _, err := eventServer.createNotifier(context.TODO(), &provider, "test-status")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	var authHeaders []string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeaders = append(authHeaders, r.Header.Get("Authorization"))
+		w.Header().Set("Content-Type", "application/json")
+		if r.Method == http.MethodGet {
+			w.WriteHeader(http.StatusNotFound)
+		}
+		_, _ = w.Write([]byte("{}"))
+	}))
+	defer ts.Close()
+
+	b, ok := n.(*notifier.Bitbucket)
+	g.Expect(ok).To(BeTrue())
+	apiURL, err := url.Parse(ts.URL + "/2.0")
+	g.Expect(err).ToNot(HaveOccurred())
+	b.Client.SetApiBaseURL(*apiURL)
+	b.Client.HttpClient = ts.Client()
+
+	event := eventv1.Event{
+		Severity: eventv1.EventSeverityInfo,
+		InvolvedObject: corev1.ObjectReference{
+			Kind: "Kustomization",
+			Name: "gitops-system",
+		},
+		Metadata: map[string]string{
+			eventv1.MetaRevisionKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
+		},
+		Reason: "ApplySucceeded",
+	}
+	g.Expect(b.Post(t.Context(), event)).To(Succeed())
+	g.Expect(authHeaders).To(ConsistOf("Bearer "+secretToken, "Bearer "+secretToken))
 }
 
 func TestCreateCommitStatus(t *testing.T) {

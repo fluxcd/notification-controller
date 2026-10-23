@@ -32,7 +32,7 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 )
 
-// Bitbucket is a Bitbucket Server notifier.
+// Bitbucket is a Bitbucket Cloud notifier.
 type Bitbucket struct {
 	Owner        string
 	Repo         string
@@ -56,23 +56,16 @@ func NewBitbucket(commitStatus string, addr string, proxyURL *url.URL, token str
 		return nil, err
 	}
 
-	comp := strings.Split(token, ":")
-	if len(comp) != 2 {
-		return nil, errors.New("invalid token format, expected to be <user>:<password>")
-	}
-	username := comp[0]
-	password := comp[1]
-
-	comp = strings.Split(id, "/")
+	comp := strings.Split(id, "/")
 	if len(comp) != 2 {
 		return nil, fmt.Errorf("invalid repository id %q", id)
 	}
 	owner := comp[0]
 	repo := comp[1]
 
-	client, err := bitbucket.NewBasicAuth(username, password)
+	client, err := bitbucket.NewOAuthbearerToken(token)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create bitbucket client: %v", err)
+		return nil, fmt.Errorf("failed to create bitbucket client: %w", err)
 	}
 	if proxyURL != nil || tlsConfig != nil {
 		client.HttpClient = &http.Client{Transport: newTransport(proxyURL, tlsConfig)}
