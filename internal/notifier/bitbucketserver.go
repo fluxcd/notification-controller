@@ -195,9 +195,12 @@ func (b BitbucketServer) duplicateBitbucketServerStatus(ctx context.Context, sta
 	defer d.Body.Close()
 
 	if d.StatusCode == http.StatusOK {
-		bd, err := io.ReadAll(d.Body)
+		bd, err := io.ReadAll(io.LimitReader(d.Body, maxResponseBodyBytes+1))
 		if err != nil {
 			return false, fmt.Errorf("could not read response body for duplicate commit status: %w", err)
+		}
+		if len(bd) > maxResponseBodyBytes {
+			return false, errors.New("response body exceeds 1 MiB limit")
 		}
 		var existingCommitStatus bbServerBuildStatus
 		err = json.Unmarshal(bd, &existingCommitStatus)

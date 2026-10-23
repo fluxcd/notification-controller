@@ -22,7 +22,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 )
@@ -65,6 +67,34 @@ func TestSlack_ValidateResponse(t *testing.T) {
 }`))
 	err = validateSlackResponse(resp.Result())
 	g.Expect(err).To(MatchError(ContainSubstring("Slack responded with error: too_many_attachments")))
+}
+
+func TestSlackLimitsResponseBody(t *testing.T) {
+	g := NewWithT(t)
+	server, written := newLargeResponseServer(http.StatusOK, `{"ok":false,"error":"`, `"}`)
+	defer server.Close()
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	err := postMessage(ctx, server.URL, nil, withResponseValidator(validateSlackResponse))
+	g.Expect(err).To(MatchError(ContainSubstring("response body exceeds 1 MiB limit")))
+	g.Eventually(written).Should(Receive(BeNumerically("<", 100*1024*1024)))
+}
+
+func TestSlackResponseBodyLimitBoundary(t *testing.T) {
+	for _, size := range []int{1024 * 1024, 1024*1024 + 1} {
+		g := NewWithT(t)
+		const prefix, suffix = `{"ok":true,"error":"`, `"}`
+		body := strings.NewReader(prefix + strings.Repeat("x", size-len(prefix)-len(suffix)) + suffix)
+		resp := &http.Response{Body: io.NopCloser(body)}
+		err := validateSlackResponse(resp)
+		g.Expect(resp.Body.Close()).To(Succeed())
+		if size > 1024*1024 {
+			g.Expect(err).To(MatchError("response body exceeds 1 MiB limit"))
+		} else {
+			g.Expect(err).ToNot(HaveOccurred())
+		}
+		g.Expect(body.Len()).To(BeZero())
+	}
 }
 
 // Go randomises map iteration, so the fields shuffled between messages and the

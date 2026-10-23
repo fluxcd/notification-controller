@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -30,6 +31,7 @@ import (
 	"os/exec"
 	"reflect"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -40,6 +42,44 @@ import (
 
 	. "github.com/onsi/gomega"
 )
+
+func TestSetRetryBackoff(t *testing.T) {
+	g := NewWithT(t)
+	defaults := newHTTPClient(&postOptions{})
+	g.Expect(defaults.RetryMax).To(Equal(4))
+	g.Expect(defaults.RetryWaitMin).To(Equal(2 * time.Second))
+	g.Expect(defaults.RetryWaitMax).To(Equal(30 * time.Second))
+
+	t.Run("override", func(t *testing.T) {
+		g := NewWithT(t)
+		t.Cleanup(SetRetryBackoff(time.Millisecond, 5*time.Millisecond))
+
+		client := newHTTPClient(&postOptions{})
+		g.Expect(client.RetryMax).To(Equal(4))
+		g.Expect(client.RetryWaitMin).To(Equal(time.Millisecond))
+		g.Expect(client.RetryWaitMax).To(Equal(5 * time.Millisecond))
+		g.Expect(defaults.RetryWaitMin).To(Equal(2 * time.Second))
+		g.Expect(defaults.RetryWaitMax).To(Equal(30 * time.Second))
+
+		var attempts atomic.Int32
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			attempts.Add(1)
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+		defer server.Close()
+
+		ctx, cancel := context.WithTimeout(t.Context(), 10*time.Second)
+		defer cancel()
+		err := postMessage(ctx, server.URL, nil)
+		g.Expect(err).To(MatchError(ContainSubstring("unexpected HTTP status 500")))
+		g.Expect(attempts.Load()).To(Equal(int32(5)))
+	})
+
+	restored := newHTTPClient(&postOptions{})
+	g.Expect(restored.RetryMax).To(Equal(defaults.RetryMax))
+	g.Expect(restored.RetryWaitMin).To(Equal(defaults.RetryWaitMin))
+	g.Expect(restored.RetryWaitMax).To(Equal(defaults.RetryWaitMax))
+}
 
 func Test_postMessage(t *testing.T) {
 	g := NewWithT(t)
@@ -141,6 +181,78 @@ func Test_postMessage_contentType(t *testing.T) {
 
 	err := postMessage(context.Background(), ts.URL, []byte("status=success"), withContentType(contentType))
 	g.Expect(err).ToNot(HaveOccurred())
+}
+
+func Test_postMessage_contentTypeRequiresBytes(t *testing.T) {
+	for _, payload := range []any{"status=success", map[string]string{"status": "success"}, nil} {
+		g := NewWithT(t)
+		err := postMessage(t.Context(), "http://notification.invalid", payload,
+			withContentType("application/x-www-form-urlencoded"))
+		g.Expect(err).To(MatchError(ContainSubstring("notification payload must be []byte")))
+	}
+}
+
+func TestPostMessageLimitsErrorBody(t *testing.T) {
+	g := NewWithT(t)
+	server, written := newLargeResponseServer(http.StatusBadRequest, "", "")
+	defer server.Close()
+
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+	defer cancel()
+	err := postMessage(ctx, server.URL, map[string]string{"status": "success"})
+	const prefix = "request failed: request failed with status code 400: "
+	g.Expect(err).To(MatchError(prefix + strings.Repeat("x", 4*1024) + "... (truncated)"))
+	g.Eventually(written).Should(Receive(BeNumerically("<", 100*1024*1024)))
+}
+
+func TestPostMessageErrorBodyLimitBoundary(t *testing.T) {
+	for _, size := range []int{4*1024 - 1, 4 * 1024, 4*1024 + 1} {
+		t.Run(fmt.Sprint(size), func(t *testing.T) {
+			g := NewWithT(t)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusBadRequest)
+				if _, err := io.WriteString(w, strings.Repeat("x", size)); err != nil {
+					t.Error(err)
+				}
+			}))
+			defer server.Close()
+			err := postMessage(t.Context(), server.URL, nil)
+			want := "request failed: request failed with status code 400: " + strings.Repeat("x", min(size, 4*1024))
+			if size > 4*1024 {
+				want += "... (truncated)"
+			}
+			g.Expect(err).To(MatchError(want))
+		})
+	}
+}
+
+// newLargeResponseServer streams a 100 MiB body without allocating it in full.
+func newLargeResponseServer(status int, prefix, suffix string) (*httptest.Server, <-chan int64) {
+	written := make(chan int64, 1)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var total int64
+		defer func() { written <- total }()
+		w.WriteHeader(status)
+		n, err := io.WriteString(w, prefix)
+		total += int64(n)
+		if err != nil {
+			return
+		}
+		chunk := strings.Repeat("x", 32*1024)
+		for i := 0; i < 100*1024*1024/len(chunk); i++ {
+			n, err := io.WriteString(w, chunk)
+			total += int64(n)
+			if err != nil {
+				return
+			}
+		}
+		n, err = io.WriteString(w, suffix)
+		total += int64(n)
+		if err != nil {
+			return
+		}
+	}))
+	return server, written
 }
 
 func Test_postMessage_basicAuth(t *testing.T) {

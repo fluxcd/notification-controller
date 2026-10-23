@@ -27,6 +27,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -55,11 +56,11 @@ func TestEventServer(t *testing.T) {
 	g := NewWithT(t)
 
 	testNamespace := "foo-ns"
-	var req *http.Request
+	var requests atomic.Int64
 
 	// Run receiver server.
 	rcvServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		req = r
+		requests.Add(1)
 		w.WriteHeader(200)
 	}))
 	defer rcvServer.Close()
@@ -284,8 +285,7 @@ func TestEventServer(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			// Reset the common receiver server request variable.
-			req = nil
+			requests.Store(0)
 
 			// Create the test alert.
 			alert := testAlert.DeepCopy()
@@ -308,12 +308,11 @@ func TestEventServer(t *testing.T) {
 			g.Expect(json.NewEncoder(buf).Encode(event)).To(Succeed())
 			res, err := http.Post("http://localhost:"+eventServerPort, "application/json", buf)
 			g.Expect(err).ToNot(HaveOccurred())
+			defer res.Body.Close()
 			g.Expect(res.StatusCode).To(Equal(http.StatusAccepted)) // Event server responds with 202 Accepted.
 
 			if tt.forwarded {
-				g.Eventually(func() bool {
-					return req == nil
-				}, "2s", "0.1s").Should(BeFalse())
+				g.Eventually(requests.Load, "2s", "0.1s").Should(Equal(int64(1)))
 			} else {
 				// Check filtered requests.
 				//
@@ -322,9 +321,7 @@ func TestEventServer(t *testing.T) {
 				// difficult to know whether the provider has filtered the
 				// event, or just not run the goroutine yet. For now, use a
 				// timeout (and consistently so it can fail early).
-				g.Consistently(func() bool {
-					return req == nil
-				}, "1s", "0.1s").Should(BeTrue())
+				g.Consistently(requests.Load, "1s", "0.1s").Should(BeZero())
 			}
 		})
 	}

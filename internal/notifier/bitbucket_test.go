@@ -28,12 +28,61 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 )
+
+func TestBitbucketProviderTimeout(t *testing.T) {
+	for _, method := range []string{http.MethodGet, http.MethodPost} {
+		t.Run(method, func(t *testing.T) {
+			g := NewWithT(t)
+			cancelled := make(chan struct{}, 1)
+			release := make(chan struct{})
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if _, err := io.Copy(io.Discard, r.Body); err != nil {
+					t.Error(err)
+					return
+				}
+				if r.Method != method {
+					w.WriteHeader(http.StatusNotFound)
+					_, err := io.WriteString(w, "{}")
+					if err != nil {
+						t.Error(err)
+					}
+					return
+				}
+				select {
+				case <-r.Context().Done():
+					cancelled <- struct{}{}
+				case <-release:
+				}
+			}))
+			defer server.Close()
+			defer close(release)
+			n, err := NewFactory(t.Context(),
+				WithURL("https://bitbucket.org/foo/bar"),
+				WithToken("user:password"),
+				WithCommitStatus("status"),
+				WithTimeout(200*time.Millisecond),
+			).Notifier(apiv1.BitbucketProvider)
+			g.Expect(err).ToNot(HaveOccurred())
+			b := n.(*Bitbucket)
+			g.Expect(b.Client.HttpClient.Timeout).To(Equal(200 * time.Millisecond))
+			b.Client.SetApiBaseURL(*parseProxyURL(t, server.URL+"/2.0"))
+			defer b.Client.HttpClient.CloseIdleConnections()
+			event := testEvent()
+			event.Metadata[eventv1.MetaRevisionKey] = "main@sha1:69b59063470310ebbd88a9156325322a124e55a3"
+			done := make(chan error, 1)
+			go func() { done <- b.Post(t.Context(), event) }()
+			g.Eventually(done, "2s").Should(Receive(MatchError(ContainSubstring("Client.Timeout"))))
+			g.Eventually(cancelled, "2s").Should(Receive())
+		})
+	}
+}
 
 func TestBitbucketProxyTransport(t *testing.T) {
 	for _, withTLS := range []bool{false, true} {
