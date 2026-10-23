@@ -2215,20 +2215,22 @@ kubectl create secret generic gitea-token --from-literal=token=<GITEA-TOKEN>
 #### BitBucket
 
 When `.spec.type` is set to `bitbucket`, the referenced secret must contain a key called `token` with the value
-set to a BitBucket username and an
-[app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/#Create-an-app-password)
-in the format `<username>:<app-password>`.
+set to a [Bitbucket Cloud API token](https://support.atlassian.com/bitbucket-cloud/docs/create-an-api-token/).
+
+Bitbucket Cloud app passwords are deprecated and stopped working on June 9, 2026.
+For more information, see the
+[Bitbucket Cloud API tokens announcement](https://www.atlassian.com/blog/bitbucket/bitbucket-cloud-transitions-to-api-tokens-enhancing-security-with-app-password-deprecation).
 
 This Provider type supports the configuration of a [proxy URL](#https-proxy)
 and/or [certificate secret reference](#certificate-secret-reference).
 
-The app password must have `Repositories (Read/Write)` permission for
+The API token must have the `read:repository:bitbucket` and `write:repository:bitbucket` scopes for
 the BitBucket repository specified in `.spec.address`.
 
 You can create the secret with `kubectl` like this:
 
 ```shell
-kubectl create secret generic bitbucket-token --from-literal=token=<username>:<app-password>
+kubectl create secret generic bitbucket-token --from-literal=token=<API-TOKEN>
 ```
 
 #### BitBucket Server/Data Center

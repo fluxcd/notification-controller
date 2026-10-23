@@ -32,8 +32,8 @@ import (
 )
 
 func Fuzz_Bitbucket(f *testing.F) {
-	f.Add("kustomization/gitops-system/0c9c2e41", "user:pass", "org/repo", "revision/dsa123a", "info", []byte{}, []byte(`{"state":"SUCCESSFUL","description":"","key":"","name":"","url":""}`))
-	f.Add("kustomization/gitops-system/0c9c2e41", "user:pass", "org/repo", "revision/dsa123a", "error", []byte{}, []byte(`{}`))
+	f.Add("kustomization/gitops-system/0c9c2e41", "test-token", "org/repo", "revision/dsa123a", "info", []byte{}, []byte(`{"state":"SUCCESSFUL","description":"","key":"","name":"","url":""}`))
+	f.Add("kustomization/gitops-system/0c9c2e41", "test-token", "org/repo", "revision/dsa123a", "error", []byte{}, []byte(`{}`))
 
 	f.Fuzz(func(t *testing.T, commitStatus, token, urlSuffix, revision, severity string, seed, response []byte) {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
