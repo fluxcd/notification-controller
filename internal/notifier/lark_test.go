@@ -25,7 +25,7 @@ func TestLark_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	lark, err := NewLark(ts.URL)
+	lark, err := NewLark(ts.URL, nil, nil)
 	g.Expect(err).ToNot(HaveOccurred())
 
 	err = lark.Post(context.TODO(), testEvent())

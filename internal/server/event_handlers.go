@@ -541,7 +541,7 @@ func (s *EventServer) createNotifier(ctx context.Context, provider *apiv1.Provid
 // secretRef contains TLS data, as this is no longer supported.
 func getTLSConfigForProvider(ctx context.Context, providerCertSecret, providerSecret *corev1.Secret, providerType string) (*tls.Config, error) {
 	if providerCertSecret != nil {
-		tlsConfig, err := secrets.TLSConfigFromSecret(ctx, providerCertSecret)
+		tlsConfig, err := secrets.TLSConfigFromSecret(ctx, providerCertSecret, secrets.WithSystemCertPool())
 		if err != nil {
 			return nil, fmt.Errorf("failed to get TLS config: %w", err)
 		}

@@ -2,6 +2,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"maps"
@@ -18,10 +19,11 @@ const (
 )
 
 type Telegram struct {
-	url      string
-	ProxyURL *url.URL
-	Channel  string
-	Token    string
+	url       string
+	ProxyURL  *url.URL
+	Channel   string
+	Token     string
+	TLSConfig *tls.Config
 }
 
 // TelegramPayload represents the payload sent to Telegram Bot API
@@ -33,7 +35,7 @@ type TelegramPayload struct {
 	ParseMode       string `json:"parse_mode"`                  // Mode for parsing entities in the message text
 }
 
-func NewTelegram(proxyURL *url.URL, channel, token string) (*Telegram, error) {
+func NewTelegram(proxyURL *url.URL, tlsConfig *tls.Config, channel, token string) (*Telegram, error) {
 	if channel == "" {
 		return nil, errors.New("empty Telegram channel")
 	}
@@ -43,10 +45,11 @@ func NewTelegram(proxyURL *url.URL, channel, token string) (*Telegram, error) {
 	}
 
 	return &Telegram{
-		url:      fmt.Sprintf(telegramBaseURL, token),
-		ProxyURL: proxyURL,
-		Channel:  channel,
-		Token:    token,
+		url:       fmt.Sprintf(telegramBaseURL, token),
+		ProxyURL:  proxyURL,
+		Channel:   channel,
+		Token:     token,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -85,6 +88,9 @@ func (t *Telegram) Post(ctx context.Context, event eventv1.Event) error {
 	var opts []postOption
 	if t.ProxyURL != nil {
 		opts = append(opts, withProxy(t.ProxyURL))
+	}
+	if t.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(t.TLSConfig))
 	}
 
 	return postMessage(ctx, apiURL, payload, opts...)

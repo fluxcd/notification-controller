@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 
@@ -35,7 +36,7 @@ type GitLab struct {
 	Client       *gitlab.Client
 }
 
-func NewGitLab(commitStatus string, addr string, token string, tlsConfig *tls.Config) (*GitLab, error) {
+func NewGitLab(commitStatus string, addr string, proxyURL *url.URL, token string, tlsConfig *tls.Config) (*GitLab, error) {
 	if len(token) == 0 {
 		return nil, errors.New("gitlab token cannot be empty")
 	}
@@ -51,11 +52,8 @@ func NewGitLab(commitStatus string, addr string, token string, tlsConfig *tls.Co
 	}
 
 	opts := []gitlab.ClientOptionFunc{gitlab.WithBaseURL(host)}
-	if tlsConfig != nil {
-		tr := &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
-		hc := &http.Client{Transport: tr}
+	if proxyURL != nil || tlsConfig != nil {
+		hc := &http.Client{Transport: newTransport(proxyURL, tlsConfig)}
 		opts = append(opts, gitlab.WithHTTPClient(hc))
 	}
 	client, err := gitlab.NewClient(token, opts...)

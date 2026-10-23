@@ -579,6 +579,7 @@ func TestGetNotificationParams(t *testing.T) {
 }
 
 func TestCreateNotifier(t *testing.T) {
+	g := NewWithT(t)
 	secretName := "foo-secret"
 	certSecretName := "cert-secret"
 	proxySecretName := "proxy-secret"
@@ -587,8 +588,9 @@ func TestCreateNotifier(t *testing.T) {
 	caCert, clientCert, clientKey := generateTestCertificates(t)
 
 	// Helper to create expected TLS configs
-	caPool := x509.NewCertPool()
-	caPool.AppendCertsFromPEM(caCert)
+	caPool, err := x509.SystemCertPool()
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(caPool.AppendCertsFromPEM(caCert)).To(BeTrue())
 
 	clientCertPair, err := tls.X509KeyPair(clientCert, clientKey)
 	if err != nil {
@@ -952,6 +954,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 				g.Expect(tlsConfig).ToNot(BeNil(), "Expected TLS configuration but got nil")
 				if tt.wantTLSConfig.RootCAs != nil {
 					g.Expect(tlsConfig.RootCAs).ToNot(BeNil())
+					g.Expect(tlsConfig.RootCAs.Equal(tt.wantTLSConfig.RootCAs)).To(BeTrue())
 				} else {
 					g.Expect(tlsConfig.RootCAs).To(BeNil())
 				}
@@ -1504,8 +1507,9 @@ func TestGetTLSConfigForProvider(t *testing.T) {
 	caCert, clientCert, clientKey := generateTestCertificates(t)
 
 	// Expected TLS pieces.
-	caPool := x509.NewCertPool()
-	caPool.AppendCertsFromPEM(caCert)
+	caPool, err := x509.SystemCertPool()
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(caPool.AppendCertsFromPEM(caCert)).To(BeTrue())
 
 	clientCertPair, err := tls.X509KeyPair(clientCert, clientKey)
 	if err != nil {
@@ -1532,8 +1536,14 @@ func TestGetTLSConfigForProvider(t *testing.T) {
 			providerType: apiv1.GitHubProvider,
 		},
 		{
-			name:               "providerCertSecret in ca.crt with valid CA",
+			name:               "providerCertSecret private CA preserves system roots for git provider",
 			providerType:       apiv1.GitHubProvider,
+			providerCertSecret: getSecret("cert-secret", map[string][]byte{"ca.crt": caCert}),
+			wantTLSConfig:      &tls.Config{RootCAs: caPool},
+		},
+		{
+			name:               "providerCertSecret private CA preserves system roots for non-git provider",
+			providerType:       apiv1.SlackProvider,
 			providerCertSecret: getSecret("cert-secret", map[string][]byte{"ca.crt": caCert}),
 			wantTLSConfig:      &tls.Config{RootCAs: caPool},
 		},
@@ -1596,6 +1606,7 @@ func TestGetTLSConfigForProvider(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			got, err := getTLSConfigForProvider(ctx, tt.providerCertSecret, tt.providerSecret, tt.providerType)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -1610,9 +1621,9 @@ func TestGetTLSConfigForProvider(t *testing.T) {
 
 			g.Expect(got).ToNot(BeNil(), "expected non-nil TLS config")
 
-			// RootCAs presence matches expectation.
 			if tt.wantTLSConfig.RootCAs != nil {
 				g.Expect(got.RootCAs).ToNot(BeNil())
+				g.Expect(got.RootCAs.Equal(tt.wantTLSConfig.RootCAs)).To(BeTrue())
 			} else {
 				g.Expect(got.RootCAs).To(BeNil())
 			}

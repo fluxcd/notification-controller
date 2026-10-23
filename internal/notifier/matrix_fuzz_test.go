@@ -30,7 +30,7 @@ func Fuzz_Matrix(f *testing.F) {
 		var tlsConfig tls.Config
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		matrix, err := NewMatrix(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), token, roomId, &tlsConfig)
+		matrix, err := NewMatrix(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, token, roomId, &tlsConfig)
 		if err != nil {
 			return
 		}

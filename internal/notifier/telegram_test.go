@@ -70,7 +70,7 @@ func TestTelegram_Post(t *testing.T) {
 	})
 	defer ts.Close()
 
-	telegram, err := NewTelegram(nil, "channel", "token")
+	telegram, err := NewTelegram(nil, nil, "channel", "token")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	telegram.url = ts.URL
@@ -90,7 +90,7 @@ func TestTelegram_PostWithMessageThreadID(t *testing.T) {
 	})
 	defer ts.Close()
 
-	telegram, err := NewTelegram(nil, "channel:thread", "token")
+	telegram, err := NewTelegram(nil, nil, "channel:thread", "token")
 	g.Expect(err).ToNot(HaveOccurred())
 
 	telegram.url = ts.URL

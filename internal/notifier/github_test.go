@@ -18,12 +18,20 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/elazarl/goproxy"
+	"golang.org/x/oauth2"
 
 	"github.com/fluxcd/pkg/auth/githubapp"
 	"github.com/fluxcd/pkg/ssh"
@@ -31,6 +39,60 @@ import (
 	"github.com/google/go-github/v90/github"
 	. "github.com/onsi/gomega"
 )
+
+func TestCreateGitHubClientProxyAndTLS(t *testing.T) {
+	for _, host := range []string{"github.com", "github.enterprise.invalid"} {
+		t.Run(host, func(t *testing.T) {
+			g := NewWithT(t)
+			apiHost := host
+			if host == "github.com" {
+				apiHost = "api.github.com"
+			}
+			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				g.Expect(r.Host).To(Equal(apiHost))
+				g.Expect(r.TLS).ToNot(BeNil())
+				g.Expect(r.Header.Get("Authorization")).To(Equal("Bearer test-token"))
+				w.Header().Set("Content-Type", "application/json")
+				_, err := io.WriteString(w, `{"login":"flux"}`)
+				g.Expect(err).ToNot(HaveOccurred())
+			}))
+			defer server.Close()
+
+			var connects atomic.Int32
+			proxyHandler := goproxy.NewProxyHttpServer()
+			proxyHandler.ConnectDial = func(network, addr string) (net.Conn, error) {
+				g.Expect(addr).To(Equal(apiHost + ":443"))
+				connects.Add(1)
+				return net.DialTimeout(network, server.Listener.Addr().String(), time.Second)
+			}
+			proxy := httptest.NewServer(proxyHandler)
+			defer proxy.Close()
+			proxyURL := parseProxyURL(t, proxy.URL)
+
+			pool := x509.NewCertPool()
+			pool.AddCert(server.Certificate())
+			tlsConfig := &tls.Config{RootCAs: pool, ServerName: "example.com"}
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+			client, err := createGitHubClient(ctx, "https://"+host, "test-token", proxyURL, tlsConfig)
+			g.Expect(err).ToNot(HaveOccurred())
+			transport := client.Client().Transport.(*oauth2.Transport).Base.(*http.Transport)
+			defer transport.CloseIdleConnections()
+			req, err := http.NewRequest(http.MethodGet, client.BaseURL(), nil)
+			g.Expect(err).ToNot(HaveOccurred())
+			gotProxy, err := transport.Proxy(req)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(gotProxy).To(Equal(proxyURL))
+			g.Expect(transport.TLSClientConfig).ToNot(BeIdenticalTo(tlsConfig))
+			g.Expect(transport.TLSClientConfig).To(Equal(tlsConfig))
+
+			user, _, err := client.Users.Get(ctx, "")
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(user.GetLogin()).To(Equal("flux"))
+			g.Expect(connects.Load()).To(BeNumerically(">", 0))
+		})
+	}
+}
 
 func TestNewGitHubBasic(t *testing.T) {
 	gm := NewWithT(t)

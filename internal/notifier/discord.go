@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"maps"
 	"net/url"
@@ -30,14 +31,15 @@ import (
 
 // Discord holds the hook URL
 type Discord struct {
-	URL      string
-	ProxyURL *url.URL
-	Username string
-	Channel  string
+	URL       string
+	ProxyURL  *url.URL
+	Username  string
+	Channel   string
+	TLSConfig *tls.Config
 }
 
 // NewDiscord validates the URL and returns a Discord object
-func NewDiscord(hookURL string, proxyURL *url.URL, username string, channel string) (*Discord, error) {
+func NewDiscord(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config, username string, channel string) (*Discord, error) {
 	webhook, err := url.ParseRequestURI(hookURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Discord hook URL %s: '%w'", hookURL, err)
@@ -51,10 +53,11 @@ func NewDiscord(hookURL string, proxyURL *url.URL, username string, channel stri
 	}
 
 	return &Discord{
-		Channel:  channel,
-		URL:      hookURL,
-		ProxyURL: proxyURL,
-		Username: username,
+		Channel:   channel,
+		URL:       hookURL,
+		ProxyURL:  proxyURL,
+		Username:  username,
+		TLSConfig: tlsConfig,
 	}, nil
 }
 
@@ -91,6 +94,9 @@ func (s *Discord) Post(ctx context.Context, event eventv1.Event) error {
 	var opts []postOption
 	if s.ProxyURL != nil {
 		opts = append(opts, withProxy(s.ProxyURL))
+	}
+	if s.TLSConfig != nil {
+		opts = append(opts, withTLSConfig(s.TLSConfig))
 	}
 
 	if err := postMessage(ctx, s.URL, payload, opts...); err != nil {

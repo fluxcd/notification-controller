@@ -144,6 +144,9 @@ The providers supporting change request (pull request / merge request) comments 
 When `.spec.type` is set to `generic`, the controller will send an HTTP POST
 request to the provided [Address](#address).
 
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
+
 The body of the request is a [JSON `Event` object](events.md#event-structure),
 for example:
 
@@ -195,6 +198,9 @@ POST request to the provided [Address](#address) for an [Event](events.md#event-
 while including an `X-Signature` HTTP header carrying the HMAC of the request
 body. The inclusion of the header allows the receiver to verify the
 authenticity and integrity of the request.
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
 
 The `X-Signature` header is calculated by generating an HMAC of the request
 body using the [`token` key from the referenced Secret](#token-example). The
@@ -521,8 +527,8 @@ in the Sentry Event, or as [Span `tags`](https://develop.sentry.dev/sdk/event-pa
 The Provider's [Channel](#channel) is used to set the `environment` on the
 Sentry client.
 
-This Provider type supports the configuration of
-[certificate secret reference](#certificate-secret-reference).
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
 
 ###### Sentry example
 
@@ -569,7 +575,8 @@ This can be a unique identifier (`-1234567890`) for the target chat,
 a unique identifier with the topic identifier (`-1234567890:1`) for the forum chat,
 or the username (`@username`) of the target channel.
 
-This Provider type does not support the configuration of a [certificate secret reference](#certificate-secret-reference).
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
 
 **Note:** The Telegram provider always ignores the `address` field and uses the default 
 Telegram Bot API endpoint (`https://api.telegram.org`).
@@ -606,8 +613,8 @@ to the provided Matrix [Address](#address).
 The Provider's [Channel](#channel) is used to set the receiver of the message
 using a room identifier (`!1234567890:example.org`).
 
-This provider type does support the configuration of [TLS
-certificates](#tls-certificates).
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
 
 ###### Matrix example
 
@@ -637,8 +644,8 @@ an [Event](events.md#event-structure) to the provided Lark [Address](#address).
 The Event will be formatted into a [Lark Message card](https://open.larksuite.com/document/ukTMukTMukTM/uczM3QjL3MzN04yNzcDN),
 with the metadata written to the message string.
 
-This Provider type does not support the configuration of a [proxy URL](#https-proxy)
-or [certificate secret reference](#certificate-secret-reference).
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
 
 ###### Lark example
 
@@ -705,7 +712,8 @@ The Event will be formatted into a [Google Chat card message](https://developers
 with the metadata added as a list of [key-value pairs](https://developers.google.com/chat/api/reference/rest/v1/cards-v1#keyvalue)
 in a [widget](https://developers.google.com/chat/api/reference/rest/v1/cards-v1#widgetmarkup).
 
-This Provider type does support the configuration of a [proxy URL](#https-proxy).
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
 
 ###### Google Chat example
 
@@ -756,8 +764,10 @@ on the Pub/Sub Topic.
 You can optionally add [attributes](https://cloud.google.com/pubsub/docs/samples/pubsub-publish-custom-attributes#pubsub_publish_custom_attributes-go)
 to the Pub/Sub message using a [`headers` key in the referenced Secret](#http-headers-example).
 
-This Provider type does not support the configuration of a [proxy URL](#https-proxy)
-or [certificate secret reference](#certificate-secret-reference).
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+only for workload identity authentication, not for publishing messages or
+authentication with JSON credentials. It does not support a
+[certificate secret reference](#certificate-secret-reference).
 
 ###### Google Pub/Sub with JSON Credentials and Custom Headers Example
 
@@ -1125,6 +1135,9 @@ When [Basic authentication](https://docs.nats.io/using-nats/developer/connecting
 Secret reference.
 
 The authenticated User must have [authorization](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/authorization) to publish on the [Subject](https://docs.nats.io/nats-concepts/subjects) provided.
+
+This Provider type does not support the configuration of a [proxy URL](#https-proxy)
+or [certificate secret reference](#certificate-secret-reference).
 
 ###### NATS with User Credentials (JWT) Example
 
@@ -1604,6 +1617,7 @@ docs.
 `.spec.certSecretRef` is an optional field to specify a name reference to a
 Secret in the same namespace as the Provider, containing TLS certificates for
 secure communication. The secret must be of type `kubernetes.io/tls` or `Opaque`.
+The CA certificate is added to the system's trusted CAs, not used as a replacement.
 
 #### Supported configurations
 
@@ -1626,30 +1640,37 @@ field is optional but required when connecting to servers with self-signed certi
 
 The following providers support client certificate authentication:
 
-| Provider Type        | Description                    |
-|---------------------|--------------------------------|
-| `alertmanager`      | Prometheus Alertmanager        |
-| `azuredevops`       | Azure DevOps                   |
-| `bitbucket`         | Bitbucket                      |
-| `bitbucketserver`   | BitBucket Server/Data Center   |
-| `datadog`           | DataDog                        |
-| `discord`           | Discord webhooks               |
-| `forwarder`         | Generic forwarder              |
-| `gitea`             | Gitea                          |
-| `github`            | GitHub                         |
-| `githubdispatch`    | GitHub Dispatch                |
-| `gitlab`            | GitLab                         |
-| `grafana`           | Grafana annotations API        |
-| `matrix`            | Matrix rooms                   |
-| `msteams`           | Microsoft Teams                |
-| `opsgenie`          | Opsgenie alerts                |
-| `pagerduty`         | PagerDuty events               |
-| `rocket`            | Rocket.Chat                    |
-| `sentry`            | Sentry                         |
-| `slack`             | Slack API                      |
-| `webex`             | Webex messages                 |
-| `zulip`             | Zulip API                      |
-| `otel`              | OpenTelemetry Traces           |
+| Provider Type               | Description                    |
+|-----------------------------|--------------------------------|
+| `alertmanager`              | Prometheus Alertmanager        |
+| `azuredevops`               | Azure DevOps                   |
+| `bitbucket`                 | Bitbucket                      |
+| `bitbucketserver`           | BitBucket Server/Data Center   |
+| `datadog`                   | DataDog                        |
+| `discord`                   | Discord webhooks               |
+| `generic`                   | Generic webhook                |
+| `generic-hmac`              | Generic webhook with HMAC      |
+| `gitea`                     | Gitea                          |
+| `giteapullrequestcomment`   | Gitea pull request comments    |
+| `github`                    | GitHub                         |
+| `githubdispatch`            | GitHub Dispatch                |
+| `githubpullrequestcomment`  | GitHub pull request comments   |
+| `gitlab`                    | GitLab                         |
+| `gitlabmergerequestcomment` | GitLab merge request comments  |
+| `googlechat`                | Google Chat                    |
+| `grafana`                   | Grafana annotations API        |
+| `lark`                      | Lark                           |
+| `matrix`                    | Matrix rooms                   |
+| `msteams`                   | Microsoft Teams                |
+| `opsgenie`                  | Opsgenie alerts                |
+| `pagerduty`                 | PagerDuty events               |
+| `rocket`                    | Rocket.Chat                    |
+| `sentry`                    | Sentry                         |
+| `slack`                     | Slack API                      |
+| `telegram`                  | Telegram Bot API               |
+| `webex`                     | Webex messages                 |
+| `zulip`                     | Zulip API                      |
+| `otel`                      | OpenTelemetry Traces           |
 
 Support for client certificate authentication is being expanded to additional providers over time.
 
@@ -1734,6 +1755,10 @@ Secret in the same namespace as the Provider, containing the proxy configuration
 The Secret should contain an `address` key with the HTTP/S address of the proxy server.
 Optional `username` and `password` keys can be provided for proxy authentication.
 
+For HTTP requests, when no proxy URL is configured, the controller uses the
+`HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` environment variables. An explicit
+proxy URL takes precedence over these variables.
+
 ### Timeout
 
 `.spec.timeout` is an optional field to specify the timeout for the
@@ -1752,6 +1777,9 @@ When the field is set to `false` or removed, it will resume.
 
 
 ### Grafana
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
 
 To send notifications to [Grafana annotations API](https://grafana.com/docs/grafana/latest/http_api/annotations/),
 enable the annotations on a Dashboard like so:
@@ -1800,6 +1828,10 @@ the tags `kind: ${event.InvolvedObject.Kind}`, `name: ${event.InvolvedObject.Nam
 The `githubdispatch` provider generates GitHub events of type
 [`repository_dispatch`](https://docs.github.com/en/rest/reference/repos#create-a-repository-dispatch-event)
 for the selected repository. The `repository_dispatch` events can be used to trigger GitHub Actions workflow.
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference) for both
+github.com and GitHub Enterprise, including GitHub App authentication.
 
 The request includes the `event_type` and `client_payload` fields:
 
@@ -1941,6 +1973,10 @@ jobs:
 ```
 
 ### Azure Event Hub
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+only for managed identity authentication, not for publishing events. It does not
+support a [certificate secret reference](#certificate-secret-reference).
 
 The Azure Event Hub provider supports the following authentication methods, 
 - [Managed
@@ -2100,6 +2136,10 @@ spec:
 When `.spec.type` is set to `github`, the referenced secret can contain a
 personal access token OR github app details. 
 
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference) for both
+github.com and GitHub Enterprise, including GitHub App authentication.
+
 ##### Personal Access Token
 
 To use personal access tokens, the secret must contain a key called `token` with
@@ -2135,6 +2175,9 @@ provided in the Secret referenced by `.spec.certSecretRef` as described
 When `.spec.type` is set to `gitlab`, the referenced secret must contain a key called `token` with the value set to a
 [GitLab personal access token](https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html). If available group and project access tokens can also be used.
 
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
+
 The token must have permissions to update the commit status for the GitLab repository specified in `.spec.address` (grant it the `api` scope).
 
 You can create the secret with `kubectl` like this:
@@ -2151,6 +2194,9 @@ You can find out the ID by opening the project in the browser and clicking on th
 
 When `.spec.type` is set to `gitea`, the referenced secret must contain a key called `token` with the value set to a
 [Gitea token](https://docs.gitea.io/en-us/api-usage/#generating-and-listing-api-tokens).
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
 
 The token must have at least the `write:repository` permission for the provider to
 update the commit status for the Gitea repository specified in `.spec.address`.
@@ -2172,6 +2218,9 @@ When `.spec.type` is set to `bitbucket`, the referenced secret must contain a ke
 set to a BitBucket username and an
 [app password](https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/#Create-an-app-password)
 in the format `<username>:<app-password>`.
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
 
 The app password must have `Repositories (Read/Write)` permission for
 the BitBucket repository specified in `.spec.address`.
@@ -2208,6 +2257,9 @@ the repository specified in `.spec.address`.
 
 **NOTE:** Please provide HTTPS clone URL in the `address` field of this provider. SSH URLs are not supported by this provider type.
 
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
+
 #### Azure DevOps
 
 The following authentication methods can be used when `.spec.type` is set to
@@ -2215,6 +2267,10 @@ The following authentication methods can be used when `.spec.type` is set to
 
 - [Managed Identity](https://learn.microsoft.com/en-us/azure/event-hubs/authenticate-managed-identity)
 - [Personal Access Token](#pat)
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+only for managed identity authentication, not for Azure DevOps API calls. It
+supports a [certificate secret reference](#certificate-secret-reference).
 
 #### Managed Identity
 
@@ -2347,6 +2403,10 @@ automatically filtered out and will not trigger any action from change request p
 When `.spec.type` is set to `githubpullrequestcomment`, the controller will post
 a comment on the GitHub pull request specified in the event metadata.
 
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference) for both
+github.com and GitHub Enterprise, including GitHub App authentication.
+
 This provider is designed to work with Flux objects that contain the
 `event.toolkit.fluxcd.io/change_request` annotation, which specifies
 the pull request number. Flux objects without this annotation are
@@ -2422,6 +2482,9 @@ Metadata:
 When `.spec.type` is set to `giteapullrequestcomment`, the controller will post
 a comment on the Gitea pull request specified in the event metadata.
 
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
+
 This provider is designed to work with Flux objects that contain the
 `event.toolkit.fluxcd.io/change_request` annotation, which specifies
 the pull request number. Flux objects without this annotation are
@@ -2469,6 +2532,9 @@ The provider posts comments in the same format as the [GitHub Pull Request Comme
 
 When `.spec.type` is set to `gitlabmergerequestcomment`, the controller will post
 a comment on the GitLab merge request specified in the event metadata.
+
+This Provider type supports the configuration of a [proxy URL](#https-proxy)
+and/or [certificate secret reference](#certificate-secret-reference).
 
 This provider is designed to work with Flux objects that contain the
 `event.toolkit.fluxcd.io/change_request` annotation, which specifies

@@ -80,7 +80,7 @@ type bbServerBuildStatusSetRequest struct {
 }
 
 // NewBitbucketServer creates and returns a new BitbucketServer notifier.
-func NewBitbucketServer(commitStatus string, addr string, token string, tlsConfig *tls.Config, username string, password string) (*BitbucketServer, error) {
+func NewBitbucketServer(commitStatus string, addr string, proxyURL *url.URL, token string, tlsConfig *tls.Config, username string, password string) (*BitbucketServer, error) {
 	url, err := parseBitbucketServerGitAddress(addr)
 	if err != nil {
 		return nil, err
@@ -92,10 +92,8 @@ func NewBitbucketServer(commitStatus string, addr string, token string, tlsConfi
 	}
 
 	httpClient := retryablehttp.NewClient()
-	if tlsConfig != nil {
-		httpClient.HTTPClient.Transport = &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
+	if proxyURL != nil || tlsConfig != nil {
+		httpClient.HTTPClient.Transport = newTransport(proxyURL, tlsConfig)
 	}
 
 	httpClient.HTTPClient.Timeout = 15 * time.Second

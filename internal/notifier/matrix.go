@@ -21,6 +21,7 @@ type Matrix struct {
 	URL       string
 	RoomId    string
 	TLSConfig *tls.Config
+	ProxyURL  *url.URL
 }
 
 type MatrixPayload struct {
@@ -28,7 +29,7 @@ type MatrixPayload struct {
 	MsgType string `json:"msgtype"`
 }
 
-func NewMatrix(serverURL, token, roomId string, tlsConfig *tls.Config) (*Matrix, error) {
+func NewMatrix(serverURL string, proxyURL *url.URL, token, roomId string, tlsConfig *tls.Config) (*Matrix, error) {
 	_, err := url.ParseRequestURI(serverURL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Matrix homeserver URL %s: '%w'", serverURL, err)
@@ -39,6 +40,7 @@ func NewMatrix(serverURL, token, roomId string, tlsConfig *tls.Config) (*Matrix,
 		RoomId:    roomId,
 		Token:     token,
 		TLSConfig: tlsConfig,
+		ProxyURL:  proxyURL,
 	}, nil
 }
 
@@ -76,6 +78,9 @@ func (m *Matrix) Post(ctx context.Context, event eventv1.Event) error {
 	}
 	if m.TLSConfig != nil {
 		opts = append(opts, withTLSConfig(m.TLSConfig))
+	}
+	if m.ProxyURL != nil {
+		opts = append(opts, withProxy(m.ProxyURL))
 	}
 
 	if err := postMessage(ctx, fullURL, payload, opts...); err != nil {

@@ -293,7 +293,7 @@ func slackNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func discordNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewDiscord(opts.URL, opts.ProxyURL, opts.Username, opts.Channel)
+	return NewDiscord(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Username, opts.Channel)
 }
 
 func rocketNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -305,7 +305,7 @@ func msteamsNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func googleChatNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGoogleChat(opts.URL, opts.ProxyURL)
+	return NewGoogleChat(opts.URL, opts.ProxyURL, opts.TLSConfig)
 }
 
 func googlePubSubNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -317,7 +317,7 @@ func webexNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func sentryNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewSentry(opts.TLSConfig, opts.URL, opts.Channel)
+	return NewSentry(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Channel)
 }
 
 func azureEventHubNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -325,15 +325,15 @@ func azureEventHubNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func telegramNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewTelegram(opts.ProxyURL, opts.Channel, opts.Token)
+	return NewTelegram(opts.ProxyURL, opts.TLSConfig, opts.Channel, opts.Token)
 }
 
 func larkNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewLark(opts.URL)
+	return NewLark(opts.URL, opts.ProxyURL, opts.TLSConfig)
 }
 
 func matrixNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewMatrix(opts.URL, opts.Token, opts.Channel, opts.TLSConfig)
+	return NewMatrix(opts.URL, opts.ProxyURL, opts.Token, opts.Channel, opts.TLSConfig)
 }
 
 func opsgenieNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -376,14 +376,14 @@ func gitLabNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitLab(opts.CommitStatus, opts.URL, opts.Token, opts.TLSConfig)
+	return NewGitLab(opts.CommitStatus, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig)
 }
 
 func gitLabMergeRequestCommentNotifierFunc(opts notifierOptions) (Interface, error) {
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitLabMergeRequestComment(opts.ProviderUID, opts.URL, opts.Token, opts.TLSConfig)
+	return NewGitLabMergeRequestComment(opts.ProviderUID, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig)
 }
 
 func giteaNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -395,11 +395,11 @@ func giteaPullRequestCommentNotifierFunc(opts notifierOptions) (Interface, error
 }
 
 func bitbucketServerNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewBitbucketServer(opts.CommitStatus, opts.URL, opts.Token, opts.TLSConfig, opts.Username, opts.Password)
+	return NewBitbucketServer(opts.CommitStatus, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig, opts.Username, opts.Password)
 }
 
 func bitbucketNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewBitbucket(opts.CommitStatus, opts.URL, opts.Token, opts.TLSConfig)
+	return NewBitbucket(opts.CommitStatus, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig)
 }
 
 func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {

@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/ktrysmt/go-bitbucket"
@@ -40,7 +41,7 @@ type Bitbucket struct {
 }
 
 // NewBitbucket creates and returns a new Bitbucket notifier.
-func NewBitbucket(commitStatus string, addr string, token string, tlsConfig *tls.Config) (*Bitbucket, error) {
+func NewBitbucket(commitStatus string, addr string, proxyURL *url.URL, token string, tlsConfig *tls.Config) (*Bitbucket, error) {
 	if len(token) == 0 {
 		return nil, errors.New("bitbucket token cannot be empty")
 	}
@@ -73,12 +74,8 @@ func NewBitbucket(commitStatus string, addr string, token string, tlsConfig *tls
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bitbucket client: %v", err)
 	}
-	if tlsConfig != nil {
-		tr := &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
-		hc := &http.Client{Transport: tr}
-		client.HttpClient = hc
+	if proxyURL != nil || tlsConfig != nil {
+		client.HttpClient = &http.Client{Transport: newTransport(proxyURL, tlsConfig)}
 	}
 
 	return &Bitbucket{

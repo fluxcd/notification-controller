@@ -20,7 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"net/http"
+	"net/url"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/getsentry/sentry-go"
@@ -32,21 +32,15 @@ type Sentry struct {
 }
 
 // NewSentry creates a Sentry client from the provided Data Source Name (DSN)
-func NewSentry(tlsConfig *tls.Config, dsn string, environment string) (*Sentry, error) {
+func NewSentry(dsn string, proxyURL *url.URL, tlsConfig *tls.Config, environment string) (*Sentry, error) {
 	if dsn == "" {
 		return nil, fmt.Errorf("DSN cannot be empty")
 	}
 
-	tr := &http.Transport{}
-	if tlsConfig != nil {
-		tr = &http.Transport{
-			TLSClientConfig: tlsConfig,
-		}
-	}
 	client, err := sentry.NewClient(sentry.ClientOptions{
 		Dsn:              dsn,
 		Environment:      environment,
-		HTTPTransport:    tr,
+		HTTPTransport:    newTransport(proxyURL, tlsConfig),
 		TracesSampleRate: 1,
 	})
 	if err != nil {

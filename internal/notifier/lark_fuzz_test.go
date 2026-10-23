@@ -25,7 +25,7 @@ func Fuzz_Lark(f *testing.F) {
 		}))
 		defer ts.Close()
 
-		lark, err := NewLark(fmt.Sprintf("%s/%s", ts.URL, urlSuffix))
+		lark, err := NewLark(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, nil)
 		if err != nil {
 			return
 		}

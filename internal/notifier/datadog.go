@@ -56,18 +56,8 @@ func NewDataDog(address string, proxyUrl *url.URL, tlsConfig *tls.Config, token 
 	conf.Scheme = baseUrl.Scheme
 
 	if proxyUrl != nil || tlsConfig != nil {
-		transport := &http.Transport{}
-
-		if proxyUrl != nil {
-			transport.Proxy = http.ProxyURL(proxyUrl)
-		}
-
-		if tlsConfig != nil {
-			transport.TLSClientConfig = tlsConfig
-		}
-
 		conf.HTTPClient = &http.Client{
-			Transport: transport,
+			Transport: newTransport(proxyUrl, tlsConfig),
 		}
 	}
 

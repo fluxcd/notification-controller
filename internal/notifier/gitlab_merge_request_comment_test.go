@@ -42,7 +42,7 @@ func TestNewGitLabMergeRequestCommentBasic(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(handler))
 	t.Cleanup(srv.Close)
 
-	gl, err := NewGitLabMergeRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar", "foobar", nil)
+	gl, err := NewGitLabMergeRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar", nil, "foobar", nil)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(gl.ProjectID).To(Equal("foo/bar"))
 	g.Expect(gl.ProviderUID).To(Equal("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a"))
@@ -66,19 +66,19 @@ func TestNewGitLabMergeRequestCommentSubgroups(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(handler))
 	t.Cleanup(srv.Close)
 
-	gl, err := NewGitLabMergeRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar/baz", "foobar", nil)
+	gl, err := NewGitLabMergeRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar/baz", nil, "foobar", nil)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(gl.ProjectID).To(Equal("foo/bar/baz"))
 }
 
 func TestNewGitLabMergeRequestCommentEmptyToken(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitLabMergeRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://gitlab.com/foo/bar", "", nil)
+	_, err := NewGitLabMergeRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://gitlab.com/foo/bar", nil, "", nil)
 	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitLabMergeRequestCommentEmptyProviderUID(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitLabMergeRequestComment("", "https://gitlab.com/foo/bar", "foobar", nil)
+	_, err := NewGitLabMergeRequestComment("", "https://gitlab.com/foo/bar", nil, "foobar", nil)
 	g.Expect(err).To(HaveOccurred())
 }
