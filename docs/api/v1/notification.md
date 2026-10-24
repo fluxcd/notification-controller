@@ -337,14 +337,14 @@ string
 <td>
 <em>(Optional)</em>
 <p>ServiceAccountName is the name of the Kubernetes ServiceAccount used to
-authenticate with cloud provider services through workload identity.
+authenticate with cloud provider services through object identity.
 This enables multi-tenant authentication without storing static credentials.</p>
 <p>Supported provider types: azureeventhub, azuredevops, googlepubsub</p>
 <p>When specified, the controller will:
 1. Create an OIDC token for the specified ServiceAccount
 2. Exchange it for cloud provider credentials via STS
 3. Use the obtained credentials for API authentication</p>
-<p>When unspecified, controller-level authentication is used (single-tenant).</p>
+<p>When unspecified, the controller&rsquo;s workload identity is used (single-tenant).</p>
 <p>An error is thrown if static credentials are also defined in SecretRef.</p>
 </td>
 </tr>
@@ -1100,14 +1100,14 @@ string
 <td>
 <em>(Optional)</em>
 <p>ServiceAccountName is the name of the Kubernetes ServiceAccount used to
-authenticate with cloud provider services through workload identity.
+authenticate with cloud provider services through object identity.
 This enables multi-tenant authentication without storing static credentials.</p>
 <p>Supported provider types: azureeventhub, azuredevops, googlepubsub</p>
 <p>When specified, the controller will:
 1. Create an OIDC token for the specified ServiceAccount
 2. Exchange it for cloud provider credentials via STS
 3. Use the obtained credentials for API authentication</p>
-<p>When unspecified, controller-level authentication is used (single-tenant).</p>
+<p>When unspecified, the controller&rsquo;s workload identity is used (single-tenant).</p>
 <p>An error is thrown if static credentials are also defined in SecretRef.</p>
 </td>
 </tr>

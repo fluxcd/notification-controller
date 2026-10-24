@@ -108,7 +108,7 @@ type ProviderSpec struct {
 	SecretRef *meta.LocalObjectReference `json:"secretRef,omitempty"`
 
 	// ServiceAccountName is the name of the Kubernetes ServiceAccount used to
-	// authenticate with cloud provider services through workload identity.
+	// authenticate with cloud provider services through object identity.
 	// This enables multi-tenant authentication without storing static credentials.
 	//
 	// Supported provider types: azureeventhub, azuredevops, googlepubsub
@@ -118,7 +118,7 @@ type ProviderSpec struct {
 	// 2. Exchange it for cloud provider credentials via STS
 	// 3. Use the obtained credentials for API authentication
 	//
-	// When unspecified, controller-level authentication is used (single-tenant).
+	// When unspecified, the controller's workload identity is used (single-tenant).
 	//
 	// An error is thrown if static credentials are also defined in SecretRef.
 	//

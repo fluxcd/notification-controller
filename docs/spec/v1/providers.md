@@ -826,7 +826,7 @@ authentication.
 apiVersion: notification.toolkit.fluxcd.io/v1
 kind: Provider
 metadata:
-  name: googlepubsub-controller-level
+  name: googlepubsub-workload-identity
   namespace: flux-system
 spec:
   type: googlepubsub
@@ -1609,14 +1609,12 @@ stringData:
 ### Service account reference
 
 `.spec.serviceAccountName` is an optional field to specify a ServiceAccount in
-the same namespace as the Provider, used for object-level workload identity with
-supported cloud provider services. When unset, the controller ServiceAccount is
-used.
+the same namespace as the Provider, used for object identity with supported
+cloud provider services. When unset, the controller ServiceAccount is used.
 
-For a complete guide to the ServiceAccount annotations used for object-level
-workload identity, including the `spiffe` credential provider, see the
-[ServiceAccount annotations](/flux/integrations/serviceaccount-annotations)
-docs.
+For a complete guide to the ServiceAccount annotations used for object
+identity, including the `spiffe` credential provider, see the
+[Object Identity](/flux/integrations/object-identity/) docs.
 
 ### Certificate secret reference
 
@@ -2058,7 +2056,7 @@ spec:
   type: azureeventhub
   address: <event-hub-name>
   channel: <event-hub-namespace>
-  serviceAccountName: <sa-name> # if object-level workload identity is enabled.
+  serviceAccountName: <sa-name> # if object identity is used.
 ```
 
 #### SAS based auth
@@ -2321,7 +2319,7 @@ authentication.
 apiVersion: notification.toolkit.fluxcd.io/v1
 kind: Provider
 metadata:
-  name: azuredevops-controller-level
+  name: azuredevops-workload-identity
   namespace: flux-system
 spec:
   type: azuredevops
