@@ -2,6 +2,129 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.10.0
+
+**Release date:** 2026-10-24
+
+This minor release promotes the Event, Alert and Provider APIs to v1, graduates
+object-level workload identity, now renamed to object identity, and introduces
+SPIFFE mTLS between the controllers.
+
+### v1 APIs
+
+The `Event`, `Alert` and `Provider` APIs are now available in
+`notification.toolkit.fluxcd.io/v1`; `v1beta3` is still served but deprecated.
+
+⚠️ **Breaking change:** when a `v1beta3` `Alert` or `Provider` is converted to
+`v1`, the deprecated `Alert.spec.summary` and `Provider.spec.interval` fields,
+the static JWT token for Azure Event Hub, and TLS or proxy configuration in
+`Provider.spec.secretRef` are dropped. Use `eventMetadata.summary`,
+`proxySecretRef` and `certSecretRef` instead. See the
+[Flux 2.10 upgrade procedure](https://github.com/fluxcd/flux2/discussions/5572).
+
+### Object Identity
+
+Object-level workload identity is now generally available and renamed to object
+identity. Workload identity refers exclusively to identities assigned to Flux
+controllers, while object identity refers to identities assigned to Flux
+objects. The `ObjectLevelWorkloadIdentity` feature gate is retired and the
+feature is always enabled.
+
+⚠️ **Breaking change:** the default Flux RBAC no longer grants the `create`
+verb on the `serviceaccounts/token` resource. If your installation relies on
+the default RBAC, bind a ClusterRole with this permission to the controller
+ServiceAccount before upgrading. See
+[fluxcd/flux2#6139](https://github.com/fluxcd/flux2/pull/6139) for the required
+ClusterRole and ClusterRoleBinding, and the
+[object identity documentation](https://fluxcd.io/flux/integrations/object-identity/)
+for the API reference.
+
+Two credential providers can now supply the credential: `kubernetes`, which
+uses the Kubernetes TokenRequest API and was already available, and `spiffe`,
+which fetches a JWT-SVID from the SPIFFE Broker API. The provider is configured
+on the ServiceAccount with `credential.auth.fluxcd.io/provider`, independently
+of the service provider in `.spec.provider`.
+
+### Inter-Controller mTLS
+
+This release introduces SPIFFE mTLS for inter-controller communication. Flux
+controllers authenticate each other with X.509-SVIDs, and each traffic type is
+enabled independently by configuring the SPIFFE Workload API socket and the
+SPIFFE IDs that the controller authorizes. See the
+[inter-controller mTLS documentation](https://fluxcd.io/flux/installation/configuration/intercontroller-mtls/)
+for the controller flags and an example configuration.
+
+### Alert
+
+The Opsgenie provider sets a deterministic `alias` so repeated events for the
+same object deduplicate, and event metadata fields are sorted in every
+notification.
+
+### Provider
+
+New provider types: `zoom` for Zoom Team Chat, `incident.io` for
+[incident.io](https://incident.io), and `mastodon` for posting statuses.
+
+The Azure Event Hub, Azure DevOps and Google Pub/Sub providers can use object
+identity with either the `kubernetes` or `spiffe` credential provider,
+exchanging the credential for cloud provider credentials.
+
+### General updates
+
+The controller is built with Kubernetes 1.37 and Go 1.27.
+
+Fixes:
+- Sort event metadata in notifications
+  [#1369](https://github.com/fluxcd/notification-controller/pull/1369)
+- Use the commit status expression as the Bitbucket name
+  [#1357](https://github.com/fluxcd/notification-controller/pull/1357)
+- Use Bitbucket Cloud API tokens for commit statuses
+  [#1414](https://github.com/fluxcd/notification-controller/pull/1414)
+- Clone the base transport before attaching the TLS config
+  [#1400](https://github.com/fluxcd/notification-controller/pull/1400)
+- Send OTEL credentials to the collector instead of the proxy
+  [#1412](https://github.com/fluxcd/notification-controller/pull/1412)
+- Close idle Gitea connections
+  [#1390](https://github.com/fluxcd/notification-controller/pull/1390)
+- Redact Secret-sourced addresses and limit response bodies
+  [#1415](https://github.com/fluxcd/notification-controller/pull/1415)
+
+Improvements:
+- Promote the Alert and Provider APIs to `v1`
+  [#1407](https://github.com/fluxcd/notification-controller/pull/1407)
+- Remove deprecated fields from the `v1` APIs
+  [#1190](https://github.com/fluxcd/notification-controller/pull/1190)
+  [#1408](https://github.com/fluxcd/notification-controller/pull/1408)
+  [#1409](https://github.com/fluxcd/notification-controller/pull/1409)
+  [#1410](https://github.com/fluxcd/notification-controller/pull/1410)
+  [#1411](https://github.com/fluxcd/notification-controller/pull/1411)
+- Add the Zoom alert provider
+  [#1349](https://github.com/fluxcd/notification-controller/pull/1349)
+- Add the incident.io alert provider
+  [#1353](https://github.com/fluxcd/notification-controller/pull/1353)
+  [#1360](https://github.com/fluxcd/notification-controller/pull/1360)
+- Add the Mastodon alert provider
+  [#1372](https://github.com/fluxcd/notification-controller/pull/1372)
+- Add an Opsgenie alias for alert deduplication
+  [#1292](https://github.com/fluxcd/notification-controller/pull/1292)
+- Honor proxy and TLS settings in all notifiers
+  [#1394](https://github.com/fluxcd/notification-controller/pull/1394)
+  [#1413](https://github.com/fluxcd/notification-controller/pull/1413)
+- Improve notifier error reporting
+  [#1416](https://github.com/fluxcd/notification-controller/pull/1416)
+- Add SPIFFE mTLS for the event and receiver servers
+  [#1402](https://github.com/fluxcd/notification-controller/pull/1402)
+- Add the `spiffe` credential provider via the SPIFFE Broker API
+  [#1405](https://github.com/fluxcd/notification-controller/pull/1405)
+- Retire the `ObjectLevelWorkloadIdentity` feature gate
+  [#1405](https://github.com/fluxcd/notification-controller/pull/1405)
+- Update to Kubernetes 1.37 and Go 1.27
+  [#1384](https://github.com/fluxcd/notification-controller/pull/1384)
+  [#1397](https://github.com/fluxcd/notification-controller/pull/1397)
+- Various dependency updates
+  [#1342](https://github.com/fluxcd/notification-controller/pull/1342)
+  [#1417](https://github.com/fluxcd/notification-controller/pull/1417)
+
 ## 1.9.4
 
 **Release date:** 2026-08-31
