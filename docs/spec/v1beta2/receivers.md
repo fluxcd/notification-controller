@@ -275,7 +275,7 @@ events.
 #### Gitea
 
 For Gitea, the `.spec.type` field can be set to `github` as it produces [GitHub
-type](#github) compatible [webhook event payloads](https://docs.gitea.io/en-us/webhooks/).
+type](#github) compatible [webhook event payloads](https://docs.gitea.com/usage/repository/webhooks/).
 
 **Note:** While the payloads are compatible with the GitHub type, the number of
 available events may be limited and/or different from the ones available in
