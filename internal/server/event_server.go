@@ -37,7 +37,7 @@ import (
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/cache"
 	"github.com/fluxcd/pkg/runtime/events"
-	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
+	fluxbroker "github.com/fluxcd/pkg/spiffe/brokerapi"
 
 	"github.com/fluxcd/notification-controller/internal/notifier"
 )
