@@ -27,7 +27,7 @@ import (
 	"github.com/fluxcd/pkg/auth"
 	"github.com/fluxcd/pkg/auth/azure"
 	"github.com/fluxcd/pkg/cache"
-	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
+	fluxbroker "github.com/fluxcd/pkg/spiffe/brokerapi"
 )
 
 // newManagedIdentityToken is used to attempt credential-free authentication.

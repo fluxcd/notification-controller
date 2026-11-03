@@ -27,7 +27,7 @@ import (
 	cryptov1 "github.com/fluxcd/pkg/apis/crypto/v1"
 	"github.com/fluxcd/pkg/auth"
 	"github.com/fluxcd/pkg/cache"
-	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
+	fluxbroker "github.com/fluxcd/pkg/spiffe/brokerapi"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
@@ -87,7 +87,7 @@ func newAuthOptions(ctx context.Context, serviceProvider, serviceAccountName,
 			auth.WithCacheOperation(OperationPost))
 	}
 	if spiffeBroker != nil {
-		opts = append(opts, auth.WithSPIFFEBroker(spiffeBroker))
+		opts = append(opts, auth.WithSPIFFEBrokerAPI(spiffeBroker))
 	}
 	return opts, nil
 }
