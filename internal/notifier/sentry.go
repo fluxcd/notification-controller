@@ -44,7 +44,7 @@ func NewSentry(dsn string, proxyURL *url.URL, tlsConfig *tls.Config, environment
 		TracesSampleRate: 1,
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create Sentry client: %w", err)
 	}
 
 	return &Sentry{
