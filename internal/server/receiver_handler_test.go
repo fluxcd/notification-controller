@@ -1115,7 +1115,7 @@ func Test_handlePayload(t *testing.T) {
 						"repo_name":    "repo1",
 						"tag":          "latest",
 						"full_name":    "prj/repo1",
-						"trigger_time": 158322233213,
+						"trigger_time": int64(158322233213),
 						"image_id":     "9e2c9d5f44efbb6ee83aecd17a120c513047d289d142ec5738c9f02f9b24ad07",
 						"project_type": "Private",
 					},
