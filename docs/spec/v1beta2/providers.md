@@ -286,7 +286,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 When `.spec.type` is set to `slack`, the controller will send a message for an
 [Event](events.md#event-structure) to the provided Slack API [Address](#address). 
 
-The Event will be formatted into a Slack message using an [Attachment](https://api.slack.com/reference/messaging/attachments),
+The Event will be formatted into a Slack message using an [Attachment](https://docs.slack.dev/legacy/legacy-messaging/legacy-secondary-message-attachments/),
 with the metadata attached as fields, and the involved object as author.
 The severity of the Event is used to set the color of the attachment.
 
@@ -1484,7 +1484,7 @@ kubectl create secret generic gitlab-token --from-literal=token=<GITLAB-TOKEN>
 #### Gitea
 
 When `.spec.type` is set to `gitea`, the referenced secret must contain a key called `token` with the value set to a
-[Gitea token](https://docs.gitea.io/en-us/api-usage/#generating-and-listing-api-tokens).
+[Gitea token](https://docs.gitea.com/development/api-usage/#generating-and-listing-api-tokens).
 
 The token must have at least the `write:repository` permission for the provider to 
 update the commit status for the Gitea repository specified in `.spec.address`.
