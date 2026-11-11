@@ -32,7 +32,7 @@ import (
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/auth/azure"
 	"github.com/fluxcd/pkg/cache"
-	fluxbroker "github.com/fluxcd/pkg/spiffe/broker"
+	fluxbroker "github.com/fluxcd/pkg/spiffe/brokerapi"
 )
 
 // AzureEventHub holds the eventhub client
