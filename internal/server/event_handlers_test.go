@@ -1041,6 +1041,39 @@ func TestCreateNotifierBitbucketCloudTokenFromSecret(t *testing.T) {
 	g.Expect(authHeaders).To(ConsistOf("Bearer "+secretToken, "Bearer "+secretToken))
 }
 
+func TestPrepareNotifierChangeRequestComment(t *testing.T) {
+	for _, fetchPages := range []bool{false, true} {
+		t.Run(fmt.Sprint(fetchPages), func(t *testing.T) {
+			g := NewWithT(t)
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				g.Expect(r.URL.Path).To(Equal("/api/v4/user"))
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"username":"flux"}`))
+			}))
+			t.Cleanup(srv.Close)
+			secret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "gitlab-token"},
+				Data:       map[string][]byte{"token": []byte("token")},
+			}
+			provider := &apiv1.Provider{
+				ObjectMeta: metav1.ObjectMeta{UID: "provider"},
+				Spec: apiv1.ProviderSpec{
+					Type:                 apiv1.GitLabMergeRequestCommentProvider,
+					Address:              srv.URL + "/foo/bar",
+					SecretRef:            &meta.LocalObjectReference{Name: secret.Name},
+					ChangeRequestComment: &apiv1.ChangeRequestComment{FetchPages: fetchPages},
+				},
+			}
+			eventServer := EventServer{kubeClient: fakeclient.NewClientBuilder().WithObjects(secret).Build()}
+			params, err := eventServer.prepareNotifier(context.Background(), provider, "")
+			g.Expect(err).NotTo(HaveOccurred())
+			n, err := params.createNotifier(context.Background())
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(n.(*notifier.GitLabMergeRequestComment).FetchPages).To(Equal(fetchPages))
+		})
+	}
+}
+
 func TestCreateCommitStatus(t *testing.T) {
 	tests := []struct {
 		name             string

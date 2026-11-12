@@ -96,6 +96,7 @@ type notifierOptions struct {
 	Password              string
 	CommitStatus          string
 	ProviderUID           string
+	ChangeRequestComment  *apiv1.ChangeRequestComment
 	ProviderName          string
 	ProviderNamespace     string
 	SecretData            map[string][]byte
@@ -204,6 +205,13 @@ func WithProviderName(name string) Option {
 func WithProviderNamespace(namespace string) Option {
 	return func(o *notifierOptions) {
 		o.ProviderNamespace = namespace
+	}
+}
+
+// WithChangeRequestComment sets the change request comment configuration.
+func WithChangeRequestComment(config *apiv1.ChangeRequestComment) Option {
+	return func(opts *notifierOptions) {
+		opts.ChangeRequestComment = config
 	}
 }
 
@@ -392,7 +400,11 @@ func gitLabMergeRequestCommentNotifierFunc(opts notifierOptions) (Interface, err
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	return NewGitLabMergeRequestComment(opts.ProviderUID, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig)
+	fetchPages := false
+	if opts.ChangeRequestComment != nil {
+		fetchPages = opts.ChangeRequestComment.FetchPages
+	}
+	return NewGitLabMergeRequestComment(opts.ProviderUID, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig, fetchPages)
 }
 
 func giteaNotifierFunc(opts notifierOptions) (Interface, error) {

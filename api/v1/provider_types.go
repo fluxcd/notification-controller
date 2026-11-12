@@ -64,6 +64,7 @@ const (
 
 // ProviderSpec defines the desired state of the Provider.
 // +kubebuilder:validation:XValidation:rule="self.type == 'github' || self.type == 'gitlab' || self.type == 'gitea' || self.type == 'bitbucketserver' || self.type == 'bitbucket' || self.type == 'azuredevops' || !has(self.commitStatusExpr)", message="spec.commitStatusExpr is only supported for the 'github', 'gitlab', 'gitea', 'bitbucketserver', 'bitbucket', 'azuredevops' provider types"
+// +kubebuilder:validation:XValidation:rule="self.type == 'gitlabmergerequestcomment' || !has(self.changeRequestComment)", message="spec.changeRequestComment is only supported for the 'gitlabmergerequestcomment' provider type"
 type ProviderSpec struct {
 	// Type specifies which Provider implementation to use.
 	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;giteapullrequestcomment;bitbucketserver;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;githubpullrequestcomment;gitlabmergerequestcomment;pagerduty;datadog;nats;zulip;otel;zoom;incident.io;mastodon
@@ -150,6 +151,18 @@ type ProviderSpec struct {
 	// and alert.
 	// +optional
 	CommitStatusExpr string `json:"commitStatusExpr,omitempty"`
+
+	// ChangeRequestComment configures GitLab merge request comment notifications.
+	// +optional
+	ChangeRequestComment *ChangeRequestComment `json:"changeRequestComment,omitempty"`
+}
+
+// ChangeRequestComment configures how existing change request comments are found.
+type ChangeRequestComment struct {
+	// FetchPages enables fetching additional pages when the existing comment is
+	// not found on the first page. Defaults to false to limit API requests.
+	// +optional
+	FetchPages bool `json:"fetchPages,omitempty"`
 }
 
 // +genclient

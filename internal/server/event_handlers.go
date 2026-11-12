@@ -526,6 +526,7 @@ func (s *EventServer) prepareNotifier(ctx context.Context, provider *apiv1.Provi
 		notifier.WithTimeout(params.timeout),
 		notifier.WithTokenClient(s.kubeClient),
 		notifier.WithProviderUID(string(provider.UID)),
+		notifier.WithChangeRequestComment(provider.Spec.ChangeRequestComment),
 		notifier.WithProviderName(provider.Name),
 		notifier.WithProviderNamespace(provider.Namespace),
 	}

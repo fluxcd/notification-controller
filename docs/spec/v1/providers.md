@@ -2548,8 +2548,23 @@ This provider is designed to work with Flux objects that contain the
 the merge request IID. Flux objects without this annotation are
 ignored.
 
-Each Flux object will have at most one status comment per provider on the merge request,
-which is updated whenever a new event is received.
+The provider searches the first 100 comments for an existing status comment
+from the authenticated user for the Flux object and provider. If it finds one,
+it updates that comment; otherwise, it creates a new comment.
+
+To search additional pages, set `.spec.changeRequestComment.fetchPages` to `true`:
+
+```yaml
+spec:
+  type: gitlabmergerequestcomment
+  changeRequestComment:
+    fetchPages: true
+```
+
+This setting is opt-in and defaults to `false`. Fetching stops when the comment
+is found or no more pages remain. Each additional page requires another
+GitLab API request, within the provider's [timeout](#timeout). If listing a page
+fails, the notification fails without creating a new comment.
 
 ##### Authentication
 

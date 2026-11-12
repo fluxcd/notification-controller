@@ -33,12 +33,13 @@ import (
 
 type GitLabMergeRequestComment struct {
 	changeRequestComment
-	ProjectID string
-	Username  string
-	Client    *gitlab.Client
+	ProjectID  string
+	Username   string
+	Client     *gitlab.Client
+	FetchPages bool
 }
 
-func NewGitLabMergeRequestComment(providerUID string, addr string, proxyURL *url.URL, token string, tlsConfig *tls.Config) (*GitLabMergeRequestComment, error) {
+func NewGitLabMergeRequestComment(providerUID string, addr string, proxyURL *url.URL, token string, tlsConfig *tls.Config, fetchPages bool) (*GitLabMergeRequestComment, error) {
 	if providerUID == "" {
 		return nil, errors.New("provider UID cannot be empty")
 	}
@@ -74,9 +75,10 @@ func NewGitLabMergeRequestComment(providerUID string, addr string, proxyURL *url
 			ProviderUID:      providerUID,
 			CommentKeyPrefix: "flux-mr-comment-key",
 		},
-		ProjectID: id,
-		Username:  user.Username,
-		Client:    client,
+		ProjectID:  id,
+		Username:   user.Username,
+		Client:     client,
+		FetchPages: fetchPages,
 	}, nil
 }
 
@@ -90,29 +92,34 @@ func (g *GitLabMergeRequestComment) Post(ctx context.Context, event eventv1.Even
 		return err
 	}
 
-	// List the first 100 notes in the merge request.
-	// We fetch only a single page with 100 notes for performance reasons.
-	// Since the tendency is for the comment to be created as soon as the MR
-	// is opened, it is likely to be in this first page. 100 is the maximum value for per_page:
-	// https://docs.gitlab.com/api/rest/#pagination
+	// Fetch only the first page by default to limit API requests.
 	opts := &gitlab.ListMergeRequestNotesOptions{
 		Sort:        gitlab.Ptr("asc"),
 		OrderBy:     gitlab.Ptr("created_at"),
 		ListOptions: gitlab.ListOptions{PerPage: 100},
 	}
-	notes, _, err := g.Client.Notes.ListMergeRequestNotes(g.ProjectID, mrIID, opts, gitlab.WithContext(ctx))
-	if err != nil {
-		return fmt.Errorf("failed to list merge request notes: %w", err)
-	}
-
-	// Find note from the authenticated user matching the comment key
 	var note *gitlab.Note
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
-	for _, n := range notes {
-		if n.Author.Username == g.Username && strings.Contains(n.Body, commentKeyMarker) {
-			note = n
+	requestOpts := []gitlab.RequestOptionFunc{gitlab.WithContext(ctx)}
+	for {
+		notes, response, err := g.Client.Notes.ListMergeRequestNotes(g.ProjectID, mrIID, opts, requestOpts...)
+		if err != nil {
+			return fmt.Errorf("failed to list merge request notes: %w", err)
+		}
+		for _, n := range notes {
+			if n.Author.Username == g.Username && strings.Contains(n.Body, commentKeyMarker) {
+				note = n
+				break
+			}
+		}
+		if note != nil || !g.FetchPages {
 			break
 		}
+		next, ok := gitlab.WithNext(response)
+		if !ok {
+			break
+		}
+		requestOpts = []gitlab.RequestOptionFunc{gitlab.WithContext(ctx), next}
 	}
 
 	if note != nil {

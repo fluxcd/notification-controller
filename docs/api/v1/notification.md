@@ -397,6 +397,20 @@ bitbucket, azuredevops). Supported variables are: event, provider,
 and alert.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>changeRequestComment</code><br>
+<em>
+<a href="#notification.toolkit.fluxcd.io/v1.ChangeRequestComment">
+ChangeRequestComment
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ChangeRequestComment configures GitLab merge request comment notifications.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -714,6 +728,40 @@ bool
 <em>(Optional)</em>
 <p>Suspend tells the controller to suspend subsequent
 events handling for this Alert.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<h3 id="notification.toolkit.fluxcd.io/v1.ChangeRequestComment">ChangeRequestComment
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#notification.toolkit.fluxcd.io/v1.ProviderSpec">ProviderSpec</a>)
+</p>
+<p>ChangeRequestComment configures how existing change request comments are found.</p>
+<div class="md-typeset__scrollwrap">
+<div class="md-typeset__table">
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>fetchPages</code><br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>FetchPages enables fetching additional pages when the existing comment is
+not found on the first page. Defaults to false to limit API requests.</p>
 </td>
 </tr>
 </tbody>
@@ -1158,6 +1206,20 @@ that can be used to generate a custom commit status message for use
 with eligible Provider types (github, gitlab, gitea, bitbucketserver,
 bitbucket, azuredevops). Supported variables are: event, provider,
 and alert.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>changeRequestComment</code><br>
+<em>
+<a href="#notification.toolkit.fluxcd.io/v1.ChangeRequestComment">
+ChangeRequestComment
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ChangeRequestComment configures GitLab merge request comment notifications.</p>
 </td>
 </tr>
 </tbody>

@@ -129,11 +129,23 @@ func TestProviderReconciler_V1Beta3Interval(t *testing.T) {
 
 func TestProviderReconciler_APIServerValidation(t *testing.T) {
 	tests := []struct {
-		name             string
-		providerType     string
-		commitStatusExpr string
-		err              string
+		name                 string
+		providerType         string
+		commitStatusExpr     string
+		changeRequestComment *apiv1.ChangeRequestComment
+		err                  string
 	}{
+		{
+			name:                 "gitlab merge request comments can fetch pages",
+			providerType:         apiv1.GitLabMergeRequestCommentProvider,
+			changeRequestComment: &apiv1.ChangeRequestComment{FetchPages: true},
+		},
+		{
+			name:                 "other providers cannot configure change request comments",
+			providerType:         apiv1.SlackProvider,
+			changeRequestComment: &apiv1.ChangeRequestComment{FetchPages: true},
+			err:                  "spec.changeRequestComment is only supported for the 'gitlabmergerequestcomment' provider type",
+		},
 		{
 			name:             "github provider types can create providers with commitStatusExpr",
 			providerType:     "github",
@@ -195,8 +207,9 @@ func TestProviderReconciler_APIServerValidation(t *testing.T) {
 					Namespace:    "default",
 				},
 				Spec: apiv1.ProviderSpec{
-					Type:             tt.providerType,
-					CommitStatusExpr: tt.commitStatusExpr,
+					Type:                 tt.providerType,
+					CommitStatusExpr:     tt.commitStatusExpr,
+					ChangeRequestComment: tt.changeRequestComment,
 				},
 			}
 
