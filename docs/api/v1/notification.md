@@ -755,15 +755,15 @@ events handling for this Alert.</p>
 <tbody>
 <tr>
 <td>
-<code>fetchPages</code><br>
+<code>maxPages</code><br>
 <em>
-bool
+int
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>FetchPages enables fetching additional pages when the existing comment is
-not found on the first page. Defaults to false to limit API requests.</p>
+<p>MaxPages is the maximum number of comment pages to fetch when looking
+for an existing comment. Defaults to 1 to limit API requests.</p>
 </td>
 </tr>
 </tbody>

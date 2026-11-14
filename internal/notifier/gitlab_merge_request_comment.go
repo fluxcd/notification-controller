@@ -31,10 +31,10 @@ import (
 
 type GitLabMergeRequestComment struct {
 	changeRequestComment
-	ProjectID  string
-	Username   string
-	Client     *gitlab.Client
-	FetchPages bool
+	ProjectID string
+	Username  string
+	Client    *gitlab.Client
+	MaxPages  int
 }
 
 func NewGitLabMergeRequestComment(ctx context.Context, opts *notifierOptions) (Interface, error) {
@@ -77,10 +77,10 @@ func NewGitLabMergeRequestComment(ctx context.Context, opts *notifierOptions) (I
 			ProviderUID:      opts.ProviderUID,
 			CommentKeyPrefix: "flux-mr-comment-key",
 		},
-		ProjectID:  id,
-		Username:   user.Username,
-		Client:     client,
-		FetchPages: opts.ChangeRequestComment.ShouldFetchPages(),
+		ProjectID: id,
+		Username:  user.Username,
+		Client:    client,
+		MaxPages:  opts.ChangeRequestComment.GetMaxPages(),
 	}, nil
 }
 
@@ -103,7 +103,7 @@ func (g *GitLabMergeRequestComment) Post(ctx context.Context, event eventv1.Even
 	var note *gitlab.Note
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
 	requestOpts := []gitlab.RequestOptionFunc{gitlab.WithContext(ctx)}
-	for {
+	for pages := 0; pages < g.MaxPages; pages++ {
 		notes, response, err := g.Client.Notes.ListMergeRequestNotes(g.ProjectID, mrIID, opts, requestOpts...)
 		if err != nil {
 			return fmt.Errorf("failed to list merge request notes: %w", err)
@@ -114,7 +114,7 @@ func (g *GitLabMergeRequestComment) Post(ctx context.Context, event eventv1.Even
 				break
 			}
 		}
-		if note != nil || !g.FetchPages {
+		if note != nil || response == nil {
 			break
 		}
 		next, ok := gitlab.WithNext(response)

@@ -161,19 +161,20 @@ type ProviderSpec struct {
 
 // ChangeRequestComment configures how existing change request comments are found.
 type ChangeRequestComment struct {
-	// FetchPages enables fetching additional pages when the existing comment is
-	// not found on the first page. Defaults to false to limit API requests.
+	// MaxPages is the maximum number of comment pages to fetch when looking
+	// for an existing comment. Defaults to 1 to limit API requests.
+	// +kubebuilder:validation:Minimum=1
 	// +optional
-	FetchPages bool `json:"fetchPages,omitempty"`
+	MaxPages int `json:"maxPages,omitempty"`
 }
 
-// ShouldFetchPages returns true if additional pages should be fetched
-// when the existing comment is not found on the first page.
-func (c *ChangeRequestComment) ShouldFetchPages() bool {
-	if c == nil {
-		return false
+// GetMaxPages returns the maximum number of comment pages to fetch,
+// with a default of 1.
+func (c *ChangeRequestComment) GetMaxPages() int {
+	if c == nil || c.MaxPages < 1 {
+		return 1
 	}
-	return c.FetchPages
+	return c.MaxPages
 }
 
 // +genclient

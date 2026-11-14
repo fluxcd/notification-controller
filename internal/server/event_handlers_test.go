@@ -1048,15 +1048,15 @@ func TestPrepareNotifierChangeRequestComment(t *testing.T) {
 		userPath     string
 		userResponse string
 		gitea        bool
-		fetchPages   func(notifier.Interface) bool
+		maxPages     func(notifier.Interface) int
 	}{
 		{
 			name:         "github",
 			providerType: apiv1.GitHubPullRequestCommentProvider,
 			userPath:     "/api/v3/user",
 			userResponse: `{"login":"flux"}`,
-			fetchPages: func(n notifier.Interface) bool {
-				return n.(*notifier.GitHubPullRequestComment).FetchPages
+			maxPages: func(n notifier.Interface) int {
+				return n.(*notifier.GitHubPullRequestComment).MaxPages
 			},
 		},
 		{
@@ -1064,8 +1064,8 @@ func TestPrepareNotifierChangeRequestComment(t *testing.T) {
 			providerType: apiv1.GitLabMergeRequestCommentProvider,
 			userPath:     "/api/v4/user",
 			userResponse: `{"username":"flux"}`,
-			fetchPages: func(n notifier.Interface) bool {
-				return n.(*notifier.GitLabMergeRequestComment).FetchPages
+			maxPages: func(n notifier.Interface) int {
+				return n.(*notifier.GitLabMergeRequestComment).MaxPages
 			},
 		},
 		{
@@ -1074,14 +1074,14 @@ func TestPrepareNotifierChangeRequestComment(t *testing.T) {
 			userPath:     "/api/v1/user",
 			userResponse: `{"login":"flux"}`,
 			gitea:        true,
-			fetchPages: func(n notifier.Interface) bool {
-				return n.(*notifier.GiteaPullRequestComment).FetchPages
+			maxPages: func(n notifier.Interface) int {
+				return n.(*notifier.GiteaPullRequestComment).MaxPages
 			},
 		},
 	}
 	for _, providerInfo := range providers {
-		for _, fetchPages := range []bool{false, true} {
-			t.Run(providerInfo.name+"/"+fmt.Sprint(fetchPages), func(t *testing.T) {
+		for _, maxPages := range []int{0, 1, 5} {
+			t.Run(providerInfo.name+"/"+fmt.Sprint(maxPages), func(t *testing.T) {
 				g := NewWithT(t)
 				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Set("Content-Type", "application/json")
@@ -1106,7 +1106,7 @@ func TestPrepareNotifierChangeRequestComment(t *testing.T) {
 						Type:                 providerInfo.providerType,
 						Address:              srv.URL + "/foo/bar",
 						SecretRef:            &meta.LocalObjectReference{Name: secret.Name},
-						ChangeRequestComment: &apiv1.ChangeRequestComment{FetchPages: fetchPages},
+						ChangeRequestComment: &apiv1.ChangeRequestComment{MaxPages: maxPages},
 					},
 				}
 				eventServer := EventServer{kubeClient: fakeclient.NewClientBuilder().WithObjects(secret).Build()}
@@ -1114,7 +1114,11 @@ func TestPrepareNotifierChangeRequestComment(t *testing.T) {
 				g.Expect(err).NotTo(HaveOccurred())
 				n, err := params.createNotifier(context.Background())
 				g.Expect(err).NotTo(HaveOccurred())
-				g.Expect(providerInfo.fetchPages(n)).To(Equal(fetchPages))
+				wantMaxPages := maxPages
+				if wantMaxPages < 1 {
+					wantMaxPages = 1
+				}
+				g.Expect(providerInfo.maxPages(n)).To(Equal(wantMaxPages))
 			})
 		}
 	}

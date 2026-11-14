@@ -2406,22 +2406,24 @@ to provide status updates directly on the change request where developers are wo
 automatically filtered out and will not trigger any action from change request providers.
 
 By default, notification-controller makes the best effort to post a single status
-comment per Flux object in the change request by fetching only the first 100
-comments with a single API call, looking for an existing comment from the
-authenticated user and updating it if found.
+comment per Flux object per provider in the change request by fetching only one
+page of up to 100 comments with a single API call, looking for an existing
+comment from the authenticated user and updating it if found.
 
-For opting into an exhaustive search of all comments, set
-`.spec.changeRequestComment.fetchPages` to `true`:
+To search additional pages, set `.spec.changeRequestComment.maxPages` to a value
+greater than `1`:
 
 ```yaml
 spec:
   changeRequestComment:
-    fetchPages: true
+    maxPages: 5
 ```
 
-Fetching stops when the comment is found or no more pages remain. Each additional
-page requires another API request, within the provider's [timeout](#timeout). If
-listing a page fails, the notification fails without creating a new comment.
+The default is `1`. Each page fetches up to 100 comments, so `maxPages: 5` fetches
+at most 500 comments. Fetching stops when the comment is found, when no more pages
+remain, or when `maxPages` is reached. Each page requires another API request,
+within the provider's [timeout](#timeout). If listing a page fails, the
+notification fails without creating a new comment.
 
 #### GitHub Pull Request Comment
 

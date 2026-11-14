@@ -80,11 +80,12 @@ spec:
                   for the GitHub pull request, GitLab merge request and Gitea pull
                   request comment provider types.
                 properties:
-                  fetchPages:
+                  maxPages:
                     description: |-
-                      FetchPages enables fetching additional pages when the existing comment is
-                      not found on the first page. Defaults to false to limit API requests.
-                    type: boolean
+                      MaxPages is the maximum number of comment pages to fetch when looking
+                      for an existing comment. Defaults to 1 to limit API requests.
+                    minimum: 1
+                    type: integer
                 type: object
               channel:
                 description: Channel specifies the destination channel where events

@@ -30,12 +30,12 @@ import (
 
 type GitHubPullRequestComment struct {
 	changeRequestComment
-	Owner      string
-	Repo       string
-	UserLogin  string
-	AppSlug    string
-	FetchPages bool
-	Client     *github.Client
+	Owner     string
+	Repo      string
+	UserLogin string
+	AppSlug   string
+	MaxPages  int
+	Client    *github.Client
 }
 
 func NewGitHubPullRequestComment(ctx context.Context, opts *notifierOptions) (Interface, error) {
@@ -53,12 +53,12 @@ func NewGitHubPullRequestComment(ctx context.Context, opts *notifierOptions) (In
 			ProviderUID:      opts.ProviderUID,
 			CommentKeyPrefix: "flux-pr-comment-key",
 		},
-		Owner:      clientInfo.Owner,
-		Repo:       clientInfo.Repo,
-		UserLogin:  clientInfo.UserLogin,
-		AppSlug:    clientInfo.AppSlug,
-		FetchPages: opts.ChangeRequestComment.ShouldFetchPages(),
-		Client:     clientInfo.Client,
+		Owner:     clientInfo.Owner,
+		Repo:      clientInfo.Repo,
+		UserLogin: clientInfo.UserLogin,
+		AppSlug:   clientInfo.AppSlug,
+		MaxPages:  opts.ChangeRequestComment.GetMaxPages(),
+		Client:    clientInfo.Client,
 	}, nil
 }
 
@@ -86,7 +86,7 @@ func (g *GitHubPullRequestComment) Post(ctx context.Context, event eventv1.Event
 	var comment *github.IssueComment
 	userLogin := g.getUserLogin()
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
-	for {
+	for pages := 0; pages < g.MaxPages; pages++ {
 		comments, response, err := g.Client.Issues.ListComments(ctx, g.Owner, g.Repo, prNumber, opts)
 		if err != nil {
 			return fmt.Errorf("failed to list pull request comments: %w", err)
@@ -97,7 +97,7 @@ func (g *GitHubPullRequestComment) Post(ctx context.Context, event eventv1.Event
 				break
 			}
 		}
-		if comment != nil || !g.FetchPages {
+		if comment != nil {
 			break
 		}
 		if response == nil || response.NextPage == 0 || response.NextPage == opts.Page {

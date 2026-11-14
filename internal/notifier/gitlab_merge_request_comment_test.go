@@ -58,16 +58,16 @@ func TestNewGitLabMergeRequestCommentBasic(t *testing.T) {
 	g.Expect(gl.ProjectID).To(Equal("foo/bar"))
 	g.Expect(gl.ProviderUID).To(Equal("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a"))
 	g.Expect(gl.Username).To(Equal("test-user"))
-	g.Expect(gl.FetchPages).To(BeFalse())
+	g.Expect(gl.MaxPages).To(Equal(1))
 
 	n, err = NewGitLabMergeRequestComment(t.Context(), &notifierOptions{
 		ProviderUID:          "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 		URL:                  srv.URL + "/foo/bar",
 		Token:                "foobar",
-		ChangeRequestComment: &apiv1.ChangeRequestComment{FetchPages: true},
+		ChangeRequestComment: &apiv1.ChangeRequestComment{MaxPages: 5},
 	})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(n.(*GitLabMergeRequestComment).FetchPages).To(BeTrue())
+	g.Expect(n.(*GitLabMergeRequestComment).MaxPages).To(Equal(5))
 }
 
 func TestNewGitLabMergeRequestCommentSubgroups(t *testing.T) {
@@ -128,19 +128,21 @@ func TestGitLabMergeRequestCommentPagination(t *testing.T) {
 		writeError string
 	}{
 		{name: "default searches one page", matchPage: 2, wantPages: 1, wantMethod: http.MethodPost},
-		{name: "explicitly disabled", config: &apiv1.ChangeRequestComment{}, matchPage: 2, wantPages: 1, wantMethod: http.MethodPost},
-		{name: "follow link header", config: &apiv1.ChangeRequestComment{FetchPages: true}, linkOnly: true, matchPage: 2, wantPages: 2, wantMethod: http.MethodPut},
-		{name: "exhaust link pages", config: &apiv1.ChangeRequestComment{FetchPages: true}, linkOnly: true, wantPages: 3, wantMethod: http.MethodPost},
+		{name: "zero maxPages searches one page", config: &apiv1.ChangeRequestComment{}, matchPage: 2, wantPages: 1, wantMethod: http.MethodPost},
+		{name: "negative maxPages searches one page", config: &apiv1.ChangeRequestComment{MaxPages: -1}, matchPage: 2, wantPages: 1, wantMethod: http.MethodPost},
+		{name: "follow link header", config: &apiv1.ChangeRequestComment{MaxPages: 10}, linkOnly: true, matchPage: 2, wantPages: 2, wantMethod: http.MethodPut},
+		{name: "exhaust link pages", config: &apiv1.ChangeRequestComment{MaxPages: 10}, linkOnly: true, wantPages: 3, wantMethod: http.MethodPost},
 		{name: "ignore link by default", linkOnly: true, matchPage: 2, wantPages: 1, wantMethod: http.MethodPost},
-		{name: "find on second page", config: &apiv1.ChangeRequestComment{FetchPages: true}, matchPage: 2, wantPages: 2, wantMethod: http.MethodPut},
-		{name: "stop on first page", config: &apiv1.ChangeRequestComment{FetchPages: true}, matchPage: 1, wantPages: 1, wantMethod: http.MethodPut},
-		{name: "create after last page", config: &apiv1.ChangeRequestComment{FetchPages: true}, wantPages: 3, wantMethod: http.MethodPost},
-		{name: "first page error", config: &apiv1.ChangeRequestComment{FetchPages: true}, failPage: 1, wantPages: 1},
-		{name: "later page error", config: &apiv1.ChangeRequestComment{FetchPages: true}, failPage: 2, wantPages: 2},
-		{name: "empty final page", config: &apiv1.ChangeRequestComment{FetchPages: true}, emptyLast: true, wantPages: 3, wantMethod: http.MethodPost},
-		{name: "cancel on second page", config: &apiv1.ChangeRequestComment{FetchPages: true}, cancelPage: 2, wantPages: 2},
-		{name: "create error", config: &apiv1.ChangeRequestComment{FetchPages: true}, wantPages: 3, wantMethod: http.MethodPost, writeError: "failed to create merge request note"},
-		{name: "update error", config: &apiv1.ChangeRequestComment{FetchPages: true}, matchPage: 2, wantPages: 2, wantMethod: http.MethodPut, writeError: "failed to update merge request note"},
+		{name: "find on second page", config: &apiv1.ChangeRequestComment{MaxPages: 10}, matchPage: 2, wantPages: 2, wantMethod: http.MethodPut},
+		{name: "stop on first page", config: &apiv1.ChangeRequestComment{MaxPages: 10}, matchPage: 1, wantPages: 1, wantMethod: http.MethodPut},
+		{name: "stop at max pages", config: &apiv1.ChangeRequestComment{MaxPages: 2}, wantPages: 2, wantMethod: http.MethodPost},
+		{name: "create after last page", config: &apiv1.ChangeRequestComment{MaxPages: 10}, wantPages: 3, wantMethod: http.MethodPost},
+		{name: "first page error", config: &apiv1.ChangeRequestComment{MaxPages: 10}, failPage: 1, wantPages: 1},
+		{name: "later page error", config: &apiv1.ChangeRequestComment{MaxPages: 10}, failPage: 2, wantPages: 2},
+		{name: "empty final page", config: &apiv1.ChangeRequestComment{MaxPages: 10}, emptyLast: true, wantPages: 3, wantMethod: http.MethodPost},
+		{name: "cancel on second page", config: &apiv1.ChangeRequestComment{MaxPages: 10}, cancelPage: 2, wantPages: 2},
+		{name: "create error", config: &apiv1.ChangeRequestComment{MaxPages: 10}, wantPages: 3, wantMethod: http.MethodPost, writeError: "failed to create merge request note"},
+		{name: "update error", config: &apiv1.ChangeRequestComment{MaxPages: 10}, matchPage: 2, wantPages: 2, wantMethod: http.MethodPut, writeError: "failed to update merge request note"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)

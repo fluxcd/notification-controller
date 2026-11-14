@@ -30,11 +30,11 @@ import (
 
 type GiteaPullRequestComment struct {
 	changeRequestComment
-	Owner      string
-	Repo       string
-	Username   string
-	FetchPages bool
-	Client     *gitea.Client
+	Owner    string
+	Repo     string
+	Username string
+	MaxPages int
+	Client   *gitea.Client
 }
 
 func NewGiteaPullRequestComment(ctx context.Context, opts *notifierOptions) (Interface, error) {
@@ -52,11 +52,11 @@ func NewGiteaPullRequestComment(ctx context.Context, opts *notifierOptions) (Int
 			ProviderUID:      opts.ProviderUID,
 			CommentKeyPrefix: "flux-pr-comment-key",
 		},
-		Owner:      clientInfo.Owner,
-		Repo:       clientInfo.Repo,
-		Username:   clientInfo.Username,
-		FetchPages: opts.ChangeRequestComment.ShouldFetchPages(),
-		Client:     clientInfo.Client,
+		Owner:    clientInfo.Owner,
+		Repo:     clientInfo.Repo,
+		Username: clientInfo.Username,
+		MaxPages: opts.ChangeRequestComment.GetMaxPages(),
+		Client:   clientInfo.Client,
 	}, nil
 }
 
@@ -84,7 +84,7 @@ func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event)
 	// Find comment from the authenticated user matching the comment key
 	var existingComment *gitea.Comment
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
-	for {
+	for pages := 0; pages < g.MaxPages; pages++ {
 		comments, response, err := g.Client.ListIssueComments(g.Owner, g.Repo, int64(prNumber), opts)
 		if err != nil {
 			return fmt.Errorf("failed to list pull request comments: %w", err)
@@ -95,7 +95,7 @@ func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event)
 				break
 			}
 		}
-		if existingComment != nil || !g.FetchPages {
+		if existingComment != nil {
 			break
 		}
 		if response == nil || response.NextPage == 0 || response.NextPage == opts.Page {
