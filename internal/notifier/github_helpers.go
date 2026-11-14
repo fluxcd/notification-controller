@@ -36,113 +36,27 @@ import (
 
 // GitHubClient holds the GitHub client and repository information.
 type GitHubClient struct {
-	UserLogin  string
-	AppSlug    string
-	Owner      string
-	Repo       string
-	FetchPages bool
-	Client     *gogithub.Client
+	UserLogin string
+	AppSlug   string
+	Owner     string
+	Repo      string
+	Client    *gogithub.Client
 }
 
-// gitHubClientOptions holds the configuration for creating a GitHub client.
-type gitHubClientOptions struct {
-	address           string
-	token             string
-	tlsConfig         *tls.Config
-	proxyURL          *url.URL
-	providerName      string
-	providerNamespace string
-	fetchUserLogin    bool
-	fetchPages        bool
-	secretData        map[string][]byte
-	tokenCache        *cache.TokenCache
-}
-
-// GitHubClientOption is a functional option for configuring GitHub client creation.
-type GitHubClientOption func(*gitHubClientOptions)
-
-// WithGitHubAddress sets the GitHub repository address.
-func WithGitHubAddress(addr string) GitHubClientOption {
-	return func(o *gitHubClientOptions) {
-		o.address = addr
-	}
-}
-
-// WithGitHubToken sets the authentication token.
-func WithGitHubToken(token string) GitHubClientOption {
-	return func(o *gitHubClientOptions) {
-		o.token = token
-	}
-}
-
-// WithGitHubTLSConfig sets the TLS configuration.
-func WithGitHubTLSConfig(cfg *tls.Config) GitHubClientOption {
-	return func(o *gitHubClientOptions) {
-		o.tlsConfig = cfg
-	}
-}
-
-// WithGitHubProxyURL sets the proxy URL.
-func WithGitHubProxyURL(proxyURL *url.URL) GitHubClientOption {
-	return func(o *gitHubClientOptions) {
-		o.proxyURL = proxyURL
-	}
-}
-
-// WithGitHubProvider sets the provider name and namespace for token caching.
-func WithGitHubProvider(name, namespace string) GitHubClientOption {
-	return func(o *gitHubClientOptions) {
-		o.providerName = name
-		o.providerNamespace = namespace
-	}
-}
-
-// WithGitHubFetchUserLogin enables fetching the authenticated user's login.
-// This is needed for providers that need to identify their own comments/actions.
-func WithGitHubFetchUserLogin() GitHubClientOption {
-	return func(o *gitHubClientOptions) {
-		o.fetchUserLogin = true
-	}
-}
-
-// WithGitHubFetchPages enables fetching additional pages when searching for
-// existing comments.
-func WithGitHubFetchPages(fetchPages bool) GitHubClientOption {
-	return func(o *gitHubClientOptions) {
-		o.fetchPages = fetchPages
-	}
-}
-
-// WithGitHubSecretData sets the secret data for GitHub App authentication.
-func WithGitHubSecretData(data map[string][]byte) GitHubClientOption {
-	return func(o *gitHubClientOptions) {
-		o.secretData = data
-	}
-}
-
-// WithGitHubTokenCache sets the token cache for GitHub App authentication.
-func WithGitHubTokenCache(tokenCache *cache.TokenCache) GitHubClientOption {
-	return func(o *gitHubClientOptions) {
-		o.tokenCache = tokenCache
-	}
-}
-
-// NewGitHubClient creates a new GitHubClientInfo with the provided options.
-func NewGitHubClient(ctx context.Context, opts ...GitHubClientOption) (*GitHubClient, error) {
-	var o gitHubClientOptions
-	for _, opt := range opts {
-		opt(&o)
-	}
-
+// NewGitHubClient creates a new GitHubClient with the provided options.
+func NewGitHubClient(ctx context.Context, opts *notifierOptions, fetchUserLogin bool) (*GitHubClient, error) {
 	// Get GitHub App token if a token is not provided, and app details are available.
 	var appSlug string
-	token := o.token
+	token := opts.Token
 	if token == "" {
-		if _, ok := o.secretData[githubapp.KeyAppID]; !ok {
+		token = opts.Password
+	}
+	if token == "" {
+		if _, ok := opts.SecretData[githubapp.KeyAppID]; !ok {
 			return nil, errors.New("github token or github app details must be specified")
 		}
 
-		appToken, err := getGitHubAppToken(ctx, &o)
+		appToken, err := getGitHubAppToken(ctx, opts, fetchUserLogin)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +65,7 @@ func NewGitHubClient(ctx context.Context, opts ...GitHubClientOption) (*GitHubCl
 	}
 
 	// Parse the GitHub address to extract host, owner, and repo information.
-	host, id, err := parseGitAddress(o.address)
+	host, id, err := parseGitAddress(opts.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -161,14 +75,14 @@ func NewGitHubClient(ctx context.Context, opts ...GitHubClientOption) (*GitHubCl
 	}
 
 	// Create client.
-	client, err := createGitHubClient(ctx, host, token, o.proxyURL, o.tlsConfig)
+	client, err := createGitHubClient(ctx, host, token, opts.ProxyURL, opts.TLSConfig)
 	if err != nil {
 		return nil, err
 	}
 
 	// Fetch user login if needed.
 	var userLogin string
-	if o.fetchUserLogin && appSlug == "" {
+	if fetchUserLogin && appSlug == "" {
 		myUser, _, err := client.Users.Get(ctx, "")
 		if err != nil {
 			return nil, fmt.Errorf("failed to get authenticated user info: %w", err)
@@ -177,40 +91,39 @@ func NewGitHubClient(ctx context.Context, opts ...GitHubClientOption) (*GitHubCl
 	}
 
 	return &GitHubClient{
-		UserLogin:  userLogin,
-		AppSlug:    appSlug,
-		Owner:      ownerAndRepo[0],
-		Repo:       ownerAndRepo[1],
-		FetchPages: o.fetchPages,
-		Client:     client,
+		UserLogin: userLogin,
+		AppSlug:   appSlug,
+		Owner:     ownerAndRepo[0],
+		Repo:      ownerAndRepo[1],
+		Client:    client,
 	}, nil
 }
 
 // getGitHubAppToken retrieves an installation token using GitHub App authentication.
-func getGitHubAppToken(ctx context.Context, o *gitHubClientOptions) (*githubapp.AppToken, error) {
+func getGitHubAppToken(ctx context.Context, opts *notifierOptions, fetchUserLogin bool) (*githubapp.AppToken, error) {
 	githubOpts := []githubapp.OptFunc{
-		githubapp.WithAppData(o.secretData),
+		githubapp.WithAppData(opts.SecretData),
 	}
 
-	if o.proxyURL != nil {
-		githubOpts = append(githubOpts, githubapp.WithProxyURL(o.proxyURL))
+	if opts.ProxyURL != nil {
+		githubOpts = append(githubOpts, githubapp.WithProxyURL(opts.ProxyURL))
 	}
 
-	if o.tokenCache != nil {
-		githubOpts = append(githubOpts, githubapp.WithCache(o.tokenCache, cache.InvolvedObject{
+	if opts.TokenCache != nil {
+		githubOpts = append(githubOpts, githubapp.WithCache(opts.TokenCache, cache.InvolvedObject{
 			Kind:      apiv1.ProviderKind,
-			Name:      o.providerName,
-			Namespace: o.providerNamespace,
+			Name:      opts.ProviderName,
+			Namespace: opts.ProviderNamespace,
 			Operation: OperationPost,
 		}))
 	}
 
-	if o.fetchUserLogin {
+	if fetchUserLogin {
 		githubOpts = append(githubOpts, githubapp.WithAppSlugReflection())
 	}
 
-	if o.tlsConfig != nil {
-		githubOpts = append(githubOpts, githubapp.WithTLSConfig(o.tlsConfig))
+	if opts.TLSConfig != nil {
+		githubOpts = append(githubOpts, githubapp.WithTLSConfig(opts.TLSConfig))
 	}
 
 	client, err := githubapp.New(githubOpts...)
@@ -249,22 +162,4 @@ func createGitHubClient(ctx context.Context, host, token string, proxyURL *url.U
 	}
 
 	return client, nil
-}
-
-// GitHubClientOptions returns the GitHub client options derived from notifierOptions.
-// This handles the token/password fallback logic and converts factory options to GitHub client options.
-func (o *notifierOptions) GitHubClientOptions() []GitHubClientOption {
-	token := o.Token
-	if token == "" && o.Password != "" {
-		token = o.Password
-	}
-	return []GitHubClientOption{
-		WithGitHubAddress(o.URL),
-		WithGitHubToken(token),
-		WithGitHubTLSConfig(o.TLSConfig),
-		WithGitHubProxyURL(o.ProxyURL),
-		WithGitHubProvider(o.ProviderName, o.ProviderNamespace),
-		WithGitHubSecretData(o.SecretData),
-		WithGitHubTokenCache(o.TokenCache),
-	}
 }

@@ -167,6 +167,15 @@ type ChangeRequestComment struct {
 	FetchPages bool `json:"fetchPages,omitempty"`
 }
 
+// ShouldFetchPages returns true if additional pages should be fetched
+// when the existing comment is not found on the first page.
+func (c *ChangeRequestComment) ShouldFetchPages() bool {
+	if c == nil {
+		return false
+	}
+	return c.FetchPages
+}
+
 // +genclient
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true

@@ -32,8 +32,8 @@ type GitHubDispatch struct {
 	Client *github.Client
 }
 
-func NewGitHubDispatch(ctx context.Context, opts ...GitHubClientOption) (*GitHubDispatch, error) {
-	clientInfo, err := NewGitHubClient(ctx, opts...)
+func NewGitHubDispatch(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	clientInfo, err := NewGitHubClient(ctx, opts, false)
 	if err != nil {
 		return nil, err
 	}

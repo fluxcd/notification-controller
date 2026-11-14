@@ -19,7 +19,6 @@ package notifier
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -80,20 +79,20 @@ type bbServerBuildStatusSetRequest struct {
 }
 
 // NewBitbucketServer creates and returns a new BitbucketServer notifier.
-func NewBitbucketServer(commitStatus string, addr string, proxyURL *url.URL, token string, tlsConfig *tls.Config, username string, password string) (*BitbucketServer, error) {
-	url, err := parseBitbucketServerGitAddress(addr)
+func NewBitbucketServer(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	url, err := parseBitbucketServerGitAddress(opts.URL)
 	if err != nil {
 		return nil, err
 	}
 
 	// this should never happen
-	if commitStatus == "" {
+	if opts.CommitStatus == "" {
 		return nil, errors.New("commit status cannot be empty")
 	}
 
 	httpClient := retryablehttp.NewClient()
-	if proxyURL != nil || tlsConfig != nil {
-		httpClient.HTTPClient.Transport = newTransport(proxyURL, tlsConfig)
+	if opts.ProxyURL != nil || opts.TLSConfig != nil {
+		httpClient.HTTPClient.Transport = newTransport(opts.ProxyURL, opts.TLSConfig)
 	}
 
 	httpClient.HTTPClient.Timeout = 15 * time.Second
@@ -102,17 +101,17 @@ func NewBitbucketServer(commitStatus string, addr string, proxyURL *url.URL, tok
 	httpClient.RetryMax = 4
 	httpClient.Logger = nil
 
-	if len(token) == 0 && (len(username) == 0 || len(password) == 0) {
+	if len(opts.Token) == 0 && (len(opts.Username) == 0 || len(opts.Password) == 0) {
 		return nil, errors.New("invalid credentials, expected to be one of username/password or API Token")
 	}
 
 	return &BitbucketServer{
-		CommitStatus:    commitStatus,
+		CommitStatus:    opts.CommitStatus,
 		Url:             url,
-		ProviderAddress: addr,
-		Token:           token,
-		Username:        username,
-		Password:        password,
+		ProviderAddress: opts.URL,
+		Token:           opts.Token,
+		Username:        opts.Username,
+		Password:        opts.Password,
 		Client:          httpClient,
 	}, nil
 }

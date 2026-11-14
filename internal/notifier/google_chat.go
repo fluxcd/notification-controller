@@ -77,16 +77,16 @@ type GoogleChatCardWidgetKeyValue struct {
 }
 
 // NewGoogleChat validates the Google Chat URL and returns a GoogleChat object
-func NewGoogleChat(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config) (*GoogleChat, error) {
-	_, err := url.ParseRequestURI(hookURL)
+func NewGoogleChat(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Google Chat hook URL %s", hookURL)
+		return nil, fmt.Errorf("invalid Google Chat hook URL %s", opts.URL)
 	}
 
 	return &GoogleChat{
-		URL:       hookURL,
-		ProxyURL:  proxyURL,
-		TLSConfig: tlsConfig,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 

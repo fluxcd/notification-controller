@@ -47,7 +47,12 @@ func Fuzz_Bitbucket(f *testing.F) {
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
 		tlsConfig := &tls.Config{RootCAs: &cert}
-		bitbucket, err := NewBitbucket(commitStatus, fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, token, tlsConfig)
+		n, err := NewBitbucket(context.TODO(), &notifierOptions{
+			CommitStatus: commitStatus,
+			URL:          fmt.Sprintf("%s/%s", ts.URL, urlSuffix),
+			Token:        token,
+			TLSConfig:    tlsConfig,
+		})
 		if err != nil {
 			return
 		}
@@ -57,6 +62,7 @@ func Fuzz_Bitbucket(f *testing.F) {
 			t.Fatalf("cannot parse api base URL: %v", err)
 		}
 		// Ensure the call does not go to bitbucket and fuzzes the response.
+		bitbucket := n.(*Bitbucket)
 		bitbucket.Client.SetApiBaseURL(*apiUrl)
 
 		event := eventv1.Event{}

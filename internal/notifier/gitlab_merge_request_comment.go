@@ -18,11 +18,9 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -39,27 +37,31 @@ type GitLabMergeRequestComment struct {
 	FetchPages bool
 }
 
-func NewGitLabMergeRequestComment(providerUID string, addr string, proxyURL *url.URL, token string, tlsConfig *tls.Config, fetchPages bool) (*GitLabMergeRequestComment, error) {
-	if providerUID == "" {
+func NewGitLabMergeRequestComment(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	if opts.ProviderUID == "" {
 		return nil, errors.New("provider UID cannot be empty")
 	}
 
+	token := opts.Token
+	if token == "" {
+		token = opts.Password
+	}
 	if token == "" {
 		return nil, errors.New("gitlab token cannot be empty")
 	}
 
-	host, id, err := parseGitAddress(addr)
+	host, id, err := parseGitAddress(opts.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	opts := []gitlab.ClientOptionFunc{gitlab.WithBaseURL(host)}
-	if proxyURL != nil || tlsConfig != nil {
-		hc := &http.Client{Transport: newTransport(proxyURL, tlsConfig)}
-		opts = append(opts, gitlab.WithHTTPClient(hc))
+	gitlabOpts := []gitlab.ClientOptionFunc{gitlab.WithBaseURL(host)}
+	if opts.ProxyURL != nil || opts.TLSConfig != nil {
+		hc := &http.Client{Transport: newTransport(opts.ProxyURL, opts.TLSConfig)}
+		gitlabOpts = append(gitlabOpts, gitlab.WithHTTPClient(hc))
 	}
 
-	client, err := gitlab.NewClient(token, opts...)
+	client, err := gitlab.NewClient(token, gitlabOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -72,13 +74,13 @@ func NewGitLabMergeRequestComment(providerUID string, addr string, proxyURL *url
 
 	return &GitLabMergeRequestComment{
 		changeRequestComment: changeRequestComment{
-			ProviderUID:      providerUID,
+			ProviderUID:      opts.ProviderUID,
 			CommentKeyPrefix: "flux-mr-comment-key",
 		},
 		ProjectID:  id,
 		Username:   user.Username,
 		Client:     client,
-		FetchPages: fetchPages,
+		FetchPages: opts.ChangeRequestComment.ShouldFetchPages(),
 	}, nil
 }
 

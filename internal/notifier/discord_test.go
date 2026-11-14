@@ -42,8 +42,9 @@ func TestDiscord_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	discord, err := NewDiscord(ts.URL, nil, nil, "test", "test")
+	n, err := NewDiscord(t.Context(), &notifierOptions{URL: ts.URL, Username: "test", Channel: "test"})
 	g.Expect(err).ToNot(HaveOccurred())
+	discord := n.(*Discord)
 	g.Expect(strings.HasSuffix(discord.URL, "/slack")).To(BeTrue())
 
 	err = discord.Post(context.TODO(), testEvent())

@@ -33,8 +33,9 @@ func TestDataDogPost(t *testing.T) {
 			ts := httptest.NewServer(mux)
 			defer ts.Close()
 
-			dd, err := NewDataDog(ts.URL, nil, nil, ddApiKey)
+			n, err := NewDataDog(t.Context(), &notifierOptions{URL: ts.URL, Token: ddApiKey})
 			g.Expect(err).ToNot(HaveOccurred())
+			dd := n.(*DataDog)
 
 			err = dd.Post(context.Background(), testEvent())
 			if expectedToFail {
@@ -50,19 +51,20 @@ func TestDataDogPost(t *testing.T) {
 
 func TestDataDogProviderErrors(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewDataDog("https://api.datadoghq.com", nil, nil, "")
+	_, err := NewDataDog(t.Context(), &notifierOptions{URL: "https://api.datadoghq.com"})
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("token cannot be empty"))
 
-	_, err = NewDataDog("https://bad url :)", nil, nil, "token")
+	_, err = NewDataDog(t.Context(), &notifierOptions{URL: "https://bad url :)", Token: "token"})
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("failed to parse address"))
 }
 
 func TestToDataDogTags(t *testing.T) {
 	g := NewWithT(t)
-	dd, err := NewDataDog("https://api.datadoghq.com", nil, nil, "token")
+	n, err := NewDataDog(t.Context(), &notifierOptions{URL: "https://api.datadoghq.com", Token: "token"})
 	g.Expect(err).ToNot(HaveOccurred())
+	dd := n.(*DataDog)
 
 	event := testEvent()
 

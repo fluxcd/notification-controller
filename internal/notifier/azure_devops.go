@@ -18,21 +18,16 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
-	"net/url"
 	"strings"
 
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7"
 	"github.com/microsoft/azure-devops-go-api/azuredevops/v7/git"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/apis/meta"
 	"github.com/fluxcd/pkg/auth/azure"
-	"github.com/fluxcd/pkg/cache"
-	fluxbroker "github.com/fluxcd/pkg/spiffe/brokerapi"
 )
 
 const genre string = "fluxcd"
@@ -51,28 +46,26 @@ type AzureDevOps struct {
 }
 
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
-func NewAzureDevOps(ctx context.Context, commitStatus string, addr string, token string,
-	tlsConfig *tls.Config, proxy *url.URL, serviceAccountName, providerName, providerNamespace string,
-	tokenClient client.Client, tokenCache *cache.TokenCache, spiffeBroker fluxbroker.Interface,
-	defaultServiceAccount string) (*AzureDevOps, error) {
+func NewAzureDevOps(ctx context.Context, opts *notifierOptions) (Interface, error) {
 	var err error
+	token := opts.Token
 	if len(token) == 0 {
 		// if token doesn't exist, try to create a new token using managed identity
-		token, err = newManagedIdentityToken(ctx, proxy, serviceAccountName,
-			defaultServiceAccount, providerName,
-			providerNamespace, azure.ScopeDevOps, tokenClient, tokenCache, spiffeBroker)
+		token, err = newManagedIdentityToken(ctx, opts.ProxyURL, opts.ServiceAccountName,
+			opts.DefaultServiceAccount, opts.ProviderName,
+			opts.ProviderNamespace, azure.ScopeDevOps, opts.TokenClient, opts.TokenCache, opts.SPIFFEBroker)
 		if err != nil {
 			return nil, fmt.Errorf("failed to acquire azure devops token: %w", err)
 		}
 	}
 
-	host, id, err := parseGitAddress(addr)
+	host, id, err := parseGitAddress(opts.URL)
 	if err != nil {
 		return nil, err
 	}
 
 	// this should never happen
-	if commitStatus == "" {
+	if opts.CommitStatus == "" {
 		return nil, errors.New("commit status cannot be empty")
 	}
 
@@ -86,8 +79,8 @@ func NewAzureDevOps(ctx context.Context, commitStatus string, addr string, token
 
 	orgURL := fmt.Sprintf("%v/%v", host, org)
 	connection := azuredevops.NewPatConnection(orgURL, token)
-	if tlsConfig != nil {
-		connection.TlsConfig = tlsConfig
+	if opts.TLSConfig != nil {
+		connection.TlsConfig = opts.TLSConfig
 	}
 	client := connection.GetClientByUrl(orgURL)
 	gitClient := &git.ClientImpl{
@@ -96,7 +89,7 @@ func NewAzureDevOps(ctx context.Context, commitStatus string, addr string, token
 	return &AzureDevOps{
 		Project:      proj,
 		Repo:         repo,
-		CommitStatus: commitStatus,
+		CommitStatus: opts.CommitStatus,
 		Client:       gitClient,
 	}, nil
 }

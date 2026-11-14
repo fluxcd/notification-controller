@@ -38,27 +38,26 @@ type GitHubPullRequestComment struct {
 	Client     *github.Client
 }
 
-func NewGitHubPullRequestComment(ctx context.Context, providerUID string, opts ...GitHubClientOption) (*GitHubPullRequestComment, error) {
-	if providerUID == "" {
+func NewGitHubPullRequestComment(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	if opts.ProviderUID == "" {
 		return nil, errors.New("provider UID cannot be empty")
 	}
 
-	opts = append(opts, WithGitHubFetchUserLogin())
-	clientInfo, err := NewGitHubClient(ctx, opts...)
+	clientInfo, err := NewGitHubClient(ctx, opts, true)
 	if err != nil {
 		return nil, err
 	}
 
 	return &GitHubPullRequestComment{
 		changeRequestComment: changeRequestComment{
-			ProviderUID:      providerUID,
+			ProviderUID:      opts.ProviderUID,
 			CommentKeyPrefix: "flux-pr-comment-key",
 		},
 		Owner:      clientInfo.Owner,
 		Repo:       clientInfo.Repo,
 		UserLogin:  clientInfo.UserLogin,
 		AppSlug:    clientInfo.AppSlug,
-		FetchPages: clientInfo.FetchPages,
+		FetchPages: opts.ChangeRequestComment.ShouldFetchPages(),
 		Client:     clientInfo.Client,
 	}, nil
 }

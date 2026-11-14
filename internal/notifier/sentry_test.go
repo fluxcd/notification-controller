@@ -52,12 +52,13 @@ func TestNewSentry(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			s, err := NewSentry(tt.dsn, nil, nil, tt.environment)
+			n, err := NewSentry(t.Context(), &notifierOptions{URL: tt.dsn, Channel: tt.environment})
 			if tt.err != nil {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err).To(Equal(tt.err))
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
+				s := n.(*Sentry)
 				g.Expect(s.Client.Options().Dsn).To(Equal(tt.dsn))
 				g.Expect(s.Client.Options().Environment).To(Equal(tt.environment))
 			}

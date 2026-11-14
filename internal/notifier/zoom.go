@@ -71,21 +71,21 @@ type ZoomField struct {
 }
 
 // NewZoom validates the Zoom incoming webhook URL and returns a Zoom object
-func NewZoom(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config, token string) (*Zoom, error) {
-	_, err := url.ParseRequestURI(hookURL)
+func NewZoom(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Zoom incoming webhook URL %s: '%w'", hookURL, err)
+		return nil, fmt.Errorf("invalid Zoom incoming webhook URL %s: '%w'", opts.URL, err)
 	}
 
-	if token == "" {
+	if opts.Token == "" {
 		return nil, errors.New("empty Zoom verification token")
 	}
 
 	return &Zoom{
-		URL:       hookURL,
-		ProxyURL:  proxyURL,
-		Token:     token,
-		TLSConfig: tlsConfig,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
+		Token:     opts.Token,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 

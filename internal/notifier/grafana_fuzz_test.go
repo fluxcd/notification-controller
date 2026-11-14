@@ -46,7 +46,13 @@ func Fuzz_Grafana(f *testing.F) {
 		var tlsConfig tls.Config
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		grafana, err := NewGrafana(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, token, &tlsConfig, username, password)
+		grafana, err := NewGrafana(context.TODO(), &notifierOptions{
+			URL:       fmt.Sprintf("%s/%s", ts.URL, urlSuffix),
+			Token:     token,
+			TLSConfig: &tlsConfig,
+			Username:  username,
+			Password:  password,
+		})
 		if err != nil {
 			return
 		}

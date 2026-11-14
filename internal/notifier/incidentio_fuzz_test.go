@@ -45,7 +45,11 @@ func Fuzz_Incidentio(f *testing.F) {
 		var tlsConfig tls.Config
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		incidentio, err := NewIncidentio(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, &tlsConfig, token)
+		incidentio, err := NewIncidentio(context.TODO(), &notifierOptions{
+			URL:       fmt.Sprintf("%s/%s", ts.URL, urlSuffix),
+			TLSConfig: &tlsConfig,
+			Token:     token,
+		})
 		if err != nil {
 			return
 		}

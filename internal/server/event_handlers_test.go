@@ -951,7 +951,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			provider := apiv1.Provider{Spec: *tt.providerSpec}
 
 			eventServer := EventServer{kubeClient: builder.Build()}
-			params, err := eventServer.prepareNotifier(context.TODO(), &provider, "")
+			params, err := eventServer.prepareNotifier(context.TODO(), &provider, "", metav1.ObjectMeta{})
 			var sender notifier.Interface
 			if err == nil {
 				sender, err = params.createNotifier(context.TODO())
@@ -1003,7 +1003,7 @@ func TestCreateNotifierBitbucketCloudTokenFromSecret(t *testing.T) {
 
 	kubeClient := fakeclient.NewClientBuilder().WithObjects(secret).Build()
 	eventServer := EventServer{kubeClient: kubeClient}
-	params, err := eventServer.prepareNotifier(context.TODO(), &provider, "test-status")
+	params, err := eventServer.prepareNotifier(context.TODO(), &provider, "test-status", metav1.ObjectMeta{})
 	g.Expect(err).ToNot(HaveOccurred())
 	n, err := params.createNotifier(context.TODO())
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1110,7 +1110,7 @@ func TestPrepareNotifierChangeRequestComment(t *testing.T) {
 					},
 				}
 				eventServer := EventServer{kubeClient: fakeclient.NewClientBuilder().WithObjects(secret).Build()}
-				params, err := eventServer.prepareNotifier(context.Background(), provider, "")
+				params, err := eventServer.prepareNotifier(context.Background(), provider, "", metav1.ObjectMeta{})
 				g.Expect(err).NotTo(HaveOccurred())
 				n, err := params.createNotifier(context.Background())
 				g.Expect(err).NotTo(HaveOccurred())
@@ -1890,7 +1890,7 @@ func TestCreateNotifier_EventKey(t *testing.T) {
 
 	eventServer := EventServer{kubeClient: kclient}
 	ctx := context.WithValue(context.TODO(), eventKeyContextKey{}, "event-key")
-	params, err := eventServer.prepareNotifier(ctx, &provider, "")
+	params, err := eventServer.prepareNotifier(ctx, &provider, "", metav1.ObjectMeta{})
 	g.Expect(err).ToNot(HaveOccurred())
 	n, err := params.createNotifier(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1898,7 +1898,7 @@ func TestCreateNotifier_EventKey(t *testing.T) {
 	g.Expect(ok).To(BeTrue(), "expected a Mastodon notifier, got %T", n)
 	g.Expect(m.EventKey).To(Equal("event-key"))
 
-	params, err = eventServer.prepareNotifier(context.TODO(), &provider, "")
+	params, err = eventServer.prepareNotifier(context.TODO(), &provider, "", metav1.ObjectMeta{})
 	g.Expect(err).ToNot(HaveOccurred())
 	n, err = params.createNotifier(context.TODO())
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1963,7 +1963,7 @@ func TestCreateNotifierPostsThroughProxySecretRef(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	eventServer := EventServer{kubeClient: kubeClient}
-	params, err := eventServer.prepareNotifier(ctx, provider, "")
+	params, err := eventServer.prepareNotifier(ctx, provider, "", metav1.ObjectMeta{})
 	g.Expect(err).ToNot(HaveOccurred())
 	n, err := params.createNotifier(ctx)
 	g.Expect(err).ToNot(HaveOccurred())

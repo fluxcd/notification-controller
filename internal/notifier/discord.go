@@ -39,25 +39,25 @@ type Discord struct {
 }
 
 // NewDiscord validates the URL and returns a Discord object
-func NewDiscord(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config, username string, channel string) (*Discord, error) {
-	webhook, err := url.ParseRequestURI(hookURL)
+func NewDiscord(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	webhook, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Discord hook URL %s: '%w'", hookURL, err)
+		return nil, fmt.Errorf("invalid Discord hook URL %s: '%w'", opts.URL, err)
 	}
 
 	// use Slack formatting
 	// https://birdie0.github.io/discord-webhooks-guide/other/slack_formatting.html
-	if !strings.HasSuffix(hookURL, "/slack") {
+	if !strings.HasSuffix(opts.URL, "/slack") {
 		webhook.Path = path.Join(webhook.Path, "slack")
-		hookURL = webhook.String()
+		opts.URL = webhook.String()
 	}
 
 	return &Discord{
-		Channel:   channel,
-		URL:       hookURL,
-		ProxyURL:  proxyURL,
-		Username:  username,
-		TLSConfig: tlsConfig,
+		Channel:   opts.Channel,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
+		Username:  opts.Username,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 

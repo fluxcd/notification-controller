@@ -37,26 +37,25 @@ type GiteaPullRequestComment struct {
 	Client     *gitea.Client
 }
 
-func NewGiteaPullRequestComment(providerUID string, opts ...GiteaClientOption) (*GiteaPullRequestComment, error) {
-	if providerUID == "" {
+func NewGiteaPullRequestComment(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	if opts.ProviderUID == "" {
 		return nil, errors.New("provider UID cannot be empty")
 	}
 
-	opts = append(opts, WithGiteaFetchUserLogin())
-	clientInfo, err := NewGiteaClient(opts...)
+	clientInfo, err := NewGiteaClient(ctx, opts, true)
 	if err != nil {
 		return nil, err
 	}
 
 	return &GiteaPullRequestComment{
 		changeRequestComment: changeRequestComment{
-			ProviderUID:      providerUID,
+			ProviderUID:      opts.ProviderUID,
 			CommentKeyPrefix: "flux-pr-comment-key",
 		},
 		Owner:      clientInfo.Owner,
 		Repo:       clientInfo.Repo,
 		Username:   clientInfo.Username,
-		FetchPages: clientInfo.FetchPages,
+		FetchPages: opts.ChangeRequestComment.ShouldFetchPages(),
 		Client:     clientInfo.Client,
 	}, nil
 }
@@ -65,6 +64,7 @@ func NewGiteaPullRequestComment(providerUID string, opts ...GiteaClientOption) (
 // If the comment already exists (based on the comment key), it updates the existing comment
 // instead of creating a new one.
 func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event) error {
+	g.Client.SetContext(ctx)
 	body := g.formatCommentBody(&event)
 	prNumber, err := g.getPullRequestNumber(&event)
 	if err != nil {

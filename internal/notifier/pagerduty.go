@@ -36,16 +36,16 @@ type PagerDuty struct {
 	TLSConfig  *tls.Config
 }
 
-func NewPagerDuty(endpoint string, proxyURL *url.URL, tlsConfig *tls.Config, routingKey string) (*PagerDuty, error) {
-	URL, err := url.ParseRequestURI(endpoint)
+func NewPagerDuty(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	URL, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid PagerDuty endpoint URL %q: '%w'", endpoint, err)
+		return nil, fmt.Errorf("invalid PagerDuty endpoint URL %q: '%w'", opts.URL, err)
 	}
 	return &PagerDuty{
 		Endpoint:   URL.Scheme + "://" + URL.Host,
-		RoutingKey: routingKey,
-		ProxyURL:   proxyURL,
-		TLSConfig:  tlsConfig,
+		RoutingKey: opts.Channel,
+		ProxyURL:   opts.ProxyURL,
+		TLSConfig:  opts.TLSConfig,
 	}, nil
 }
 

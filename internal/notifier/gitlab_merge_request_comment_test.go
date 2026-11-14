@@ -48,16 +48,26 @@ func TestNewGitLabMergeRequestCommentBasic(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(handler))
 	t.Cleanup(srv.Close)
 
-	gl, err := NewGitLabMergeRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar", nil, "foobar", nil, false)
+	n, err := NewGitLabMergeRequestComment(t.Context(), &notifierOptions{
+		ProviderUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		URL:         srv.URL + "/foo/bar",
+		Token:       "foobar",
+	})
 	g.Expect(err).ToNot(HaveOccurred())
+	gl := n.(*GitLabMergeRequestComment)
 	g.Expect(gl.ProjectID).To(Equal("foo/bar"))
 	g.Expect(gl.ProviderUID).To(Equal("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a"))
 	g.Expect(gl.Username).To(Equal("test-user"))
 	g.Expect(gl.FetchPages).To(BeFalse())
 
-	gl, err = NewGitLabMergeRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar", nil, "foobar", nil, true)
+	n, err = NewGitLabMergeRequestComment(t.Context(), &notifierOptions{
+		ProviderUID:          "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		URL:                  srv.URL + "/foo/bar",
+		Token:                "foobar",
+		ChangeRequestComment: &apiv1.ChangeRequestComment{FetchPages: true},
+	})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(gl.FetchPages).To(BeTrue())
+	g.Expect(n.(*GitLabMergeRequestComment).FetchPages).To(BeTrue())
 }
 
 func TestNewGitLabMergeRequestCommentSubgroups(t *testing.T) {
@@ -77,20 +87,30 @@ func TestNewGitLabMergeRequestCommentSubgroups(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(handler))
 	t.Cleanup(srv.Close)
 
-	gl, err := NewGitLabMergeRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", srv.URL+"/foo/bar/baz", nil, "foobar", nil, false)
+	n, err := NewGitLabMergeRequestComment(t.Context(), &notifierOptions{
+		ProviderUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		URL:         srv.URL + "/foo/bar/baz",
+		Token:       "foobar",
+	})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(gl.ProjectID).To(Equal("foo/bar/baz"))
+	g.Expect(n.(*GitLabMergeRequestComment).ProjectID).To(Equal("foo/bar/baz"))
 }
 
 func TestNewGitLabMergeRequestCommentEmptyToken(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitLabMergeRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a", "https://gitlab.com/foo/bar", nil, "", nil, false)
+	_, err := NewGitLabMergeRequestComment(t.Context(), &notifierOptions{
+		ProviderUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		URL:         "https://gitlab.com/foo/bar",
+	})
 	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitLabMergeRequestCommentEmptyProviderUID(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitLabMergeRequestComment("", "https://gitlab.com/foo/bar", nil, "foobar", nil, false)
+	_, err := NewGitLabMergeRequestComment(t.Context(), &notifierOptions{
+		URL:   "https://gitlab.com/foo/bar",
+		Token: "foobar",
+	})
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -199,8 +219,8 @@ func TestGitLabMergeRequestCommentPagination(t *testing.T) {
 				_, _ = fmt.Fprint(w, `{}`)
 			}))
 			t.Cleanup(srv.Close)
-			n, err := NewFactory(context.Background(), WithURL(srv.URL+"/foo/bar"),
-				WithToken("token"), WithProviderUID("provider"), WithChangeRequestComment(tt.config)).Notifier(apiv1.GitLabMergeRequestCommentProvider)
+			n, err := New(context.Background(), apiv1.GitLabMergeRequestCommentProvider, WithURL(srv.URL+"/foo/bar"),
+				WithToken("token"), WithProviderUID("provider"), WithChangeRequestComment(tt.config))
 			g.Expect(err).NotTo(HaveOccurred())
 			err = n.Post(ctx, event)
 			if tt.cancelPage != 0 {

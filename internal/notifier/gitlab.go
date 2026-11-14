@@ -18,11 +18,9 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 
@@ -36,34 +34,38 @@ type GitLab struct {
 	Client       *gitlab.Client
 }
 
-func NewGitLab(commitStatus string, addr string, proxyURL *url.URL, token string, tlsConfig *tls.Config) (*GitLab, error) {
+func NewGitLab(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	token := opts.Token
+	if token == "" {
+		token = opts.Password
+	}
 	if len(token) == 0 {
 		return nil, errors.New("gitlab token cannot be empty")
 	}
 
-	host, id, err := parseGitAddress(addr)
+	host, id, err := parseGitAddress(opts.URL)
 	if err != nil {
 		return nil, err
 	}
 
 	// this should never happen
-	if commitStatus == "" {
+	if opts.CommitStatus == "" {
 		return nil, errors.New("commit status cannot be empty")
 	}
 
-	opts := []gitlab.ClientOptionFunc{gitlab.WithBaseURL(host)}
-	if proxyURL != nil || tlsConfig != nil {
-		hc := &http.Client{Transport: newTransport(proxyURL, tlsConfig)}
-		opts = append(opts, gitlab.WithHTTPClient(hc))
+	clientOpts := []gitlab.ClientOptionFunc{gitlab.WithBaseURL(host)}
+	if opts.ProxyURL != nil || opts.TLSConfig != nil {
+		hc := &http.Client{Transport: newTransport(opts.ProxyURL, opts.TLSConfig)}
+		clientOpts = append(clientOpts, gitlab.WithHTTPClient(hc))
 	}
-	client, err := gitlab.NewClient(token, opts...)
+	client, err := gitlab.NewClient(token, clientOpts...)
 	if err != nil {
 		return nil, err
 	}
 
 	gitlab := &GitLab{
 		Id:           id,
-		CommitStatus: commitStatus,
+		CommitStatus: opts.CommitStatus,
 		Client:       client,
 	}
 

@@ -18,7 +18,6 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
@@ -31,79 +30,10 @@ import (
 
 // GiteaClient holds the Gitea client and repository information.
 type GiteaClient struct {
-	Owner      string
-	Repo       string
-	Username   string
-	FetchPages bool
-	Client     *gitea.Client
-}
-
-// giteaClientOptions holds the configuration for creating a Gitea client.
-type giteaClientOptions struct {
-	context        context.Context
-	address        string
-	token          string
-	proxyURL       *url.URL
-	tlsConfig      *tls.Config
-	fetchUserLogin bool
-	fetchPages     bool
-}
-
-// GiteaClientOption is a functional option for configuring Gitea client creation.
-type GiteaClientOption func(*giteaClientOptions)
-
-// WithGiteaContext sets the context for construction and subsequent API calls.
-func WithGiteaContext(ctx context.Context) GiteaClientOption {
-	return func(o *giteaClientOptions) {
-		o.context = ctx
-		if o.context == nil {
-			o.context = context.Background()
-		}
-	}
-}
-
-// WithGiteaAddress sets the Gitea repository address.
-func WithGiteaAddress(addr string) GiteaClientOption {
-	return func(o *giteaClientOptions) {
-		o.address = addr
-	}
-}
-
-// WithGiteaToken sets the authentication token.
-func WithGiteaToken(token string) GiteaClientOption {
-	return func(o *giteaClientOptions) {
-		o.token = token
-	}
-}
-
-// WithGiteaProxyURL sets the proxy URL.
-func WithGiteaProxyURL(proxyURL *url.URL) GiteaClientOption {
-	return func(o *giteaClientOptions) {
-		o.proxyURL = proxyURL
-	}
-}
-
-// WithGiteaTLSConfig sets the TLS configuration.
-func WithGiteaTLSConfig(cfg *tls.Config) GiteaClientOption {
-	return func(o *giteaClientOptions) {
-		o.tlsConfig = cfg
-	}
-}
-
-// WithGiteaFetchUserLogin enables fetching the authenticated user's login.
-// This is needed for providers that need to identify their own comments.
-func WithGiteaFetchUserLogin() GiteaClientOption {
-	return func(o *giteaClientOptions) {
-		o.fetchUserLogin = true
-	}
-}
-
-// WithGiteaFetchPages enables fetching additional pages when searching for
-// existing comments.
-func WithGiteaFetchPages(fetchPages bool) GiteaClientOption {
-	return func(o *giteaClientOptions) {
-		o.fetchPages = fetchPages
-	}
+	Owner    string
+	Repo     string
+	Username string
+	Client   *gitea.Client
 }
 
 // giteaIdleConnTimeout overrides the idle timeout of the cloned default
@@ -111,17 +41,16 @@ func WithGiteaFetchPages(fetchPages bool) GiteaClientOption {
 var giteaIdleConnTimeout time.Duration
 
 // NewGiteaClient creates a new GiteaClient with the provided options.
-func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
-	o := giteaClientOptions{context: context.Background()}
-	for _, opt := range opts {
-		opt(&o)
+func NewGiteaClient(ctx context.Context, opts *notifierOptions, fetchUserLogin bool) (*GiteaClient, error) {
+	token := opts.Token
+	if token == "" {
+		token = opts.Password
 	}
-
-	if o.token == "" {
+	if token == "" {
 		return nil, errors.New("gitea token cannot be empty")
 	}
 
-	host, id, err := parseGitAddress(o.address)
+	host, id, err := parseGitAddress(opts.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -136,18 +65,18 @@ func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
 	}
 
 	// A client is created per event, so idle connections must not outlive it.
-	tr := newTransport(o.proxyURL, o.tlsConfig)
+	tr := newTransport(opts.ProxyURL, opts.TLSConfig)
 	if giteaIdleConnTimeout > 0 {
 		tr.IdleConnTimeout = giteaIdleConnTimeout
 	}
 
-	client, err := gitea.NewClient(host, gitea.SetContext(o.context), gitea.SetToken(o.token), gitea.SetHTTPClient(&http.Client{Transport: tr}))
+	client, err := gitea.NewClient(host, gitea.SetContext(ctx), gitea.SetToken(token), gitea.SetHTTPClient(&http.Client{Transport: tr}))
 	if err != nil {
 		return nil, fmt.Errorf("failed creating Gitea client: %w", err)
 	}
 
 	var username string
-	if o.fetchUserLogin {
+	if fetchUserLogin {
 		user, _, err := client.GetMyUserInfo()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get authenticated user info: %w", err)
@@ -156,26 +85,9 @@ func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
 	}
 
 	return &GiteaClient{
-		Owner:      idComponents[0],
-		Repo:       idComponents[1],
-		Username:   username,
-		FetchPages: o.fetchPages,
-		Client:     client,
+		Owner:    idComponents[0],
+		Repo:     idComponents[1],
+		Username: username,
+		Client:   client,
 	}, nil
-}
-
-// GiteaClientOptions returns the Gitea client options derived from notifierOptions.
-// This handles the token/password fallback logic and converts factory options to Gitea client options.
-func (o *notifierOptions) GiteaClientOptions() []GiteaClientOption {
-	token := o.Token
-	if token == "" && o.Password != "" {
-		token = o.Password
-	}
-	return []GiteaClientOption{
-		WithGiteaContext(o.Context),
-		WithGiteaAddress(o.URL),
-		WithGiteaToken(token),
-		WithGiteaProxyURL(o.ProxyURL),
-		WithGiteaTLSConfig(o.TLSConfig),
-	}
 }

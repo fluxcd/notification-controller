@@ -41,7 +41,11 @@ func Fuzz_Discord(f *testing.F) {
 		}))
 		defer ts.Close()
 
-		discord, err := NewDiscord(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, nil, username, channel)
+		discord, err := NewDiscord(context.TODO(), &notifierOptions{
+			URL:      fmt.Sprintf("%s/%s", ts.URL, urlSuffix),
+			Username: username,
+			Channel:  channel,
+		})
 		if err != nil {
 			return
 		}

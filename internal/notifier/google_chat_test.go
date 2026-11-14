@@ -44,9 +44,10 @@ func TestGoogleChat_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	google_chat, err := NewGoogleChat(ts.URL, nil, nil)
+	n, err := NewGoogleChat(t.Context(), &notifierOptions{URL: ts.URL})
 	g.Expect(err).ToNot(HaveOccurred())
+	googleChat := n.(*GoogleChat)
 
-	err = google_chat.Post(context.TODO(), testEvent())
+	err = googleChat.Post(context.TODO(), testEvent())
 	g.Expect(err).ToNot(HaveOccurred())
 }

@@ -76,19 +76,19 @@ func (a *AlertManagerTime) UnmarshalJSON(jsonRepr []byte) error {
 	return nil
 }
 
-func NewAlertmanager(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config, token, user, pass string) (*Alertmanager, error) {
-	_, err := url.ParseRequestURI(hookURL)
+func NewAlertManager(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Alertmanager URL %s: '%w'", hookURL, err)
+		return nil, fmt.Errorf("invalid Alertmanager URL %s: '%w'", opts.URL, err)
 	}
 
 	return &Alertmanager{
-		URL:       hookURL,
-		ProxyURL:  proxyURL,
-		Token:     token,
-		Username:  user,
-		Password:  pass,
-		TLSConfig: tlsConfig,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
+		Token:     opts.Token,
+		Username:  opts.Username,
+		Password:  opts.Password,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 

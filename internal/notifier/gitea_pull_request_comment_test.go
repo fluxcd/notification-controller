@@ -52,11 +52,13 @@ func TestNewGiteaPullRequestCommentBasic(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(handler))
 	t.Cleanup(srv.Close)
 
-	gc, err := NewGiteaPullRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-		WithGiteaAddress(srv.URL+"/foo/bar"),
-		WithGiteaToken("foobar"),
-	)
+	n, err := NewGiteaPullRequestComment(t.Context(), &notifierOptions{
+		ProviderUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		URL:         srv.URL + "/foo/bar",
+		Token:       "foobar",
+	})
 	g.Expect(err).ToNot(HaveOccurred())
+	gc := n.(*GiteaPullRequestComment)
 	g.Expect(gc.Owner).To(Equal("foo"))
 	g.Expect(gc.Repo).To(Equal("bar"))
 	g.Expect(gc.ProviderUID).To(Equal("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a"))
@@ -65,18 +67,19 @@ func TestNewGiteaPullRequestCommentBasic(t *testing.T) {
 
 func TestNewGiteaPullRequestCommentEmptyToken(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGiteaPullRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-		WithGiteaAddress("https://gitea.example.com/foo/bar"),
-	)
+	_, err := NewGiteaPullRequestComment(t.Context(), &notifierOptions{
+		ProviderUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		URL:         "https://gitea.example.com/foo/bar",
+	})
 	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGiteaPullRequestCommentEmptyProviderUID(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGiteaPullRequestComment("",
-		WithGiteaAddress("https://gitea.example.com/foo/bar"),
-		WithGiteaToken("foobar"),
-	)
+	_, err := NewGiteaPullRequestComment(t.Context(), &notifierOptions{
+		URL:   "https://gitea.example.com/foo/bar",
+		Token: "foobar",
+	})
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -101,10 +104,11 @@ func TestNewGiteaPullRequestCommentInvalidUrl(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(handler))
 	t.Cleanup(srv.Close)
 
-	_, err := NewGiteaPullRequestComment("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-		WithGiteaAddress(srv.URL+"/foo/bar/baz"),
-		WithGiteaToken("foobar"),
-	)
+	_, err := NewGiteaPullRequestComment(t.Context(), &notifierOptions{
+		ProviderUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		URL:         srv.URL + "/foo/bar/baz",
+		Token:       "foobar",
+	})
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("invalid repository id"))
 }
@@ -204,8 +208,8 @@ func TestGiteaPullRequestCommentPagination(t *testing.T) {
 				_, _ = fmt.Fprint(w, `{}`)
 			}))
 			t.Cleanup(srv.Close)
-			n, err := NewFactory(ctx, WithURL(srv.URL+"/foo/bar"),
-				WithToken("token"), WithProviderUID("provider"), WithChangeRequestComment(tt.config)).Notifier(apiv1.GiteaPullRequestCommentProvider)
+			n, err := New(context.Background(), apiv1.GiteaPullRequestCommentProvider, WithURL(srv.URL+"/foo/bar"),
+				WithToken("token"), WithProviderUID("provider"), WithChangeRequestComment(tt.config))
 			g.Expect(err).NotTo(HaveOccurred())
 			err = n.Post(ctx, event)
 			if tt.cancelPage != 0 {

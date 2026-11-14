@@ -169,7 +169,7 @@ func TestFactoryHTTPTransport(t *testing.T) {
 					address = dsn.String()
 				}
 
-				factory := NewFactory(ctx,
+				n, err := New(ctx, tt.provider,
 					WithURL(address),
 					WithProxyURL(proxyURL),
 					WithTLSConfig(tlsConfig),
@@ -178,7 +178,6 @@ func TestFactoryHTTPTransport(t *testing.T) {
 					WithCommitStatus("test-status"),
 					WithProviderUID("test-provider"),
 				)
-				n, err := factory.Notifier(tt.provider)
 				g.Expect(err).ToNot(HaveOccurred())
 				if telegram, ok := n.(*Telegram); ok {
 					// Telegram's production API address is fixed.

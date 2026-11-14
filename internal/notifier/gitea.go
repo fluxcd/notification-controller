@@ -38,12 +38,12 @@ type Gitea struct {
 
 var _ Interface = &Gitea{}
 
-func NewGitea(commitStatus string, opts ...GiteaClientOption) (*Gitea, error) {
-	if commitStatus == "" {
+func NewGitea(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	if opts.CommitStatus == "" {
 		return nil, errors.New("commit status cannot be empty")
 	}
 
-	clientInfo, err := NewGiteaClient(opts...)
+	clientInfo, err := NewGiteaClient(ctx, opts, false)
 	if err != nil {
 		return nil, err
 	}
@@ -51,13 +51,14 @@ func NewGitea(commitStatus string, opts ...GiteaClientOption) (*Gitea, error) {
 	return &Gitea{
 		Owner:        clientInfo.Owner,
 		Repo:         clientInfo.Repo,
-		CommitStatus: commitStatus,
+		CommitStatus: opts.CommitStatus,
 		Client:       clientInfo.Client,
 		Debug:        os.Getenv("NOTIFIER_GITEA_DEBUG") == "true",
 	}, nil
 }
 
 func (g *Gitea) Post(ctx context.Context, event eventv1.Event) error {
+	g.Client.SetContext(ctx)
 	revString, ok := event.GetRevision()
 	if !ok {
 		return errors.New("missing revision metadata")

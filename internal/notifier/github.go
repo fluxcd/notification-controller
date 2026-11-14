@@ -34,12 +34,12 @@ type GitHub struct {
 	Client       *github.Client
 }
 
-func NewGitHub(ctx context.Context, commitStatus string, opts ...GitHubClientOption) (*GitHub, error) {
-	if commitStatus == "" {
+func NewGitHub(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	if opts.CommitStatus == "" {
 		return nil, errors.New("commit status cannot be empty")
 	}
 
-	clientInfo, err := NewGitHubClient(ctx, opts...)
+	clientInfo, err := NewGitHubClient(ctx, opts, false)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +47,7 @@ func NewGitHub(ctx context.Context, commitStatus string, opts ...GitHubClientOpt
 	return &GitHub{
 		Owner:        clientInfo.Owner,
 		Repo:         clientInfo.Repo,
-		CommitStatus: commitStatus,
+		CommitStatus: opts.CommitStatus,
 		Client:       clientInfo.Client,
 	}, nil
 }

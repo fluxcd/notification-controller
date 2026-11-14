@@ -35,11 +35,19 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+func newBitbucketServer(ctx context.Context, opts *notifierOptions) (*BitbucketServer, error) {
+	n, err := NewBitbucketServer(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	return n.(*BitbucketServer), nil
+}
+
 func TestBitbucketServerLimitsResponseBody(t *testing.T) {
 	g := NewWithT(t)
 	server, written := newLargeResponseServer(http.StatusOK, `{"description":"`, `"}`)
 	defer server.Close()
-	b, err := NewBitbucketServer("status", server.URL+"/scm/project/repo.git", nil, "token", nil, "", "")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "status", URL: server.URL + "/scm/project/repo.git", Token: "token", Username: "", Password: ""})
 	g.Expect(err).ToNot(HaveOccurred())
 	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
@@ -61,7 +69,7 @@ func TestBitbucketServerResponseBodyLimitBoundary(t *testing.T) {
 				}
 			}))
 			defer server.Close()
-			b, err := NewBitbucketServer("status", server.URL+"/scm/project/repo.git", nil, "token", nil, "", "")
+			b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "status", URL: server.URL + "/scm/project/repo.git", Token: "token", Username: "", Password: ""})
 			g.Expect(err).ToNot(HaveOccurred())
 			duplicate, err := b.duplicateBitbucketServerStatus(t.Context(), "SUCCESSFUL", "name", "description", "key", server.URL)
 			g.Expect(duplicate).To(BeFalse())
@@ -76,7 +84,7 @@ func TestBitbucketServerResponseBodyLimitBoundary(t *testing.T) {
 
 func TestNewBitbucketServerBasicNoContext(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", nil, "", nil, "dummyuser", "testpassword")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/scm/projectfoo/repobar.git", Token: "", Username: "dummyuser", Password: "testpassword"})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(b.Username).To(Equal("dummyuser"))
 	g.Expect(b.Password).To(Equal("testpassword"))
@@ -86,7 +94,7 @@ func TestNewBitbucketServerBasicNoContext(t *testing.T) {
 
 func TestNewBitbucketServerBasicWithContext(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context/scm/projectfoo/repobar.git", nil, "", nil, "dummyuser", "testpassword")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/context/scm/projectfoo/repobar.git", Token: "", Username: "dummyuser", Password: "testpassword"})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(b.Username).To(Equal("dummyuser"))
 	g.Expect(b.Password).To(Equal("testpassword"))
@@ -96,7 +104,7 @@ func TestNewBitbucketServerBasicWithContext(t *testing.T) {
 
 func TestBitbucketServerApiPathNoContext(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", nil, "", nil, "dummyuser", "testpassword")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/scm/projectfoo/repobar.git", Token: "", Username: "dummyuser", Password: "testpassword"})
 	g.Expect(err).ToNot(HaveOccurred())
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
 	g.Expect(u).To(Equal("https://example.com:7990/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds"))
@@ -104,7 +112,7 @@ func TestBitbucketServerApiPathNoContext(t *testing.T) {
 
 func TestBitbucketServerApiPathOneWordContext(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context1/scm/projectfoo/repobar.git", nil, "", nil, "dummyuser", "testpassword")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/context1/scm/projectfoo/repobar.git", Token: "", Username: "dummyuser", Password: "testpassword"})
 	g.Expect(err).ToNot(HaveOccurred())
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
 	g.Expect(u).To(Equal("https://example.com:7990/context1/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds"))
@@ -112,7 +120,7 @@ func TestBitbucketServerApiPathOneWordContext(t *testing.T) {
 
 func TestBitbucketServerApiPathMultipleWordContext(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context1/context2/context3/scm/projectfoo/repobar.git", nil, "", nil, "dummyuser", "testpassword")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/context1/context2/context3/scm/projectfoo/repobar.git", Token: "", Username: "dummyuser", Password: "testpassword"})
 	g.Expect(err).ToNot(HaveOccurred())
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
 	g.Expect(u).To(Equal("https://example.com:7990/context1/context2/context3/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds"))
@@ -120,7 +128,7 @@ func TestBitbucketServerApiPathMultipleWordContext(t *testing.T) {
 
 func TestBitbucketServerApiPathOneWordScmInContext(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/scm/projectfoo/repobar.git", nil, "", nil, "dummyuser", "testpassword")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/scm/scm/projectfoo/repobar.git", Token: "", Username: "dummyuser", Password: "testpassword"})
 	g.Expect(err).ToNot(HaveOccurred())
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
 	g.Expect(u).To(Equal("https://example.com:7990/scm/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds"))
@@ -128,7 +136,7 @@ func TestBitbucketServerApiPathOneWordScmInContext(t *testing.T) {
 
 func TestBitbucketServerApiPathMultipleWordScmInContext(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/context2/scm/scm/projectfoo/repobar.git", nil, "", nil, "dummyuser", "testpassword")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/scm/context2/scm/scm/projectfoo/repobar.git", Token: "", Username: "dummyuser", Password: "testpassword"})
 	g.Expect(err).ToNot(HaveOccurred())
 	u := b.Url.JoinPath(b.createBuildPath("00151b98e303e19610378e6f1c49e31e5e80cd3b")).String()
 	g.Expect(u).To(Equal("https://example.com:7990/scm/context2/scm/rest/api/latest/projects/projectfoo/repos/repobar/commits/00151b98e303e19610378e6f1c49e31e5e80cd3b/builds"))
@@ -136,42 +144,42 @@ func TestBitbucketServerApiPathMultipleWordScmInContext(t *testing.T) {
 
 func TestBitbucketServerApiPathScmAlreadyRemovedInInput(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/context1/context2/context3/projectfoo/repobar.git", nil, "", nil, "dummyuser", "testpassword")
+	_, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/context1/context2/context3/projectfoo/repobar.git", Token: "", Username: "dummyuser", Password: "testpassword"})
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("could not parse git address: supplied provider address is not http(s) git clone url"))
 }
 
 func TestBitbucketServerSshAddress(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "ssh://git@mybitbucket:2222/ap/fluxcd-sandbox.git", nil, "", nil, "", "")
+	_, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "ssh://git@mybitbucket:2222/ap/fluxcd-sandbox.git", Token: "", Username: "", Password: ""})
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("could not parse git address: unsupported scheme type in address: ssh. Must be http or https"))
 }
 
 func TestNewBitbucketServerToken(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", nil, "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/scm/projectfoo/repobar.git", Token: "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", Username: "", Password: ""})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(b.Token).To(Equal("BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP"))
 }
 
 func TestNewBitbucketServerInvalidCreds(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", nil, "", nil, "", "")
+	_, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/scm/projectfoo/repobar.git", Token: "", Username: "", Password: ""})
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("invalid credentials, expected to be one of username/password or API Token"))
 }
 
 func TestNewBitbucketServerInvalidRepo(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar/invalid.git", nil, "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	_, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/scm/projectfoo/repobar/invalid.git", Token: "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", Username: "", Password: ""})
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("could not parse git address: invalid repository id \"projectfoo/repobar/invalid\""))
 }
 
 func TestPostBitbucketServerMissingRevision(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", nil, "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/scm/projectfoo/repobar.git", Token: "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", Username: "", Password: ""})
 	g.Expect(err).ToNot(HaveOccurred())
 
 	//Validate missing revision
@@ -184,7 +192,7 @@ func TestPostBitbucketServerMissingRevision(t *testing.T) {
 
 func TestNewBitbucketServerEmptyCommitStatus(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewBitbucketServer("", "https://example.com:7990/scm/projectfoo/repobar.git", nil, "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	_, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "", URL: "https://example.com:7990/scm/projectfoo/repobar.git", Token: "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", Username: "", Password: ""})
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(Equal("commit status cannot be empty"))
 }
@@ -213,7 +221,7 @@ func TestBitbucketServer_Post_UsesCommitStatusAsName(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	b, err := NewBitbucketServer(commitStatus, ts.URL+"/scm/projectfoo/repobar.git", nil, "token", nil, "", "")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: commitStatus, URL: ts.URL + "/scm/projectfoo/repobar.git", Token: "token", Username: "", Password: ""})
 	g.Expect(err).ToNot(HaveOccurred())
 
 	event := generateTestEventKustomization("info", map[string]string{
@@ -231,7 +239,7 @@ func TestBitbucketServer_Post_UsesCommitStatusAsName(t *testing.T) {
 
 func TestPostBitbucketServerBadCommitHash(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", nil, "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/scm/projectfoo/repobar.git", Token: "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", Username: "", Password: ""})
 	g.Expect(err).ToNot(HaveOccurred())
 
 	//Validate extract commit hash
@@ -245,7 +253,7 @@ func TestPostBitbucketServerBadCommitHash(t *testing.T) {
 
 func TestPostBitbucketServerBadBitbucketState(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucketServer("kustomization/gitops-system/0c9c2e41", "https://example.com:7990/scm/projectfoo/repobar.git", nil, "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", nil, "", "")
+	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/scm/projectfoo/repobar.git", Token: "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", Username: "", Password: ""})
 	g.Expect(err).ToNot(HaveOccurred())
 
 	//Validate conversion to bitbucket state
@@ -537,7 +545,7 @@ func TestBitBucketServerPostValidateRequest(t *testing.T) {
 				}
 			}))
 			defer ts.Close()
-			c, err := NewBitbucketServer(tt.commitStatus, ts.URL+"/scm/projectfoo/repobar.git", nil, tt.token, nil, tt.username, tt.password)
+			c, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: tt.commitStatus, URL: ts.URL + "/scm/projectfoo/repobar.git", Token: tt.token, Username: tt.username, Password: tt.password})
 			g.Expect(err).ToNot(HaveOccurred())
 			err = c.Post(context.TODO(), tt.event)
 			if tt.testFailReason == "" {

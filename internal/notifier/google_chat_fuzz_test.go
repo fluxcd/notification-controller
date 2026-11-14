@@ -41,7 +41,7 @@ func Fuzz_GoogleChat(f *testing.F) {
 		}))
 		defer ts.Close()
 
-		googlechat, err := NewGoogleChat(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, nil)
+		googlechat, err := NewGoogleChat(context.TODO(), &notifierOptions{URL: fmt.Sprintf("%s/%s", ts.URL, urlSuffix)})
 		if err != nil {
 			return
 		}

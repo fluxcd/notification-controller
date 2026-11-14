@@ -43,8 +43,9 @@ func TestSlack_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	slack, err := NewSlack(ts.URL, nil, "", nil, "", "test")
+	n, err := NewSlack(t.Context(), &notifierOptions{URL: ts.URL, Channel: "test"})
 	g.Expect(err).ToNot(HaveOccurred())
+	slack := n.(*Slack)
 
 	err = slack.Post(context.TODO(), testEvent())
 	g.Expect(err).ToNot(HaveOccurred())
@@ -119,8 +120,9 @@ func TestSlack_PostFieldsAreSorted(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	slack, err := NewSlack(ts.URL, nil, "", nil, "", "test")
+	n, err := NewSlack(t.Context(), &notifierOptions{URL: ts.URL, Channel: "test"})
 	g.Expect(err).ToNot(HaveOccurred())
+	slack := n.(*Slack)
 
 	event := testEvent()
 	event.Metadata = map[string]string{

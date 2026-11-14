@@ -48,11 +48,11 @@ func Fuzz_GitHub_Dispatch(f *testing.F) {
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&cert)
 
 		tlsConfig := &tls.Config{RootCAs: &cert}
-		dispatch, err := NewGitHubDispatch(context.TODO(),
-			WithGitHubAddress(fmt.Sprintf("%s/%s", ts.URL, urlSuffix)),
-			WithGitHubToken(token),
-			WithGitHubTLSConfig(tlsConfig),
-		)
+		dispatch, err := NewGitHubDispatch(context.TODO(), &notifierOptions{
+			URL:       fmt.Sprintf("%s/%s", ts.URL, urlSuffix),
+			Token:     token,
+			TLSConfig: tlsConfig,
+		})
 		if err != nil {
 			return
 		}

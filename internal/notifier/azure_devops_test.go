@@ -31,8 +31,13 @@ func TestNewAzureDevOpsBasic(t *testing.T) {
 	g := NewWithT(t)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	a, err := NewAzureDevOps(ctx, "kustomization/gitops-system/0c9c2e41", "https://dev.azure.com/foo/bar/_git/baz", "foo", nil, nil, "", "", "", nil, nil, nil, "")
+	n, err := NewAzureDevOps(ctx, &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          "https://dev.azure.com/foo/bar/_git/baz",
+		Token:        "foo",
+	})
 	g.Expect(err).ToNot(HaveOccurred())
+	a := n.(*AzureDevOps)
 	g.Expect(a.Project).To(Equal("bar"))
 	g.Expect(a.Repo).To(Equal("baz"))
 }
@@ -41,7 +46,11 @@ func TestNewAzureDevOpsInvalidUrl(t *testing.T) {
 	g := NewWithT(t)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	_, err := NewAzureDevOps(ctx, "kustomization/gitops-system/0c9c2e41", "https://dev.azure.com/foo/bar/baz", "foo", nil, nil, "", "", "", nil, nil, nil, "")
+	_, err := NewAzureDevOps(ctx, &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          "https://dev.azure.com/foo/bar/baz",
+		Token:        "foo",
+	})
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -49,7 +58,10 @@ func TestNewAzureDevOpsMissingToken(t *testing.T) {
 	g := NewWithT(t)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	_, err := NewAzureDevOps(ctx, "kustomization/gitops-system/0c9c2e41", "https://dev.azure.com/foo/bar/baz", "", nil, nil, "", "", "", nil, nil, nil, "")
+	_, err := NewAzureDevOps(ctx, &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          "https://dev.azure.com/foo/bar/baz",
+	})
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -57,7 +69,10 @@ func TestNewAzureDevOpsEmptyCommitStatus(t *testing.T) {
 	g := NewWithT(t)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
-	_, err := NewAzureDevOps(ctx, "", "https://dev.azure.com/foo/bar/_git/baz", "foo", nil, nil, "", "", "", nil, nil, nil, "")
+	_, err := NewAzureDevOps(ctx, &notifierOptions{
+		URL:   "https://dev.azure.com/foo/bar/_git/baz",
+		Token: "foo",
+	})
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -180,8 +195,13 @@ func TestAzureDevOps_Post(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
-			a, err := NewAzureDevOps(ctx, "kustomization/gitops-system/0c9c2e41", "https://example.com/foo/bar/_git/baz", "foo", nil, nil, "", "", "", nil, nil, nil, "")
+			n, err := NewAzureDevOps(ctx, &notifierOptions{
+				CommitStatus: "kustomization/gitops-system/0c9c2e41",
+				URL:          "https://example.com/foo/bar/_git/baz",
+				Token:        "foo",
+			})
 			fakeClient := &fakeDevOpsClient{}
+			a := n.(*AzureDevOps)
 			a.Client = fakeClient
 			g := NewWithT(t)
 			g.Expect(err).ToNot(HaveOccurred())

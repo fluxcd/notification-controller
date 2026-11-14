@@ -18,7 +18,6 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -40,24 +39,24 @@ type DataDog struct {
 // url: The DataDog API endpoint to use. Examples: https://api.datadoghq.com, https://api.datadoghq.eu, etc.
 // token: The DataDog API key (not the application key).
 // headers: A map of extra tags to add to the event
-func NewDataDog(address string, proxyUrl *url.URL, tlsConfig *tls.Config, token string) (*DataDog, error) {
+func NewDataDog(ctx context.Context, opts *notifierOptions) (Interface, error) {
 	conf := datadog.NewConfiguration()
 
-	if token == "" {
+	if opts.Token == "" {
 		return nil, fmt.Errorf("token cannot be empty")
 	}
 
-	baseUrl, err := url.Parse(address)
+	baseUrl, err := url.Parse(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse address %q: %w", address, err)
+		return nil, fmt.Errorf("failed to parse address %q: %w", opts.URL, err)
 	}
 
 	conf.Host = baseUrl.Host
 	conf.Scheme = baseUrl.Scheme
 
-	if proxyUrl != nil || tlsConfig != nil {
+	if opts.ProxyURL != nil || opts.TLSConfig != nil {
 		conf.HTTPClient = &http.Client{
-			Transport: newTransport(proxyUrl, tlsConfig),
+			Transport: newTransport(opts.ProxyURL, opts.TLSConfig),
 		}
 	}
 
@@ -67,7 +66,7 @@ func NewDataDog(address string, proxyUrl *url.URL, tlsConfig *tls.Config, token 
 	return &DataDog{
 		apiClient: apiClient,
 		eventsApi: eventsApi,
-		apiKey:    token,
+		apiKey:    opts.Token,
 	}, nil
 }
 

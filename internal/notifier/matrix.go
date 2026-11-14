@@ -29,18 +29,18 @@ type MatrixPayload struct {
 	MsgType string `json:"msgtype"`
 }
 
-func NewMatrix(serverURL string, proxyURL *url.URL, token, roomId string, tlsConfig *tls.Config) (*Matrix, error) {
-	_, err := url.ParseRequestURI(serverURL)
+func NewMatrix(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Matrix homeserver URL %s: '%w'", serverURL, err)
+		return nil, fmt.Errorf("invalid Matrix homeserver URL %s: '%w'", opts.URL, err)
 	}
 
 	return &Matrix{
-		URL:       serverURL,
-		RoomId:    roomId,
-		Token:     token,
-		TLSConfig: tlsConfig,
-		ProxyURL:  proxyURL,
+		URL:       opts.URL,
+		RoomId:    opts.Channel,
+		Token:     opts.Token,
+		TLSConfig: opts.TLSConfig,
+		ProxyURL:  opts.ProxyURL,
 	}, nil
 }
 

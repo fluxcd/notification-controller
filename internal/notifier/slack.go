@@ -70,19 +70,19 @@ type SlackField struct {
 }
 
 // NewSlack validates the Slack URL and returns a Slack object
-func NewSlack(hookURL string, proxyURL *url.URL, token string, tlsConfig *tls.Config, username string, channel string) (*Slack, error) {
-	_, err := url.ParseRequestURI(hookURL)
+func NewSlack(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Slack hook URL %s: '%w'", hookURL, err)
+		return nil, fmt.Errorf("invalid Slack hook URL %s: '%w'", opts.URL, err)
 	}
 
 	return &Slack{
-		Channel:   channel,
-		Username:  username,
-		URL:       hookURL,
-		ProxyURL:  proxyURL,
-		Token:     token,
-		TLSConfig: tlsConfig,
+		Channel:   opts.Channel,
+		Username:  opts.Username,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
+		Token:     opts.Token,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 

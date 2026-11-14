@@ -41,8 +41,9 @@ func TestRocket_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	rocket, err := NewRocket(ts.URL, nil, nil, "test", "test")
+	n, err := NewRocket(t.Context(), &notifierOptions{URL: ts.URL, Username: "test", Channel: "test"})
 	g.Expect(err).ToNot(HaveOccurred())
+	rocket := n.(*Rocket)
 
 	err = rocket.Post(context.TODO(), testEvent())
 	g.Expect(err).ToNot(HaveOccurred())
@@ -62,8 +63,9 @@ func TestRocket_PostWithoutChannelOrUser(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	rocket, err := NewRocket(ts.URL, nil, nil, "", "")
+	n, err := NewRocket(t.Context(), &notifierOptions{URL: ts.URL})
 	g.Expect(err).ToNot(HaveOccurred())
+	rocket := n.(*Rocket)
 
 	err = rocket.Post(context.TODO(), testEvent())
 	g.Expect(err).ToNot(HaveOccurred())

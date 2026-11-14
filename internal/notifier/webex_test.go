@@ -39,8 +39,9 @@ func TestWebex_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	webex, err := NewWebex(ts.URL, nil, nil, "room", "token")
+	n, err := NewWebex(t.Context(), &notifierOptions{URL: ts.URL, Channel: "room", Token: "token"})
 	g.Expect(err).ToNot(HaveOccurred())
+	webex := n.(*Webex)
 
 	err = webex.Post(context.TODO(), testEvent())
 	g.Expect(err).ToNot(HaveOccurred())

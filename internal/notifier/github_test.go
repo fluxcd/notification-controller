@@ -44,7 +44,7 @@ import (
 
 func TestGitHubWrappedErrors(t *testing.T) {
 	postStatus := func(ctx context.Context, address string) error {
-		n, err := NewGitHub(ctx, "test-status", WithGitHubAddress(address), WithGitHubToken("test-token"))
+		n, err := NewGitHub(ctx, &notifierOptions{CommitStatus: "test-status", URL: address, Token: "test-token"})
 		if err != nil {
 			return err
 		}
@@ -62,8 +62,7 @@ func TestGitHubWrappedErrors(t *testing.T) {
 			name:   "authenticated user",
 			method: http.MethodGet,
 			call: func(ctx context.Context, address string) error {
-				_, err := NewGitHubClient(ctx, WithGitHubAddress(address),
-					WithGitHubToken("test-token"), WithGitHubFetchUserLogin())
+				_, err := NewGitHubClient(ctx, &notifierOptions{URL: address, Token: "test-token"}, true)
 				return err
 			},
 			prefix: "failed to get authenticated user info:",
@@ -84,7 +83,7 @@ func TestGitHubWrappedErrors(t *testing.T) {
 			name:   "repository dispatch",
 			method: http.MethodPost,
 			call: func(ctx context.Context, address string) error {
-				n, err := NewGitHubDispatch(ctx, WithGitHubAddress(address), WithGitHubToken("test-token"))
+				n, err := NewGitHubDispatch(ctx, &notifierOptions{URL: address, Token: "test-token"})
 				if err != nil {
 					return err
 				}
@@ -175,11 +174,13 @@ func TestCreateGitHubClientProxyAndTLS(t *testing.T) {
 
 func TestNewGitHubBasic(t *testing.T) {
 	gm := NewWithT(t)
-	g, err := NewGitHub(context.Background(), "kustomization/gitops-system/0c9c2e41",
-		WithGitHubAddress("https://github.com/foo/bar"),
-		WithGitHubToken("foobar"),
-	)
+	n, err := NewGitHub(context.Background(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          "https://github.com/foo/bar",
+		Token:        "foobar",
+	})
 	gm.Expect(err).ToNot(HaveOccurred())
+	g := n.(*GitHub)
 	gm.Expect(g.Owner).To(Equal("foo"))
 	gm.Expect(g.Repo).To(Equal("bar"))
 	gm.Expect(g.Client.BaseURL()).To(HavePrefix("https://api.github.com/"))
@@ -188,11 +189,13 @@ func TestNewGitHubBasic(t *testing.T) {
 
 func TestNewEmterpriseGitHubBasic(t *testing.T) {
 	gm := NewWithT(t)
-	g, err := NewGitHub(context.Background(), "kustomization/gitops-system/0c9c2e41",
-		WithGitHubAddress("https://foobar.com/foo/bar"),
-		WithGitHubToken("foobar"),
-	)
+	n, err := NewGitHub(context.Background(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          "https://foobar.com/foo/bar",
+		Token:        "foobar",
+	})
 	gm.Expect(err).ToNot(HaveOccurred())
+	g := n.(*GitHub)
 	gm.Expect(g.Owner).To(Equal("foo"))
 	gm.Expect(g.Repo).To(Equal("bar"))
 	gm.Expect(g.Client.BaseURL()).To(HavePrefix("https://foobar.com/"))
@@ -201,27 +204,29 @@ func TestNewEmterpriseGitHubBasic(t *testing.T) {
 
 func TestNewGitHubInvalidUrl(t *testing.T) {
 	gm := NewWithT(t)
-	_, err := NewGitHub(context.Background(), "kustomization/gitops-system/0c9c2e41",
-		WithGitHubAddress("https://github.com/foo/bar/baz"),
-		WithGitHubToken("foobar"),
-	)
+	_, err := NewGitHub(context.Background(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          "https://github.com/foo/bar/baz",
+		Token:        "foobar",
+	})
 	gm.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitHubEmptyToken(t *testing.T) {
 	gm := NewWithT(t)
-	_, err := NewGitHub(context.Background(), "kustomization/gitops-system/0c9c2e41",
-		WithGitHubAddress("https://github.com/foo/bar"),
-	)
+	_, err := NewGitHub(context.Background(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          "https://github.com/foo/bar",
+	})
 	gm.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitHubEmptyCommitStatus(t *testing.T) {
 	gm := NewWithT(t)
-	_, err := NewGitHub(context.Background(), "",
-		WithGitHubAddress("https://github.com/foo/bar"),
-		WithGitHubToken("foobar"),
-	)
+	_, err := NewGitHub(context.Background(), &notifierOptions{
+		URL:   "https://github.com/foo/bar",
+		Token: "foobar",
+	})
 	gm.Expect(err).To(HaveOccurred())
 }
 
@@ -296,11 +301,13 @@ func TestNewGithubProvider(t *testing.T) {
 			if len(tt.secretData) > 0 {
 				tt.secretData["githubAppBaseURL"] = []byte(srv.URL)
 			}
-			_, err := NewGitHub(context.Background(), "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-				WithGitHubAddress("https://github.com/foo/bar"),
-				WithGitHubProvider("foo", "bar"),
-				WithGitHubSecretData(tt.secretData),
-			)
+			_, err := NewGitHub(context.Background(), &notifierOptions{
+				CommitStatus:      "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+				URL:               "https://github.com/foo/bar",
+				ProviderName:      "foo",
+				ProviderNamespace: "bar",
+				SecretData:        tt.secretData,
+			})
 			if tt.wantErr != nil {
 				gm.Expect(err).To(HaveOccurred())
 				gm.Expect(err).To(Equal(tt.wantErr))

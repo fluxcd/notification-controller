@@ -46,19 +46,19 @@ type GraphitePayload struct {
 }
 
 // NewGrafana validates the Grafana URL and returns a Grafana object
-func NewGrafana(URL string, proxyURL *url.URL, token string, tlsConfig *tls.Config, username string, password string) (*Grafana, error) {
-	_, err := url.ParseRequestURI(URL)
+func NewGrafana(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Grafana URL %s", URL)
+		return nil, fmt.Errorf("invalid Grafana URL %s", opts.URL)
 	}
 
 	return &Grafana{
-		URL:       URL,
-		ProxyURL:  proxyURL,
-		Token:     token,
-		Username:  username,
-		Password:  password,
-		TLSConfig: tlsConfig,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
+		Token:     opts.Token,
+		Username:  opts.Username,
+		Password:  opts.Password,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 

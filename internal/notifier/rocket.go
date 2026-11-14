@@ -38,18 +38,18 @@ type Rocket struct {
 }
 
 // NewRocket validates the Rocket URL and returns a Rocket object
-func NewRocket(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config, username string, channel string) (*Rocket, error) {
-	_, err := url.ParseRequestURI(hookURL)
+func NewRocket(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Rocket hook URL %s: '%w'", hookURL, err)
+		return nil, fmt.Errorf("invalid Rocket hook URL %s: '%w'", opts.URL, err)
 	}
 
 	return &Rocket{
-		Channel:   channel,
-		URL:       hookURL,
-		ProxyURL:  proxyURL,
-		Username:  username,
-		TLSConfig: tlsConfig,
+		Channel:   opts.Channel,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
+		Username:  opts.Username,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 

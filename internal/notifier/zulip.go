@@ -36,29 +36,29 @@ type Zulip struct {
 	password  string
 }
 
-func NewZulip(endpoint, channel string, proxyURL *url.URL, tlsConfig *tls.Config, username, password string) (*Zulip, error) {
-	u, err := url.Parse(endpoint)
+func NewZulip(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	u, err := url.Parse(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Zulip endpoint URL: %w", err)
 	}
 	u.Path = "/api/v1/messages"
-	endpoint = u.String()
+	endpoint := u.String()
 
-	s := strings.SplitN(channel, "/", 2)
+	s := strings.SplitN(opts.Channel, "/", 2)
 	if len(s) != 2 || s[0] == "" || s[1] == "" {
-		return nil, fmt.Errorf("invalid Zulip channel format, expected <channel>/<topic>, got '%s'", channel)
+		return nil, fmt.Errorf("invalid Zulip channel format, expected <channel>/<topic>, got '%s'", opts.Channel)
 	}
-	channel = s[0]
+	channel := s[0]
 	topic := s[1]
 
 	return &Zulip{
 		endpoint:  endpoint,
 		channel:   channel,
 		topic:     topic,
-		proxyURL:  proxyURL,
-		tlsConfig: tlsConfig,
-		username:  username,
-		password:  password,
+		proxyURL:  opts.ProxyURL,
+		tlsConfig: opts.TLSConfig,
+		username:  opts.Username,
+		password:  opts.Password,
 	}, nil
 }
 

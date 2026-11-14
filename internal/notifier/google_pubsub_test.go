@@ -49,7 +49,7 @@ func TestNewGooglePubSub(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			provider, err := NewGooglePubSub(&notifierOptions{
+			provider, err := NewGooglePubSub(t.Context(), &notifierOptions{
 				URL:     tt.projectID,
 				Channel: tt.topicID,
 			})

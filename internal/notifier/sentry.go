@@ -18,9 +18,7 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
-	"net/url"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/getsentry/sentry-go"
@@ -32,15 +30,15 @@ type Sentry struct {
 }
 
 // NewSentry creates a Sentry client from the provided Data Source Name (DSN)
-func NewSentry(dsn string, proxyURL *url.URL, tlsConfig *tls.Config, environment string) (*Sentry, error) {
-	if dsn == "" {
+func NewSentry(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	if opts.URL == "" {
 		return nil, fmt.Errorf("DSN cannot be empty")
 	}
 
 	client, err := sentry.NewClient(sentry.ClientOptions{
-		Dsn:              dsn,
-		Environment:      environment,
-		HTTPTransport:    newTransport(proxyURL, tlsConfig),
+		Dsn:              opts.URL,
+		Environment:      opts.Channel,
+		HTTPTransport:    newTransport(opts.ProxyURL, opts.TLSConfig),
 		TracesSampleRate: 1,
 	})
 	if err != nil {

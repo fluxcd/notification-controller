@@ -51,11 +51,13 @@ func TestNewGitHubPullRequestCommentBasic(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(handler))
 	t.Cleanup(srv.Close)
 
-	gh, err := NewGitHubPullRequestComment(context.Background(), "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-		WithGitHubAddress(srv.URL+"/foo/bar"),
-		WithGitHubToken("foobar"),
-	)
+	n, err := NewGitHubPullRequestComment(context.Background(), &notifierOptions{
+		ProviderUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		URL:         srv.URL + "/foo/bar",
+		Token:       "foobar",
+	})
 	g.Expect(err).ToNot(HaveOccurred())
+	gh := n.(*GitHubPullRequestComment)
 	g.Expect(gh.Owner).To(Equal("foo"))
 	g.Expect(gh.Repo).To(Equal("bar"))
 	g.Expect(gh.ProviderUID).To(Equal("0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a"))
@@ -64,27 +66,29 @@ func TestNewGitHubPullRequestCommentBasic(t *testing.T) {
 
 func TestNewGitHubPullRequestCommentInvalidUrl(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitHubPullRequestComment(context.Background(), "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-		WithGitHubAddress("https://github.com/foo/bar/baz"),
-		WithGitHubToken("foobar"),
-	)
+	_, err := NewGitHubPullRequestComment(context.Background(), &notifierOptions{
+		ProviderUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		URL:         "https://github.com/foo/bar/baz",
+		Token:       "foobar",
+	})
 	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitHubPullRequestCommentEmptyToken(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitHubPullRequestComment(context.Background(), "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-		WithGitHubAddress("https://github.com/foo/bar"),
-	)
+	_, err := NewGitHubPullRequestComment(context.Background(), &notifierOptions{
+		ProviderUID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+		URL:         "https://github.com/foo/bar",
+	})
 	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitHubPullRequestCommentEmptyProviderUID(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitHubPullRequestComment(context.Background(), "",
-		WithGitHubAddress("https://github.com/foo/bar"),
-		WithGitHubToken("foobar"),
-	)
+	_, err := NewGitHubPullRequestComment(context.Background(), &notifierOptions{
+		URL:   "https://github.com/foo/bar",
+		Token: "foobar",
+	})
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -164,11 +168,13 @@ func TestNewGitHubPullRequestCommentProvider(t *testing.T) {
 				tt.secretData["githubAppBaseURL"] = []byte(srv.URL)
 			}
 			g := NewWithT(t)
-			_, err := NewGitHubPullRequestComment(context.Background(), "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-				WithGitHubAddress("https://github.com/foo/bar"),
-				WithGitHubProvider("foo", "bar"),
-				WithGitHubSecretData(tt.secretData),
-			)
+			_, err := NewGitHubPullRequestComment(context.Background(), &notifierOptions{
+				ProviderUID:       "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
+				URL:               "https://github.com/foo/bar",
+				ProviderName:      "foo",
+				ProviderNamespace: "bar",
+				SecretData:        tt.secretData,
+			})
 			if tt.wantErr != nil {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err).To(Equal(tt.wantErr))
@@ -274,8 +280,8 @@ func TestGitHubPullRequestCommentPagination(t *testing.T) {
 				_, _ = fmt.Fprint(w, `{}`)
 			}))
 			t.Cleanup(srv.Close)
-			n, err := NewFactory(context.Background(), WithURL(srv.URL+"/foo/bar"),
-				WithToken("token"), WithProviderUID("provider"), WithChangeRequestComment(tt.config)).Notifier(apiv1.GitHubPullRequestCommentProvider)
+			n, err := New(context.Background(), apiv1.GitHubPullRequestCommentProvider, WithURL(srv.URL+"/foo/bar"),
+				WithToken("token"), WithProviderUID("provider"), WithChangeRequestComment(tt.config))
 			g.Expect(err).NotTo(HaveOccurred())
 			err = n.Post(ctx, event)
 			if tt.cancelPage != 0 {

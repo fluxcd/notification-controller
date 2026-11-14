@@ -20,19 +20,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/url"
 	"os"
 	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	eventhub "github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/auth/azure"
-	"github.com/fluxcd/pkg/cache"
-	fluxbroker "github.com/fluxcd/pkg/spiffe/brokerapi"
 )
 
 // AzureEventHub holds the eventhub client
@@ -41,29 +37,27 @@ type AzureEventHub struct {
 }
 
 // NewAzureEventHub creates a eventhub client
-func NewAzureEventHub(ctx context.Context, endpointURL, token, eventHubNamespace string, proxy *url.URL,
-	serviceAccountName, providerName, providerNamespace string, tokenClient client.Client,
-	tokenCache *cache.TokenCache, spiffeBroker fluxbroker.Interface, defaultServiceAccount string) (*AzureEventHub, error) {
+func NewAzureEventHub(ctx context.Context, opts *notifierOptions) (Interface, error) {
 	var producerClient *eventhub.ProducerClient
 	var err error
 
-	if err := validateAuthOptions(endpointURL, token, serviceAccountName); err != nil {
+	if err := validateAuthOptions(opts.URL, opts.Token, opts.ServiceAccountName); err != nil {
 		return nil, fmt.Errorf("invalid authentication options: %w", err)
 	}
 
-	if isSASAuth(endpointURL) {
-		producerClient, err = newSASHub(endpointURL)
+	if isSASAuth(opts.URL) {
+		producerClient, err = newSASHub(opts.URL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create a eventhub using SAS: %w", err)
 		}
 	} else {
-		accessToken, err := newManagedIdentityToken(ctx, proxy, serviceAccountName,
-			defaultServiceAccount, providerName,
-			providerNamespace, azure.ScopeEventHubs, tokenClient, tokenCache, spiffeBroker)
+		accessToken, err := newManagedIdentityToken(ctx, opts.ProxyURL, opts.ServiceAccountName,
+			opts.DefaultServiceAccount, opts.ProviderName,
+			opts.ProviderNamespace, azure.ScopeEventHubs, opts.TokenClient, opts.TokenCache, opts.SPIFFEBroker)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create a eventhub using managed identity: %w", err)
 		}
-		producerClient, err = newJWTHub(endpointURL, accessToken, eventHubNamespace)
+		producerClient, err = newJWTHub(opts.URL, accessToken, opts.Channel)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create a eventhub using authentication token: %w", err)
 		}

@@ -47,7 +47,7 @@ var _ Interface = &GooglePubSub{}
 
 // NewGooglePubSub creates a Google Pub/Sub client tied to a specific
 // project and topic using the provided client options.
-func NewGooglePubSub(opts *notifierOptions) (*GooglePubSub, error) {
+func NewGooglePubSub(ctx context.Context, opts *notifierOptions) (Interface, error) {
 	if opts.URL == "" {
 		return nil, errors.New("GCP project ID cannot be empty")
 	}

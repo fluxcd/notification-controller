@@ -47,7 +47,19 @@ func Fuzz_Forwarder(f *testing.F) {
 		header := make(map[string]string)
 		_ = fuzz.NewConsumer(seed).FuzzMap(&header)
 
-		forwarder, err := NewForwarder(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, header, &tlsConfig, hmacKey)
+		opts := &notifierOptions{
+			URL:       fmt.Sprintf("%s/%s", ts.URL, urlSuffix),
+			Headers:   header,
+			TLSConfig: &tlsConfig,
+		}
+		var forwarder Interface
+		var err error
+		if hmacKey == nil {
+			forwarder, err = NewGeneric(context.TODO(), opts)
+		} else {
+			opts.Token = string(hmacKey)
+			forwarder, err = NewGenericHMAC(context.TODO(), opts)
+		}
 		if err != nil {
 			return
 		}

@@ -63,8 +63,9 @@ func TestOpsgenie_Post(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			opsgenie, err := NewOpsgenie(ts.URL, nil, nil, "token", "")
+			n, err := NewOpsgenie(t.Context(), &notifierOptions{URL: ts.URL, Token: "token"})
 			g.Expect(err).ToNot(HaveOccurred())
+			opsgenie := n.(*Opsgenie)
 
 			err = opsgenie.Post(context.TODO(), tt.event())
 			g.Expect(err).ToNot(HaveOccurred())
@@ -142,8 +143,9 @@ func TestOpsgenie_PostAlias(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			opsgenie, err := NewOpsgenie(ts.URL, nil, nil, "token", providerUID)
+			n, err := NewOpsgenie(t.Context(), &notifierOptions{URL: ts.URL, Token: "token", ProviderUID: providerUID})
 			g.Expect(err).ToNot(HaveOccurred())
+			opsgenie := n.(*Opsgenie)
 
 			err = opsgenie.Post(context.TODO(), tt.event())
 			g.Expect(err).ToNot(HaveOccurred())

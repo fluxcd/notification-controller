@@ -14,7 +14,7 @@ import (
 func TestNewLarkInvalidURL(t *testing.T) {
 	g := NewWithT(t)
 	const address = "https://example.com/private%zz"
-	_, err := NewLark(address, nil, nil)
+	_, err := NewLark(t.Context(), &notifierOptions{URL: address})
 	g.Expect(err).To(MatchError("invalid Lark hook URL " + address))
 }
 
@@ -32,8 +32,9 @@ func TestLark_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	lark, err := NewLark(ts.URL, nil, nil)
+	n, err := NewLark(t.Context(), &notifierOptions{URL: ts.URL})
 	g.Expect(err).ToNot(HaveOccurred())
+	lark := n.(*Lark)
 
 	err = lark.Post(context.TODO(), testEvent())
 	g.Expect(err).ToNot(HaveOccurred())

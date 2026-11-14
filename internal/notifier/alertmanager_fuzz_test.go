@@ -46,7 +46,10 @@ func Fuzz_AlertManager(f *testing.F) {
 		var tlsConfig tls.Config
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		alertmanager, err := NewAlertmanager(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, &tlsConfig, "", "", "")
+		alertmanager, err := NewAlertManager(context.TODO(), &notifierOptions{
+			URL:       fmt.Sprintf("%s/%s", ts.URL, urlSuffix),
+			TLSConfig: &tlsConfig,
+		})
 		if err != nil {
 			return
 		}

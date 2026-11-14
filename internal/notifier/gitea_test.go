@@ -80,8 +80,8 @@ func TestGiteaProviderContext(t *testing.T) {
 				if stage == "user" {
 					providerType = apiv1.GiteaPullRequestCommentProvider
 				}
-				n, err := NewFactory(ctx, WithURL(server.URL+"/foo/bar"), WithToken("token"),
-					WithCommitStatus("status"), WithProviderUID("provider")).Notifier(providerType)
+				n, err := New(ctx, providerType, WithURL(server.URL+"/foo/bar"), WithToken("token"),
+					WithCommitStatus("status"), WithProviderUID("provider"))
 				if err == nil && (stage == "list" || stage == "create") {
 					event := testEvent()
 					event.Metadata[eventv1.MetaRevisionKey] = "main@sha1:69b59063470310ebbd88a9156325322a124e55a3"
@@ -131,35 +131,15 @@ func TestNewGiteaBasic(t *testing.T) {
 	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
-	gitea, err := NewGitea("kustomization/gitops-system/0c9c2e41",
-		WithGiteaAddress(srv.URL+"/foo/bar"),
-		WithGiteaToken("foobar"),
-	)
+	n, err := NewGitea(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          srv.URL + "/foo/bar",
+		Token:        "foobar",
+	})
 	gomega.Expect(err).ToNot(HaveOccurred())
+	gitea := n.(*Gitea)
 	gomega.Expect(gitea.Owner).To(Equal("foo"))
 	gomega.Expect(gitea.Repo).To(Equal("bar"))
-}
-
-func TestNewGiteaNilContext(t *testing.T) {
-	for _, tt := range []struct {
-		name string
-		opts []GiteaClientOption
-	}{
-		{name: "explicit nil", opts: []GiteaClientOption{WithGiteaContext(nil)}},
-		{name: "unset factory context", opts: (&notifierOptions{}).GiteaClientOptions()},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-			server := newTestHTTPServer(t)
-			defer server.Close()
-			opts := append(tt.opts, WithGiteaAddress(server.URL+"/foo/bar"), WithGiteaToken("token"))
-			n, err := NewGitea("status", opts...)
-			g.Expect(err).ToNot(HaveOccurred())
-			event := testEvent()
-			event.Metadata[eventv1.MetaRevisionKey] = "main@sha1:69b59063470310ebbd88a9156325322a124e55a3"
-			g.Expect(n.Post(t.Context(), event)).To(Succeed())
-		})
-	}
 }
 
 func TestNewGiteaWithCertPool(t *testing.T) {
@@ -171,12 +151,14 @@ func TestNewGiteaWithCertPool(t *testing.T) {
 	certPool.AddCert(srv.Certificate())
 	tlsConfig := &tls.Config{RootCAs: certPool}
 
-	gitea, err := NewGitea("kustomization/gitops-system/0c9c2e41",
-		WithGiteaAddress(srv.URL+"/foo/bar"),
-		WithGiteaToken("foobar"),
-		WithGiteaTLSConfig(tlsConfig),
-	)
+	n, err := NewGitea(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          srv.URL + "/foo/bar",
+		Token:        "foobar",
+		TLSConfig:    tlsConfig,
+	})
 	gomega.Expect(err).ToNot(HaveOccurred())
+	gitea := n.(*Gitea)
 	gomega.Expect(gitea.Owner).To(Equal("foo"))
 	gomega.Expect(gitea.Repo).To(Equal("bar"))
 }
@@ -189,11 +171,12 @@ func TestNewGiteaNoCertificate(t *testing.T) {
 	certPool := x509.NewCertPool()
 	tlsConfig := &tls.Config{RootCAs: certPool}
 
-	_, err := NewGitea("kustomization/gitops-system/0c9c2e41",
-		WithGiteaAddress(srv.URL+"/foo/bar"),
-		WithGiteaToken("foobar"),
-		WithGiteaTLSConfig(tlsConfig),
-	)
+	_, err := NewGitea(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          srv.URL + "/foo/bar",
+		Token:        "foobar",
+		TLSConfig:    tlsConfig,
+	})
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err).To(MatchError(ContainSubstring("tls: failed to verify certificate: x509: certificate signed by unknown authority")))
 }
@@ -205,12 +188,14 @@ func TestNewGiteaWithProxyURL(t *testing.T) {
 	proxyAddr, _ := testproxy.New(t)
 	proxyURL := fmt.Sprintf("http://%s", proxyAddr)
 
-	gitea, err := NewGitea("kustomization/gitops-system/0c9c2e41",
-		WithGiteaAddress(srv.URL+"/foo/bar"),
-		WithGiteaToken("foobar"),
-		WithGiteaProxyURL(parseProxyURL(t, proxyURL)),
-	)
+	n, err := NewGitea(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          srv.URL + "/foo/bar",
+		Token:        "foobar",
+		ProxyURL:     parseProxyURL(t, proxyURL),
+	})
 	gomega.Expect(err).ToNot(HaveOccurred())
+	gitea := n.(*Gitea)
 	gomega.Expect(gitea.Owner).To(Equal("foo"))
 	gomega.Expect(gitea.Repo).To(Equal("bar"))
 }
@@ -227,13 +212,15 @@ func TestNewGiteaWithProxyURLAndCertPool(t *testing.T) {
 	proxyAddr, _ := testproxy.New(t)
 	proxyURL := fmt.Sprintf("http://%s", proxyAddr)
 
-	gitea, err := NewGitea("kustomization/gitops-system/0c9c2e41",
-		WithGiteaAddress(srv.URL+"/foo/bar"),
-		WithGiteaToken("foobar"),
-		WithGiteaProxyURL(parseProxyURL(t, proxyURL)),
-		WithGiteaTLSConfig(tlsConfig),
-	)
+	n, err := NewGitea(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          srv.URL + "/foo/bar",
+		Token:        "foobar",
+		ProxyURL:     parseProxyURL(t, proxyURL),
+		TLSConfig:    tlsConfig,
+	})
 	gomega.Expect(err).ToNot(HaveOccurred())
+	gitea := n.(*Gitea)
 	gomega.Expect(gitea.Owner).To(Equal("foo"))
 	gomega.Expect(gitea.Repo).To(Equal("bar"))
 }
@@ -243,10 +230,11 @@ func TestNewGiteaInvalidUrl(t *testing.T) {
 	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
-	_, err := NewGitea("kustomization/gitops-system/0c9c2e41",
-		WithGiteaAddress(srv.URL+"/foo/bar/baz"),
-		WithGiteaToken("foobar"),
-	)
+	_, err := NewGitea(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          srv.URL + "/foo/bar/baz",
+		Token:        "foobar",
+	})
 	g.Expect(err).To(MatchError(ContainSubstring("invalid repository id")))
 }
 
@@ -255,9 +243,10 @@ func TestNewGiteaEmptyToken(t *testing.T) {
 	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
-	_, err := NewGitea("kustomization/gitops-system/0c9c2e41",
-		WithGiteaAddress(srv.URL+"/foo/bar"),
-	)
+	_, err := NewGitea(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          srv.URL + "/foo/bar",
+	})
 	g.Expect(err).To(MatchError(ContainSubstring("gitea token cannot be empty")))
 }
 
@@ -266,10 +255,10 @@ func TestNewGiteaEmptyCommitStatus(t *testing.T) {
 	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
-	_, err := NewGitea("",
-		WithGiteaAddress(srv.URL+"/foo/bar"),
-		WithGiteaToken("foobar"),
-	)
+	_, err := NewGitea(t.Context(), &notifierOptions{
+		URL:   srv.URL + "/foo/bar",
+		Token: "foobar",
+	})
 	g.Expect(err).To(MatchError(ContainSubstring("commit status cannot be empty")))
 }
 
@@ -278,11 +267,13 @@ func TestGitea_Post(t *testing.T) {
 	srv := newTestHTTPServer(t)
 	defer srv.Close()
 
-	gitea, err := NewGitea("kustomization/gitops-system/0c9c2e41",
-		WithGiteaAddress(srv.URL+"/foo/bar"),
-		WithGiteaToken("foobar"),
-	)
+	n, err := NewGitea(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          srv.URL + "/foo/bar",
+		Token:        "foobar",
+	})
 	gomega.Expect(err).ToNot(HaveOccurred())
+	gitea := n.(*Gitea)
 
 	for _, tt := range []struct {
 		name  string

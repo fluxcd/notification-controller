@@ -122,17 +122,17 @@ type msAdaptiveCardFact struct {
 }
 
 // NewMSTeams validates the MS Teams URL and returns a MSTeams object
-func NewMSTeams(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config) (*MSTeams, error) {
-	u, err := url.ParseRequestURI(hookURL)
+func NewMSTeams(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	u, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid MS Teams webhook URL %s: '%w'", hookURL, err)
+		return nil, fmt.Errorf("invalid MS Teams webhook URL %s: '%w'", opts.URL, err)
 	}
 
 	provider := &MSTeams{
-		URL:       hookURL,
-		ProxyURL:  proxyURL,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
 		Schema:    msTeamsSchemaAdaptiveCard,
-		TLSConfig: tlsConfig,
+		TLSConfig: opts.TLSConfig,
 	}
 
 	// Check if the webhook URL is the deprecated connector and update the schema accordingly.

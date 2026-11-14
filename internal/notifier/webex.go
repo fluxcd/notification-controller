@@ -64,19 +64,18 @@ type WebexPayload struct {
 }
 
 // NewWebex validates the Webex URL and returns a Webex object
-func NewWebex(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config, channel string, token string) (*Webex, error) {
-
-	_, err := url.ParseRequestURI(hookURL)
+func NewWebex(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Webex hook URL %s: '%w'", hookURL, err)
+		return nil, fmt.Errorf("invalid Webex hook URL %s: '%w'", opts.URL, err)
 	}
 
 	return &Webex{
-		URL:       hookURL,
-		ProxyURL:  proxyURL,
-		RoomId:    channel,
-		Token:     token,
-		TLSConfig: tlsConfig,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
+		RoomId:    opts.Channel,
+		Token:     opts.Token,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 
