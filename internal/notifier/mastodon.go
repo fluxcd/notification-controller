@@ -62,7 +62,7 @@ type MastodonPayload struct {
 // object. The address may be the server root URL, in which case the
 // statuses API path is appended. The event key is the identity of the
 // event computed by the event server and is sent as the Idempotency-Key.
-func NewMastodon(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewMastodon(_ context.Context, opts *notifierOptions) (Interface, error) {
 	u, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Mastodon server URL %s: '%w'", opts.URL, err)

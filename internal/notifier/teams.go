@@ -122,7 +122,7 @@ type msAdaptiveCardFact struct {
 }
 
 // NewMSTeams validates the MS Teams URL and returns a MSTeams object
-func NewMSTeams(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewMSTeams(_ context.Context, opts *notifierOptions) (Interface, error) {
 	u, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid MS Teams webhook URL %s: '%w'", opts.URL, err)

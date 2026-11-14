@@ -44,11 +44,11 @@ type Forwarder struct {
 	HMACKey   []byte
 }
 
-func NewGeneric(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewGeneric(_ context.Context, opts *notifierOptions) (Interface, error) {
 	return newForwarder(opts, nil)
 }
 
-func NewGenericHMAC(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewGenericHMAC(_ context.Context, opts *notifierOptions) (Interface, error) {
 	return newForwarder(opts, []byte(opts.Token))
 }
 

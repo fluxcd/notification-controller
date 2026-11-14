@@ -37,7 +37,7 @@ type GitLabMergeRequestComment struct {
 	MaxPages  int
 }
 
-func NewGitLabMergeRequestComment(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewGitLabMergeRequestComment(_ context.Context, opts *notifierOptions) (Interface, error) {
 	if opts.ProviderUID == "" {
 		return nil, errors.New("provider UID cannot be empty")
 	}

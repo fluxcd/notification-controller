@@ -71,7 +71,7 @@ type ZoomField struct {
 }
 
 // NewZoom validates the Zoom incoming webhook URL and returns a Zoom object
-func NewZoom(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewZoom(_ context.Context, opts *notifierOptions) (Interface, error) {
 	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Zoom incoming webhook URL %s: '%w'", opts.URL, err)

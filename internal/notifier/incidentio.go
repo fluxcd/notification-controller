@@ -51,7 +51,7 @@ type IncidentioPayload struct {
 
 // NewIncidentio validates the alert source endpoint URL and token
 // and returns an Incidentio object.
-func NewIncidentio(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewIncidentio(_ context.Context, opts *notifierOptions) (Interface, error) {
 	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid incident.io alert source URL %s: '%w'", opts.URL, err)

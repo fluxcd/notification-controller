@@ -43,7 +43,7 @@ type OpsgenieAlert struct {
 	Details     map[string]string `json:"details"`
 }
 
-func NewOpsgenie(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewOpsgenie(_ context.Context, opts *notifierOptions) (Interface, error) {
 	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Opsgenie hook URL %s: '%w'", opts.URL, err)

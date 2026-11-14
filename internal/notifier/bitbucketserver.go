@@ -79,7 +79,7 @@ type bbServerBuildStatusSetRequest struct {
 }
 
 // NewBitbucketServer creates and returns a new BitbucketServer notifier.
-func NewBitbucketServer(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewBitbucketServer(_ context.Context, opts *notifierOptions) (Interface, error) {
 	url, err := parseBitbucketServerGitAddress(opts.URL)
 	if err != nil {
 		return nil, err

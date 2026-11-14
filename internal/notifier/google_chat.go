@@ -77,7 +77,7 @@ type GoogleChatCardWidgetKeyValue struct {
 }
 
 // NewGoogleChat validates the Google Chat URL and returns a GoogleChat object
-func NewGoogleChat(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewGoogleChat(_ context.Context, opts *notifierOptions) (Interface, error) {
 	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Google Chat hook URL %s", opts.URL)

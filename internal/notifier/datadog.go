@@ -39,7 +39,7 @@ type DataDog struct {
 // url: The DataDog API endpoint to use. Examples: https://api.datadoghq.com, https://api.datadoghq.eu, etc.
 // token: The DataDog API key (not the application key).
 // headers: A map of extra tags to add to the event
-func NewDataDog(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewDataDog(_ context.Context, opts *notifierOptions) (Interface, error) {
 	conf := datadog.NewConfiguration()
 
 	if opts.Token == "" {

@@ -55,7 +55,7 @@ type LarkText struct {
 	Content string `json:"content"`
 }
 
-func NewLark(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewLark(_ context.Context, opts *notifierOptions) (Interface, error) {
 	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Lark hook URL %s", opts.URL)

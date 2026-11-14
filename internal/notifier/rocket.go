@@ -38,7 +38,7 @@ type Rocket struct {
 }
 
 // NewRocket validates the Rocket URL and returns a Rocket object
-func NewRocket(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewRocket(_ context.Context, opts *notifierOptions) (Interface, error) {
 	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Rocket hook URL %s: '%w'", opts.URL, err)

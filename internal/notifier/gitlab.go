@@ -34,7 +34,7 @@ type GitLab struct {
 	Client       *gitlab.Client
 }
 
-func NewGitLab(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewGitLab(_ context.Context, opts *notifierOptions) (Interface, error) {
 	token := opts.Token
 	if token == "" {
 		token = opts.Password

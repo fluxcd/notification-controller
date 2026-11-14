@@ -35,7 +35,7 @@ type TelegramPayload struct {
 	ParseMode       string `json:"parse_mode"`                  // Mode for parsing entities in the message text
 }
 
-func NewTelegram(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewTelegram(_ context.Context, opts *notifierOptions) (Interface, error) {
 	if opts.Channel == "" {
 		return nil, errors.New("empty Telegram channel")
 	}

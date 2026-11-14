@@ -29,7 +29,7 @@ type MatrixPayload struct {
 	MsgType string `json:"msgtype"`
 }
 
-func NewMatrix(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewMatrix(_ context.Context, opts *notifierOptions) (Interface, error) {
 	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Matrix homeserver URL %s: '%w'", opts.URL, err)

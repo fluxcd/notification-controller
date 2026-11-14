@@ -63,7 +63,7 @@ type (
 //   - nkeySeed: NKey seed for NKey-based authentication (optional)
 //
 // Returns an error if server or subject is empty.
-func NewNATS(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewNATS(_ context.Context, opts *notifierOptions) (Interface, error) {
 	if opts.URL == "" {
 		return nil, errors.New("NATS server (address) cannot be empty")
 	}

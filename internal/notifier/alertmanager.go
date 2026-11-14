@@ -76,7 +76,7 @@ func (a *AlertManagerTime) UnmarshalJSON(jsonRepr []byte) error {
 	return nil
 }
 
-func NewAlertManager(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewAlertManager(_ context.Context, opts *notifierOptions) (Interface, error) {
 	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Alertmanager URL %s: '%w'", opts.URL, err)

@@ -64,7 +64,7 @@ type WebexPayload struct {
 }
 
 // NewWebex validates the Webex URL and returns a Webex object
-func NewWebex(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewWebex(_ context.Context, opts *notifierOptions) (Interface, error) {
 	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Webex hook URL %s: '%w'", opts.URL, err)

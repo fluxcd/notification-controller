@@ -142,7 +142,7 @@ func TestNewGiteaBasic(t *testing.T) {
 	gomega.Expect(gitea.Repo).To(Equal("bar"))
 }
 
-func TestNewGiteaWithCertPool(t *testing.T) {
+func TestNewGiteaWithTLSConfig(t *testing.T) {
 	gomega := NewWithT(t)
 	srv := newTestHTTPSServer(t)
 	defer srv.Close()
@@ -200,7 +200,7 @@ func TestNewGiteaWithProxyURL(t *testing.T) {
 	gomega.Expect(gitea.Repo).To(Equal("bar"))
 }
 
-func TestNewGiteaWithProxyURLAndCertPool(t *testing.T) {
+func TestNewGiteaWithProxyURLAndTLSConfig(t *testing.T) {
 	gomega := NewWithT(t)
 	srv := newTestHTTPSServer(t)
 	defer srv.Close()

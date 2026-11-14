@@ -19,7 +19,6 @@ package notifier
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net/url"
 	"time"
@@ -73,16 +72,13 @@ var notifiers = map[string]func(ctx context.Context, opts *notifierOptions) (Int
 }
 
 type notifierOptions struct {
-	URL      string
-	ProxyURL *url.URL
-	Username string
-	Channel  string
-	Token    string
-	Timeout  time.Duration
-	Headers  map[string]string
-	// CertPool is kept for Git platform providers (GitHub, GitLab, etc.) that use third-party SDKs.
-	// TODO: Remove this field once all notifiers support client certificate authentication via TLSConfig.
-	CertPool              *x509.CertPool
+	URL                   string
+	ProxyURL              *url.URL
+	Username              string
+	Channel               string
+	Token                 string
+	Timeout               time.Duration
+	Headers               map[string]string
 	TLSConfig             *tls.Config
 	Password              string
 	CommitStatus          string
@@ -152,13 +148,6 @@ func WithToken(token string) Option {
 func WithHeaders(headers map[string]string) Option {
 	return func(o *notifierOptions) {
 		o.Headers = headers
-	}
-}
-
-// WithCertPool sets the certificate pool for the notifier.
-func WithCertPool(certPool *x509.CertPool) Option {
-	return func(o *notifierOptions) {
-		o.CertPool = certPool
 	}
 }
 

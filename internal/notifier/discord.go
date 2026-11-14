@@ -39,7 +39,7 @@ type Discord struct {
 }
 
 // NewDiscord validates the URL and returns a Discord object
-func NewDiscord(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewDiscord(_ context.Context, opts *notifierOptions) (Interface, error) {
 	webhook, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Discord hook URL %s: '%w'", opts.URL, err)

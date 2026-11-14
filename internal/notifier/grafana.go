@@ -46,7 +46,7 @@ type GraphitePayload struct {
 }
 
 // NewGrafana validates the Grafana URL and returns a Grafana object
-func NewGrafana(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewGrafana(_ context.Context, opts *notifierOptions) (Interface, error) {
 	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Grafana URL %s", opts.URL)

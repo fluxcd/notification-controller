@@ -39,7 +39,7 @@ type Bitbucket struct {
 }
 
 // NewBitbucket creates and returns a new Bitbucket notifier.
-func NewBitbucket(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewBitbucket(_ context.Context, opts *notifierOptions) (Interface, error) {
 	if len(opts.Token) == 0 {
 		return nil, errors.New("bitbucket token cannot be empty")
 	}

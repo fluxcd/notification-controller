@@ -30,7 +30,7 @@ type Sentry struct {
 }
 
 // NewSentry creates a Sentry client from the provided Data Source Name (DSN)
-func NewSentry(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewSentry(_ context.Context, opts *notifierOptions) (Interface, error) {
 	if opts.URL == "" {
 		return nil, fmt.Errorf("DSN cannot be empty")
 	}

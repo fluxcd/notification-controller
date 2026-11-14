@@ -36,7 +36,7 @@ type PagerDuty struct {
 	TLSConfig  *tls.Config
 }
 
-func NewPagerDuty(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewPagerDuty(_ context.Context, opts *notifierOptions) (Interface, error) {
 	URL, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid PagerDuty endpoint URL %q: '%w'", opts.URL, err)

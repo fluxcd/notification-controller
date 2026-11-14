@@ -36,7 +36,7 @@ type Zulip struct {
 	password  string
 }
 
-func NewZulip(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewZulip(_ context.Context, opts *notifierOptions) (Interface, error) {
 	u, err := url.Parse(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Zulip endpoint URL: %w", err)

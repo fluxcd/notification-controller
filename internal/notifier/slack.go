@@ -70,7 +70,7 @@ type SlackField struct {
 }
 
 // NewSlack validates the Slack URL and returns a Slack object
-func NewSlack(ctx context.Context, opts *notifierOptions) (Interface, error) {
+func NewSlack(_ context.Context, opts *notifierOptions) (Interface, error) {
 	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
 		return nil, fmt.Errorf("invalid Slack hook URL %s: '%w'", opts.URL, err)
