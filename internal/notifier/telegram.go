@@ -35,21 +35,21 @@ type TelegramPayload struct {
 	ParseMode       string `json:"parse_mode"`                  // Mode for parsing entities in the message text
 }
 
-func NewTelegram(proxyURL *url.URL, tlsConfig *tls.Config, channel, token string) (*Telegram, error) {
-	if channel == "" {
+func NewTelegram(_ context.Context, opts *notifierOptions) (Interface, error) {
+	if opts.Channel == "" {
 		return nil, errors.New("empty Telegram channel")
 	}
 
-	if token == "" {
+	if opts.Token == "" {
 		return nil, errors.New("empty Telegram token")
 	}
 
 	return &Telegram{
-		url:       fmt.Sprintf(telegramBaseURL, token),
-		ProxyURL:  proxyURL,
-		Channel:   channel,
-		Token:     token,
-		TLSConfig: tlsConfig,
+		url:       fmt.Sprintf(telegramBaseURL, opts.Token),
+		ProxyURL:  opts.ProxyURL,
+		Channel:   opts.Channel,
+		Token:     opts.Token,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 

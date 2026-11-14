@@ -33,28 +33,29 @@ type GiteaPullRequestComment struct {
 	Owner    string
 	Repo     string
 	Username string
+	MaxPages int
 	Client   *gitea.Client
 }
 
-func NewGiteaPullRequestComment(providerUID string, opts ...GiteaClientOption) (*GiteaPullRequestComment, error) {
-	if providerUID == "" {
+func NewGiteaPullRequestComment(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	if opts.ProviderUID == "" {
 		return nil, errors.New("provider UID cannot be empty")
 	}
 
-	opts = append(opts, WithGiteaFetchUserLogin())
-	clientInfo, err := NewGiteaClient(opts...)
+	clientInfo, err := NewGiteaClient(ctx, opts, true)
 	if err != nil {
 		return nil, err
 	}
 
 	return &GiteaPullRequestComment{
 		changeRequestComment: changeRequestComment{
-			ProviderUID:      providerUID,
+			ProviderUID:      opts.ProviderUID,
 			CommentKeyPrefix: "flux-pr-comment-key",
 		},
 		Owner:    clientInfo.Owner,
 		Repo:     clientInfo.Repo,
 		Username: clientInfo.Username,
+		MaxPages: opts.ChangeRequestComment.GetMaxPages(),
 		Client:   clientInfo.Client,
 	}, nil
 }
@@ -63,14 +64,14 @@ func NewGiteaPullRequestComment(providerUID string, opts ...GiteaClientOption) (
 // If the comment already exists (based on the comment key), it updates the existing comment
 // instead of creating a new one.
 func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event) error {
+	g.Client.SetContext(ctx)
 	body := g.formatCommentBody(&event)
 	prNumber, err := g.getPullRequestNumber(&event)
 	if err != nil {
 		return err
 	}
 
-	// List the first 100 comments in the pull request.
-	// We fetch only a single page with 100 comments for performance reasons.
+	// Fetch only the first page by default to limit API requests.
 	// Since the tendency is for the comment to be created as soon as the PR
 	// is opened, it is likely to be in this first page.
 	opts := gitea.ListIssueCommentOptions{
@@ -79,22 +80,27 @@ func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event)
 			PageSize: 100,
 		},
 	}
-	comments, _, err := g.Client.ListIssueComments(g.Owner, g.Repo, int64(prNumber), opts)
-	if err != nil {
-		return fmt.Errorf("failed to list pull request comments: %w", err)
-	}
 
 	// Find comment from the authenticated user matching the comment key
-	var existingComment *gitea.Comment
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
-	for _, c := range comments {
-		if c.Poster != nil && c.Poster.UserName == g.Username && strings.Contains(c.Body, commentKeyMarker) {
-			existingComment = c
-			break
+	existingComment, found, err := findInPages(g.MaxPages, func() ([]*gitea.Comment, bool, error) {
+		comments, response, err := g.Client.ListIssueComments(g.Owner, g.Repo, int64(prNumber), opts)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to list pull request comments: %w", err)
 		}
+		hasNext := response != nil && response.NextPage != 0 && response.NextPage != opts.Page
+		if hasNext {
+			opts.Page = response.NextPage
+		}
+		return comments, hasNext, nil
+	}, func(c *gitea.Comment) bool {
+		return c.Poster != nil && c.Poster.UserName == g.Username && strings.Contains(c.Body, commentKeyMarker)
+	})
+	if err != nil {
+		return err
 	}
 
-	if existingComment != nil {
+	if found {
 		// Existing comment found, update it
 		_, _, err = g.Client.EditIssueComment(g.Owner, g.Repo, existingComment.ID, gitea.EditIssueCommentOption{
 			Body: body,

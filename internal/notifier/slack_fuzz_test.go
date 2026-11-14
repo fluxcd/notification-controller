@@ -46,7 +46,13 @@ func Fuzz_Slack(f *testing.F) {
 		var tlsConfig tls.Config
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		slack, err := NewSlack(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, token, &tlsConfig, username, channel)
+		slack, err := NewSlack(context.TODO(), &notifierOptions{
+			URL:       fmt.Sprintf("%s/%s", ts.URL, urlSuffix),
+			Token:     token,
+			TLSConfig: &tlsConfig,
+			Username:  username,
+			Channel:   channel,
+		})
 		if err != nil {
 			return
 		}

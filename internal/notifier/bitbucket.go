@@ -18,12 +18,10 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/ktrysmt/go-bitbucket"
@@ -41,17 +39,17 @@ type Bitbucket struct {
 }
 
 // NewBitbucket creates and returns a new Bitbucket notifier.
-func NewBitbucket(commitStatus string, addr string, proxyURL *url.URL, token string, tlsConfig *tls.Config) (*Bitbucket, error) {
-	if len(token) == 0 {
+func NewBitbucket(_ context.Context, opts *notifierOptions) (Interface, error) {
+	if len(opts.Token) == 0 {
 		return nil, errors.New("bitbucket token cannot be empty")
 	}
 
 	// this should never happen
-	if commitStatus == "" {
+	if opts.CommitStatus == "" {
 		return nil, errors.New("commit status cannot be empty")
 	}
 
-	_, id, err := parseGitAddress(addr)
+	_, id, err := parseGitAddress(opts.URL)
 	if err != nil {
 		return nil, err
 	}
@@ -63,18 +61,19 @@ func NewBitbucket(commitStatus string, addr string, proxyURL *url.URL, token str
 	owner := comp[0]
 	repo := comp[1]
 
-	client, err := bitbucket.NewOAuthbearerToken(token)
+	client, err := bitbucket.NewOAuthbearerToken(opts.Token)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bitbucket client: %w", err)
 	}
-	if proxyURL != nil || tlsConfig != nil {
-		client.HttpClient = &http.Client{Transport: newTransport(proxyURL, tlsConfig)}
+	if opts.ProxyURL != nil || opts.TLSConfig != nil {
+		client.HttpClient = &http.Client{Transport: newTransport(opts.ProxyURL, opts.TLSConfig)}
 	}
+	client.HttpClient.Timeout = opts.Timeout
 
 	return &Bitbucket{
 		Owner:        owner,
 		Repo:         repo,
-		CommitStatus: commitStatus,
+		CommitStatus: opts.CommitStatus,
 		Client:       client,
 	}, nil
 }

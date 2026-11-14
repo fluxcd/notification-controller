@@ -35,7 +35,7 @@ func Fuzz_PagerDuty(f *testing.F) {
 		var tlsConfig tls.Config
 		_ = fuzz.NewConsumer(seed).GenerateStruct(&tlsConfig)
 
-		pd, err := NewPagerDuty(ts.URL, nil, &tlsConfig, routingKey)
+		pd, err := NewPagerDuty(context.TODO(), &notifierOptions{URL: ts.URL, TLSConfig: &tlsConfig, Channel: routingKey})
 		if err != nil {
 			return
 		}

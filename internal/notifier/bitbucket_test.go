@@ -64,12 +64,12 @@ func TestBitbucketProviderTimeout(t *testing.T) {
 			}))
 			defer server.Close()
 			defer close(release)
-			n, err := NewFactory(t.Context(),
+			n, err := New(t.Context(), apiv1.BitbucketProvider,
 				WithURL("https://bitbucket.org/foo/bar"),
 				WithToken("user:password"),
 				WithCommitStatus("status"),
 				WithTimeout(200*time.Millisecond),
-			).Notifier(apiv1.BitbucketProvider)
+			)
 			g.Expect(err).ToNot(HaveOccurred())
 			b := n.(*Bitbucket)
 			g.Expect(b.Client.HttpClient.Timeout).To(Equal(200 * time.Millisecond))
@@ -99,13 +99,13 @@ func TestBitbucketProxyTransport(t *testing.T) {
 			if withTLS {
 				tlsConfig = &tls.Config{RootCAs: x509.NewCertPool()}
 			}
-			n, err := NewFactory(t.Context(),
+			n, err := New(t.Context(), apiv1.BitbucketProvider,
 				WithURL("https://bitbucket.org/foo/bar"),
 				WithToken("test-token"),
 				WithCommitStatus("test-status"),
 				WithProxyURL(proxyURL),
 				WithTLSConfig(tlsConfig),
-			).Notifier(apiv1.BitbucketProvider)
+			)
 			g.Expect(err).ToNot(HaveOccurred())
 			transport := n.(*Bitbucket).Client.HttpClient.Transport.(*http.Transport)
 			defer transport.CloseIdleConnections()
@@ -141,12 +141,12 @@ func TestBitbucketTLS(t *testing.T) {
 
 	pool := x509.NewCertPool()
 	pool.AddCert(server.Certificate())
-	n, err := NewFactory(t.Context(),
+	n, err := New(t.Context(), apiv1.BitbucketProvider,
 		WithURL("https://bitbucket.org/foo/bar"),
 		WithToken("test-token"),
 		WithCommitStatus("test-status"),
 		WithTLSConfig(&tls.Config{RootCAs: pool}),
-	).Notifier(apiv1.BitbucketProvider)
+	)
 	g.Expect(err).ToNot(HaveOccurred())
 	b := n.(*Bitbucket)
 	b.Client.SetApiBaseURL(*parseProxyURL(t, server.URL+"/2.0"))
@@ -163,8 +163,13 @@ func TestBitbucketTLS(t *testing.T) {
 
 func TestNewBitbucket(t *testing.T) {
 	g := NewWithT(t)
-	b, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar", nil, "test-token", nil)
+	n, err := NewBitbucket(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          "https://bitbucket.org/foo/bar",
+		Token:        "test-token",
+	})
 	g.Expect(err).ToNot(HaveOccurred())
+	b := n.(*Bitbucket)
 	g.Expect(b.Owner).To(Equal("foo"))
 	g.Expect(b.Repo).To(Equal("bar"))
 	g.Expect(b.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
@@ -172,19 +177,19 @@ func TestNewBitbucket(t *testing.T) {
 
 func TestNewBitbucketEmptyCommitStatus(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewBitbucket("", "https://bitbucket.org/foo/bar", nil, "test-token", nil)
+	_, err := NewBitbucket(t.Context(), &notifierOptions{URL: "https://bitbucket.org/foo/bar", Token: "test-token"})
 	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewBitbucketInvalidUrl(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar/baz", nil, "test-token", nil)
+	_, err := NewBitbucket(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://bitbucket.org/foo/bar/baz", Token: "test-token"})
 	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewBitbucketEmptyToken(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewBitbucket("kustomization/gitops-system/0c9c2e41", "https://bitbucket.org/foo/bar", nil, "", nil)
+	_, err := NewBitbucket(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://bitbucket.org/foo/bar"})
 	g.Expect(err).To(HaveOccurred())
 }
 
@@ -214,8 +219,9 @@ func TestBitbucket_Post_UsesCommitStatusAsName(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	b, err := NewBitbucket(commitStatus, "https://bitbucket.org/foo/bar", nil, "test-token", nil)
+	n, err := NewBitbucket(t.Context(), &notifierOptions{CommitStatus: commitStatus, URL: "https://bitbucket.org/foo/bar", Token: "test-token"})
 	g.Expect(err).ToNot(HaveOccurred())
+	b := n.(*Bitbucket)
 
 	apiURL, err := url.Parse(ts.URL + "/2.0")
 	g.Expect(err).ToNot(HaveOccurred())

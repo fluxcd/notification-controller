@@ -539,7 +539,7 @@ func (s *ReceiverServer) validate(ctx context.Context, receiver apiv1.Receiver, 
 		return &validationResult{}, nil
 	}
 
-	return nil, fmt.Errorf("recevier type %q not supported", receiver.Spec.Type)
+	return nil, fmt.Errorf("receiver type %q not implemented", receiver.Spec.Type)
 }
 
 func (s *ReceiverServer) secret(ctx context.Context, receiver apiv1.Receiver) (*corev1.Secret, error) {

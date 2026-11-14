@@ -19,11 +19,11 @@ package notifier
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"fmt"
 	"net/url"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/fluxcd/pkg/cache"
@@ -32,70 +32,58 @@ import (
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
-var (
-	// notifiers is a map of notifier names to factory functions.
-	notifiers = notifierMap{
-		// GenericProvider is the default notifier
-		apiv1.GenericProvider:                   genericNotifierFunc,
-		apiv1.GenericHMACProvider:               genericHMACNotifierFunc,
-		apiv1.SlackProvider:                     slackNotifierFunc,
-		apiv1.DiscordProvider:                   discordNotifierFunc,
-		apiv1.RocketProvider:                    rocketNotifierFunc,
-		apiv1.MSTeamsProvider:                   msteamsNotifierFunc,
-		apiv1.GoogleChatProvider:                googleChatNotifierFunc,
-		apiv1.GooglePubSubProvider:              googlePubSubNotifierFunc,
-		apiv1.WebexProvider:                     webexNotifierFunc,
-		apiv1.SentryProvider:                    sentryNotifierFunc,
-		apiv1.AzureEventHubProvider:             azureEventHubNotifierFunc,
-		apiv1.TelegramProvider:                  telegramNotifierFunc,
-		apiv1.LarkProvider:                      larkNotifierFunc,
-		apiv1.Matrix:                            matrixNotifierFunc,
-		apiv1.OpsgenieProvider:                  opsgenieNotifierFunc,
-		apiv1.AlertManagerProvider:              alertmanagerNotifierFunc,
-		apiv1.GrafanaProvider:                   grafanaNotifierFunc,
-		apiv1.PagerDutyProvider:                 pagerDutyNotifierFunc,
-		apiv1.DataDogProvider:                   dataDogNotifierFunc,
-		apiv1.NATSProvider:                      natsNotifierFunc,
-		apiv1.GitHubProvider:                    gitHubNotifierFunc,
-		apiv1.GitHubDispatchProvider:            gitHubDispatchNotifierFunc,
-		apiv1.GitHubPullRequestCommentProvider:  gitHubPullRequestCommentNotifierFunc,
-		apiv1.GitLabProvider:                    gitLabNotifierFunc,
-		apiv1.GitLabMergeRequestCommentProvider: gitLabMergeRequestCommentNotifierFunc,
-		apiv1.GiteaProvider:                     giteaNotifierFunc,
-		apiv1.GiteaPullRequestCommentProvider:   giteaPullRequestCommentNotifierFunc,
-		apiv1.BitbucketServerProvider:           bitbucketServerNotifierFunc,
-		apiv1.BitbucketProvider:                 bitbucketNotifierFunc,
-		apiv1.AzureDevOpsProvider:               azureDevOpsNotifierFunc,
-		apiv1.ZulipProvider:                     zulipNotifierFunc,
-		apiv1.OTELProvider:                      otelNotifierFunc,
-		apiv1.ZoomProvider:                      zoomNotifierFunc,
-		apiv1.IncidentioProvider:                incidentioNotifierFunc,
-		apiv1.MastodonProvider:                  mastodonNotifierFunc,
-	}
-)
-
-// notifierMap is a map of provider names to notifier factory functions
-type notifierMap map[string]factoryFunc
-
-// factoryFunc is a factory function that creates a new notifier
-type factoryFunc func(opts notifierOptions) (Interface, error)
+// notifiers is the registry of the constructors of the implemented notifiers.
+var notifiers = map[string]func(ctx context.Context, opts *notifierOptions) (Interface, error){
+	apiv1.GenericProvider:                   NewGeneric,
+	apiv1.GenericHMACProvider:               NewGenericHMAC,
+	apiv1.SlackProvider:                     NewSlack,
+	apiv1.DiscordProvider:                   NewDiscord,
+	apiv1.RocketProvider:                    NewRocket,
+	apiv1.MSTeamsProvider:                   NewMSTeams,
+	apiv1.GoogleChatProvider:                NewGoogleChat,
+	apiv1.GooglePubSubProvider:              NewGooglePubSub,
+	apiv1.WebexProvider:                     NewWebex,
+	apiv1.SentryProvider:                    NewSentry,
+	apiv1.AzureEventHubProvider:             NewAzureEventHub,
+	apiv1.TelegramProvider:                  NewTelegram,
+	apiv1.LarkProvider:                      NewLark,
+	apiv1.Matrix:                            NewMatrix,
+	apiv1.OpsgenieProvider:                  NewOpsgenie,
+	apiv1.AlertManagerProvider:              NewAlertManager,
+	apiv1.GrafanaProvider:                   NewGrafana,
+	apiv1.PagerDutyProvider:                 NewPagerDuty,
+	apiv1.DataDogProvider:                   NewDataDog,
+	apiv1.NATSProvider:                      NewNATS,
+	apiv1.GitHubProvider:                    NewGitHub,
+	apiv1.GitHubDispatchProvider:            NewGitHubDispatch,
+	apiv1.GitHubPullRequestCommentProvider:  NewGitHubPullRequestComment,
+	apiv1.GitLabProvider:                    NewGitLab,
+	apiv1.GitLabMergeRequestCommentProvider: NewGitLabMergeRequestComment,
+	apiv1.GiteaProvider:                     NewGitea,
+	apiv1.GiteaPullRequestCommentProvider:   NewGiteaPullRequestComment,
+	apiv1.BitbucketServerProvider:           NewBitbucketServer,
+	apiv1.BitbucketProvider:                 NewBitbucket,
+	apiv1.AzureDevOpsProvider:               NewAzureDevOps,
+	apiv1.ZulipProvider:                     NewZulip,
+	apiv1.OTELProvider:                      NewOTEL,
+	apiv1.ZoomProvider:                      NewZoom,
+	apiv1.IncidentioProvider:                NewIncidentio,
+	apiv1.MastodonProvider:                  NewMastodon,
+}
 
 type notifierOptions struct {
-	Context  context.Context
-	URL      string
-	ProxyURL *url.URL
-	Username string
-	Channel  string
-	Token    string
-	Timeout  time.Duration
-	Headers  map[string]string
-	// CertPool is kept for Git platform providers (GitHub, GitLab, etc.) that use third-party SDKs.
-	// TODO: Remove this field once all notifiers support client certificate authentication via TLSConfig.
-	CertPool              *x509.CertPool
+	URL                   string
+	ProxyURL              *url.URL
+	Username              string
+	Channel               string
+	Token                 string
+	Timeout               time.Duration
+	Headers               map[string]string
 	TLSConfig             *tls.Config
 	Password              string
 	CommitStatus          string
 	ProviderUID           string
+	ChangeRequestComment  *apiv1.ChangeRequestComment
 	ProviderName          string
 	ProviderNamespace     string
 	SecretData            map[string][]byte
@@ -104,13 +92,8 @@ type notifierOptions struct {
 	TokenCache            *cache.TokenCache
 	TokenClient           client.Client
 	SPIFFEBroker          fluxbroker.Interface
-	// EventKey is the identity of the event being dispatched, computed by
-	// the event server. Notifiers may use it as an idempotency token.
-	EventKey string
-}
-
-type Factory struct {
-	notifierOptions
+	EventKey              string
+	AlertMetadata         metav1.ObjectMeta
 }
 
 // Option represents a functional option for configuring a notifier.
@@ -165,13 +148,6 @@ func WithHeaders(headers map[string]string) Option {
 	}
 }
 
-// WithCertPool sets the certificate pool for the notifier.
-func WithCertPool(certPool *x509.CertPool) Option {
-	return func(o *notifierOptions) {
-		o.CertPool = certPool
-	}
-}
-
 // WithTLSConfig sets the TLS configuration for the notifier.
 func WithTLSConfig(tlsConfig *tls.Config) Option {
 	return func(o *notifierOptions) {
@@ -204,6 +180,20 @@ func WithProviderName(name string) Option {
 func WithProviderNamespace(namespace string) Option {
 	return func(o *notifierOptions) {
 		o.ProviderNamespace = namespace
+	}
+}
+
+// WithChangeRequestComment sets the change request comment configuration.
+func WithChangeRequestComment(config *apiv1.ChangeRequestComment) Option {
+	return func(o *notifierOptions) {
+		o.ChangeRequestComment = config
+	}
+}
+
+// WithAlertMetadata sets the metadata of the Alert that triggered the notification.
+func WithAlertMetadata(metadata metav1.ObjectMeta) Option {
+	return func(o *notifierOptions) {
+		o.AlertMetadata = metadata
 	}
 }
 
@@ -265,183 +255,18 @@ func WithURL(url string) Option {
 	}
 }
 
-// NewFactory creates a new notifier factory with optional configurations.
-func NewFactory(ctx context.Context, opts ...Option) *Factory {
-	options := notifierOptions{
-		Context: ctx,
+// New creates a new notifier for the specified provider with optional configurations.
+func New(ctx context.Context, provider string, opts ...Option) (Interface, error) {
+	newNotifier, ok := notifiers[provider]
+	if !ok {
+		return nil, fmt.Errorf("provider %s not implemented", provider)
 	}
+
+	options := notifierOptions{}
 
 	for _, opt := range opts {
 		opt(&options)
 	}
 
-	return &Factory{
-		notifierOptions: options,
-	}
-}
-
-func (f Factory) Notifier(provider string) (Interface, error) {
-	notifier, ok := notifiers[provider]
-	if !ok {
-		return nil, fmt.Errorf("provider %s not supported", provider)
-	}
-
-	return notifier(f.notifierOptions)
-}
-
-func genericNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewForwarder(opts.URL, opts.ProxyURL, opts.Headers, opts.TLSConfig, nil)
-}
-
-func genericHMACNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewForwarder(opts.URL, opts.ProxyURL, opts.Headers, opts.TLSConfig, []byte(opts.Token))
-}
-
-func slackNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewSlack(opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig, opts.Username, opts.Channel)
-}
-
-func discordNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewDiscord(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Username, opts.Channel)
-}
-
-func rocketNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewRocket(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Username, opts.Channel)
-}
-
-func msteamsNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewMSTeams(opts.URL, opts.ProxyURL, opts.TLSConfig)
-}
-
-func googleChatNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGoogleChat(opts.URL, opts.ProxyURL, opts.TLSConfig)
-}
-
-func googlePubSubNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGooglePubSub(&opts)
-}
-
-func webexNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewWebex(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Channel, opts.Token)
-}
-
-func sentryNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewSentry(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Channel)
-}
-
-func azureEventHubNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewAzureEventHub(opts.Context, opts.URL, opts.Token, opts.Channel, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName, opts.ProviderNamespace, opts.TokenClient, opts.TokenCache, opts.SPIFFEBroker, opts.DefaultServiceAccount)
-}
-
-func telegramNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewTelegram(opts.ProxyURL, opts.TLSConfig, opts.Channel, opts.Token)
-}
-
-func larkNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewLark(opts.URL, opts.ProxyURL, opts.TLSConfig)
-}
-
-func matrixNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewMatrix(opts.URL, opts.ProxyURL, opts.Token, opts.Channel, opts.TLSConfig)
-}
-
-func opsgenieNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewOpsgenie(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token, opts.ProviderUID)
-}
-
-func alertmanagerNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewAlertmanager(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token, opts.Username, opts.Password)
-}
-
-func grafanaNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGrafana(opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig, opts.Username, opts.Password)
-}
-
-func pagerDutyNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewPagerDuty(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Channel)
-}
-
-func dataDogNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewDataDog(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
-}
-
-func natsNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewNATS(opts.URL, opts.Channel, opts.Username, opts.Password, opts.SecretData)
-}
-
-func gitHubNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGitHub(opts.Context, opts.CommitStatus, opts.GitHubClientOptions()...)
-}
-
-func gitHubDispatchNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGitHubDispatch(opts.Context, opts.GitHubClientOptions()...)
-}
-
-func gitHubPullRequestCommentNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGitHubPullRequestComment(opts.Context, opts.ProviderUID, opts.GitHubClientOptions()...)
-}
-
-func gitLabNotifierFunc(opts notifierOptions) (Interface, error) {
-	if opts.Token == "" && opts.Password != "" {
-		opts.Token = opts.Password
-	}
-	return NewGitLab(opts.CommitStatus, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig)
-}
-
-func gitLabMergeRequestCommentNotifierFunc(opts notifierOptions) (Interface, error) {
-	if opts.Token == "" && opts.Password != "" {
-		opts.Token = opts.Password
-	}
-	return NewGitLabMergeRequestComment(opts.ProviderUID, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig)
-}
-
-func giteaNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGitea(opts.CommitStatus, opts.GiteaClientOptions()...)
-}
-
-func giteaPullRequestCommentNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGiteaPullRequestComment(opts.ProviderUID, opts.GiteaClientOptions()...)
-}
-
-func bitbucketServerNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewBitbucketServer(opts.CommitStatus, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig, opts.Username, opts.Password)
-}
-
-func bitbucketNotifierFunc(opts notifierOptions) (Interface, error) {
-	b, err := NewBitbucket(opts.CommitStatus, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig)
-	if err != nil {
-		return nil, err
-	}
-	b.Client.HttpClient.Timeout = opts.Timeout
-	return b, nil
-}
-
-func azureDevOpsNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewAzureDevOps(opts.Context, opts.CommitStatus, opts.URL, opts.Token,
-		opts.TLSConfig, opts.ProxyURL, opts.ServiceAccountName, opts.ProviderName,
-		opts.ProviderNamespace, opts.TokenClient, opts.TokenCache, opts.SPIFFEBroker,
-		opts.DefaultServiceAccount)
-}
-
-func zulipNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewZulip(opts.URL, opts.Channel, opts.ProxyURL, opts.TLSConfig, opts.Username, opts.Password)
-}
-
-func otelNotifierFunc(opts notifierOptions) (Interface, error) {
-	if opts.Token == "" && opts.Password != "" {
-		opts.Token = opts.Password
-	}
-	return NewOTLPTracer(opts.Context, opts.URL, opts.ProxyURL, opts.Headers, opts.TLSConfig, opts.Username, opts.Token)
-}
-
-func zoomNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewZoom(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
-}
-
-func incidentioNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewIncidentio(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token)
-}
-
-func mastodonNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewMastodon(opts.URL, opts.ProxyURL, opts.TLSConfig, opts.Token, opts.EventKey)
+	return newNotifier(ctx, &options)
 }

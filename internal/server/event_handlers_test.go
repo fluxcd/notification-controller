@@ -951,7 +951,7 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			provider := apiv1.Provider{Spec: *tt.providerSpec}
 
 			eventServer := EventServer{kubeClient: builder.Build()}
-			params, err := eventServer.prepareNotifier(context.TODO(), &provider, "")
+			params, err := eventServer.prepareNotifier(context.TODO(), &provider, "", metav1.ObjectMeta{})
 			var sender notifier.Interface
 			if err == nil {
 				sender, err = params.createNotifier(context.TODO())
@@ -1003,7 +1003,7 @@ func TestCreateNotifierBitbucketCloudTokenFromSecret(t *testing.T) {
 
 	kubeClient := fakeclient.NewClientBuilder().WithObjects(secret).Build()
 	eventServer := EventServer{kubeClient: kubeClient}
-	params, err := eventServer.prepareNotifier(context.TODO(), &provider, "test-status")
+	params, err := eventServer.prepareNotifier(context.TODO(), &provider, "test-status", metav1.ObjectMeta{})
 	g.Expect(err).ToNot(HaveOccurred())
 	n, err := params.createNotifier(context.TODO())
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1039,6 +1039,89 @@ func TestCreateNotifierBitbucketCloudTokenFromSecret(t *testing.T) {
 	}
 	g.Expect(b.Post(t.Context(), event)).To(Succeed())
 	g.Expect(authHeaders).To(ConsistOf("Bearer "+secretToken, "Bearer "+secretToken))
+}
+
+func TestPrepareNotifierChangeRequestComment(t *testing.T) {
+	providers := []struct {
+		name         string
+		providerType string
+		userPath     string
+		userResponse string
+		gitea        bool
+		maxPages     func(notifier.Interface) int
+	}{
+		{
+			name:         "github",
+			providerType: apiv1.GitHubPullRequestCommentProvider,
+			userPath:     "/api/v3/user",
+			userResponse: `{"login":"flux"}`,
+			maxPages: func(n notifier.Interface) int {
+				return n.(*notifier.GitHubPullRequestComment).MaxPages
+			},
+		},
+		{
+			name:         "gitlab",
+			providerType: apiv1.GitLabMergeRequestCommentProvider,
+			userPath:     "/api/v4/user",
+			userResponse: `{"username":"flux"}`,
+			maxPages: func(n notifier.Interface) int {
+				return n.(*notifier.GitLabMergeRequestComment).MaxPages
+			},
+		},
+		{
+			name:         "gitea",
+			providerType: apiv1.GiteaPullRequestCommentProvider,
+			userPath:     "/api/v1/user",
+			userResponse: `{"login":"flux"}`,
+			gitea:        true,
+			maxPages: func(n notifier.Interface) int {
+				return n.(*notifier.GiteaPullRequestComment).MaxPages
+			},
+		},
+	}
+	for _, providerInfo := range providers {
+		for _, maxPages := range []int{0, 1, 5} {
+			t.Run(providerInfo.name+"/"+fmt.Sprint(maxPages), func(t *testing.T) {
+				g := NewWithT(t)
+				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+					switch r.URL.Path {
+					case providerInfo.userPath:
+						_, _ = w.Write([]byte(providerInfo.userResponse))
+					case "/api/v1/version":
+						g.Expect(providerInfo.gitea).To(BeTrue())
+						_, _ = w.Write([]byte(`{"version":"1.18.3"}`))
+					default:
+						g.Expect(r.URL.Path).To(Equal(providerInfo.userPath))
+					}
+				}))
+				t.Cleanup(srv.Close)
+				secret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "provider-token"},
+					Data:       map[string][]byte{"token": []byte("token")},
+				}
+				provider := &apiv1.Provider{
+					ObjectMeta: metav1.ObjectMeta{UID: "provider"},
+					Spec: apiv1.ProviderSpec{
+						Type:                 providerInfo.providerType,
+						Address:              srv.URL + "/foo/bar",
+						SecretRef:            &meta.LocalObjectReference{Name: secret.Name},
+						ChangeRequestComment: &apiv1.ChangeRequestComment{MaxPages: maxPages},
+					},
+				}
+				eventServer := EventServer{kubeClient: fakeclient.NewClientBuilder().WithObjects(secret).Build()}
+				params, err := eventServer.prepareNotifier(context.Background(), provider, "", metav1.ObjectMeta{})
+				g.Expect(err).NotTo(HaveOccurred())
+				n, err := params.createNotifier(context.Background())
+				g.Expect(err).NotTo(HaveOccurred())
+				wantMaxPages := maxPages
+				if wantMaxPages < 1 {
+					wantMaxPages = 1
+				}
+				g.Expect(providerInfo.maxPages(n)).To(Equal(wantMaxPages))
+			})
+		}
+	}
 }
 
 func TestCreateCommitStatus(t *testing.T) {
@@ -1811,7 +1894,7 @@ func TestCreateNotifier_EventKey(t *testing.T) {
 
 	eventServer := EventServer{kubeClient: kclient}
 	ctx := context.WithValue(context.TODO(), eventKeyContextKey{}, "event-key")
-	params, err := eventServer.prepareNotifier(ctx, &provider, "")
+	params, err := eventServer.prepareNotifier(ctx, &provider, "", metav1.ObjectMeta{})
 	g.Expect(err).ToNot(HaveOccurred())
 	n, err := params.createNotifier(ctx)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1819,7 +1902,7 @@ func TestCreateNotifier_EventKey(t *testing.T) {
 	g.Expect(ok).To(BeTrue(), "expected a Mastodon notifier, got %T", n)
 	g.Expect(m.EventKey).To(Equal("event-key"))
 
-	params, err = eventServer.prepareNotifier(context.TODO(), &provider, "")
+	params, err = eventServer.prepareNotifier(context.TODO(), &provider, "", metav1.ObjectMeta{})
 	g.Expect(err).ToNot(HaveOccurred())
 	n, err = params.createNotifier(context.TODO())
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1884,7 +1967,7 @@ func TestCreateNotifierPostsThroughProxySecretRef(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	eventServer := EventServer{kubeClient: kubeClient}
-	params, err := eventServer.prepareNotifier(ctx, provider, "")
+	params, err := eventServer.prepareNotifier(ctx, provider, "", metav1.ObjectMeta{})
 	g.Expect(err).ToNot(HaveOccurred())
 	n, err := params.createNotifier(ctx)
 	g.Expect(err).ToNot(HaveOccurred())

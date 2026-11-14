@@ -55,16 +55,16 @@ type LarkText struct {
 	Content string `json:"content"`
 }
 
-func NewLark(address string, proxyURL *url.URL, tlsConfig *tls.Config) (*Lark, error) {
-	_, err := url.ParseRequestURI(address)
+func NewLark(_ context.Context, opts *notifierOptions) (Interface, error) {
+	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Lark hook URL %s", address)
+		return nil, fmt.Errorf("invalid Lark hook URL %s", opts.URL)
 	}
 
 	return &Lark{
-		URL:       address,
-		ProxyURL:  proxyURL,
-		TLSConfig: tlsConfig,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 

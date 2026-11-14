@@ -42,7 +42,7 @@ func Fuzz_MSTeams(f *testing.F) {
 		}))
 		defer ts.Close()
 
-		teams, err := NewMSTeams(fmt.Sprintf("%s/%s", ts.URL, urlSuffix), nil, nil)
+		teams, err := NewMSTeams(context.TODO(), &notifierOptions{URL: fmt.Sprintf("%s/%s", ts.URL, urlSuffix)})
 		if err != nil {
 			return
 		}

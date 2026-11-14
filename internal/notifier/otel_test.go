@@ -64,12 +64,16 @@ func TestOTEL_Post(t *testing.T) {
 
 			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 			defer cancel()
-			ctx = WithAlertMetadata(ctx, metav1.ObjectMeta{
-				Name:      "test-alert",
-				Namespace: "test-namespace",
-				UID:       "test-alert-uid",
+			n, err := NewOTEL(ctx, &notifierOptions{
+				URL: ts.URL,
+				AlertMetadata: metav1.ObjectMeta{
+					Name:      "test-alert",
+					Namespace: "test-namespace",
+					UID:       "test-alert-uid",
+				},
 			})
-			tracer, err := NewOTLPTracer(ctx, ts.URL, nil, nil, nil, "", "")
+			g.Expect(err).ToNot(HaveOccurred())
+			tracer := n.(*OTLPTracer)
 			g.Expect(err).ToNot(HaveOccurred())
 			defer tracer.tracerExporter.Shutdown(context.Background())
 
@@ -100,23 +104,20 @@ func TestOTEL_Post(t *testing.T) {
 func TestOTEL_PostShutdown(t *testing.T) {
 	shutdownErr := errors.New("shutdown failed")
 	for _, tt := range []struct {
-		name            string
-		status          int
-		skip            bool
-		missingMetadata bool
-		cancelOnExport  bool
-		shutdownErr     error
-		wantErr         string
+		name           string
+		status         int
+		skip           bool
+		cancelOnExport bool
+		shutdownErr    error
+		wantErr        string
 	}{
 		{name: "success", status: http.StatusOK},
 		{name: "export failure", status: http.StatusInternalServerError, wantErr: "failed to flush OTEL trace:"},
 		{name: "HelmRepository skipped", skip: true},
-		{name: "missing metadata", missingMetadata: true, wantErr: "alert metadata not found in context"},
 		{name: "canceled export", status: http.StatusOK, cancelOnExport: true, wantErr: "context canceled"},
 		{name: "shutdown failure", status: http.StatusOK, shutdownErr: shutdownErr},
 		{name: "export failure takes precedence", status: http.StatusInternalServerError, shutdownErr: shutdownErr, wantErr: "failed to flush OTEL trace:"},
 		{name: "skipped shutdown failure", skip: true, shutdownErr: shutdownErr},
-		{name: "missing metadata takes precedence", missingMetadata: true, shutdownErr: shutdownErr, wantErr: "alert metadata not found in context"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
@@ -158,10 +159,10 @@ func TestOTEL_PostShutdown(t *testing.T) {
 			exporter, err := otlptrace.New(ctx, client)
 			g.Expect(err).ToNot(HaveOccurred())
 			defer exporter.Shutdown(context.Background())
-			tracer := &OTLPTracer{tracerExporter: exporter, transport: transport}
-
-			if !tt.missingMetadata {
-				ctx = WithAlertMetadata(ctx, metav1.ObjectMeta{Name: "alert", Namespace: "default"})
+			tracer := &OTLPTracer{
+				tracerExporter: exporter,
+				transport:      transport,
+				AlertMetadata:  metav1.ObjectMeta{Name: "alert", Namespace: "default"},
 			}
 			event := testEvent()
 			if tt.skip {
@@ -182,7 +183,7 @@ func TestOTEL_PostShutdown(t *testing.T) {
 				g.Expect(errors.Is(err, context.Canceled)).To(BeTrue())
 			}
 			g.Expect(client.stops.Load()).To(Equal(int32(1)))
-			if tt.skip || tt.missingMetadata {
+			if tt.skip {
 				g.Expect(requests.Load()).To(BeZero())
 			} else {
 				g.Expect(requests.Load()).To(Equal(int32(1)))
@@ -199,7 +200,6 @@ func TestOTEL_HTTPTransport(t *testing.T) {
 				g := NewWithT(t)
 				ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 				defer cancel()
-				ctx = WithAlertMetadata(ctx, metav1.ObjectMeta{Name: "alert", Namespace: "default"})
 
 				var requests, proxyRequests, closed atomic.Int32
 				server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -255,8 +255,14 @@ func TestOTEL_HTTPTransport(t *testing.T) {
 				if proxyURL != nil {
 					proxyURL.User = url.UserPassword("user", "pass")
 				}
-				tracer, err := NewOTLPTracer(ctx, address+"/v1/traces", proxyURL, nil, tlsConfig, "", "")
+				n, err := NewOTEL(ctx, &notifierOptions{
+					URL:           address + "/v1/traces",
+					ProxyURL:      proxyURL,
+					TLSConfig:     tlsConfig,
+					AlertMetadata: metav1.ObjectMeta{Name: "alert", Namespace: "default"},
+				})
 				g.Expect(err).ToNot(HaveOccurred())
+				tracer := n.(*OTLPTracer)
 				defer tracer.tracerExporter.Shutdown(context.Background())
 
 				err = tracer.Post(ctx, testEvent())
@@ -345,9 +351,16 @@ func TestOTEL_Authorization(t *testing.T) {
 				headersCopy = maps.Clone(tt.headers)
 			}
 
-			ctx := WithAlertMetadata(context.Background(), metav1.ObjectMeta{Name: "alert", Namespace: "default"})
-			tracer, err := NewOTLPTracer(ctx, ts.URL, nil, tt.headers, nil, tt.username, tt.password)
+			ctx := context.Background()
+			n, err := NewOTEL(ctx, &notifierOptions{
+				URL:           ts.URL,
+				Headers:       tt.headers,
+				Username:      tt.username,
+				Token:         tt.password,
+				AlertMetadata: metav1.ObjectMeta{Name: "alert", Namespace: "default"},
+			})
 			g.Expect(err).ToNot(HaveOccurred())
+			tracer := n.(*OTLPTracer)
 			defer tracer.tracerExporter.Shutdown(context.Background())
 
 			g.Expect(tracer.Post(ctx, testEvent())).To(Succeed())
@@ -386,9 +399,16 @@ func TestOTEL_ProxyCredentials(t *testing.T) {
 	proxyURL.User = url.UserPassword("proxy-user", "proxy-pass")
 	original := proxyURL.String()
 
-	ctx := WithAlertMetadata(context.Background(), metav1.ObjectMeta{Name: "alert", Namespace: "default"})
-	tracer, err := NewOTLPTracer(ctx, "http://collector.invalid/v1/traces", proxyURL, nil, nil, "user", "pass")
+	ctx := context.Background()
+	n, err := NewOTEL(ctx, &notifierOptions{
+		URL:           "http://collector.invalid/v1/traces",
+		ProxyURL:      proxyURL,
+		Username:      "user",
+		Token:         "pass",
+		AlertMetadata: metav1.ObjectMeta{Name: "alert", Namespace: "default"},
+	})
 	g.Expect(err).ToNot(HaveOccurred())
+	tracer := n.(*OTLPTracer)
 	defer tracer.tracerExporter.Shutdown(context.Background())
 
 	g.Expect(tracer.Post(ctx, testEvent())).To(Succeed())

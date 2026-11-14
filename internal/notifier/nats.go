@@ -63,22 +63,22 @@ type (
 //   - nkeySeed: NKey seed for NKey-based authentication (optional)
 //
 // Returns an error if server or subject is empty.
-func NewNATS(server string, subject string, username string, password string, secretData map[string][]byte) (*NATS, error) {
-	if server == "" {
+func NewNATS(_ context.Context, opts *notifierOptions) (Interface, error) {
+	if opts.URL == "" {
 		return nil, errors.New("NATS server (address) cannot be empty")
 	}
-	if subject == "" {
+	if opts.Channel == "" {
 		return nil, errors.New("NATS subject (channel) cannot be empty")
 	}
 
-	client := &natsClient{server: server}
+	client := &natsClient{server: opts.URL}
 
 	// Extract credentials from secret data
 	// Keys: "creds" for user credentials file, "nkey" for nkey seed
 	var credsData, nkeySeed []byte
-	if secretData != nil {
-		credsData = secretData["creds"]
-		nkeySeed = secretData["nkey"]
+	if opts.SecretData != nil {
+		credsData = opts.SecretData["creds"]
+		nkeySeed = opts.SecretData["nkey"]
 	}
 
 	// Set up authentication function based on provided credentials
@@ -104,14 +104,14 @@ func NewNATS(server string, subject string, username string, password string, se
 			}
 			return nats.Nkey(pubKey, sigCB), kp.Wipe, nil
 		}
-	} else if username != "" && password != "" {
+	} else if opts.Username != "" && opts.Password != "" {
 		client.authFn = func() (nats.Option, func(), error) {
-			return nats.UserInfo(username, password), nil, nil
+			return nats.UserInfo(opts.Username, opts.Password), nil, nil
 		}
 	}
 
 	return &NATS{
-		subject: subject,
+		subject: opts.Channel,
 		client:  client,
 	}, nil
 }

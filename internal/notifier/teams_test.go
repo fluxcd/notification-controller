@@ -58,8 +58,9 @@ func TestNewMSTeams(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			teams, err := NewMSTeams(tt.url, nil, nil)
+			n, err := NewMSTeams(t.Context(), &notifierOptions{URL: tt.url})
 			g.Expect(err).ToNot(HaveOccurred())
+			teams := n.(*MSTeams)
 			g.Expect(teams.Schema).To(Equal(tt.wantSchema))
 		})
 	}
@@ -164,8 +165,9 @@ func TestMSTeams_Post(t *testing.T) {
 			g := NewWithT(t)
 			*tt.serverCalled = false
 
-			teams, err := NewMSTeams(tt.url, nil, nil)
+			n, err := NewMSTeams(t.Context(), &notifierOptions{URL: tt.url})
 			g.Expect(err).ToNot(HaveOccurred())
+			teams := n.(*MSTeams)
 			teams.Schema = tt.schema
 
 			err = teams.Post(context.TODO(), testEvent())

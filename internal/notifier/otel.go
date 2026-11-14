@@ -19,12 +19,10 @@ package notifier
 import (
 	"context"
 	"crypto/sha256"
-	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"math"
 	"net/http"
-	"net/url"
 	"slices"
 	"time"
 
@@ -44,28 +42,17 @@ import (
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 )
 
-// Context key
-type alertMetadataContextKey struct{}
-
-func WithAlertMetadata(ctx context.Context, metadata metav1.ObjectMeta) context.Context {
-	return context.WithValue(ctx, alertMetadataContextKey{}, metadata)
-}
-
-func GetAlertMetadata(ctx context.Context) (metav1.ObjectMeta, bool) {
-	metadata, ok := ctx.Value(alertMetadataContextKey{}).(metav1.ObjectMeta)
-	return metadata, ok
-}
-
 type OTLPTracer struct {
 	tracerExporter *otlptrace.Exporter
 	transport      *http.Transport
+	AlertMetadata  metav1.ObjectMeta
 }
 
-func NewOTLPTracer(ctx context.Context, urlStr string, proxyURL *url.URL, headers map[string]string, tlsConfig *tls.Config, username string, password string) (*OTLPTracer, error) {
-	transport := newTransport(proxyURL, tlsConfig)
+func NewOTEL(ctx context.Context, opts *notifierOptions) (Interface, error) {
+	transport := newTransport(opts.ProxyURL, opts.TLSConfig)
 	// Set up OTLP exporter options
 	httpOptions := []otlptracehttp.Option{
-		otlptracehttp.WithEndpointURL(urlStr),
+		otlptracehttp.WithEndpointURL(opts.URL),
 		otlptracehttp.WithHTTPClient(&http.Client{
 			Transport: transport,
 			Timeout:   10 * time.Second,
@@ -73,18 +60,22 @@ func NewOTLPTracer(ctx context.Context, urlStr string, proxyURL *url.URL, header
 	}
 
 	// Copy the headers so the caller's map is not modified.
-	reqHeaders := make(map[string]string, len(headers)+1)
-	for k, v := range headers {
+	reqHeaders := make(map[string]string, len(opts.Headers)+1)
+	for k, v := range opts.Headers {
 		reqHeaders[k] = v
 	}
 
 	// Add the collector authentication header, unless one is already set.
 	// If username is not set, password is considered as token.
+	password := opts.Token
+	if password == "" {
+		password = opts.Password
+	}
 	if reqHeaders["Authorization"] == "" && password != "" {
-		if username == "" {
+		if opts.Username == "" {
 			reqHeaders["Authorization"] = "Bearer " + password
 		} else {
-			auth := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
+			auth := base64.StdEncoding.EncodeToString([]byte(opts.Username + ":" + password))
 			reqHeaders["Authorization"] = "Basic " + auth
 		}
 	}
@@ -103,6 +94,7 @@ func NewOTLPTracer(ctx context.Context, urlStr string, proxyURL *url.URL, header
 	return &OTLPTracer{
 		tracerExporter: exporter,
 		transport:      transport,
+		AlertMetadata:  opts.AlertMetadata,
 	}, nil
 }
 
@@ -126,10 +118,7 @@ func (t *OTLPTracer) Post(ctx context.Context, event eventv1.Event) error {
 	)
 	logger.Info("OTEL Post function called", "event", event.Reason)
 
-	alert, ok := GetAlertMetadata(ctx)
-	if !ok {
-		return fmt.Errorf("alert metadata not found in context")
-	}
+	alert := t.AlertMetadata
 
 	// Extract revision from event metadata
 	revision := getRevision(event.Metadata)

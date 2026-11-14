@@ -43,22 +43,22 @@ type OpsgenieAlert struct {
 	Details     map[string]string `json:"details"`
 }
 
-func NewOpsgenie(hookURL string, proxyURL *url.URL, tlsConfig *tls.Config, token string, providerUID string) (*Opsgenie, error) {
-	_, err := url.ParseRequestURI(hookURL)
+func NewOpsgenie(_ context.Context, opts *notifierOptions) (Interface, error) {
+	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid Opsgenie hook URL %s: '%w'", hookURL, err)
+		return nil, fmt.Errorf("invalid Opsgenie hook URL %s: '%w'", opts.URL, err)
 	}
 
-	if token == "" {
+	if opts.Token == "" {
 		return nil, errors.New("empty Opsgenie apikey/token")
 	}
 
 	return &Opsgenie{
-		URL:         hookURL,
-		ProxyURL:    proxyURL,
-		ApiKey:      token,
-		TLSConfig:   tlsConfig,
-		ProviderUID: providerUID,
+		URL:         opts.URL,
+		ProxyURL:    opts.ProxyURL,
+		ApiKey:      opts.Token,
+		TLSConfig:   opts.TLSConfig,
+		ProviderUID: opts.ProviderUID,
 	}, nil
 }
 

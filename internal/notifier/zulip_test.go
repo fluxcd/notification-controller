@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 
+	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 
 	"github.com/fluxcd/notification-controller/internal/notifier"
@@ -34,7 +35,12 @@ func TestNewZulip(t *testing.T) {
 	t.Run("invalid endpoint", func(t *testing.T) {
 		g := NewWithT(t)
 
-		z, err := notifier.NewZulip(string([]byte{0x7f}), "general/announcements", nil, nil, "user@example.com", "password")
+		z, err := notifier.New(t.Context(), apiv1.ZulipProvider,
+			notifier.WithURL(string([]byte{0x7f})),
+			notifier.WithChannel("general/announcements"),
+			notifier.WithUsername("user@example.com"),
+			notifier.WithPassword("password"),
+		)
 
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(err.Error()).To(ContainSubstring("invalid Zulip endpoint URL"))
@@ -44,7 +50,12 @@ func TestNewZulip(t *testing.T) {
 	t.Run("invalid channel format", func(t *testing.T) {
 		g := NewWithT(t)
 
-		z, err := notifier.NewZulip("https://zulip.example.com/api/v1/messages", "invalid_format", nil, nil, "user@example.com", "password")
+		z, err := notifier.New(t.Context(), apiv1.ZulipProvider,
+			notifier.WithURL("https://zulip.example.com/api/v1/messages"),
+			notifier.WithChannel("invalid_format"),
+			notifier.WithUsername("user@example.com"),
+			notifier.WithPassword("password"),
+		)
 
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(err.Error()).To(Equal("invalid Zulip channel format, expected <channel>/<topic>, got 'invalid_format'"))
@@ -54,7 +65,12 @@ func TestNewZulip(t *testing.T) {
 	t.Run("valid channel format", func(t *testing.T) {
 		g := NewWithT(t)
 
-		z, err := notifier.NewZulip("https://zulip.example.com/api/v1/messages", "general/announcements", nil, nil, "user@example.com", "password")
+		z, err := notifier.New(t.Context(), apiv1.ZulipProvider,
+			notifier.WithURL("https://zulip.example.com/api/v1/messages"),
+			notifier.WithChannel("general/announcements"),
+			notifier.WithUsername("user@example.com"),
+			notifier.WithPassword("password"),
+		)
 
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(z).NotTo(BeNil())
@@ -93,7 +109,12 @@ func TestZulip_Post(t *testing.T) {
 			}))
 			t.Cleanup(s.Close)
 
-			z, err := notifier.NewZulip(s.URL, "general/announcements", nil, nil, "user", "pass")
+			z, err := notifier.New(t.Context(), apiv1.ZulipProvider,
+				notifier.WithURL(s.URL),
+				notifier.WithChannel("general/announcements"),
+				notifier.WithUsername("user"),
+				notifier.WithPassword("pass"),
+			)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(z).NotTo(BeNil())
 

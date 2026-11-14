@@ -51,21 +51,21 @@ type IncidentioPayload struct {
 
 // NewIncidentio validates the alert source endpoint URL and token
 // and returns an Incidentio object.
-func NewIncidentio(endpointURL string, proxyURL *url.URL, tlsConfig *tls.Config, token string) (*Incidentio, error) {
-	_, err := url.ParseRequestURI(endpointURL)
+func NewIncidentio(_ context.Context, opts *notifierOptions) (Interface, error) {
+	_, err := url.ParseRequestURI(opts.URL)
 	if err != nil {
-		return nil, fmt.Errorf("invalid incident.io alert source URL %s: '%w'", endpointURL, err)
+		return nil, fmt.Errorf("invalid incident.io alert source URL %s: '%w'", opts.URL, err)
 	}
 
-	if token == "" {
+	if opts.Token == "" {
 		return nil, errors.New("empty incident.io API token")
 	}
 
 	return &Incidentio{
-		URL:       endpointURL,
-		ProxyURL:  proxyURL,
-		Token:     token,
-		TLSConfig: tlsConfig,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
+		Token:     opts.Token,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 

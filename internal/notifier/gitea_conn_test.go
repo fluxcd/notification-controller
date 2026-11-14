@@ -79,10 +79,11 @@ func TestGitea_PostDoesNotLeakConnections(t *testing.T) {
 
 	const events = 20
 	for i := 0; i < events; i++ {
-		gitea, err := NewGitea("kustomization/gitops-system/0c9c2e41",
-			WithGiteaAddress(srv.URL+"/foo/bar"),
-			WithGiteaToken("foobar"),
-		)
+		gitea, err := NewGitea(context.TODO(), &notifierOptions{
+			CommitStatus: "kustomization/gitops-system/0c9c2e41",
+			URL:          srv.URL + "/foo/bar",
+			Token:        "foobar",
+		})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(gitea.Post(context.TODO(), event)).To(Succeed())
 	}

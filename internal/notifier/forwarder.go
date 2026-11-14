@@ -44,9 +44,17 @@ type Forwarder struct {
 	HMACKey   []byte
 }
 
-func NewForwarder(hookURL string, proxyURL *url.URL, headers map[string]string, tlsConfig *tls.Config, hmacKey []byte) (*Forwarder, error) {
-	if _, err := url.ParseRequestURI(hookURL); err != nil {
-		return nil, fmt.Errorf("invalid hook URL %s: %w", hookURL, err)
+func NewGeneric(_ context.Context, opts *notifierOptions) (Interface, error) {
+	return newForwarder(opts, nil)
+}
+
+func NewGenericHMAC(_ context.Context, opts *notifierOptions) (Interface, error) {
+	return newForwarder(opts, []byte(opts.Token))
+}
+
+func newForwarder(opts *notifierOptions, hmacKey []byte) (*Forwarder, error) {
+	if _, err := url.ParseRequestURI(opts.URL); err != nil {
+		return nil, fmt.Errorf("invalid hook URL %s: %w", opts.URL, err)
 	}
 
 	if hmacKey != nil && len(hmacKey) == 0 {
@@ -54,11 +62,11 @@ func NewForwarder(hookURL string, proxyURL *url.URL, headers map[string]string, 
 	}
 
 	return &Forwarder{
-		URL:       hookURL,
-		ProxyURL:  proxyURL,
-		Headers:   headers,
+		URL:       opts.URL,
+		ProxyURL:  opts.ProxyURL,
+		Headers:   opts.Headers,
 		HMACKey:   hmacKey,
-		TLSConfig: tlsConfig,
+		TLSConfig: opts.TLSConfig,
 	}, nil
 }
 

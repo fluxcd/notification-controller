@@ -74,6 +74,19 @@ spec:
                 required:
                 - name
                 type: object
+              changeRequestComment:
+                description: |-
+                  ChangeRequestComment configures change request comment notifications
+                  for the GitHub pull request, GitLab merge request and Gitea pull
+                  request comment provider types.
+                properties:
+                  maxPages:
+                    description: |-
+                      MaxPages is the maximum number of comment pages to fetch when looking
+                      for an existing comment. Defaults to 1 to limit API requests.
+                    minimum: 1
+                    type: integer
+                type: object
               channel:
                 description: Channel specifies the destination channel where events
                   should be posted.
@@ -189,6 +202,11 @@ spec:
               rule: self.type == 'github' || self.type == 'gitlab' || self.type ==
                 'gitea' || self.type == 'bitbucketserver' || self.type == 'bitbucket'
                 || self.type == 'azuredevops' || !has(self.commitStatusExpr)
+            - message: spec.changeRequestComment is only supported for the 'githubpullrequestcomment',
+                'gitlabmergerequestcomment' and 'giteapullrequestcomment' provider
+                types
+              rule: self.type == 'githubpullrequestcomment' || self.type == 'gitlabmergerequestcomment'
+                || self.type == 'giteapullrequestcomment' || !has(self.changeRequestComment)
         type: object
     served: true
     storage: true

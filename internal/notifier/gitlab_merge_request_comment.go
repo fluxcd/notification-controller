@@ -18,11 +18,9 @@ package notifier
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -36,29 +34,34 @@ type GitLabMergeRequestComment struct {
 	ProjectID string
 	Username  string
 	Client    *gitlab.Client
+	MaxPages  int
 }
 
-func NewGitLabMergeRequestComment(providerUID string, addr string, proxyURL *url.URL, token string, tlsConfig *tls.Config) (*GitLabMergeRequestComment, error) {
-	if providerUID == "" {
+func NewGitLabMergeRequestComment(_ context.Context, opts *notifierOptions) (Interface, error) {
+	if opts.ProviderUID == "" {
 		return nil, errors.New("provider UID cannot be empty")
 	}
 
+	token := opts.Token
+	if token == "" {
+		token = opts.Password
+	}
 	if token == "" {
 		return nil, errors.New("gitlab token cannot be empty")
 	}
 
-	host, id, err := parseGitAddress(addr)
+	host, id, err := parseGitAddress(opts.URL)
 	if err != nil {
 		return nil, err
 	}
 
-	opts := []gitlab.ClientOptionFunc{gitlab.WithBaseURL(host)}
-	if proxyURL != nil || tlsConfig != nil {
-		hc := &http.Client{Transport: newTransport(proxyURL, tlsConfig)}
-		opts = append(opts, gitlab.WithHTTPClient(hc))
+	gitlabOpts := []gitlab.ClientOptionFunc{gitlab.WithBaseURL(host)}
+	if opts.ProxyURL != nil || opts.TLSConfig != nil {
+		hc := &http.Client{Transport: newTransport(opts.ProxyURL, opts.TLSConfig)}
+		gitlabOpts = append(gitlabOpts, gitlab.WithHTTPClient(hc))
 	}
 
-	client, err := gitlab.NewClient(token, opts...)
+	client, err := gitlab.NewClient(token, gitlabOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -71,12 +74,13 @@ func NewGitLabMergeRequestComment(providerUID string, addr string, proxyURL *url
 
 	return &GitLabMergeRequestComment{
 		changeRequestComment: changeRequestComment{
-			ProviderUID:      providerUID,
+			ProviderUID:      opts.ProviderUID,
 			CommentKeyPrefix: "flux-mr-comment-key",
 		},
 		ProjectID: id,
 		Username:  user.Username,
 		Client:    client,
+		MaxPages:  opts.ChangeRequestComment.GetMaxPages(),
 	}, nil
 }
 
@@ -90,32 +94,42 @@ func (g *GitLabMergeRequestComment) Post(ctx context.Context, event eventv1.Even
 		return err
 	}
 
-	// List the first 100 notes in the merge request.
-	// We fetch only a single page with 100 notes for performance reasons.
-	// Since the tendency is for the comment to be created as soon as the MR
-	// is opened, it is likely to be in this first page. 100 is the maximum value for per_page:
-	// https://docs.gitlab.com/api/rest/#pagination
+	// Fetch only the first page by default to limit API requests.
 	opts := &gitlab.ListMergeRequestNotesOptions{
 		Sort:        gitlab.Ptr("asc"),
 		OrderBy:     gitlab.Ptr("created_at"),
 		ListOptions: gitlab.ListOptions{PerPage: 100},
 	}
-	notes, _, err := g.Client.Notes.ListMergeRequestNotes(g.ProjectID, mrIID, opts, gitlab.WithContext(ctx))
-	if err != nil {
-		return fmt.Errorf("failed to list merge request notes: %w", err)
-	}
-
-	// Find note from the authenticated user matching the comment key
-	var note *gitlab.Note
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
-	for _, n := range notes {
-		if n.Author.Username == g.Username && strings.Contains(n.Body, commentKeyMarker) {
-			note = n
-			break
+	requestOpts := []gitlab.RequestOptionFunc{gitlab.WithContext(ctx)}
+	var lastNextPage int64
+	var lastNextLink string
+	note, found, err := findInPages(g.MaxPages, func() ([]*gitlab.Note, bool, error) {
+		notes, response, err := g.Client.Notes.ListMergeRequestNotes(g.ProjectID, mrIID, opts, requestOpts...)
+		if err != nil {
+			return nil, false, fmt.Errorf("failed to list merge request notes: %w", err)
 		}
+		if response == nil {
+			return notes, false, nil
+		}
+		if response.NextPage == lastNextPage && response.NextLink == lastNextLink {
+			return notes, false, nil
+		}
+		next, ok := gitlab.WithNext(response)
+		if !ok {
+			return notes, false, nil
+		}
+		lastNextPage, lastNextLink = response.NextPage, response.NextLink
+		requestOpts = []gitlab.RequestOptionFunc{gitlab.WithContext(ctx), next}
+		return notes, true, nil
+	}, func(n *gitlab.Note) bool {
+		return n.Author.Username == g.Username && strings.Contains(n.Body, commentKeyMarker)
+	})
+	if err != nil {
+		return err
 	}
 
-	if note != nil {
+	if found {
 		// Existing note found, update it
 		_, _, err = g.Client.Notes.UpdateMergeRequestNote(g.ProjectID, mrIID, note.ID, &gitlab.UpdateMergeRequestNoteOptions{
 			Body: &body,

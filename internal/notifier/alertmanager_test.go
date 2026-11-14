@@ -39,8 +39,9 @@ func TestAlertmanager_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	alertmanager, err := NewAlertmanager(ts.URL, nil, nil, "", "", "")
+	n, err := NewAlertManager(t.Context(), &notifierOptions{URL: ts.URL})
 	g.Expect(err).ToNot(HaveOccurred())
+	alertmanager := n.(*Alertmanager)
 
 	err = alertmanager.Post(context.TODO(), testEvent())
 	g.Expect(err).ToNot(HaveOccurred())

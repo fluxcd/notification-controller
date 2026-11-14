@@ -53,8 +53,9 @@ func TestMastodon_Post(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	mastodon, err := NewMastodon(ts.URL, nil, nil, "token", "event-key")
+	n, err := NewMastodon(t.Context(), &notifierOptions{URL: ts.URL, Token: "token", EventKey: "event-key"})
 	g.Expect(err).ToNot(HaveOccurred())
+	mastodon := n.(*Mastodon)
 
 	err = mastodon.Post(context.TODO(), testEvent())
 	g.Expect(err).ToNot(HaveOccurred())
@@ -68,8 +69,9 @@ func TestMastodon_PostWithoutEventKey(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	mastodon, err := NewMastodon(ts.URL, nil, nil, "token", "")
+	n, err := NewMastodon(t.Context(), &notifierOptions{URL: ts.URL, Token: "token"})
 	g.Expect(err).ToNot(HaveOccurred())
+	mastodon := n.(*Mastodon)
 
 	err = mastodon.Post(context.TODO(), testEvent())
 	g.Expect(err).ToNot(HaveOccurred())
@@ -90,8 +92,9 @@ func TestMastodon_PostErrorSeverity(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	mastodon, err := NewMastodon(ts.URL, nil, nil, "token", "")
+	n, err := NewMastodon(t.Context(), &notifierOptions{URL: ts.URL, Token: "token"})
 	g.Expect(err).ToNot(HaveOccurred())
+	mastodon := n.(*Mastodon)
 
 	event := testEvent()
 	event.Severity = "error"
@@ -114,8 +117,9 @@ func TestMastodon_PostStatusTruncated(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	mastodon, err := NewMastodon(ts.URL, nil, nil, "token", "")
+	n, err := NewMastodon(t.Context(), &notifierOptions{URL: ts.URL, Token: "token"})
 	g.Expect(err).ToNot(HaveOccurred())
+	mastodon := n.(*Mastodon)
 
 	event := testEvent()
 	event.Message = strings.Repeat("z", 2*mastodonMaxChars)
@@ -126,16 +130,16 @@ func TestMastodon_PostStatusTruncated(t *testing.T) {
 func TestNewMastodon(t *testing.T) {
 	g := NewWithT(t)
 
-	_, err := NewMastodon("invalid-url", nil, nil, "token", "")
+	_, err := NewMastodon(t.Context(), &notifierOptions{URL: "invalid-url", Token: "token"})
 	g.Expect(err).To(MatchError(ContainSubstring("invalid Mastodon server URL")))
 
-	_, err = NewMastodon("https://mastodon.social", nil, nil, "", "")
+	_, err = NewMastodon(t.Context(), &notifierOptions{URL: "https://mastodon.social"})
 	g.Expect(err).To(MatchError(ContainSubstring("empty Mastodon access token")))
 
 	// The statuses path is preserved when already present in the address.
-	m, err := NewMastodon("https://mastodon.social/api/v1/statuses", nil, nil, "token", "")
+	n, err := NewMastodon(t.Context(), &notifierOptions{URL: "https://mastodon.social/api/v1/statuses", Token: "token"})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(m.URL).To(Equal("https://mastodon.social/api/v1/statuses"))
+	g.Expect(n.(*Mastodon).URL).To(Equal("https://mastodon.social/api/v1/statuses"))
 }
 
 // Go randomises map iteration, so the metadata lines shuffled between statuses
@@ -162,8 +166,9 @@ func TestMastodon_PostMetadataIsSorted(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	mastodon, err := NewMastodon(ts.URL, nil, nil, "token", "")
+	n, err := NewMastodon(t.Context(), &notifierOptions{URL: ts.URL, Token: "token"})
 	g.Expect(err).ToNot(HaveOccurred())
+	mastodon := n.(*Mastodon)
 
 	event := testEvent()
 	event.Metadata = map[string]string{

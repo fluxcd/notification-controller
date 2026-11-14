@@ -24,35 +24,49 @@ import (
 
 func TestNewGitLabBasic(t *testing.T) {
 	gomega := NewWithT(t)
-	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar", nil, "foobar", nil)
+	n, err := NewGitLab(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          "https://gitlab.com/foo/bar",
+		Token:        "foobar",
+	})
 	gomega.Expect(err).ToNot(HaveOccurred())
+	gitlab := n.(*GitLab)
 	gomega.Expect(gitlab.Id).To(Equal("foo/bar"))
 	gomega.Expect(gitlab.CommitStatus).To(Equal("kustomization/gitops-system/0c9c2e41"))
 }
 
 func TestNewGitLabSubgroups(t *testing.T) {
 	gomega := NewWithT(t)
-	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar/baz", nil, "foobar", nil)
+	n, err := NewGitLab(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          "https://gitlab.com/foo/bar/baz",
+		Token:        "foobar",
+	})
 	gomega.Expect(err).ToNot(HaveOccurred())
-	gomega.Expect(gitlab.Id).To(Equal("foo/bar/baz"))
+	gomega.Expect(n.(*GitLab).Id).To(Equal("foo/bar/baz"))
 }
 
 func TestNewGitLabSelfHosted(t *testing.T) {
 	gomega := NewWithT(t)
-	gitlab, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://example.com/foo/bar", nil, "foo:bar", nil)
+	n, err := NewGitLab(t.Context(), &notifierOptions{
+		CommitStatus: "kustomization/gitops-system/0c9c2e41",
+		URL:          "https://example.com/foo/bar",
+		Token:        "foo:bar",
+	})
 	gomega.Expect(err).ToNot(HaveOccurred())
+	gitlab := n.(*GitLab)
 	gomega.Expect(gitlab.Id).To(Equal("foo/bar"))
 	gomega.Expect(gitlab.Client.BaseURL().Host).To(Equal("example.com"))
 }
 
 func TestNewGitLabEmptyToken(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitLab("kustomization/gitops-system/0c9c2e41", "https://gitlab.com/foo/bar", nil, "", nil)
+	_, err := NewGitLab(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://gitlab.com/foo/bar"})
 	g.Expect(err).To(HaveOccurred())
 }
 
 func TestNewGitLabEmptyCommitStatus(t *testing.T) {
 	g := NewWithT(t)
-	_, err := NewGitLab("", "https://gitlab.com/foo/bar", nil, "foobar", nil)
+	_, err := NewGitLab(t.Context(), &notifierOptions{URL: "https://gitlab.com/foo/bar", Token: "foobar"})
 	g.Expect(err).To(HaveOccurred())
 }

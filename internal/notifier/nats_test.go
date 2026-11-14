@@ -104,13 +104,20 @@ func TestNewNATS(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			provider, err := NewNATS(tt.server, tt.subject, tt.username, tt.password, tt.secretData)
+			n, err := NewNATS(t.Context(), &notifierOptions{
+				URL:        tt.server,
+				Channel:    tt.subject,
+				Username:   tt.username,
+				Password:   tt.password,
+				SecretData: tt.secretData,
+			})
 			if tt.expectedErr != nil {
 				g.Expect(err).To(Equal(tt.expectedErr))
-				g.Expect(provider).To(BeNil())
+				g.Expect(n).To(BeNil())
 			} else {
 				g.Expect(err).To(BeNil())
-				g.Expect(provider).NotTo(BeNil())
+				g.Expect(n).NotTo(BeNil())
+				provider := n.(*NATS)
 
 				g.Expect(provider.subject).To(Equal(tt.expectedSubject))
 

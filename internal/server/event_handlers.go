@@ -253,7 +253,6 @@ func (s *EventServer) dispatchNotification(ctx context.Context,
 	go func() {
 		pctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), params.timeout)
 		defer cancel()
-		pctx = notifier.WithAlertMetadata(pctx, alert.ObjectMeta)
 		n, err := params.createNotifier(pctx)
 		if err != nil {
 			log.FromContext(ctx).Error(err, "failed to dispatch notification")
@@ -284,7 +283,7 @@ type notificationParams struct {
 
 // createNotifier constructs a sender with the resolved configuration.
 func (p *notificationParams) createNotifier(ctx context.Context) (notifier.Interface, error) {
-	sender, err := notifier.NewFactory(ctx, p.options...).Notifier(p.provider.Spec.Type)
+	sender, err := notifier.New(ctx, p.provider.Spec.Type, p.options...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize notifier for provider '%s': failed to initialize notifier: %w",
 			p.provider.Name, maskSecrets(err, p.token, p.secretAddress))
@@ -441,7 +440,7 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, droppedProviders{}, fmt.Errorf("failed to create commit status: %w", err)
 	}
 
-	params, err := s.prepareNotifier(ctx, &provider, commitStatus)
+	params, err := s.prepareNotifier(ctx, &provider, commitStatus, alert.ObjectMeta)
 	if err != nil {
 		return nil, droppedProviders{}, err
 	}
@@ -514,7 +513,7 @@ func extractAuthFromSecret(ctx context.Context, secret *corev1.Secret) ([]notifi
 // prepareNotifier resolves authentication, proxy settings and TLS configuration.
 // Notifier construction is deferred until dispatch under the provider timeout.
 func (s *EventServer) prepareNotifier(ctx context.Context, provider *apiv1.Provider,
-	commitStatus string) (_ *notificationParams, err error) {
+	commitStatus string, alertMetadata metav1.ObjectMeta) (_ *notificationParams, err error) {
 	params := &notificationParams{provider: provider, timeout: provider.GetTimeout()}
 	defer func() {
 		if err != nil {
@@ -526,6 +525,8 @@ func (s *EventServer) prepareNotifier(ctx context.Context, provider *apiv1.Provi
 		notifier.WithTimeout(params.timeout),
 		notifier.WithTokenClient(s.kubeClient),
 		notifier.WithProviderUID(string(provider.UID)),
+		notifier.WithChangeRequestComment(provider.Spec.ChangeRequestComment),
+		notifier.WithAlertMetadata(alertMetadata),
 		notifier.WithProviderName(provider.Name),
 		notifier.WithProviderNamespace(provider.Namespace),
 	}

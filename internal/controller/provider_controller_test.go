@@ -129,11 +129,39 @@ func TestProviderReconciler_V1Beta3Interval(t *testing.T) {
 
 func TestProviderReconciler_APIServerValidation(t *testing.T) {
 	tests := []struct {
-		name             string
-		providerType     string
-		commitStatusExpr string
-		err              string
+		name                 string
+		providerType         string
+		commitStatusExpr     string
+		changeRequestComment *apiv1.ChangeRequestComment
+		err                  string
 	}{
+		{
+			name:                 "github pull request comments can fetch multiple pages",
+			providerType:         apiv1.GitHubPullRequestCommentProvider,
+			changeRequestComment: &apiv1.ChangeRequestComment{MaxPages: 5},
+		},
+		{
+			name:                 "gitlab merge request comments can fetch multiple pages",
+			providerType:         apiv1.GitLabMergeRequestCommentProvider,
+			changeRequestComment: &apiv1.ChangeRequestComment{MaxPages: 5},
+		},
+		{
+			name:                 "gitea pull request comments can fetch multiple pages",
+			providerType:         apiv1.GiteaPullRequestCommentProvider,
+			changeRequestComment: &apiv1.ChangeRequestComment{MaxPages: 5},
+		},
+		{
+			name:                 "maxPages must be at least 1",
+			providerType:         apiv1.GitHubPullRequestCommentProvider,
+			changeRequestComment: &apiv1.ChangeRequestComment{MaxPages: -1},
+			err:                  "spec.changeRequestComment.maxPages in body should be greater than or equal to 1",
+		},
+		{
+			name:                 "other providers cannot configure change request comments",
+			providerType:         apiv1.SlackProvider,
+			changeRequestComment: &apiv1.ChangeRequestComment{MaxPages: 5},
+			err:                  "spec.changeRequestComment is only supported for the 'githubpullrequestcomment', 'gitlabmergerequestcomment' and 'giteapullrequestcomment' provider types",
+		},
 		{
 			name:             "github provider types can create providers with commitStatusExpr",
 			providerType:     "github",
@@ -195,8 +223,9 @@ func TestProviderReconciler_APIServerValidation(t *testing.T) {
 					Namespace:    "default",
 				},
 				Spec: apiv1.ProviderSpec{
-					Type:             tt.providerType,
-					CommitStatusExpr: tt.commitStatusExpr,
+					Type:                 tt.providerType,
+					CommitStatusExpr:     tt.commitStatusExpr,
+					ChangeRequestComment: tt.changeRequestComment,
 				},
 			}
 

@@ -2405,6 +2405,26 @@ to provide status updates directly on the change request where developers are wo
 **Note:** Flux objects without the `event.toolkit.fluxcd.io/change_request` annotation are
 automatically filtered out and will not trigger any action from change request providers.
 
+By default, notification-controller makes the best effort to post a single status
+comment per Flux object per provider in the change request by fetching only one
+page of up to 100 comments with a single API call, looking for an existing
+comment from the authenticated user and updating it if found.
+
+To search additional pages, set `.spec.changeRequestComment.maxPages` to a value
+greater than `1`:
+
+```yaml
+spec:
+  changeRequestComment:
+    maxPages: 5
+```
+
+The default is `1`. Each page fetches up to 100 comments, so `maxPages: 5` fetches
+at most 500 comments. Fetching stops when the comment is found, when no more pages
+remain, or when `maxPages` is reached. Each page requires another API request,
+within the provider's [timeout](#timeout). If listing a page fails, the
+notification fails without creating a new comment.
+
 #### GitHub Pull Request Comment
 
 When `.spec.type` is set to `githubpullrequestcomment`, the controller will post
@@ -2418,9 +2438,6 @@ This provider is designed to work with Flux objects that contain the
 `event.toolkit.fluxcd.io/change_request` annotation, which specifies
 the pull request number. Flux objects without this annotation are
 ignored.
-
-Each Flux object will have at most one status comment per provider on the pull request,
-which is updated whenever a new event is received.
 
 ##### Authentication
 
@@ -2497,9 +2514,6 @@ This provider is designed to work with Flux objects that contain the
 the pull request number. Flux objects without this annotation are
 ignored.
 
-Each Flux object will have at most one status comment per provider on the pull request,
-which is updated whenever a new event is received.
-
 ##### Authentication
 
 The provider requires a [Gitea token](https://docs.gitea.io/en-us/api-usage/#generating-and-listing-api-tokens)
@@ -2547,9 +2561,6 @@ This provider is designed to work with Flux objects that contain the
 `event.toolkit.fluxcd.io/change_request` annotation, which specifies
 the merge request IID. Flux objects without this annotation are
 ignored.
-
-Each Flux object will have at most one status comment per provider on the merge request,
-which is updated whenever a new event is received.
 
 ##### Authentication
 

@@ -64,6 +64,7 @@ const (
 
 // ProviderSpec defines the desired state of the Provider.
 // +kubebuilder:validation:XValidation:rule="self.type == 'github' || self.type == 'gitlab' || self.type == 'gitea' || self.type == 'bitbucketserver' || self.type == 'bitbucket' || self.type == 'azuredevops' || !has(self.commitStatusExpr)", message="spec.commitStatusExpr is only supported for the 'github', 'gitlab', 'gitea', 'bitbucketserver', 'bitbucket', 'azuredevops' provider types"
+// +kubebuilder:validation:XValidation:rule="self.type == 'githubpullrequestcomment' || self.type == 'gitlabmergerequestcomment' || self.type == 'giteapullrequestcomment' || !has(self.changeRequestComment)", message="spec.changeRequestComment is only supported for the 'githubpullrequestcomment', 'gitlabmergerequestcomment' and 'giteapullrequestcomment' provider types"
 type ProviderSpec struct {
 	// Type specifies which Provider implementation to use.
 	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;giteapullrequestcomment;bitbucketserver;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;githubpullrequestcomment;gitlabmergerequestcomment;pagerduty;datadog;nats;zulip;otel;zoom;incident.io;mastodon
@@ -150,6 +151,30 @@ type ProviderSpec struct {
 	// and alert.
 	// +optional
 	CommitStatusExpr string `json:"commitStatusExpr,omitempty"`
+
+	// ChangeRequestComment configures change request comment notifications
+	// for the GitHub pull request, GitLab merge request and Gitea pull
+	// request comment provider types.
+	// +optional
+	ChangeRequestComment *ChangeRequestComment `json:"changeRequestComment,omitempty"`
+}
+
+// ChangeRequestComment configures how existing change request comments are found.
+type ChangeRequestComment struct {
+	// MaxPages is the maximum number of comment pages to fetch when looking
+	// for an existing comment. Defaults to 1 to limit API requests.
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	MaxPages int `json:"maxPages,omitempty"`
+}
+
+// GetMaxPages returns the maximum number of comment pages to fetch,
+// with a default of 1.
+func (c *ChangeRequestComment) GetMaxPages() int {
+	if c == nil || c.MaxPages < 1 {
+		return 1
+	}
+	return c.MaxPages
 }
 
 // +genclient
