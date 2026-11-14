@@ -136,7 +136,7 @@ func (b Bitbucket) Post(ctx context.Context, event eventv1.Event) error {
 	return nil
 }
 
-func duplicateBitbucketStatus(statuses interface{}, status *bitbucket.CommitStatusOptions) (bool, error) {
+func duplicateBitbucketStatus(statuses any, status *bitbucket.CommitStatusOptions) (bool, error) {
 	commitStatus := bitbucket.CommitStatusOptions{}
 	b, err := json.Marshal(statuses)
 	if err != nil {

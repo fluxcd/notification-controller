@@ -24,7 +24,6 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
@@ -51,14 +50,10 @@ func Test_newCommitStatus(t *testing.T) {
 				},
 			},
 			alert: &apiv1.Alert{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-alert",
-				},
+				Name: "test-alert",
 			},
 			provider: &apiv1.Provider{
-				ObjectMeta: metav1.ObjectMeta{
-					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-				},
+				UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 			},
 			wantResult: "Kustomization/gitops-system/production/0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a/test-alert",
 		},
@@ -74,14 +69,10 @@ func Test_newCommitStatus(t *testing.T) {
 				},
 			},
 			alert: &apiv1.Alert{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-alert",
-				},
+				Name: "test-alert",
 			},
 			provider: &apiv1.Provider{
-				ObjectMeta: metav1.ObjectMeta{
-					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-				},
+				UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 			},
 			wantResult: "kustomization/gitops-system/production/0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a/test-alert",
 		},
@@ -97,14 +88,10 @@ func Test_newCommitStatus(t *testing.T) {
 				},
 			},
 			alert: &apiv1.Alert{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-alert",
-				},
+				Name: "test-alert",
 			},
 			provider: &apiv1.Provider{
-				ObjectMeta: metav1.ObjectMeta{
-					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-				},
+				UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 			},
 			wantErr: true,
 		},
@@ -117,14 +104,10 @@ func Test_newCommitStatus(t *testing.T) {
 				},
 			},
 			provider: &apiv1.Provider{
-				ObjectMeta: metav1.ObjectMeta{
-					UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
-				},
+				UID: "0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 			},
 			alert: &apiv1.Alert{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-alert",
-				},
+				Name: "test-alert",
 			},
 			wantErr: true,
 		},

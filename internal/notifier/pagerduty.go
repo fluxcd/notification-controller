@@ -105,7 +105,7 @@ func toPagerDutyV2Event(event eventv1.Event, routingKey string) pagerduty.V2Even
 			Timestamp: event.Timestamp.Format(time.RFC3339),
 			Component: event.InvolvedObject.Name,
 			Group:     event.InvolvedObject.Kind,
-			Details: map[string]interface{}{
+			Details: map[string]any{
 				"message":  event.Message,
 				"metadata": event.Metadata,
 			},
@@ -122,7 +122,7 @@ func toPagerDutyChangeEvent(event eventv1.Event, routingKey string) pagerduty.Ch
 			Summary:   desc + ": " + name,
 			Source:    "Flux " + event.ReportingController,
 			Timestamp: event.Timestamp.Format(time.RFC3339),
-			CustomDetails: map[string]interface{}{
+			CustomDetails: map[string]any{
 				"message":  event.Message,
 				"metadata": event.Metadata,
 			},

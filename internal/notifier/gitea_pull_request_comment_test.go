@@ -37,7 +37,7 @@ func TestNewGiteaPullRequestCommentBasic(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v1/user":
-			user := map[string]interface{}{
+			user := map[string]any{
 				"id":       1,
 				"login":    "test-user",
 				"username": "test-user",
@@ -89,7 +89,7 @@ func TestNewGiteaPullRequestCommentInvalidUrl(t *testing.T) {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v1/user":
-			user := map[string]interface{}{
+			user := map[string]any{
 				"id":       1,
 				"login":    "test-user",
 				"username": "test-user",

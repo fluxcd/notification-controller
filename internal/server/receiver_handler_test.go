@@ -54,19 +54,13 @@ func Test_handlePayload(t *testing.T) {
 	}
 
 	testReceiverResource := &apiv1.Receiver{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       apiv1.ReceiverKind,
-			APIVersion: apiv1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test-resource",
-		},
+		Kind:       apiv1.ReceiverKind,
+		APIVersion: apiv1.GroupVersion.String(),
+		Name:       "test-resource",
 	}
 
 	testSecretWithToken := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "token",
-		},
+		Name: "token",
 		Data: map[string][]byte{
 			"token": []byte("token"),
 		},
@@ -93,9 +87,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "Generic receiver",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-receiver",
-				},
+				Name: "test-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
@@ -113,9 +105,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "gitlab receiver",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "gitlab-receiver",
-				},
+				Name: "gitlab-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GitLabReceiver,
 					SecretRef: &meta.LocalObjectReference{
@@ -136,9 +126,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "cdevents receiver",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "cdevents-receiver",
-				},
+				Name: "cdevents-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type:   apiv1.CDEventsReceiver,
 					Events: []string{"cd.change.merged.v1"},
@@ -175,9 +163,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "cdevents receiver wrong event type",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "cdevents-receiver",
-				},
+				Name: "cdevents-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type:   apiv1.CDEventsReceiver,
 					Events: []string{"cd.environment.modified.v1"},
@@ -214,9 +200,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "cdevents receiver no event type specified",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "cdevents-receiver",
-				},
+				Name: "cdevents-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.CDEventsReceiver,
 					SecretRef: &meta.LocalObjectReference{
@@ -252,9 +236,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "github receiver",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-receiver",
-				},
+				Name: "test-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GitHubReceiver,
 					SecretRef: &meta.LocalObjectReference{
@@ -283,9 +265,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "generic hmac receiver",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "generic-hmac-receiver",
-				},
+				Name: "generic-hmac-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericHMACReceiver,
 					SecretRef: &meta.LocalObjectReference{
@@ -311,9 +291,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "bitbucket receiver",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bitbucket-receiver",
-				},
+				Name: "bitbucket-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type:   apiv1.BitbucketReceiver,
 					Events: []string{"push"},
@@ -341,9 +319,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "quay receiver",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "quay-receiver",
-				},
+				Name: "quay-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.QuayReceiver,
 					SecretRef: &meta.LocalObjectReference{
@@ -367,9 +343,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "harbor receiver",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "harbor-receiver",
-				},
+				Name: "harbor-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.HarborReceiver,
 					SecretRef: &meta.LocalObjectReference{
@@ -390,9 +364,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "missing secret",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "missing-secret",
-				},
+				Name: "missing-secret",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
@@ -413,9 +385,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "not ready receiver is ignored",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "notready-receiver",
-				},
+				Name: "notready-receiver",
 				Spec: apiv1.ReceiverSpec{},
 				Status: apiv1.ReceiverStatus{
 					WebhookPath: apiv1.ReceiverWebhookPath,
@@ -427,9 +397,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "suspended receiver ignored",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "suspended-receiver",
-				},
+				Name: "suspended-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Suspend: true,
 				},
@@ -443,21 +411,18 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "missing apiVersion in resource",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "receiver",
-				},
+				Name: "receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							Kind: apiv1.ReceiverKind,
 							MatchLabels: map[string]string{
 								"label": "match",
-							},
-						}},
+							}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -471,20 +436,17 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "resource by name not found",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "receiver",
-				},
+				Name: "receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "does-not-exists",
-						}},
+							Name:       "does-not-exists"},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -498,23 +460,20 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "annotating resources by label match",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "receiver",
-				},
+				Name: "receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "*",
 							MatchLabels: map[string]string{
 								"label": "match",
-							},
-						}},
+							}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -525,27 +484,19 @@ func Test_handlePayload(t *testing.T) {
 			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "dummy-resource-2",
-						Labels: map[string]string{
-							"label": "does-not-match",
-						},
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+					Name:       "dummy-resource-2",
+					Labels: map[string]string{
+						"label": "does-not-match",
 					},
 				},
 				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "dummy-resource",
-						Labels: map[string]string{
-							"label": "match",
-						},
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+					Name:       "dummy-resource",
+					Labels: map[string]string{
+						"label": "match",
 					},
 				},
 			},
@@ -555,20 +506,17 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "annotating resource by name",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "receiver",
-				},
+				Name: "receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "dummy-resource",
-						}},
+							Name:       "dummy-resource"},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -579,22 +527,14 @@ func Test_handlePayload(t *testing.T) {
 			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "dummy-resource-2",
-					},
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+					Name:       "dummy-resource-2",
 				},
 				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "dummy-resource",
-					},
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+					Name:       "dummy-resource",
 				},
 			},
 			expectedResourcesAnnotated: 1,
@@ -603,24 +543,19 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "cannot annotate all resources if name is * and no labels were set",
 			receiver: &apiv1.Receiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       apiv1.ReceiverKind,
-					APIVersion: apiv1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "receiver",
-				},
+				Kind:       apiv1.ReceiverKind,
+				APIVersion: apiv1.GroupVersion.String(),
+				Name:       "receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "*",
-						}},
+							Name:       "*"},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -634,25 +569,20 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "no cross-namespace refs",
 			receiver: &apiv1.Receiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       apiv1.ReceiverKind,
-					APIVersion: apiv1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "receiver",
-				},
+				Kind:       apiv1.ReceiverKind,
+				APIVersion: apiv1.GroupVersion.String(),
+				Name:       "receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "some-resource",
-							Namespace:  "another-namespace",
-						}},
+							Namespace:  "another-namespace"},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -661,9 +591,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "token",
-				},
+				Name: "token",
 				Data: map[string][]byte{
 					"token": []byte("token"),
 				},
@@ -675,24 +603,19 @@ func Test_handlePayload(t *testing.T) {
 			name:    "large payload",
 			payload: largePayload,
 			receiver: &apiv1.Receiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       apiv1.ReceiverKind,
-					APIVersion: apiv1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "receiver",
-				},
+				Kind:       apiv1.ReceiverKind,
+				APIVersion: apiv1.GroupVersion.String(),
+				Name:       "receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "some-resource",
-						}},
+							Name:       "some-resource"},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -705,23 +628,20 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "resource matchLabels is ignored if name is not *",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "receiver",
-				},
+				Name: "receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "dummy-resource",
 							MatchLabels: map[string]string{
 								"label": "match",
-							},
-						}},
+							}},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -732,25 +652,17 @@ func Test_handlePayload(t *testing.T) {
 			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "dummy-resource-2",
-						Labels: map[string]string{
-							"label": "match",
-						},
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+					Name:       "dummy-resource-2",
+					Labels: map[string]string{
+						"label": "match",
 					},
 				},
 				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "dummy-resource",
-					},
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+					Name:       "dummy-resource",
 				},
 			},
 			expectedResourcesAnnotated: 1,
@@ -767,23 +679,20 @@ func Test_handlePayload(t *testing.T) {
 				"tag":    "us-east1-docker.pkg.dev/my-project/my-repo/hello-world:1.1",
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "receiver",
-				},
+				Name: "receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "*",
 							MatchLabels: map[string]string{
 								"label": "production",
-							},
-						}},
+							}},
 					},
 					ResourceFilter: `has(res.metadata.annotations) && req.tag.split('/').last().value().split(":").first().value() == res.metadata.annotations['update-image']`,
 				},
@@ -795,46 +704,34 @@ func Test_handlePayload(t *testing.T) {
 			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+					Name:       "test-resource-1",
+					Annotations: map[string]string{
+						"update-image": "hello-world",
 					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-resource-1",
-						Annotations: map[string]string{
-							"update-image": "hello-world",
-						},
-						Labels: map[string]string{
-							"label": "production",
-						},
+					Labels: map[string]string{
+						"label": "production",
 					},
 				},
 				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+					Name:       "test-resource-2",
+					Namespace:  "tested",
+					Labels: map[string]string{
+						"label": "production",
 					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-resource-2",
-						Namespace: "tested",
-						Labels: map[string]string{
-							"label": "production",
-						},
-						Annotations: map[string]string{
-							"update-image": "other-image",
-						},
+					Annotations: map[string]string{
+						"update-image": "other-image",
 					},
 				},
 				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-resource-3",
-						Labels: map[string]string{
-							"label": "production",
-						},
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+					Name:       "test-resource-3",
+					Labels: map[string]string{
+						"label": "production",
 					},
 				},
 			},
@@ -852,20 +749,17 @@ func Test_handlePayload(t *testing.T) {
 				"tag":    "us-east1-docker.pkg.dev/my-project/my-repo/hello-world:1.1",
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "receiver",
-				},
+				Name: "receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 					ResourceFilter: `has(res.metadata.annotations) && req.tag.split('/').last().value().split(":").first().value() == res.metadata.annotations['update-image']`,
 				},
@@ -877,15 +771,11 @@ func Test_handlePayload(t *testing.T) {
 			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-resource",
-						Annotations: map[string]string{
-							"update-image": "not-hello-world",
-						},
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+					Name:       "test-resource",
+					Annotations: map[string]string{
+						"update-image": "not-hello-world",
 					},
 				},
 			},
@@ -906,20 +796,17 @@ func Test_handlePayload(t *testing.T) {
 				"action": "push",
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-receiver",
-				},
+				Name: "test-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GitHubReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.action == 'push'`,
 				},
@@ -943,20 +830,17 @@ func Test_handlePayload(t *testing.T) {
 				"action": "push",
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-receiver",
-				},
+				Name: "test-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GitLabReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.action == 'push'`,
 				},
@@ -973,9 +857,7 @@ func Test_handlePayload(t *testing.T) {
 		{
 			name: "CEL filtering a cdevents receiver",
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "cdevents-receiver",
-				},
+				Name: "cdevents-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type:   apiv1.CDEventsReceiver,
 					Events: []string{"cd.change.merged.v1"},
@@ -983,11 +865,10 @@ func Test_handlePayload(t *testing.T) {
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.context.gitRepository == 'adamkenihan/notification-controller'`,
 				},
@@ -1035,20 +916,17 @@ func Test_handlePayload(t *testing.T) {
 				"action": "push",
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-receiver",
-				},
+				Name: "test-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.BitbucketReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.action == 'push'`,
 				},
@@ -1068,20 +946,17 @@ func Test_handlePayload(t *testing.T) {
 				"Content-Type": "application/json",
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "quay-receiver",
-				},
+				Name: "quay-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.QuayReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.docker_url == 'docker.io'`,
 				},
@@ -1122,20 +997,17 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "harbor-receiver",
-				},
+				Name: "harbor-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.HarborReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.events[0].full_name == 'prj/repo1'`,
 				},
@@ -1163,20 +1035,17 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "dockerhub-receiver",
-				},
+				Name: "dockerhub-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.DockerHubReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.push_data.tag.split('/').last().value().split(':').first().value() == 'test-repo'`,
 				},
@@ -1206,20 +1075,17 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "gcr-receiver",
-				},
+				Name: "gcr-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GCRReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "gcr-token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.tag.split('/').last().value().split(":").first().value() == 'app1'`,
 				},
@@ -1229,9 +1095,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "gcr-token",
-				},
+				Name: "gcr-token",
 				Data: map[string][]byte{
 					"token":    []byte("token"),
 					"email":    []byte("test@example.iam.gserviceaccount.com"),
@@ -1258,20 +1122,17 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "gcr-receiver",
-				},
+				Name: "gcr-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GCRReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "gcr-token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -1280,9 +1141,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "gcr-token",
-				},
+				Name: "gcr-token",
 				Data: map[string][]byte{
 					"token":    []byte("token"),
 					"audience": []byte("https://example.com"),
@@ -1308,20 +1167,17 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "gcr-receiver",
-				},
+				Name: "gcr-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GCRReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "gcr-token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 				},
 				Status: apiv1.ReceiverStatus{
@@ -1330,9 +1186,7 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "gcr-token",
-				},
+				Name: "gcr-token",
 				Data: map[string][]byte{
 					"token": []byte("token"),
 					"email": []byte("test@example.iam.gserviceaccount.com"),
@@ -1365,20 +1219,17 @@ func Test_handlePayload(t *testing.T) {
 				header:    "X-Nexus-Webhook-Signature",
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "nexus-receiver",
-				},
+				Name: "nexus-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.NexusReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.repositoryName == 'npm-proxy'`,
 				},
@@ -1405,20 +1256,17 @@ func Test_handlePayload(t *testing.T) {
 				},
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "nexus-receiver",
-				},
+				Name: "nexus-receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.ACRReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
-							Name:       "test-resource",
-						}},
+							Name:       "test-resource"},
 					},
 					ResourceFilter: `res.metadata.name == 'test-resource' && req.target.repository == 'hello-world'`,
 				},
@@ -1438,23 +1286,20 @@ func Test_handlePayload(t *testing.T) {
 				"Content-Type": "application/json; charset=utf-8",
 			},
 			receiver: &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "receiver",
-				},
+				Name: "receiver",
 				Spec: apiv1.ReceiverSpec{
 					Type: apiv1.GenericReceiver,
 					SecretRef: &meta.LocalObjectReference{
 						Name: "token",
 					},
 					Resources: []apiv1.ReceiverResource{
-						{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+						{
 							APIVersion: apiv1.GroupVersion.String(),
 							Kind:       apiv1.ReceiverKind,
 							Name:       "*",
 							MatchLabels: map[string]string{
 								"label": "production",
-							},
-						}},
+							}},
 					},
 					ResourceFilter: `res.name == "test-resource-1"`,
 				},
@@ -1466,15 +1311,11 @@ func Test_handlePayload(t *testing.T) {
 			secret: testSecretWithToken,
 			resources: []client.Object{
 				&apiv1.Receiver{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       apiv1.ReceiverKind,
-						APIVersion: apiv1.GroupVersion.String(),
-					},
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "test-resource-1",
-						Labels: map[string]string{
-							"label": "production",
-						},
+					Kind:       apiv1.ReceiverKind,
+					APIVersion: apiv1.GroupVersion.String(),
+					Name:       "test-resource-1",
+					Labels: map[string]string{
+						"label": "production",
 					},
 				},
 			},

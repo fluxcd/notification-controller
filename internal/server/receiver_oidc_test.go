@@ -114,15 +114,14 @@ func (iss *testOIDCIssuer) sign(t *testing.T, claims jwt.MapClaims) string {
 
 func newOIDCReceiver(name string, providers []apiv1.OIDCProvider) *apiv1.Receiver {
 	return &apiv1.Receiver{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Name: name,
 		Spec: apiv1.ReceiverSpec{
 			Type:          apiv1.GenericOIDCReceiver,
 			OIDCProviders: providers,
-			Resources: []apiv1.ReceiverResource{{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+			Resources: []apiv1.ReceiverResource{{
 				APIVersion: apiv1.GroupVersion.String(),
 				Kind:       apiv1.ReceiverKind,
-				Name:       "target",
-			}}},
+				Name:       "target"}},
 		},
 		Status: apiv1.ReceiverStatus{
 			WebhookPath: apiv1.ReceiverWebhookPath,
@@ -140,12 +139,12 @@ func TestValidateGenericOIDC(t *testing.T) {
 	_ = corev1.AddToScheme(scheme)
 
 	target := &apiv1.Receiver{
-		TypeMeta:   metav1.TypeMeta{Kind: apiv1.ReceiverKind, APIVersion: apiv1.GroupVersion.String()},
-		ObjectMeta: metav1.ObjectMeta{Name: "target"},
+		Kind: apiv1.ReceiverKind, APIVersion: apiv1.GroupVersion.String(),
+		Name: "target",
 	}
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "token"},
-		Data:       map[string][]byte{"token": []byte("token")},
+		Name: "token",
+		Data: map[string][]byte{"token": []byte("token")},
 	}
 
 	baseProvider := apiv1.OIDCProvider{

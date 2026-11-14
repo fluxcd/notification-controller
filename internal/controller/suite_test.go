@@ -27,7 +27,6 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -141,7 +140,7 @@ func randStringRunes(n int) string {
 
 func createNamespace(name string) error {
 	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Name: name,
 	}
 	return k8sClient.Create(context.Background(), namespace)
 }

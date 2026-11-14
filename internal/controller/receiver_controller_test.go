@@ -103,7 +103,7 @@ func TestReceiverReconciler_SecretRefValidation(t *testing.T) {
 	namespaceName := "receiver-" + randStringRunes(5)
 	g.Expect(createNamespace(namespaceName)).NotTo(HaveOccurred())
 
-	resources := []apiv1.ReceiverResource{{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{Name: "podinfo", Kind: "GitRepository"}}}
+	resources := []apiv1.ReceiverResource{{Name: "podinfo", Kind: "GitRepository"}}
 	secretRef := &meta.LocalObjectReference{Name: "webhook-token"}
 	oidcProviders := []apiv1.OIDCProvider{{
 		IssuerURL:   "https://token.actions.githubusercontent.com",
@@ -139,11 +139,9 @@ func TestReceiverReconciler_SecretRefValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			receiver := &apiv1.Receiver{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "receiver-" + randStringRunes(5),
-					Namespace: namespaceName,
-				},
-				Spec: tt.spec,
+				Name:      "receiver-" + randStringRunes(5),
+				Namespace: namespaceName,
+				Spec:      tt.spec,
 			}
 			err := k8sClient.Create(context.Background(), receiver)
 			if tt.wantErrSubstr == "" {
@@ -162,7 +160,7 @@ func TestReceiverReconciler_deleteBeforeFinalizer(t *testing.T) {
 
 	namespaceName := "receiver-" + randStringRunes(5)
 	namespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: namespaceName},
+		Name: namespaceName,
 	}
 	g.Expect(k8sClient.Create(ctx, namespace)).ToNot(HaveOccurred())
 	t.Cleanup(func() {
@@ -175,7 +173,7 @@ func TestReceiverReconciler_deleteBeforeFinalizer(t *testing.T) {
 	receiver.Spec = apiv1.ReceiverSpec{
 		Type: "github",
 		Resources: []apiv1.ReceiverResource{
-			{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{Kind: "Bucket", Name: "Foo"}},
+			{Kind: "Bucket", Name: "Foo"},
 		},
 		SecretRef: &meta.LocalObjectReference{Name: "foo-secret"},
 	}
@@ -205,10 +203,8 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 	g.Expect(createNamespace(namespaceName)).NotTo(HaveOccurred(), "failed to create test namespace")
 
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: namespaceName,
-		},
+		Name:      secretName,
+		Namespace: namespaceName,
 		StringData: map[string]string{
 			"token": "test",
 		},
@@ -220,18 +216,15 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 		Namespace: namespaceName,
 	}
 	receiver := &apiv1.Receiver{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      receiverKey.Name,
-			Namespace: receiverKey.Namespace,
-		},
+		Name:      receiverKey.Name,
+		Namespace: receiverKey.Namespace,
 		Spec: apiv1.ReceiverSpec{
 			Type:   "generic",
 			Events: []string{"push"},
 			Resources: []apiv1.ReceiverResource{
-				{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+				{
 					Name: "podinfo",
-					Kind: "GitRepository",
-				}},
+					Kind: "GitRepository"},
 			},
 			SecretRef: &meta.LocalObjectReference{
 				Name: secretName,
@@ -357,10 +350,8 @@ func TestReceiverReconciler_Reconcile(t *testing.T) {
 	t.Run("recovers when secret exists", func(t *testing.T) {
 		g := NewWithT(t)
 		newSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secretName,
-				Namespace: namespaceName,
-			},
+			Name:      secretName,
+			Namespace: namespaceName,
 			StringData: map[string]string{
 				"token": "test",
 			},
@@ -458,14 +449,10 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 	}
 
 	receiverSecret := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretKey.Name,
-			Namespace: secretKey.Namespace,
-		},
+		Kind:       "Secret",
+		APIVersion: "v1",
+		Name:       secretKey.Name,
+		Namespace:  secretKey.Namespace,
 		StringData: map[string]string{
 			"token": token,
 		},
@@ -478,18 +465,15 @@ func TestReceiverReconciler_EventHandler(t *testing.T) {
 	}
 
 	receiver := &apiv1.Receiver{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      receiverKey.Name,
-			Namespace: receiverKey.Namespace,
-		},
+		Name:      receiverKey.Name,
+		Namespace: receiverKey.Namespace,
 		Spec: apiv1.ReceiverSpec{
 			Type:   "generic",
 			Events: []string{"pull"},
 			Resources: []apiv1.ReceiverResource{
-				{CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
+				{
 					Name: "podinfo",
-					Kind: "GitRepository",
-				}},
+					Kind: "GitRepository"},
 			},
 			SecretRef: &meta.LocalObjectReference{
 				Name: "receiver-secret",

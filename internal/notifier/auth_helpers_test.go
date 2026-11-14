@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -39,10 +38,8 @@ func TestNewAuthOptions(t *testing.T) {
 	}
 
 	sa := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "auth-sa",
-			Namespace: "apps",
-		},
+		Name:      "auth-sa",
+		Namespace: "apps",
 	}
 	newClient := func(objects ...client.Object) client.Client {
 		return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
@@ -110,10 +107,8 @@ func TestNewAuthOptionsCache(t *testing.T) {
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 
 	sa := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "auth-sa",
-			Namespace: "apps",
-		},
+		Name:      "auth-sa",
+		Namespace: "apps",
 	}
 	tokenCache, err := cache.NewTokenCache(10)
 	g.Expect(err).NotTo(HaveOccurred())

@@ -49,16 +49,14 @@ func NewGitHubPullRequestComment(ctx context.Context, opts *notifierOptions) (In
 	}
 
 	return &GitHubPullRequestComment{
-		changeRequestComment: changeRequestComment{
-			ProviderUID:      opts.ProviderUID,
-			CommentKeyPrefix: "flux-pr-comment-key",
-		},
-		Owner:     clientInfo.Owner,
-		Repo:      clientInfo.Repo,
-		UserLogin: clientInfo.UserLogin,
-		AppSlug:   clientInfo.AppSlug,
-		MaxPages:  opts.ChangeRequestComment.GetMaxPages(),
-		Client:    clientInfo.Client,
+		ProviderUID:      opts.ProviderUID,
+		CommentKeyPrefix: "flux-pr-comment-key",
+		Owner:            clientInfo.Owner,
+		Repo:             clientInfo.Repo,
+		UserLogin:        clientInfo.UserLogin,
+		AppSlug:          clientInfo.AppSlug,
+		MaxPages:         opts.ChangeRequestComment.GetMaxPages(),
+		Client:           clientInfo.Client,
 	}, nil
 }
 
@@ -77,9 +75,9 @@ func (g *GitHubPullRequestComment) Post(ctx context.Context, event eventv1.Event
 	// is opened, it is likely to be in this first page. 100 is the maximum value for per_page:
 	// https://docs.github.com/en/rest/issues/comments?apiVersion=2022-11-28#list-issue-comments
 	opts := &github.IssueListCommentsOptions{
-		Sort:        github.String("created"),
-		Direction:   github.String("asc"),
-		ListOptions: github.ListOptions{PerPage: 100},
+		Sort:      new("created"),
+		Direction: new("asc"),
+		PerPage:   100,
 	}
 
 	// Find comment from the authenticated user matching the comment key

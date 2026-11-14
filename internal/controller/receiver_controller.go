@@ -123,10 +123,8 @@ func (r *ReceiverReconciler) enqueueRequestsForChangeOf(ctx context.Context, obj
 	requests := make([]reconcile.Request, 0, len(receivers.Items))
 	for _, receiver := range receivers.Items {
 		requests = append(requests, reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      receiver.Name,
-				Namespace: receiver.Namespace,
-			},
+			Name:      receiver.Name,
+			Namespace: receiver.Namespace,
 		})
 	}
 	return requests

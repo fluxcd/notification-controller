@@ -24,7 +24,6 @@ import (
 	"github.com/fluxcd/pkg/runtime/patch"
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -45,10 +44,8 @@ func TestProviderReconciler(t *testing.T) {
 	})
 
 	provider := &apiv1.Provider{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("provider-%s", randStringRunes(5)),
-			Namespace: testns.Name,
-		},
+		Name:      fmt.Sprintf("provider-%s", randStringRunes(5)),
+		Namespace: testns.Name,
 	}
 	providerKey := client.ObjectKeyFromObject(provider)
 
@@ -218,10 +215,8 @@ func TestProviderReconciler_APIServerValidation(t *testing.T) {
 			g := NewWithT(t)
 
 			obj := &apiv1.Provider{
-				ObjectMeta: metav1.ObjectMeta{
-					GenerateName: "provider-reconcile-",
-					Namespace:    "default",
-				},
+				GenerateName: "provider-reconcile-",
+				Namespace:    "default",
 				Spec: apiv1.ProviderSpec{
 					Type:                 tt.providerType,
 					CommitStatusExpr:     tt.commitStatusExpr,

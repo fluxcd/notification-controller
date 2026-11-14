@@ -137,7 +137,7 @@ func TestToPagerDutyV2Event(t *testing.T) {
 					Timestamp: "2020-01-01T00:00:00Z",
 					Component: "test-app",
 					Group:     "GitRepository",
-					Details: map[string]interface{}{
+					Details: map[string]any{
 						"message": "message",
 						"metadata": map[string]string{
 							"key1": "val1",
@@ -182,7 +182,7 @@ func TestToPagerDutyChangeEvent(t *testing.T) {
 			Summary:   "succeeded: gitrepository/test-app",
 			Source:    "Flux source-controller",
 			Timestamp: "2020-01-01T00:00:00Z",
-			CustomDetails: map[string]interface{}{
+			CustomDetails: map[string]any{
 				"message": "message",
 				"metadata": map[string]string{
 					"key1": "val1",

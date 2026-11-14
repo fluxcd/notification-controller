@@ -25,7 +25,6 @@ import (
 	"github.com/fluxcd/pkg/runtime/patch"
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -46,10 +45,8 @@ func TestAlertReconciler(t *testing.T) {
 	})
 
 	alert := &apiv1.Alert{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("alert-%s", randStringRunes(5)),
-			Namespace: testns.Name,
-		},
+		Name:      fmt.Sprintf("alert-%s", randStringRunes(5)),
+		Namespace: testns.Name,
 	}
 	alertKey := client.ObjectKeyFromObject(alert)
 
@@ -138,8 +135,8 @@ func TestAlertReconciler_V1Beta3Summary(t *testing.T) {
 	obj.SetName(name)
 	obj.SetNamespace(testns.Name)
 	g.Expect(unstructured.SetNestedField(obj.Object, "provider", "spec", "providerRef", "name")).To(Succeed())
-	g.Expect(unstructured.SetNestedSlice(obj.Object, []interface{}{
-		map[string]interface{}{"kind": "Bucket", "name": "*"},
+	g.Expect(unstructured.SetNestedSlice(obj.Object, []any{
+		map[string]any{"kind": "Bucket", "name": "*"},
 	}, "spec", "eventSources")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(obj.Object, "cluster impacted", "spec", "summary")).To(Succeed())
 	g.Expect(testEnv.Create(ctx, obj)).To(Succeed())

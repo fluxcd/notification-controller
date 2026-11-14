@@ -60,7 +60,7 @@ func (c *changeRequestComment) formatCommentBody(event *eventv1.Event) string {
 // its own pagination state.
 func findInPages[T any](maxPages int, fetch func() ([]T, bool, error), match func(T) bool) (T, bool, error) {
 	var zero T
-	for pages := 0; pages < maxPages; pages++ {
+	for range maxPages {
 		items, hasNext, err := fetch()
 		if err != nil {
 			return zero, false, err

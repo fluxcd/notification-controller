@@ -46,7 +46,7 @@ type AlertManagerAlert struct {
 	Annotations map[string]string `json:"annotations"`
 
 	StartsAt AlertManagerTime `json:"startsAt"`
-	EndsAt   AlertManagerTime `json:"endsAt,omitempty"`
+	EndsAt   AlertManagerTime `json:"endsAt"`
 }
 
 // AlertManagerTime takes care of representing time.Time as RFC3339.

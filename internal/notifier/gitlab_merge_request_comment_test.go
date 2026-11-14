@@ -36,7 +36,7 @@ func TestNewGitLabMergeRequestCommentBasic(t *testing.T) {
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v4/user" {
-			user := map[string]interface{}{
+			user := map[string]any{
 				"id":       1,
 				"username": "test-user",
 			}
@@ -75,7 +75,7 @@ func TestNewGitLabMergeRequestCommentSubgroups(t *testing.T) {
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v4/user" {
-			user := map[string]interface{}{
+			user := map[string]any{
 				"id":       1,
 				"username": "test-user",
 			}

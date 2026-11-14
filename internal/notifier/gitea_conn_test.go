@@ -78,7 +78,7 @@ func TestGitea_PostDoesNotLeakConnections(t *testing.T) {
 	}
 
 	const events = 20
-	for i := 0; i < events; i++ {
+	for range events {
 		gitea, err := NewGitea(context.TODO(), &notifierOptions{
 			CommitStatus: "kustomization/gitops-system/0c9c2e41",
 			URL:          srv.URL + "/foo/bar",

@@ -40,7 +40,7 @@ all: manager
 
 # Run tests
 KUBEBUILDER_ASSETS?="$(shell $(ENVTEST) --arch=$(ENVTEST_ARCH) use -i $(ENVTEST_KUBERNETES_VERSION) --bin-dir=$(ENVTEST_ASSETS_DIR) -p path)"
-test: tidy generate fmt vet manifests api-docs download-crd-deps install-envtest
+test: fix tidy generate fmt vet manifests api-docs download-crd-deps install-envtest
 	KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS) go test ./... $(GO_TEST_ARGS) -v -coverprofile cover.out
 	cd api; go test ./... -coverprofile cover.out
 
@@ -95,6 +95,11 @@ api-docs: gen-crd-api-reference-docs
 tidy:
 	cd api; rm -f go.sum; go mod tidy -compat=1.27
 	rm -f go.sum; go mod tidy -compat=1.27
+
+# Run go fix against code
+fix:
+	go fix ./...
+	cd api; go fix ./...
 
 # Run go fmt against code
 fmt:

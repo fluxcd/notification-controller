@@ -26,7 +26,6 @@ import (
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -94,13 +93,9 @@ func TestCELEvaluation(t *testing.T) {
 				},
 			}),
 			resource: &apiv1.Receiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       apiv1.ReceiverKind,
-					APIVersion: apiv1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-resource",
-				},
+				Kind:       apiv1.ReceiverKind,
+				APIVersion: apiv1.GroupVersion.String(),
+				Name:       "test-resource",
 			},
 			wantResult: true,
 		},
@@ -112,13 +107,9 @@ func TestCELEvaluation(t *testing.T) {
 				"repository": "hello-world",
 			},
 			resource: &apiv1.Receiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       apiv1.ReceiverKind,
-					APIVersion: apiv1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-resource",
-				},
+				Kind:       apiv1.ReceiverKind,
+				APIVersion: apiv1.GroupVersion.String(),
+				Name:       "test-resource",
 			},
 			wantResult: true,
 		},
@@ -129,13 +120,9 @@ func TestCELEvaluation(t *testing.T) {
 				"environment": "staging",
 			},
 			resource: &apiv1.Receiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       apiv1.ReceiverKind,
-					APIVersion: apiv1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-resource",
-				},
+				Kind:       apiv1.ReceiverKind,
+				APIVersion: apiv1.GroupVersion.String(),
+				Name:       "test-resource",
 			},
 			wantResult: false,
 		},
@@ -145,13 +132,9 @@ func TestCELEvaluation(t *testing.T) {
 				"bool": true,
 			}),
 			resource: &apiv1.Receiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       apiv1.ReceiverKind,
-					APIVersion: apiv1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-resource",
-				},
+				Kind:       apiv1.ReceiverKind,
+				APIVersion: apiv1.GroupVersion.String(),
+				Name:       "test-resource",
 			},
 			wantResult: true,
 		},
@@ -163,13 +146,9 @@ func TestCELEvaluation(t *testing.T) {
 				},
 			}),
 			resource: &apiv1.Receiver{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       apiv1.ReceiverKind,
-					APIVersion: apiv1.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-resource",
-				},
+				Kind:       apiv1.ReceiverKind,
+				APIVersion: apiv1.GroupVersion.String(),
+				Name:       "test-resource",
 			},
 			wantResult: true,
 		},
@@ -192,14 +171,10 @@ func TestCELEvaluation(t *testing.T) {
 
 func TestResourceFilterStacking(t *testing.T) {
 	res := &apiv1.Receiver{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       apiv1.ReceiverKind,
-			APIVersion: apiv1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   "podinfo",
-			Labels: map[string]string{"team": "dev"},
-		},
+		Kind:       apiv1.ReceiverKind,
+		APIVersion: apiv1.GroupVersion.String(),
+		Name:       "podinfo",
+		Labels:     map[string]string{"team": "dev"},
 	}
 
 	tests := []struct {
@@ -225,10 +200,8 @@ func TestResourceFilterStacking(t *testing.T) {
 				Spec: apiv1.ReceiverSpec{
 					ResourceFilter: tt.topFilter,
 					Resources: []apiv1.ReceiverResource{{
-						CrossNamespaceObjectReference: apiv1.CrossNamespaceObjectReference{
-							Kind: apiv1.ReceiverKind,
-							Name: "podinfo",
-						},
+						Kind:   apiv1.ReceiverKind,
+						Name:   "podinfo",
 						Filter: tt.perResource,
 					}},
 				},

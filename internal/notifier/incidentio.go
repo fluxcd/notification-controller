@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"maps"
 	"net/url"
 	"strings"
 
@@ -90,9 +91,7 @@ func (i *Incidentio) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	metadata := make(map[string]string, len(event.Metadata)+3)
-	for k, v := range event.Metadata {
-		metadata[k] = v
-	}
+	maps.Copy(metadata, event.Metadata)
 	metadata["severity"] = event.Severity
 	metadata["reason"] = event.Reason
 	if event.ReportingController != "" {
