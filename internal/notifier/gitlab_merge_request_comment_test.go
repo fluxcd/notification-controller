@@ -116,16 +116,17 @@ func TestNewGitLabMergeRequestCommentEmptyProviderUID(t *testing.T) {
 
 func TestGitLabMergeRequestCommentPagination(t *testing.T) {
 	for _, tt := range []struct {
-		name       string
-		config     *apiv1.ChangeRequestComment
-		matchPage  int
-		failPage   int
-		wantPages  int
-		wantMethod string
-		linkOnly   bool
-		emptyLast  bool
-		cancelPage int
-		writeError string
+		name         string
+		config       *apiv1.ChangeRequestComment
+		matchPage    int
+		failPage     int
+		wantPages    int
+		wantMethod   string
+		linkOnly     bool
+		repeatCursor bool
+		emptyLast    bool
+		cancelPage   int
+		writeError   string
 	}{
 		{name: "default searches one page", matchPage: 2, wantPages: 1, wantMethod: http.MethodPost},
 		{name: "zero maxPages searches one page", config: &apiv1.ChangeRequestComment{}, matchPage: 2, wantPages: 1, wantMethod: http.MethodPost},
@@ -136,6 +137,8 @@ func TestGitLabMergeRequestCommentPagination(t *testing.T) {
 		{name: "find on second page", config: &apiv1.ChangeRequestComment{MaxPages: 10}, matchPage: 2, wantPages: 2, wantMethod: http.MethodPut},
 		{name: "stop on first page", config: &apiv1.ChangeRequestComment{MaxPages: 10}, matchPage: 1, wantPages: 1, wantMethod: http.MethodPut},
 		{name: "stop at max pages", config: &apiv1.ChangeRequestComment{MaxPages: 2}, wantPages: 2, wantMethod: http.MethodPost},
+		{name: "repeating page cursor stops", config: &apiv1.ChangeRequestComment{MaxPages: 10}, repeatCursor: true, wantPages: 2, wantMethod: http.MethodPost},
+		{name: "repeating link cursor stops", config: &apiv1.ChangeRequestComment{MaxPages: 10}, linkOnly: true, repeatCursor: true, wantPages: 2, wantMethod: http.MethodPost},
 		{name: "create after last page", config: &apiv1.ChangeRequestComment{MaxPages: 10}, wantPages: 3, wantMethod: http.MethodPost},
 		{name: "first page error", config: &apiv1.ChangeRequestComment{MaxPages: 10}, failPage: 1, wantPages: 1},
 		{name: "later page error", config: &apiv1.ChangeRequestComment{MaxPages: 10}, failPage: 2, wantPages: 2},
@@ -169,7 +172,11 @@ func TestGitLabMergeRequestCommentPagination(t *testing.T) {
 					g.Expect(r.URL.Query().Get("sort")).To(Equal("asc"))
 					g.Expect(r.URL.Query().Get("order_by")).To(Equal("created_at"))
 					if pages > 1 {
-						g.Expect(r.URL.Query().Get("page")).To(Equal(fmt.Sprint(pages)))
+						wantPage := pages
+						if tt.repeatCursor {
+							wantPage = 2
+						}
+						g.Expect(r.URL.Query().Get("page")).To(Equal(fmt.Sprint(wantPage)))
 					}
 					if pages == tt.failPage {
 						w.WriteHeader(http.StatusBadRequest)
@@ -182,11 +189,15 @@ func TestGitLabMergeRequestCommentPagination(t *testing.T) {
 						<-r.Context().Done()
 						return
 					}
-					if pages < 3 {
+					if pages < 3 || tt.repeatCursor {
+						nextPage := pages + 1
+						if tt.repeatCursor && pages > 1 {
+							nextPage = 2
+						}
 						if tt.linkOnly {
-							w.Header().Set("Link", fmt.Sprintf(`<http://%s%s?page=%d&per_page=100>; rel="next"`, r.Host, r.URL.EscapedPath(), pages+1))
+							w.Header().Set("Link", fmt.Sprintf(`<http://%s%s?page=%d&per_page=100>; rel="next"`, r.Host, r.URL.EscapedPath(), nextPage))
 						} else {
-							w.Header().Set("X-Next-Page", fmt.Sprint(pages+1))
+							w.Header().Set("X-Next-Page", fmt.Sprint(nextPage))
 						}
 					}
 					if tt.emptyLast && pages == 3 {

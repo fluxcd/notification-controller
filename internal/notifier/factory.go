@@ -92,11 +92,8 @@ type notifierOptions struct {
 	TokenCache            *cache.TokenCache
 	TokenClient           client.Client
 	SPIFFEBroker          fluxbroker.Interface
-	// EventKey is the identity of the event being dispatched, computed by
-	// the event server. Notifiers may use it as an idempotency token.
-	EventKey string
-	// AlertMetadata is the metadata of the Alert that triggered the notification.
-	AlertMetadata metav1.ObjectMeta
+	EventKey              string
+	AlertMetadata         metav1.ObjectMeta
 }
 
 // Option represents a functional option for configuring a notifier.

@@ -83,30 +83,26 @@ func (g *GitHubPullRequestComment) Post(ctx context.Context, event eventv1.Event
 	}
 
 	// Find comment from the authenticated user matching the comment key
-	var comment *github.IssueComment
 	userLogin := g.getUserLogin()
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
-	for pages := 0; pages < g.MaxPages; pages++ {
+	comment, found, err := findInPages(g.MaxPages, func() ([]*github.IssueComment, bool, error) {
 		comments, response, err := g.Client.Issues.ListComments(ctx, g.Owner, g.Repo, prNumber, opts)
 		if err != nil {
-			return fmt.Errorf("failed to list pull request comments: %w", err)
+			return nil, false, fmt.Errorf("failed to list pull request comments: %w", err)
 		}
-		for _, c := range comments {
-			if c.GetUser().GetLogin() == userLogin && strings.Contains(c.GetBody(), commentKeyMarker) {
-				comment = c
-				break
-			}
+		hasNext := response != nil && response.NextPage != 0 && response.NextPage != opts.Page
+		if hasNext {
+			opts.Page = response.NextPage
 		}
-		if comment != nil {
-			break
-		}
-		if response == nil || response.NextPage == 0 || response.NextPage == opts.Page {
-			break
-		}
-		opts.Page = response.NextPage
+		return comments, hasNext, nil
+	}, func(c *github.IssueComment) bool {
+		return c.GetUser().GetLogin() == userLogin && strings.Contains(c.GetBody(), commentKeyMarker)
+	})
+	if err != nil {
+		return err
 	}
 
-	if comment != nil {
+	if found {
 		// Existing comment found, update it
 		_, _, err = g.Client.Issues.EditComment(ctx, g.Owner, g.Repo, comment.GetID(), &github.IssueComment{
 			Body: &body,

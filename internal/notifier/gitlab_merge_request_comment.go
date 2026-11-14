@@ -100,31 +100,36 @@ func (g *GitLabMergeRequestComment) Post(ctx context.Context, event eventv1.Even
 		OrderBy:     gitlab.Ptr("created_at"),
 		ListOptions: gitlab.ListOptions{PerPage: 100},
 	}
-	var note *gitlab.Note
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
 	requestOpts := []gitlab.RequestOptionFunc{gitlab.WithContext(ctx)}
-	for pages := 0; pages < g.MaxPages; pages++ {
+	var lastNextPage int64
+	var lastNextLink string
+	note, found, err := findInPages(g.MaxPages, func() ([]*gitlab.Note, bool, error) {
 		notes, response, err := g.Client.Notes.ListMergeRequestNotes(g.ProjectID, mrIID, opts, requestOpts...)
 		if err != nil {
-			return fmt.Errorf("failed to list merge request notes: %w", err)
+			return nil, false, fmt.Errorf("failed to list merge request notes: %w", err)
 		}
-		for _, n := range notes {
-			if n.Author.Username == g.Username && strings.Contains(n.Body, commentKeyMarker) {
-				note = n
-				break
-			}
+		if response == nil {
+			return notes, false, nil
 		}
-		if note != nil || response == nil {
-			break
+		if response.NextPage == lastNextPage && response.NextLink == lastNextLink {
+			return notes, false, nil
 		}
 		next, ok := gitlab.WithNext(response)
 		if !ok {
-			break
+			return notes, false, nil
 		}
+		lastNextPage, lastNextLink = response.NextPage, response.NextLink
 		requestOpts = []gitlab.RequestOptionFunc{gitlab.WithContext(ctx), next}
+		return notes, true, nil
+	}, func(n *gitlab.Note) bool {
+		return n.Author.Username == g.Username && strings.Contains(n.Body, commentKeyMarker)
+	})
+	if err != nil {
+		return err
 	}
 
-	if note != nil {
+	if found {
 		// Existing note found, update it
 		_, _, err = g.Client.Notes.UpdateMergeRequestNote(g.ProjectID, mrIID, note.ID, &gitlab.UpdateMergeRequestNoteOptions{
 			Body: &body,

@@ -82,29 +82,25 @@ func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event)
 	}
 
 	// Find comment from the authenticated user matching the comment key
-	var existingComment *gitea.Comment
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
-	for pages := 0; pages < g.MaxPages; pages++ {
+	existingComment, found, err := findInPages(g.MaxPages, func() ([]*gitea.Comment, bool, error) {
 		comments, response, err := g.Client.ListIssueComments(g.Owner, g.Repo, int64(prNumber), opts)
 		if err != nil {
-			return fmt.Errorf("failed to list pull request comments: %w", err)
+			return nil, false, fmt.Errorf("failed to list pull request comments: %w", err)
 		}
-		for _, c := range comments {
-			if c.Poster != nil && c.Poster.UserName == g.Username && strings.Contains(c.Body, commentKeyMarker) {
-				existingComment = c
-				break
-			}
+		hasNext := response != nil && response.NextPage != 0 && response.NextPage != opts.Page
+		if hasNext {
+			opts.Page = response.NextPage
 		}
-		if existingComment != nil {
-			break
-		}
-		if response == nil || response.NextPage == 0 || response.NextPage == opts.Page {
-			break
-		}
-		opts.Page = response.NextPage
+		return comments, hasNext, nil
+	}, func(c *gitea.Comment) bool {
+		return c.Poster != nil && c.Poster.UserName == g.Username && strings.Contains(c.Body, commentKeyMarker)
+	})
+	if err != nil {
+		return err
 	}
 
-	if existingComment != nil {
+	if found {
 		// Existing comment found, update it
 		_, _, err = g.Client.EditIssueComment(g.Owner, g.Repo, existingComment.ID, gitea.EditIssueCommentOption{
 			Body: body,

@@ -53,3 +53,26 @@ func (c *changeRequestComment) formatCommentBody(event *eventv1.Event) string {
 	body := formatMarkdownPost(event)
 	return fmt.Sprintf("%s\n\n%s", marker, body)
 }
+
+// findInPages calls fetch for up to maxPages pages and returns the first item
+// matched by match. It stops early when a match is found or when fetch reports
+// that there are no more pages. The fetch function is responsible for advancing
+// its own pagination state.
+func findInPages[T any](maxPages int, fetch func() ([]T, bool, error), match func(T) bool) (T, bool, error) {
+	var zero T
+	for pages := 0; pages < maxPages; pages++ {
+		items, hasNext, err := fetch()
+		if err != nil {
+			return zero, false, err
+		}
+		for _, item := range items {
+			if match(item) {
+				return item, true, nil
+			}
+		}
+		if !hasNext {
+			break
+		}
+	}
+	return zero, false, nil
+}
