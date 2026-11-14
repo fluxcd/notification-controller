@@ -36,11 +36,12 @@ import (
 
 // GitHubClient holds the GitHub client and repository information.
 type GitHubClient struct {
-	UserLogin string
-	AppSlug   string
-	Owner     string
-	Repo      string
-	Client    *gogithub.Client
+	UserLogin  string
+	AppSlug    string
+	Owner      string
+	Repo       string
+	FetchPages bool
+	Client     *gogithub.Client
 }
 
 // gitHubClientOptions holds the configuration for creating a GitHub client.
@@ -52,6 +53,7 @@ type gitHubClientOptions struct {
 	providerName      string
 	providerNamespace string
 	fetchUserLogin    bool
+	fetchPages        bool
 	secretData        map[string][]byte
 	tokenCache        *cache.TokenCache
 }
@@ -100,6 +102,14 @@ func WithGitHubProvider(name, namespace string) GitHubClientOption {
 func WithGitHubFetchUserLogin() GitHubClientOption {
 	return func(o *gitHubClientOptions) {
 		o.fetchUserLogin = true
+	}
+}
+
+// WithGitHubFetchPages enables fetching additional pages when searching for
+// existing comments.
+func WithGitHubFetchPages(fetchPages bool) GitHubClientOption {
+	return func(o *gitHubClientOptions) {
+		o.fetchPages = fetchPages
 	}
 }
 
@@ -167,11 +177,12 @@ func NewGitHubClient(ctx context.Context, opts ...GitHubClientOption) (*GitHubCl
 	}
 
 	return &GitHubClient{
-		UserLogin: userLogin,
-		AppSlug:   appSlug,
-		Owner:     ownerAndRepo[0],
-		Repo:      ownerAndRepo[1],
-		Client:    client,
+		UserLogin:  userLogin,
+		AppSlug:    appSlug,
+		Owner:      ownerAndRepo[0],
+		Repo:       ownerAndRepo[1],
+		FetchPages: o.fetchPages,
+		Client:     client,
 	}, nil
 }
 

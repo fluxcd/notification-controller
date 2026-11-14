@@ -408,7 +408,9 @@ ChangeRequestComment
 </td>
 <td>
 <em>(Optional)</em>
-<p>ChangeRequestComment configures GitLab merge request comment notifications.</p>
+<p>ChangeRequestComment configures change request comment notifications
+for the GitHub pull request, GitLab merge request and Gitea pull
+request comment provider types.</p>
 </td>
 </tr>
 </table>
@@ -1219,7 +1221,9 @@ ChangeRequestComment
 </td>
 <td>
 <em>(Optional)</em>
-<p>ChangeRequestComment configures GitLab merge request comment notifications.</p>
+<p>ChangeRequestComment configures change request comment notifications
+for the GitHub pull request, GitLab merge request and Gitea pull
+request comment provider types.</p>
 </td>
 </tr>
 </tbody>

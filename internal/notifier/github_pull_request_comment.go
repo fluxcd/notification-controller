@@ -30,11 +30,12 @@ import (
 
 type GitHubPullRequestComment struct {
 	changeRequestComment
-	Owner     string
-	Repo      string
-	UserLogin string
-	AppSlug   string
-	Client    *github.Client
+	Owner      string
+	Repo       string
+	UserLogin  string
+	AppSlug    string
+	FetchPages bool
+	Client     *github.Client
 }
 
 func NewGitHubPullRequestComment(ctx context.Context, providerUID string, opts ...GitHubClientOption) (*GitHubPullRequestComment, error) {
@@ -53,11 +54,12 @@ func NewGitHubPullRequestComment(ctx context.Context, providerUID string, opts .
 			ProviderUID:      providerUID,
 			CommentKeyPrefix: "flux-pr-comment-key",
 		},
-		Owner:     clientInfo.Owner,
-		Repo:      clientInfo.Repo,
-		UserLogin: clientInfo.UserLogin,
-		AppSlug:   clientInfo.AppSlug,
-		Client:    clientInfo.Client,
+		Owner:      clientInfo.Owner,
+		Repo:       clientInfo.Repo,
+		UserLogin:  clientInfo.UserLogin,
+		AppSlug:    clientInfo.AppSlug,
+		FetchPages: clientInfo.FetchPages,
+		Client:     clientInfo.Client,
 	}, nil
 }
 
@@ -71,8 +73,7 @@ func (g *GitHubPullRequestComment) Post(ctx context.Context, event eventv1.Event
 		return err
 	}
 
-	// List the first 100 comments in the pull request.
-	// We fetch only a single page with 100 comments for performance reasons.
+	// Fetch only the first page by default to limit API requests.
 	// Since the tendency is for the comment to be created as soon as the PR
 	// is opened, it is likely to be in this first page. 100 is the maximum value for per_page:
 	// https://docs.github.com/en/rest/issues/comments?apiVersion=2022-11-28#list-issue-comments
@@ -81,20 +82,29 @@ func (g *GitHubPullRequestComment) Post(ctx context.Context, event eventv1.Event
 		Direction:   github.String("asc"),
 		ListOptions: github.ListOptions{PerPage: 100},
 	}
-	comments, _, err := g.Client.Issues.ListComments(ctx, g.Owner, g.Repo, prNumber, opts)
-	if err != nil {
-		return fmt.Errorf("failed to list pull request comments: %w", err)
-	}
 
 	// Find comment from the authenticated user matching the comment key
 	var comment *github.IssueComment
 	userLogin := g.getUserLogin()
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
-	for _, c := range comments {
-		if c.GetUser().GetLogin() == userLogin && strings.Contains(c.GetBody(), commentKeyMarker) {
-			comment = c
+	for {
+		comments, response, err := g.Client.Issues.ListComments(ctx, g.Owner, g.Repo, prNumber, opts)
+		if err != nil {
+			return fmt.Errorf("failed to list pull request comments: %w", err)
+		}
+		for _, c := range comments {
+			if c.GetUser().GetLogin() == userLogin && strings.Contains(c.GetBody(), commentKeyMarker) {
+				comment = c
+				break
+			}
+		}
+		if comment != nil || !g.FetchPages {
 			break
 		}
+		if response == nil || response.NextPage == 0 || response.NextPage == opts.Page {
+			break
+		}
+		opts.Page = response.NextPage
 	}
 
 	if comment != nil {

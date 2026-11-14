@@ -31,10 +31,11 @@ import (
 
 // GiteaClient holds the Gitea client and repository information.
 type GiteaClient struct {
-	Owner    string
-	Repo     string
-	Username string
-	Client   *gitea.Client
+	Owner      string
+	Repo       string
+	Username   string
+	FetchPages bool
+	Client     *gitea.Client
 }
 
 // giteaClientOptions holds the configuration for creating a Gitea client.
@@ -45,6 +46,7 @@ type giteaClientOptions struct {
 	proxyURL       *url.URL
 	tlsConfig      *tls.Config
 	fetchUserLogin bool
+	fetchPages     bool
 }
 
 // GiteaClientOption is a functional option for configuring Gitea client creation.
@@ -93,6 +95,14 @@ func WithGiteaTLSConfig(cfg *tls.Config) GiteaClientOption {
 func WithGiteaFetchUserLogin() GiteaClientOption {
 	return func(o *giteaClientOptions) {
 		o.fetchUserLogin = true
+	}
+}
+
+// WithGiteaFetchPages enables fetching additional pages when searching for
+// existing comments.
+func WithGiteaFetchPages(fetchPages bool) GiteaClientOption {
+	return func(o *giteaClientOptions) {
+		o.fetchPages = fetchPages
 	}
 }
 
@@ -146,10 +156,11 @@ func NewGiteaClient(opts ...GiteaClientOption) (*GiteaClient, error) {
 	}
 
 	return &GiteaClient{
-		Owner:    idComponents[0],
-		Repo:     idComponents[1],
-		Username: username,
-		Client:   client,
+		Owner:      idComponents[0],
+		Repo:       idComponents[1],
+		Username:   username,
+		FetchPages: o.fetchPages,
+		Client:     client,
 	}, nil
 }
 

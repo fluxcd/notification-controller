@@ -64,7 +64,7 @@ const (
 
 // ProviderSpec defines the desired state of the Provider.
 // +kubebuilder:validation:XValidation:rule="self.type == 'github' || self.type == 'gitlab' || self.type == 'gitea' || self.type == 'bitbucketserver' || self.type == 'bitbucket' || self.type == 'azuredevops' || !has(self.commitStatusExpr)", message="spec.commitStatusExpr is only supported for the 'github', 'gitlab', 'gitea', 'bitbucketserver', 'bitbucket', 'azuredevops' provider types"
-// +kubebuilder:validation:XValidation:rule="self.type == 'gitlabmergerequestcomment' || !has(self.changeRequestComment)", message="spec.changeRequestComment is only supported for the 'gitlabmergerequestcomment' provider type"
+// +kubebuilder:validation:XValidation:rule="self.type == 'githubpullrequestcomment' || self.type == 'gitlabmergerequestcomment' || self.type == 'giteapullrequestcomment' || !has(self.changeRequestComment)", message="spec.changeRequestComment is only supported for the 'githubpullrequestcomment', 'gitlabmergerequestcomment' and 'giteapullrequestcomment' provider types"
 type ProviderSpec struct {
 	// Type specifies which Provider implementation to use.
 	// +kubebuilder:validation:Enum=slack;discord;msteams;rocket;generic;generic-hmac;github;gitlab;gitea;giteapullrequestcomment;bitbucketserver;bitbucket;azuredevops;googlechat;googlepubsub;webex;sentry;azureeventhub;telegram;lark;matrix;opsgenie;alertmanager;grafana;githubdispatch;githubpullrequestcomment;gitlabmergerequestcomment;pagerduty;datadog;nats;zulip;otel;zoom;incident.io;mastodon
@@ -152,7 +152,9 @@ type ProviderSpec struct {
 	// +optional
 	CommitStatusExpr string `json:"commitStatusExpr,omitempty"`
 
-	// ChangeRequestComment configures GitLab merge request comment notifications.
+	// ChangeRequestComment configures change request comment notifications
+	// for the GitHub pull request, GitLab merge request and Gitea pull
+	// request comment provider types.
 	// +optional
 	ChangeRequestComment *ChangeRequestComment `json:"changeRequestComment,omitempty"`
 }

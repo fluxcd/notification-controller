@@ -1042,35 +1042,81 @@ func TestCreateNotifierBitbucketCloudTokenFromSecret(t *testing.T) {
 }
 
 func TestPrepareNotifierChangeRequestComment(t *testing.T) {
-	for _, fetchPages := range []bool{false, true} {
-		t.Run(fmt.Sprint(fetchPages), func(t *testing.T) {
-			g := NewWithT(t)
-			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				g.Expect(r.URL.Path).To(Equal("/api/v4/user"))
-				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(`{"username":"flux"}`))
-			}))
-			t.Cleanup(srv.Close)
-			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "gitlab-token"},
-				Data:       map[string][]byte{"token": []byte("token")},
-			}
-			provider := &apiv1.Provider{
-				ObjectMeta: metav1.ObjectMeta{UID: "provider"},
-				Spec: apiv1.ProviderSpec{
-					Type:                 apiv1.GitLabMergeRequestCommentProvider,
-					Address:              srv.URL + "/foo/bar",
-					SecretRef:            &meta.LocalObjectReference{Name: secret.Name},
-					ChangeRequestComment: &apiv1.ChangeRequestComment{FetchPages: fetchPages},
-				},
-			}
-			eventServer := EventServer{kubeClient: fakeclient.NewClientBuilder().WithObjects(secret).Build()}
-			params, err := eventServer.prepareNotifier(context.Background(), provider, "")
-			g.Expect(err).NotTo(HaveOccurred())
-			n, err := params.createNotifier(context.Background())
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(n.(*notifier.GitLabMergeRequestComment).FetchPages).To(Equal(fetchPages))
-		})
+	providers := []struct {
+		name         string
+		providerType string
+		userPath     string
+		userResponse string
+		gitea        bool
+		fetchPages   func(notifier.Interface) bool
+	}{
+		{
+			name:         "github",
+			providerType: apiv1.GitHubPullRequestCommentProvider,
+			userPath:     "/api/v3/user",
+			userResponse: `{"login":"flux"}`,
+			fetchPages: func(n notifier.Interface) bool {
+				return n.(*notifier.GitHubPullRequestComment).FetchPages
+			},
+		},
+		{
+			name:         "gitlab",
+			providerType: apiv1.GitLabMergeRequestCommentProvider,
+			userPath:     "/api/v4/user",
+			userResponse: `{"username":"flux"}`,
+			fetchPages: func(n notifier.Interface) bool {
+				return n.(*notifier.GitLabMergeRequestComment).FetchPages
+			},
+		},
+		{
+			name:         "gitea",
+			providerType: apiv1.GiteaPullRequestCommentProvider,
+			userPath:     "/api/v1/user",
+			userResponse: `{"login":"flux"}`,
+			gitea:        true,
+			fetchPages: func(n notifier.Interface) bool {
+				return n.(*notifier.GiteaPullRequestComment).FetchPages
+			},
+		},
+	}
+	for _, providerInfo := range providers {
+		for _, fetchPages := range []bool{false, true} {
+			t.Run(providerInfo.name+"/"+fmt.Sprint(fetchPages), func(t *testing.T) {
+				g := NewWithT(t)
+				srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.Header().Set("Content-Type", "application/json")
+					switch r.URL.Path {
+					case providerInfo.userPath:
+						_, _ = w.Write([]byte(providerInfo.userResponse))
+					case "/api/v1/version":
+						g.Expect(providerInfo.gitea).To(BeTrue())
+						_, _ = w.Write([]byte(`{"version":"1.18.3"}`))
+					default:
+						g.Expect(r.URL.Path).To(Equal(providerInfo.userPath))
+					}
+				}))
+				t.Cleanup(srv.Close)
+				secret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "provider-token"},
+					Data:       map[string][]byte{"token": []byte("token")},
+				}
+				provider := &apiv1.Provider{
+					ObjectMeta: metav1.ObjectMeta{UID: "provider"},
+					Spec: apiv1.ProviderSpec{
+						Type:                 providerInfo.providerType,
+						Address:              srv.URL + "/foo/bar",
+						SecretRef:            &meta.LocalObjectReference{Name: secret.Name},
+						ChangeRequestComment: &apiv1.ChangeRequestComment{FetchPages: fetchPages},
+					},
+				}
+				eventServer := EventServer{kubeClient: fakeclient.NewClientBuilder().WithObjects(secret).Build()}
+				params, err := eventServer.prepareNotifier(context.Background(), provider, "")
+				g.Expect(err).NotTo(HaveOccurred())
+				n, err := params.createNotifier(context.Background())
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(providerInfo.fetchPages(n)).To(Equal(fetchPages))
+			})
+		}
 	}
 }
 

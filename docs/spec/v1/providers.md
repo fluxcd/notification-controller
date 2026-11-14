@@ -2405,6 +2405,24 @@ to provide status updates directly on the change request where developers are wo
 **Note:** Flux objects without the `event.toolkit.fluxcd.io/change_request` annotation are
 automatically filtered out and will not trigger any action from change request providers.
 
+By default, notification-controller makes the best effort to post a single status
+comment per Flux object in the change request by fetching only the first 100
+comments with a single API call, looking for an existing comment from the
+authenticated user and updating it if found.
+
+For opting into an exhaustive search of all comments, set
+`.spec.changeRequestComment.fetchPages` to `true`:
+
+```yaml
+spec:
+  changeRequestComment:
+    fetchPages: true
+```
+
+Fetching stops when the comment is found or no more pages remain. Each additional
+page requires another API request, within the provider's [timeout](#timeout). If
+listing a page fails, the notification fails without creating a new comment.
+
 #### GitHub Pull Request Comment
 
 When `.spec.type` is set to `githubpullrequestcomment`, the controller will post
@@ -2418,9 +2436,6 @@ This provider is designed to work with Flux objects that contain the
 `event.toolkit.fluxcd.io/change_request` annotation, which specifies
 the pull request number. Flux objects without this annotation are
 ignored.
-
-Each Flux object will have at most one status comment per provider on the pull request,
-which is updated whenever a new event is received.
 
 ##### Authentication
 
@@ -2497,9 +2512,6 @@ This provider is designed to work with Flux objects that contain the
 the pull request number. Flux objects without this annotation are
 ignored.
 
-Each Flux object will have at most one status comment per provider on the pull request,
-which is updated whenever a new event is received.
-
 ##### Authentication
 
 The provider requires a [Gitea token](https://docs.gitea.io/en-us/api-usage/#generating-and-listing-api-tokens)
@@ -2547,24 +2559,6 @@ This provider is designed to work with Flux objects that contain the
 `event.toolkit.fluxcd.io/change_request` annotation, which specifies
 the merge request IID. Flux objects without this annotation are
 ignored.
-
-The provider searches the first 100 comments for an existing status comment
-from the authenticated user for the Flux object and provider. If it finds one,
-it updates that comment; otherwise, it creates a new comment.
-
-To search additional pages, set `.spec.changeRequestComment.fetchPages` to `true`:
-
-```yaml
-spec:
-  type: gitlabmergerequestcomment
-  changeRequestComment:
-    fetchPages: true
-```
-
-This setting is opt-in and defaults to `false`. Fetching stops when the comment
-is found or no more pages remain. Each additional page requires another
-GitLab API request, within the provider's [timeout](#timeout). If listing a page
-fails, the notification fails without creating a new comment.
 
 ##### Authentication
 

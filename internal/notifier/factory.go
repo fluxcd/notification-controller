@@ -215,6 +215,15 @@ func WithChangeRequestComment(config *apiv1.ChangeRequestComment) Option {
 	}
 }
 
+// fetchChangeRequestPages reports whether change request comment providers
+// should search additional pages for an existing comment.
+func fetchChangeRequestPages(opts notifierOptions) bool {
+	if opts.ChangeRequestComment != nil {
+		return opts.ChangeRequestComment.FetchPages
+	}
+	return false
+}
+
 // WithProviderUID sets the provider UID for the notifier.
 func WithProviderUID(uid string) Option {
 	return func(o *notifierOptions) {
@@ -386,7 +395,8 @@ func gitHubDispatchNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func gitHubPullRequestCommentNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGitHubPullRequestComment(opts.Context, opts.ProviderUID, opts.GitHubClientOptions()...)
+	return NewGitHubPullRequestComment(opts.Context, opts.ProviderUID,
+		append(opts.GitHubClientOptions(), WithGitHubFetchPages(fetchChangeRequestPages(opts)))...)
 }
 
 func gitLabNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -400,11 +410,7 @@ func gitLabMergeRequestCommentNotifierFunc(opts notifierOptions) (Interface, err
 	if opts.Token == "" && opts.Password != "" {
 		opts.Token = opts.Password
 	}
-	fetchPages := false
-	if opts.ChangeRequestComment != nil {
-		fetchPages = opts.ChangeRequestComment.FetchPages
-	}
-	return NewGitLabMergeRequestComment(opts.ProviderUID, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig, fetchPages)
+	return NewGitLabMergeRequestComment(opts.ProviderUID, opts.URL, opts.ProxyURL, opts.Token, opts.TLSConfig, fetchChangeRequestPages(opts))
 }
 
 func giteaNotifierFunc(opts notifierOptions) (Interface, error) {
@@ -412,7 +418,8 @@ func giteaNotifierFunc(opts notifierOptions) (Interface, error) {
 }
 
 func giteaPullRequestCommentNotifierFunc(opts notifierOptions) (Interface, error) {
-	return NewGiteaPullRequestComment(opts.ProviderUID, opts.GiteaClientOptions()...)
+	return NewGiteaPullRequestComment(opts.ProviderUID,
+		append(opts.GiteaClientOptions(), WithGiteaFetchPages(fetchChangeRequestPages(opts)))...)
 }
 
 func bitbucketServerNotifierFunc(opts notifierOptions) (Interface, error) {

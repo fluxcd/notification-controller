@@ -136,15 +136,25 @@ func TestProviderReconciler_APIServerValidation(t *testing.T) {
 		err                  string
 	}{
 		{
+			name:                 "github pull request comments can fetch pages",
+			providerType:         apiv1.GitHubPullRequestCommentProvider,
+			changeRequestComment: &apiv1.ChangeRequestComment{FetchPages: true},
+		},
+		{
 			name:                 "gitlab merge request comments can fetch pages",
 			providerType:         apiv1.GitLabMergeRequestCommentProvider,
+			changeRequestComment: &apiv1.ChangeRequestComment{FetchPages: true},
+		},
+		{
+			name:                 "gitea pull request comments can fetch pages",
+			providerType:         apiv1.GiteaPullRequestCommentProvider,
 			changeRequestComment: &apiv1.ChangeRequestComment{FetchPages: true},
 		},
 		{
 			name:                 "other providers cannot configure change request comments",
 			providerType:         apiv1.SlackProvider,
 			changeRequestComment: &apiv1.ChangeRequestComment{FetchPages: true},
-			err:                  "spec.changeRequestComment is only supported for the 'gitlabmergerequestcomment' provider type",
+			err:                  "spec.changeRequestComment is only supported for the 'githubpullrequestcomment', 'gitlabmergerequestcomment' and 'giteapullrequestcomment' provider types",
 		},
 		{
 			name:             "github provider types can create providers with commitStatusExpr",

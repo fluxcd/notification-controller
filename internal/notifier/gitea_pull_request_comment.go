@@ -30,10 +30,11 @@ import (
 
 type GiteaPullRequestComment struct {
 	changeRequestComment
-	Owner    string
-	Repo     string
-	Username string
-	Client   *gitea.Client
+	Owner      string
+	Repo       string
+	Username   string
+	FetchPages bool
+	Client     *gitea.Client
 }
 
 func NewGiteaPullRequestComment(providerUID string, opts ...GiteaClientOption) (*GiteaPullRequestComment, error) {
@@ -52,10 +53,11 @@ func NewGiteaPullRequestComment(providerUID string, opts ...GiteaClientOption) (
 			ProviderUID:      providerUID,
 			CommentKeyPrefix: "flux-pr-comment-key",
 		},
-		Owner:    clientInfo.Owner,
-		Repo:     clientInfo.Repo,
-		Username: clientInfo.Username,
-		Client:   clientInfo.Client,
+		Owner:      clientInfo.Owner,
+		Repo:       clientInfo.Repo,
+		Username:   clientInfo.Username,
+		FetchPages: clientInfo.FetchPages,
+		Client:     clientInfo.Client,
 	}, nil
 }
 
@@ -69,8 +71,7 @@ func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event)
 		return err
 	}
 
-	// List the first 100 comments in the pull request.
-	// We fetch only a single page with 100 comments for performance reasons.
+	// Fetch only the first page by default to limit API requests.
 	// Since the tendency is for the comment to be created as soon as the PR
 	// is opened, it is likely to be in this first page.
 	opts := gitea.ListIssueCommentOptions{
@@ -79,19 +80,28 @@ func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event)
 			PageSize: 100,
 		},
 	}
-	comments, _, err := g.Client.ListIssueComments(g.Owner, g.Repo, int64(prNumber), opts)
-	if err != nil {
-		return fmt.Errorf("failed to list pull request comments: %w", err)
-	}
 
 	// Find comment from the authenticated user matching the comment key
 	var existingComment *gitea.Comment
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
-	for _, c := range comments {
-		if c.Poster != nil && c.Poster.UserName == g.Username && strings.Contains(c.Body, commentKeyMarker) {
-			existingComment = c
+	for {
+		comments, response, err := g.Client.ListIssueComments(g.Owner, g.Repo, int64(prNumber), opts)
+		if err != nil {
+			return fmt.Errorf("failed to list pull request comments: %w", err)
+		}
+		for _, c := range comments {
+			if c.Poster != nil && c.Poster.UserName == g.Username && strings.Contains(c.Body, commentKeyMarker) {
+				existingComment = c
+				break
+			}
+		}
+		if existingComment != nil || !g.FetchPages {
 			break
 		}
+		if response == nil || response.NextPage == 0 || response.NextPage == opts.Page {
+			break
+		}
+		opts.Page = response.NextPage
 	}
 
 	if existingComment != nil {
