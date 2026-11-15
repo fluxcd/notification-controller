@@ -132,7 +132,7 @@ func TestSlack_PostFieldsAreSorted(t *testing.T) {
 		"env":       "staging",
 	}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		g.Expect(slack.Post(context.TODO(), event)).To(Succeed())
 	}
 

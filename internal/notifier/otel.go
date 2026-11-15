@@ -21,6 +21,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"maps"
 	"math"
 	"net/http"
 	"slices"
@@ -61,9 +62,7 @@ func NewOTEL(ctx context.Context, opts *notifierOptions) (Interface, error) {
 
 	// Copy the headers so the caller's map is not modified.
 	reqHeaders := make(map[string]string, len(opts.Headers)+1)
-	for k, v := range opts.Headers {
-		reqHeaders[k] = v
-	}
+	maps.Copy(reqHeaders, opts.Headers)
 
 	// Add the collector authentication header, unless one is already set.
 	// If username is not set, password is considered as token.

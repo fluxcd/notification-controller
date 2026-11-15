@@ -83,10 +83,8 @@ func (g *Gitea) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	listStatusesOpts := gitea.ListStatusesOption{
-		ListOptions: gitea.ListOptions{
-			Page:     0,
-			PageSize: 50,
-		},
+		Page:     0,
+		PageSize: 50,
 	}
 	statuses, _, err := g.Client.ListStatuses(g.Owner, g.Repo, rev, listStatusesOpts)
 	if err != nil {

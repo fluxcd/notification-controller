@@ -277,10 +277,10 @@ func TestFilterAlertsForEvent(t *testing.T) {
 				// Add the default provider ref for this test.
 				alertSpec.ProviderRef = meta.LocalObjectReference{Name: testProvider.Name}
 				// Create new Alert with the spec.
-				alert := apiv1.Alert{}
-				alert.Name = "test-alert-" + strconv.Itoa(i)
-				alert.Namespace = testNamespace
-				alert.Spec = alertSpec
+				alert := apiv1.Alert{
+					Name:      "test-alert-" + strconv.Itoa(i),
+					Namespace: testNamespace,
+					Spec:      alertSpec}
 				alerts = append(alerts, alert)
 			}
 
@@ -928,23 +928,23 @@ Wf86aX6PepsntZv2GYlA5UpabfT2EZICICpJ5h/iI+i341gBmLiAFQOyTDT+/wQc
 			builder := fakeclient.NewClientBuilder().WithScheme(scheme)
 			if tt.secretData != nil {
 				secret := &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{Name: secretName},
-					Data:       tt.secretData,
+					Name: secretName,
+					Data: tt.secretData,
 				}
 				builder.WithObjects(secret)
 			}
 			if tt.certSecretData != nil {
 				secret := &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{Name: certSecretName},
-					Type:       tt.secretType,
-					Data:       tt.certSecretData,
+					Name: certSecretName,
+					Type: tt.secretType,
+					Data: tt.certSecretData,
 				}
 				builder.WithObjects(secret)
 			}
 			if tt.proxySecretData != nil {
 				secret := &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{Name: proxySecretName},
-					Data:       tt.proxySecretData,
+					Name: proxySecretName,
+					Data: tt.proxySecretData,
 				}
 				builder.WithObjects(secret)
 			}
@@ -990,8 +990,8 @@ func TestCreateNotifierBitbucketCloudTokenFromSecret(t *testing.T) {
 	const secretToken = "test-api-token"
 
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "bitbucket-token"},
-		Data:       map[string][]byte{"token": []byte(secretToken)},
+		Name: "bitbucket-token",
+		Data: map[string][]byte{"token": []byte(secretToken)},
 	}
 	provider := apiv1.Provider{
 		Spec: apiv1.ProviderSpec{
@@ -1097,11 +1097,11 @@ func TestPrepareNotifierChangeRequestComment(t *testing.T) {
 				}))
 				t.Cleanup(srv.Close)
 				secret := &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{Name: "provider-token"},
-					Data:       map[string][]byte{"token": []byte("token")},
+					Name: "provider-token",
+					Data: map[string][]byte{"token": []byte("token")},
 				}
 				provider := &apiv1.Provider{
-					ObjectMeta: metav1.ObjectMeta{UID: "provider"},
+					UID: "provider",
 					Spec: apiv1.ProviderSpec{
 						Type:                 providerInfo.providerType,
 						Address:              srv.URL + "/foo/bar",
@@ -1114,10 +1114,7 @@ func TestPrepareNotifierChangeRequestComment(t *testing.T) {
 				g.Expect(err).NotTo(HaveOccurred())
 				n, err := params.createNotifier(context.Background())
 				g.Expect(err).NotTo(HaveOccurred())
-				wantMaxPages := maxPages
-				if wantMaxPages < 1 {
-					wantMaxPages = 1
-				}
+				wantMaxPages := max(maxPages, 1)
 				g.Expect(providerInfo.maxPages(n)).To(Equal(wantMaxPages))
 			})
 		}
@@ -1211,9 +1208,7 @@ func TestCreateCommitStatus(t *testing.T) {
 				},
 			},
 			alert: &apiv1.Alert{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-alert",
-				},
+				Name: "test-alert",
 			},
 			wantCommitStatus: "Kustomization/gitops-system/production/0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a",
 		},
@@ -1238,9 +1233,7 @@ func TestCreateCommitStatus(t *testing.T) {
 				},
 			},
 			alert: &apiv1.Alert{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-alert",
-				},
+				Name: "test-alert",
 			},
 			wantCommitStatus: "Kustomization/gitops-system/production/0c9c2e41",
 		},
@@ -1265,9 +1258,7 @@ func TestCreateCommitStatus(t *testing.T) {
 				},
 			},
 			alert: &apiv1.Alert{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-alert",
-				},
+				Name: "test-alert",
 			},
 			wantCommitStatus: "Kustomization/gitops-system/production/0c9c2e41-d2f9-4f9b-9c41-bebc1984d67a/test-alert",
 		},
@@ -1495,10 +1486,8 @@ func TestEventMatchesAlert(t *testing.T) {
 				Recorder:   events.NewFakeRecorder(32),
 			}
 			alert := &apiv1.Alert{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-alert",
-					Namespace: "test-ns",
-				},
+				Name:      "test-alert",
+				Namespace: "test-ns",
 				Spec: apiv1.AlertSpec{
 					EventSeverity: tt.severity,
 				},
@@ -1674,8 +1663,8 @@ func TestGetTLSConfigForProvider(t *testing.T) {
 
 	getSecret := func(name string, data map[string][]byte) *corev1.Secret {
 		return &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
-			Data:       data,
+			Name: name,
+			Data: data,
 		}
 	}
 
@@ -1760,7 +1749,6 @@ func TestGetTLSConfigForProvider(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			got, err := getTLSConfigForProvider(ctx, tt.providerCertSecret, tt.providerSecret, tt.providerType)
@@ -1881,8 +1869,8 @@ func TestCreateNotifier_EventKey(t *testing.T) {
 	scheme := runtime.NewScheme()
 	g.Expect(corev1.AddToScheme(scheme)).ToNot(HaveOccurred())
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "mastodon-secret"},
-		Data:       map[string][]byte{"token": []byte("token")},
+		Name: "mastodon-secret",
+		Data: map[string][]byte{"token": []byte("token")},
 	}
 	kclient := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 
@@ -1948,7 +1936,7 @@ func TestCreateNotifierPostsThroughProxySecretRef(t *testing.T) {
 	scheme := runtime.NewScheme()
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "proxy", Namespace: "default"},
+		Name: "proxy", Namespace: "default",
 		Data: map[string][]byte{
 			"address":  []byte(proxy.URL),
 			"username": []byte("user"),
@@ -1957,7 +1945,7 @@ func TestCreateNotifierPostsThroughProxySecretRef(t *testing.T) {
 	}
 	kubeClient := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 	provider := &apiv1.Provider{
-		ObjectMeta: metav1.ObjectMeta{Name: "provider", Namespace: "default"},
+		Name: "provider", Namespace: "default",
 		Spec: apiv1.ProviderSpec{
 			Type:           apiv1.GenericProvider,
 			Address:        "http://notification.invalid/events",
@@ -2149,20 +2137,20 @@ func TestHandleEventRedactsSecretAddress(t *testing.T) {
 					}
 
 					provider := &apiv1.Provider{
-						ObjectMeta: metav1.ObjectMeta{Name: "provider", Namespace: "default"},
+						Name: "provider", Namespace: "default",
 						Spec: apiv1.ProviderSpec{
 							Type: providerType, Address: address,
 							Timeout: &metav1.Duration{Duration: time.Minute},
 						},
 					}
-					secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "secret", Namespace: "default"}}
+					secret := &corev1.Secret{Name: "secret", Namespace: "default"}
 					if secretAddress {
 						secret.Data = map[string][]byte{"address": []byte(address)}
 						provider.Spec.Address = "https://unused.example.com"
 						provider.Spec.SecretRef = &meta.LocalObjectReference{Name: secret.Name}
 					}
 					alert := &apiv1.Alert{
-						ObjectMeta: metav1.ObjectMeta{Name: "alert", Namespace: "default"},
+						Name: "alert", Namespace: "default",
 						Spec: apiv1.AlertSpec{
 							ProviderRef:   meta.LocalObjectReference{Name: provider.Name},
 							EventSeverity: eventv1.EventSeverityInfo,
@@ -2225,11 +2213,11 @@ func TestGetNotificationParamsRedactsSecretValues(t *testing.T) {
 	g := NewWithT(t)
 	address := "https://example.com/private\npath?key=private-query"
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "secret", Namespace: "default"},
-		Data:       map[string][]byte{"address": []byte(address)},
+		Name: "secret", Namespace: "default",
+		Data: map[string][]byte{"address": []byte(address)},
 	}
 	provider := &apiv1.Provider{
-		ObjectMeta: metav1.ObjectMeta{Name: "provider", Namespace: "default"},
+		Name: "provider", Namespace: "default",
 		Spec: apiv1.ProviderSpec{
 			Type:           apiv1.GenericProvider,
 			SecretRef:      &meta.LocalObjectReference{Name: secret.Name},
@@ -2237,8 +2225,8 @@ func TestGetNotificationParamsRedactsSecretValues(t *testing.T) {
 		},
 	}
 	alert := &apiv1.Alert{
-		ObjectMeta: metav1.ObjectMeta{Name: "alert", Namespace: "default"},
-		Spec:       apiv1.AlertSpec{ProviderRef: meta.LocalObjectReference{Name: provider.Name}},
+		Name: "alert", Namespace: "default",
+		Spec: apiv1.AlertSpec{ProviderRef: meta.LocalObjectReference{Name: provider.Name}},
 	}
 	scheme := runtime.NewScheme()
 	g.Expect(apiv1.AddToScheme(scheme)).To(Succeed())
@@ -2282,8 +2270,8 @@ func TestHandleEventConstructsNotifiersAsynchronously(t *testing.T) {
 			defer fast.Close()
 
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "secret", Namespace: "default"},
-				Data:       map[string][]byte{"token": []byte("token")},
+				Name: "secret", Namespace: "default",
+				Data: map[string][]byte{"token": []byte("token")},
 			}
 			if providerType == apiv1.GitHubProvider {
 				key, err := rsa.GenerateKey(rand.Reader, 2048)
@@ -2298,7 +2286,7 @@ func TestHandleEventConstructsNotifiersAsynchronously(t *testing.T) {
 				}
 			}
 			slowProvider := &apiv1.Provider{
-				ObjectMeta: metav1.ObjectMeta{Name: "slow", Namespace: "default"},
+				Name: "slow", Namespace: "default",
 				Spec: apiv1.ProviderSpec{
 					Type: providerType, Address: slow.URL + "/foo/bar",
 					SecretRef: &meta.LocalObjectReference{Name: secret.Name},
@@ -2306,11 +2294,11 @@ func TestHandleEventConstructsNotifiersAsynchronously(t *testing.T) {
 				},
 			}
 			fastProvider := &apiv1.Provider{
-				ObjectMeta: metav1.ObjectMeta{Name: "fast", Namespace: "default"},
-				Spec:       apiv1.ProviderSpec{Type: apiv1.GenericProvider, Address: fast.URL},
+				Name: "fast", Namespace: "default",
+				Spec: apiv1.ProviderSpec{Type: apiv1.GenericProvider, Address: fast.URL},
 			}
 			slowAlert := &apiv1.Alert{
-				ObjectMeta: metav1.ObjectMeta{Name: "alert-1", Namespace: "default"},
+				Name: "alert-1", Namespace: "default",
 				Spec: apiv1.AlertSpec{
 					ProviderRef:   meta.LocalObjectReference{Name: slowProvider.Name},
 					EventSeverity: eventv1.EventSeverityInfo,

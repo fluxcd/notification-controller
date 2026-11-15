@@ -217,7 +217,7 @@ func newResourceFilters(r *http.Request, receiver apiv1.Receiver, result *valida
 
 func isJSONContent(r *http.Request) bool {
 	contentType := r.Header.Get("Content-type")
-	for _, v := range strings.Split(contentType, ",") {
+	for v := range strings.SplitSeq(contentType, ",") {
 		t, _, err := mime.ParseMediaType(v)
 		if err != nil {
 			break

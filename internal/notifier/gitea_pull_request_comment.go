@@ -48,15 +48,13 @@ func NewGiteaPullRequestComment(ctx context.Context, opts *notifierOptions) (Int
 	}
 
 	return &GiteaPullRequestComment{
-		changeRequestComment: changeRequestComment{
-			ProviderUID:      opts.ProviderUID,
-			CommentKeyPrefix: "flux-pr-comment-key",
-		},
-		Owner:    clientInfo.Owner,
-		Repo:     clientInfo.Repo,
-		Username: clientInfo.Username,
-		MaxPages: opts.ChangeRequestComment.GetMaxPages(),
-		Client:   clientInfo.Client,
+		ProviderUID:      opts.ProviderUID,
+		CommentKeyPrefix: "flux-pr-comment-key",
+		Owner:            clientInfo.Owner,
+		Repo:             clientInfo.Repo,
+		Username:         clientInfo.Username,
+		MaxPages:         opts.ChangeRequestComment.GetMaxPages(),
+		Client:           clientInfo.Client,
 	}, nil
 }
 
@@ -75,10 +73,8 @@ func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event)
 	// Since the tendency is for the comment to be created as soon as the PR
 	// is opened, it is likely to be in this first page.
 	opts := gitea.ListIssueCommentOptions{
-		ListOptions: gitea.ListOptions{
-			Page:     1,
-			PageSize: 100,
-		},
+		Page:     1,
+		PageSize: 100,
 	}
 
 	// Find comment from the authenticated user matching the comment key

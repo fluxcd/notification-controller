@@ -123,7 +123,7 @@ func eventSummary(event eventv1.Event) string {
 // Maps a controller-issued event to a Sentry event
 func toSentryEvent(event eventv1.Event) *sentry.Event {
 	// Prepare Metadata
-	extra := make(map[string]interface{}, len(event.Metadata))
+	extra := make(map[string]any, len(event.Metadata))
 	for k, v := range event.Metadata {
 		extra[k] = v
 	}

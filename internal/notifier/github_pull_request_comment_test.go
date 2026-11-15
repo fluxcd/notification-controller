@@ -42,7 +42,7 @@ func TestNewGitHubPullRequestCommentBasic(t *testing.T) {
 
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/v3/user" {
-			user := &github.User{Login: github.String("test-user")}
+			user := &github.User{Login: new("test-user")}
 			json.NewEncoder(w).Encode(user)
 			return
 		}

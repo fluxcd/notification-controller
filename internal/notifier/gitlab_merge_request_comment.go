@@ -73,14 +73,12 @@ func NewGitLabMergeRequestComment(_ context.Context, opts *notifierOptions) (Int
 	}
 
 	return &GitLabMergeRequestComment{
-		changeRequestComment: changeRequestComment{
-			ProviderUID:      opts.ProviderUID,
-			CommentKeyPrefix: "flux-mr-comment-key",
-		},
-		ProjectID: id,
-		Username:  user.Username,
-		Client:    client,
-		MaxPages:  opts.ChangeRequestComment.GetMaxPages(),
+		ProviderUID:      opts.ProviderUID,
+		CommentKeyPrefix: "flux-mr-comment-key",
+		ProjectID:        id,
+		Username:         user.Username,
+		Client:           client,
+		MaxPages:         opts.ChangeRequestComment.GetMaxPages(),
 	}, nil
 }
 
@@ -96,9 +94,9 @@ func (g *GitLabMergeRequestComment) Post(ctx context.Context, event eventv1.Even
 
 	// Fetch only the first page by default to limit API requests.
 	opts := &gitlab.ListMergeRequestNotesOptions{
-		Sort:        gitlab.Ptr("asc"),
-		OrderBy:     gitlab.Ptr("created_at"),
-		ListOptions: gitlab.ListOptions{PerPage: 100},
+		Sort:    new("asc"),
+		OrderBy: new("created_at"),
+		PerPage: 100,
 	}
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
 	requestOpts := []gitlab.RequestOptionFunc{gitlab.WithContext(ctx)}

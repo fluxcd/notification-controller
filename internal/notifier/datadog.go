@@ -99,8 +99,8 @@ func (d *DataDog) toDataDogEvent(event *eventv1.Event) datadogV1.EventCreateRequ
 		Text:  event.Message,
 		Tags:  d.toDataDogTags(event),
 		// fluxcd matches the name datadog picked for their flux integration: https://docs.datadoghq.com/integrations/fluxcd/
-		SourceTypeName: strPtr("fluxcd"),
-		DateHappened:   int64Ptr(event.Timestamp.Unix()),
+		SourceTypeName: new("fluxcd"),
+		DateHappened:   new(event.Timestamp.Unix()),
 		AlertType:      toDataDogAlertType(event),
 	}
 }
@@ -136,12 +136,8 @@ func (d *DataDog) toDataDogTags(event *eventv1.Event) []string {
 // toDataDogAlertType parses an eventv1.Event to return a datadogV1.EventAlertType.
 func toDataDogAlertType(event *eventv1.Event) *datadogV1.EventAlertType {
 	if event.Severity == eventv1.EventSeverityError {
-		return dataDogEventAlertTypePtr(datadogV1.EVENTALERTTYPE_ERROR)
+		return new(datadogV1.EVENTALERTTYPE_ERROR)
 	}
 
-	return dataDogEventAlertTypePtr(datadogV1.EVENTALERTTYPE_INFO)
-}
-
-func dataDogEventAlertTypePtr(t datadogV1.EventAlertType) *datadogV1.EventAlertType {
-	return &t
+	return new(datadogV1.EVENTALERTTYPE_INFO)
 }

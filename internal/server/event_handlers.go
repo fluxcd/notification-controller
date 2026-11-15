@@ -744,8 +744,8 @@ func (s *EventServer) combineEventMetadata(ctx context.Context, event *eventv1.E
 	// 1) Event metadata keys prefixed with the Event API Group stripped of the prefix.
 	const eventGroupPrefix = eventv1.Group + "/"
 	for k, v := range event.Metadata {
-		if strings.HasPrefix(k, eventGroupPrefix) {
-			key := strings.TrimPrefix(k, eventGroupPrefix)
+		if after, ok := strings.CutPrefix(k, eventGroupPrefix); ok {
+			key := after
 			metadata[key] = v
 			metadataSources[key] = append(metadataSources[key], sourceEventGroup)
 		}
@@ -760,8 +760,8 @@ func (s *EventServer) combineEventMetadata(ctx context.Context, event *eventv1.E
 	// 3) Event metadata keys prefixed with the involved object's API Group stripped of the prefix.
 	objectGroupPrefix := event.InvolvedObject.GroupVersionKind().Group + "/"
 	for k, v := range event.Metadata {
-		if strings.HasPrefix(k, objectGroupPrefix) {
-			key := strings.TrimPrefix(k, objectGroupPrefix)
+		if after, ok := strings.CutPrefix(k, objectGroupPrefix); ok {
+			key := after
 			metadata[key] = v
 			metadataSources[key] = append(metadataSources[key], sourceObjectGroup)
 		}

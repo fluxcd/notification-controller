@@ -21,7 +21,6 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	cryptov1 "github.com/fluxcd/pkg/apis/crypto/v1"
@@ -68,10 +67,8 @@ func newAuthOptions(ctx context.Context, serviceProvider, serviceAccountName,
 	}
 
 	provider := &apiv1.Provider{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      providerName,
-			Namespace: providerNamespace,
-		},
+		Name:      providerName,
+		Namespace: providerNamespace,
 	}
 	opts := []auth.Option{
 		auth.WithClient(tokenClient),

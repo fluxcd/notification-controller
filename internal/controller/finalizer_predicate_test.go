@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
@@ -29,9 +28,7 @@ import (
 
 func getAlertWithFinalizers(finalizers []string) *apiv1.Alert {
 	return &apiv1.Alert{
-		ObjectMeta: metav1.ObjectMeta{
-			Finalizers: finalizers,
-		},
+		Finalizers: finalizers,
 	}
 }
 

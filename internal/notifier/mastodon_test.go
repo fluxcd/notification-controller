@@ -157,7 +157,7 @@ func TestMastodon_PostMetadataIsSorted(t *testing.T) {
 		g.Expect(json.Unmarshal(b, &payload)).To(Succeed())
 
 		var keys []string
-		for _, line := range strings.Split(payload.Status, "\n") {
+		for line := range strings.SplitSeq(payload.Status, "\n") {
 			if k, _, ok := strings.Cut(line, ": "); ok {
 				keys = append(keys, k)
 			}
@@ -178,7 +178,7 @@ func TestMastodon_PostMetadataIsSorted(t *testing.T) {
 		"env":       "staging",
 	}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		g.Expect(mastodon.Post(context.TODO(), event)).To(Succeed())
 	}
 
