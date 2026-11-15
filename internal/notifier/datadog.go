@@ -141,8 +141,3 @@ func toDataDogAlertType(event *eventv1.Event) *datadogV1.EventAlertType {
 
 	return new(datadogV1.EVENTALERTTYPE_INFO)
 }
-
-//go:fix inline
-func dataDogEventAlertTypePtr(t datadogV1.EventAlertType) *datadogV1.EventAlertType {
-	return new(t)
-}

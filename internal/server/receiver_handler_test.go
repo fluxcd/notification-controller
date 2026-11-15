@@ -1395,17 +1395,6 @@ func Test_handlePayload(t *testing.T) {
 	}
 }
 
-func buildTestClient(objs ...client.Object) client.Client {
-	scheme := runtime.NewScheme()
-	apiv1.AddToScheme(scheme)
-	corev1.AddToScheme(scheme)
-
-	return fake.NewClientBuilder().
-		WithScheme(scheme).
-		WithObjects(objs...).
-		WithIndex(&apiv1.Receiver{}, WebhookPathIndexKey, IndexReceiverWebhookPath).Build()
-}
-
 func marshalGCRData(t *testing.T, v any) string {
 	t.Helper()
 	b, err := json.Marshal(v)
