@@ -399,6 +399,25 @@ and alert.</p>
 </tr>
 <tr>
 <td>
+<code>commitStatusDescriptionExpr</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CommitStatusDescriptionExpr is a CEL expression that evaluates to a string
+value used as the commit status description for eligible Provider types
+(github, gitlab, gitea, bitbucketserver, bitbucket, azuredevops).
+Supported variables are: event, provider, and alert. The result is
+collapsed to a single line and shortened in the middle to the description
+length limit of the Provider type. If the result is empty or the
+evaluation fails, the default description derived from the event reason
+is used.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>changeRequestComment</code><br>
 <em>
 <a href="#notification.toolkit.fluxcd.io/v1.ChangeRequestComment">
@@ -1208,6 +1227,25 @@ that can be used to generate a custom commit status message for use
 with eligible Provider types (github, gitlab, gitea, bitbucketserver,
 bitbucket, azuredevops). Supported variables are: event, provider,
 and alert.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>commitStatusDescriptionExpr</code><br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CommitStatusDescriptionExpr is a CEL expression that evaluates to a string
+value used as the commit status description for eligible Provider types
+(github, gitlab, gitea, bitbucketserver, bitbucket, azuredevops).
+Supported variables are: event, provider, and alert. The result is
+collapsed to a single line and shortened in the middle to the description
+length limit of the Provider type. If the result is empty or the
+evaluation fails, the default description derived from the event reason
+is used.</p>
 </td>
 </tr>
 <tr>

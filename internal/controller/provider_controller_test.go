@@ -126,11 +126,12 @@ func TestProviderReconciler_V1Beta3Interval(t *testing.T) {
 
 func TestProviderReconciler_APIServerValidation(t *testing.T) {
 	tests := []struct {
-		name                 string
-		providerType         string
-		commitStatusExpr     string
-		changeRequestComment *apiv1.ChangeRequestComment
-		err                  string
+		name                        string
+		providerType                string
+		commitStatusExpr            string
+		commitStatusDescriptionExpr string
+		changeRequestComment        *apiv1.ChangeRequestComment
+		err                         string
 	}{
 		{
 			name:                 "github pull request comments can fetch multiple pages",
@@ -201,6 +202,22 @@ func TestProviderReconciler_APIServerValidation(t *testing.T) {
 			commitStatusExpr: "",
 		},
 		{
+			name:                        "github provider types can create providers with commitStatusDescriptionExpr",
+			providerType:                "github",
+			commitStatusDescriptionExpr: "event.message",
+		},
+		{
+			name:                        "azuredevops provider types can create providers with commitStatusDescriptionExpr",
+			providerType:                "azuredevops",
+			commitStatusDescriptionExpr: "event.message",
+		},
+		{
+			name:                        "unsupported provider types cannot create providers with commitStatusDescriptionExpr",
+			providerType:                "slack",
+			commitStatusDescriptionExpr: "event.message",
+			err:                         "spec.commitStatusDescriptionExpr is only supported for the 'github', 'gitlab', 'gitea', 'bitbucketserver', 'bitbucket', 'azuredevops' provider types",
+		},
+		{
 			name:         "incident.io provider type can create providers",
 			providerType: apiv1.IncidentioProvider,
 		},
@@ -218,9 +235,10 @@ func TestProviderReconciler_APIServerValidation(t *testing.T) {
 				GenerateName: "provider-reconcile-",
 				Namespace:    "default",
 				Spec: apiv1.ProviderSpec{
-					Type:                 tt.providerType,
-					CommitStatusExpr:     tt.commitStatusExpr,
-					ChangeRequestComment: tt.changeRequestComment,
+					Type:                        tt.providerType,
+					CommitStatusExpr:            tt.commitStatusExpr,
+					CommitStatusDescriptionExpr: tt.commitStatusDescriptionExpr,
+					ChangeRequestComment:        tt.changeRequestComment,
 				},
 			}
 

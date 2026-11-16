@@ -72,28 +72,29 @@ var notifiers = map[string]func(ctx context.Context, opts *notifierOptions) (Int
 }
 
 type notifierOptions struct {
-	URL                   string
-	ProxyURL              *url.URL
-	Username              string
-	Channel               string
-	Token                 string
-	Timeout               time.Duration
-	Headers               map[string]string
-	TLSConfig             *tls.Config
-	Password              string
-	CommitStatus          string
-	ProviderUID           string
-	ChangeRequestComment  *apiv1.ChangeRequestComment
-	ProviderName          string
-	ProviderNamespace     string
-	SecretData            map[string][]byte
-	ServiceAccountName    string
-	DefaultServiceAccount string
-	TokenCache            *cache.TokenCache
-	TokenClient           client.Client
-	SPIFFEBroker          fluxbroker.Interface
-	EventKey              string
-	AlertMetadata         metav1.ObjectMeta
+	URL                     string
+	ProxyURL                *url.URL
+	Username                string
+	Channel                 string
+	Token                   string
+	Timeout                 time.Duration
+	Headers                 map[string]string
+	TLSConfig               *tls.Config
+	Password                string
+	CommitStatus            string
+	CommitStatusDescription string
+	ProviderUID             string
+	ChangeRequestComment    *apiv1.ChangeRequestComment
+	ProviderName            string
+	ProviderNamespace       string
+	SecretData              map[string][]byte
+	ServiceAccountName      string
+	DefaultServiceAccount   string
+	TokenCache              *cache.TokenCache
+	TokenClient             client.Client
+	SPIFFEBroker            fluxbroker.Interface
+	EventKey                string
+	AlertMetadata           metav1.ObjectMeta
 }
 
 // Option represents a functional option for configuring a notifier.
@@ -166,6 +167,13 @@ func WithPassword(password string) Option {
 func WithCommitStatus(commitStatus string) Option {
 	return func(o *notifierOptions) {
 		o.CommitStatus = commitStatus
+	}
+}
+
+// WithCommitStatusDescription sets the custom commit status description for the notifier.
+func WithCommitStatusDescription(description string) Option {
+	return func(o *notifierOptions) {
+		o.CommitStatusDescription = description
 	}
 }
 

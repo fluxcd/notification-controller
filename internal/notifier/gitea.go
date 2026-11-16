@@ -28,12 +28,18 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
+// giteaCommitStatusDescriptionLimit is the maximum length of a Gitea commit
+// status description. Gitea does not limit the description; the limit of the
+// GitHub API, which Gitea mirrors, is used to keep it readable.
+const giteaCommitStatusDescriptionLimit = 140
+
 type Gitea struct {
-	Owner        string
-	Repo         string
-	CommitStatus string
-	Client       *gitea.Client
-	Debug        bool
+	Owner                   string
+	Repo                    string
+	CommitStatus            string
+	CommitStatusDescription string
+	Client                  *gitea.Client
+	Debug                   bool
 }
 
 var _ Interface = &Gitea{}
@@ -49,11 +55,12 @@ func NewGitea(ctx context.Context, opts *notifierOptions) (Interface, error) {
 	}
 
 	return &Gitea{
-		Owner:        clientInfo.Owner,
-		Repo:         clientInfo.Repo,
-		CommitStatus: opts.CommitStatus,
-		Client:       clientInfo.Client,
-		Debug:        os.Getenv("NOTIFIER_GITEA_DEBUG") == "true",
+		Owner:                   clientInfo.Owner,
+		Repo:                    clientInfo.Repo,
+		CommitStatus:            opts.CommitStatus,
+		CommitStatusDescription: opts.CommitStatusDescription,
+		Client:                  clientInfo.Client,
+		Debug:                   os.Getenv("NOTIFIER_GITEA_DEBUG") == "true",
 	}, nil
 }
 
@@ -72,7 +79,7 @@ func (g *Gitea) Post(ctx context.Context, event eventv1.Event) error {
 		return err
 	}
 
-	_, desc := formatNameAndDescription(event)
+	desc := commitStatusDescription(event, g.CommitStatusDescription, giteaCommitStatusDescriptionLimit)
 	id := g.CommitStatus
 
 	status := gitea.CreateStatusOption{

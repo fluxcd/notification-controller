@@ -18,6 +18,7 @@ package notifier
 
 import (
 	"testing"
+	"unicode/utf8"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -37,6 +38,60 @@ func TestUtil_NameAndDescription(t *testing.T) {
 	name, desc := formatNameAndDescription(event)
 	g.Expect(name).To(Equal("kustomization/gitops-system"))
 	g.Expect(desc).To(Equal("apply succeeded"))
+}
+
+const (
+	longCommitStatusDescription      = "health check failed after 5m0s: timeout waiting for: [HelmRelease/apps/podinfo status: 'InProgress': Helm upgrade failed for release apps/podinfo with chart podinfo@6.7.0: context deadline exceeded]"
+	shortenedCommitStatusDescription = "health check failed after 5m0s: timeout waiting for: [HelmRelease/app…ease apps/podinfo with chart podinfo@6.7.0: context deadline exceeded]"
+)
+
+func TestUtil_CommitStatusDescription(t *testing.T) {
+	event := eventv1.Event{Reason: "ApplySucceeded"}
+	for _, tt := range []struct {
+		name   string
+		custom string
+		limit  int
+		want   string
+	}{
+		{name: "empty", limit: 140, want: "apply succeeded"},
+		{name: "whitespace only", custom: " \n\t ", limit: 140, want: "apply succeeded"},
+		{name: "custom", custom: "Helm upgrade failed", limit: 140, want: "Helm upgrade failed"},
+		{name: "multiple lines", custom: "  Helm upgrade failed:\n\n\tcontext  deadline exceeded \n", limit: 140, want: "Helm upgrade failed: context deadline exceeded"},
+		{name: "too long", custom: longCommitStatusDescription, limit: 140, want: shortenedCommitStatusDescription},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(commitStatusDescription(event, tt.custom, tt.limit)).To(Equal(tt.want))
+		})
+	}
+}
+
+func TestUtil_TruncateMiddle(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		s     string
+		limit int
+		want  string
+	}{
+		{name: "shorter than limit", s: "abcdef", limit: 10, want: "abcdef"},
+		{name: "exact limit", s: "abcdef", limit: 6, want: "abcdef"},
+		{name: "limit exceeded by one", s: "abcdefg", limit: 6, want: "ab…efg"},
+		{name: "odd limit", s: "abcdefghij", limit: 5, want: "ab…ij"},
+		{name: "limit of two", s: "abc", limit: 2, want: "…c"},
+		{name: "limit of one", s: "abc", limit: 1, want: "…"},
+		{name: "limit of zero", s: "abc", limit: 0, want: ""},
+		{name: "multi-byte runes within limit", s: "äöü€", limit: 4, want: "äöü€"},
+		{name: "multi-byte runes", s: "äöüß€𝄞日本", limit: 5, want: "äö…日本"},
+		{name: "example message", s: longCommitStatusDescription, limit: 140, want: shortenedCommitStatusDescription},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			got := truncateMiddle(tt.s, tt.limit)
+			g.Expect(got).To(Equal(tt.want))
+			g.Expect(utf8.ValidString(got)).To(BeTrue())
+			g.Expect(utf8.RuneCountInString(got)).To(BeNumerically("<=", max(tt.limit, 0)))
+		})
+	}
 }
 
 func TestUtil_ParseRevision(t *testing.T) {

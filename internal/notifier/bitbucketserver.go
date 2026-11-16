@@ -33,15 +33,21 @@ import (
 	"github.com/hashicorp/go-retryablehttp"
 )
 
+// bbServerCommitStatusDescriptionLimit is the maximum length of a Bitbucket
+// Server build status description, see
+// https://docs.atlassian.com/bitbucket-server/rest/7.21.0/bitbucket-build-rest.html.
+const bbServerCommitStatusDescriptionLimit = 255
+
 // BitbucketServer is a notifier for BitBucket Server and Data Center.
 type BitbucketServer struct {
-	CommitStatus    string
-	Url             *url.URL
-	ProviderAddress string
-	Username        string
-	Password        string
-	Token           string
-	Client          *retryablehttp.Client
+	CommitStatus            string
+	CommitStatusDescription string
+	Url                     *url.URL
+	ProviderAddress         string
+	Username                string
+	Password                string
+	Token                   string
+	Client                  *retryablehttp.Client
 }
 
 const (
@@ -106,13 +112,14 @@ func NewBitbucketServer(_ context.Context, opts *notifierOptions) (Interface, er
 	}
 
 	return &BitbucketServer{
-		CommitStatus:    opts.CommitStatus,
-		Url:             url,
-		ProviderAddress: opts.URL,
-		Token:           opts.Token,
-		Username:        opts.Username,
-		Password:        opts.Password,
-		Client:          httpClient,
+		CommitStatus:            opts.CommitStatus,
+		CommitStatusDescription: opts.CommitStatusDescription,
+		Url:                     url,
+		ProviderAddress:         opts.URL,
+		Token:                   opts.Token,
+		Username:                opts.Username,
+		Password:                opts.Password,
+		Client:                  httpClient,
 	}, nil
 }
 
@@ -137,9 +144,11 @@ func (b BitbucketServer) Post(ctx context.Context, event eventv1.Event) error {
 
 	// Use CommitStatus as Name (plus Description for the Bitbucket Server UI), matching
 	// Bitbucket Cloud / GitHub / GitLab / Azure DevOps so commitStatusExpr is visible.
-	_, desc := formatNameAndDescription(event)
+	// The Name keeps the reason as a custom description may be long.
+	_, reason := formatNameAndDescription(event)
+	desc := commitStatusDescription(event, b.CommitStatusDescription, bbServerCommitStatusDescriptionLimit)
 	id := b.CommitStatus
-	name := id + " [" + desc + "]" // Bitbucket Server shows Name in the browser.
+	name := id + " [" + reason + "]" // Bitbucket Server shows Name in the browser.
 	// key has a limitation of 40 characters in bitbucket api
 	key := sha1String(id)
 

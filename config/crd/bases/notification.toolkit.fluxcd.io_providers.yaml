@@ -92,6 +92,17 @@ spec:
                   should be posted.
                 maxLength: 2048
                 type: string
+              commitStatusDescriptionExpr:
+                description: |-
+                  CommitStatusDescriptionExpr is a CEL expression that evaluates to a string
+                  value used as the commit status description for eligible Provider types
+                  (github, gitlab, gitea, bitbucketserver, bitbucket, azuredevops).
+                  Supported variables are: event, provider, and alert. The result is
+                  collapsed to a single line and shortened in the middle to the description
+                  length limit of the Provider type. If the result is empty or the
+                  evaluation fails, the default description derived from the event reason
+                  is used.
+                type: string
               commitStatusExpr:
                 description: |-
                   CommitStatusExpr is a CEL expression that evaluates to a string value
@@ -202,6 +213,12 @@ spec:
               rule: self.type == 'github' || self.type == 'gitlab' || self.type ==
                 'gitea' || self.type == 'bitbucketserver' || self.type == 'bitbucket'
                 || self.type == 'azuredevops' || !has(self.commitStatusExpr)
+            - message: spec.commitStatusDescriptionExpr is only supported for the
+                'github', 'gitlab', 'gitea', 'bitbucketserver', 'bitbucket', 'azuredevops'
+                provider types
+              rule: self.type == 'github' || self.type == 'gitlab' || self.type ==
+                'gitea' || self.type == 'bitbucketserver' || self.type == 'bitbucket'
+                || self.type == 'azuredevops' || !has(self.commitStatusDescriptionExpr)
             - message: spec.changeRequestComment is only supported for the 'githubpullrequestcomment',
                 'gitlabmergerequestcomment' and 'giteapullrequestcomment' provider
                 types

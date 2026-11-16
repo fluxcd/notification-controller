@@ -39,6 +39,16 @@ func newCommitStatusExpression(s string) (*cel.Expression, error) {
 		cel.WithStructVariables("event", "alert", "provider"))
 }
 
+// newCommitStatusDescriptionExpression creates a new CEL expression for the
+// commit status description. The string output type is checked on evaluation
+// rather than on compilation, so that expressions of dynamic type such as
+// event.message are accepted.
+func newCommitStatusDescriptionExpression(s string) (*cel.Expression, error) {
+	return cel.NewExpression(s,
+		cel.WithCompile(),
+		cel.WithStructVariables("event", "alert", "provider"))
+}
+
 // generateDefaultCommitStatus returns a unique string per cluster based on the Provider UID,
 // involved object kind and name.
 func generateDefaultCommitStatus(providerUID string, event eventv1.Event) string {
@@ -54,23 +64,33 @@ func newCommitStatus(ctx context.Context, expr string, notification *eventv1.Eve
 		return "", fmt.Errorf("failed to compile expression: %w", err)
 	}
 
-	var (
-		eventMap    map[string]any
-		providerMap map[string]any
-		alertMap    map[string]any
-	)
+	return evaluateCommitStatusExpression(ctx, celExpr, notification, alert, provider)
+}
 
-	eventMap, err = runtime.DefaultUnstructuredConverter.ToUnstructured(notification)
+// newCommitStatusDescription evaluates the commit status description expression.
+func newCommitStatusDescription(ctx context.Context, expr string, notification *eventv1.Event, alert *apiv1.Alert, provider *apiv1.Provider) (string, error) {
+	celExpr, err := newCommitStatusDescriptionExpression(expr)
+	if err != nil {
+		return "", fmt.Errorf("failed to compile expression: %w", err)
+	}
+
+	return evaluateCommitStatusExpression(ctx, celExpr, notification, alert, provider)
+}
+
+// evaluateCommitStatusExpression evaluates a commit status CEL expression
+// with the event, alert and provider variables.
+func evaluateCommitStatusExpression(ctx context.Context, celExpr *cel.Expression, notification *eventv1.Event, alert *apiv1.Alert, provider *apiv1.Provider) (string, error) {
+	eventMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(notification)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert event to map: %w", err)
 	}
 
-	providerMap, err = runtime.DefaultUnstructuredConverter.ToUnstructured(provider)
+	providerMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(provider)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert provider object to map: %w", err)
 	}
 
-	alertMap, err = runtime.DefaultUnstructuredConverter.ToUnstructured(alert)
+	alertMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(alert)
 	if err != nil {
 		return "", fmt.Errorf("failed to convert alert object to map: %w", err)
 	}

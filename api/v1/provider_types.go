@@ -64,6 +64,7 @@ const (
 
 // ProviderSpec defines the desired state of the Provider.
 // +kubebuilder:validation:XValidation:rule="self.type == 'github' || self.type == 'gitlab' || self.type == 'gitea' || self.type == 'bitbucketserver' || self.type == 'bitbucket' || self.type == 'azuredevops' || !has(self.commitStatusExpr)", message="spec.commitStatusExpr is only supported for the 'github', 'gitlab', 'gitea', 'bitbucketserver', 'bitbucket', 'azuredevops' provider types"
+// +kubebuilder:validation:XValidation:rule="self.type == 'github' || self.type == 'gitlab' || self.type == 'gitea' || self.type == 'bitbucketserver' || self.type == 'bitbucket' || self.type == 'azuredevops' || !has(self.commitStatusDescriptionExpr)", message="spec.commitStatusDescriptionExpr is only supported for the 'github', 'gitlab', 'gitea', 'bitbucketserver', 'bitbucket', 'azuredevops' provider types"
 // +kubebuilder:validation:XValidation:rule="self.type == 'githubpullrequestcomment' || self.type == 'gitlabmergerequestcomment' || self.type == 'giteapullrequestcomment' || !has(self.changeRequestComment)", message="spec.changeRequestComment is only supported for the 'githubpullrequestcomment', 'gitlabmergerequestcomment' and 'giteapullrequestcomment' provider types"
 type ProviderSpec struct {
 	// Type specifies which Provider implementation to use.
@@ -151,6 +152,17 @@ type ProviderSpec struct {
 	// and alert.
 	// +optional
 	CommitStatusExpr string `json:"commitStatusExpr,omitempty"`
+
+	// CommitStatusDescriptionExpr is a CEL expression that evaluates to a string
+	// value used as the commit status description for eligible Provider types
+	// (github, gitlab, gitea, bitbucketserver, bitbucket, azuredevops).
+	// Supported variables are: event, provider, and alert. The result is
+	// collapsed to a single line and shortened in the middle to the description
+	// length limit of the Provider type. If the result is empty or the
+	// evaluation fails, the default description derived from the event reason
+	// is used.
+	// +optional
+	CommitStatusDescriptionExpr string `json:"commitStatusDescriptionExpr,omitempty"`
 
 	// ChangeRequestComment configures change request comment notifications
 	// for the GitHub pull request, GitLab merge request and Gitea pull
