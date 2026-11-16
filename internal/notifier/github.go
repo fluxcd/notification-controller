@@ -80,12 +80,11 @@ func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 		Description: &desc,
 	}
 
-	opts := &github.ListOptions{PerPage: 50}
-	statuses, _, err := g.Client.Repositories.ListStatuses(ctx, g.Owner, g.Repo, rev, opts)
+	latest, err := g.latestStatus(ctx, rev, id)
 	if err != nil {
 		return fmt.Errorf("could not list commit statuses: %w", err)
 	}
-	if duplicateGithubStatus(statuses, status) {
+	if latest != nil && duplicateGithubStatus([]*github.RepoStatus{latest}, status) {
 		return nil
 	}
 
@@ -95,6 +94,30 @@ func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	return nil
+}
+
+// latestStatus returns the latest status of context name on rev, or nil
+// if it has none. It reads the combined status, which holds one status
+// per context. The list of all statuses is ordered by creation time, so
+// the latest status of a context can be pages behind the statuses that
+// other contexts posted on the same commit.
+func (g *GitHub) latestStatus(ctx context.Context, rev, name string) (*github.RepoStatus, error) {
+	opts := &github.ListOptions{PerPage: 100}
+	for {
+		combined, resp, err := g.Client.Repositories.GetCombinedStatus(ctx, g.Owner, g.Repo, rev, opts)
+		if err != nil {
+			return nil, err
+		}
+		for _, s := range combined.Statuses {
+			if s.GetContext() == name {
+				return s, nil
+			}
+		}
+		if resp.NextPage == 0 {
+			return nil, nil
+		}
+		opts.Page = resp.NextPage
+	}
 }
 
 func toGitHubState(severity string) (string, error) {
