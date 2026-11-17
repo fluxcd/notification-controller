@@ -25,7 +25,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 )
 
 // GiteaClient holds the Gitea client and repository information.
@@ -70,14 +70,14 @@ func NewGiteaClient(ctx context.Context, opts *notifierOptions, fetchUserLogin b
 		tr.IdleConnTimeout = giteaIdleConnTimeout
 	}
 
-	client, err := gitea.NewClient(host, gitea.SetContext(ctx), gitea.SetToken(token), gitea.SetHTTPClient(&http.Client{Transport: tr}))
+	client, err := gitea.NewClient(host, gitea.SetToken(token), gitea.SetHTTPClient(&http.Client{Transport: tr}))
 	if err != nil {
 		return nil, fmt.Errorf("failed creating Gitea client: %w", err)
 	}
 
 	var username string
 	if fetchUserLogin {
-		user, _, err := client.GetMyUserInfo()
+		user, _, err := client.GetMyUserInfo(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get authenticated user info: %w", err)
 		}

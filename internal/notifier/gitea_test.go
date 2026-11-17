@@ -38,7 +38,7 @@ import (
 )
 
 func TestGiteaProviderContext(t *testing.T) {
-	for _, stage := range []string{"version", "user", "list", "create"} {
+	for _, stage := range []string{"user", "list", "create"} {
 		t.Run(stage, func(t *testing.T) {
 			g := NewWithT(t)
 			cancelled := make(chan struct{}, 1)
@@ -51,8 +51,6 @@ func TestGiteaProviderContext(t *testing.T) {
 				current := "list"
 				body := "[]"
 				switch {
-				case r.URL.Path == "/api/v1/version":
-					current, body = "version", `{"version":"1.18.3"}`
 				case r.URL.Path == "/api/v1/user":
 					current, body = "user", `{"login":"flux"}`
 				case r.Method == http.MethodPost:
@@ -171,14 +169,17 @@ func TestNewGiteaNoCertificate(t *testing.T) {
 	certPool := x509.NewCertPool()
 	tlsConfig := &tls.Config{RootCAs: certPool}
 
-	_, err := NewGitea(t.Context(), &notifierOptions{
+	n, err := NewGitea(t.Context(), &notifierOptions{
 		CommitStatus: "kustomization/gitops-system/0c9c2e41",
 		URL:          srv.URL + "/foo/bar",
 		Token:        "foobar",
 		TLSConfig:    tlsConfig,
 	})
-	g.Expect(err).To(HaveOccurred())
-	g.Expect(err).To(MatchError(ContainSubstring("tls: failed to verify certificate: x509: certificate signed by unknown authority")))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	event := testEvent()
+	event.Metadata[eventv1.MetaRevisionKey] = "main@sha1:69b59063470310ebbd88a9156325322a124e55a3"
+	g.Expect(n.Post(t.Context(), event)).To(MatchError(ContainSubstring("tls: failed to verify certificate: x509: certificate signed by unknown authority")))
 }
 
 func TestNewGiteaWithProxyURL(t *testing.T) {

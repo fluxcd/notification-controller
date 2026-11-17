@@ -22,7 +22,7 @@ import (
 	"fmt"
 	"os"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 	"github.com/fluxcd/pkg/apis/meta"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -58,7 +58,6 @@ func NewGitea(ctx context.Context, opts *notifierOptions) (Interface, error) {
 }
 
 func (g *Gitea) Post(ctx context.Context, event eventv1.Event) error {
-	g.Client.SetContext(ctx)
 	revString, ok := event.GetRevision()
 	if !ok {
 		return errors.New("missing revision metadata")
@@ -86,7 +85,7 @@ func (g *Gitea) Post(ctx context.Context, event eventv1.Event) error {
 		Page:     0,
 		PageSize: 50,
 	}
-	statuses, _, err := g.Client.ListStatuses(g.Owner, g.Repo, rev, listStatusesOpts)
+	statuses, _, err := g.Client.ListStatuses(ctx, g.Owner, g.Repo, rev, listStatusesOpts)
 	if err != nil {
 		return fmt.Errorf("could not list commit statuses: %w", err)
 	}
@@ -103,7 +102,7 @@ func (g *Gitea) Post(ctx context.Context, event eventv1.Event) error {
 			"owner", g.Owner, "repo", g.Repo, "event", event, "status", status)
 	}
 
-	st, rsp, err := g.Client.CreateStatus(g.Owner, g.Repo, rev, status)
+	st, rsp, err := g.Client.CreateStatus(ctx, g.Owner, g.Repo, rev, status)
 	if err != nil {
 		if g.Debug {
 			ctrl.Log.Error(err, "gitea create commit failed", "status", status)
