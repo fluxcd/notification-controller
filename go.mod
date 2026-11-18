@@ -5,30 +5,30 @@ go 1.27.0
 replace github.com/fluxcd/notification-controller/api => ./api
 
 require (
-	cloud.google.com/go/pubsub/v2 v2.8.0
+	cloud.google.com/go/pubsub/v2 v2.9.0
 	gitea.dev/sdk v1.5.1
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.23.3
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.24.0
 	github.com/Azure/azure-sdk-for-go/sdk/messaging/azeventhubs/v2 v2.0.2
 	github.com/DataDog/datadog-api-client-go/v2 v2.67.0
 	github.com/PagerDuty/go-pagerduty v1.8.0
 	github.com/cdevents/sdk-go v0.5.1
 	github.com/chainguard-dev/git-urls v1.0.2
 	github.com/coreos/go-oidc/v3 v3.21.0
-	github.com/elazarl/goproxy v1.9.2
+	github.com/elazarl/goproxy v1.9.4
 	github.com/fluxcd/cli-utils v1.4.0
 	github.com/fluxcd/notification-controller/api v1.10.0
 	github.com/fluxcd/pkg/apis/crypto v0.7.0
 	github.com/fluxcd/pkg/apis/event v0.32.0
 	github.com/fluxcd/pkg/apis/meta v1.38.0
-	github.com/fluxcd/pkg/auth v0.69.0
+	github.com/fluxcd/pkg/auth v0.70.0
 	github.com/fluxcd/pkg/cache v0.19.0
-	github.com/fluxcd/pkg/git v0.56.0
+	github.com/fluxcd/pkg/git v0.57.0
 	github.com/fluxcd/pkg/masktoken v0.10.0
 	github.com/fluxcd/pkg/runtime v0.122.0
 	github.com/fluxcd/pkg/spiffe v0.4.0
-	github.com/fluxcd/pkg/ssa v0.83.0
-	github.com/fluxcd/pkg/ssh v0.29.0
+	github.com/fluxcd/pkg/ssa v0.84.0
+	github.com/fluxcd/pkg/ssh v0.30.0
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/go-logr/logr v1.4.4
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -38,12 +38,12 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.8
 	github.com/ktrysmt/go-bitbucket v0.10.0
 	github.com/microsoft/azure-devops-go-api/azuredevops/v7 v7.1.0
-	github.com/nats-io/nats.go v1.54.0
-	github.com/nats-io/nkeys v0.4.16
+	github.com/nats-io/nats.go v1.55.0
+	github.com/nats-io/nkeys v0.4.17
 	github.com/onsi/gomega v1.44.0
 	github.com/sethvargo/go-limiter v1.2.0
 	github.com/slok/go-http-metrics v0.13.0
-	github.com/spf13/pflag v1.0.10
+	github.com/spf13/pflag v1.1.0
 	github.com/spiffe/go-spiffe/v2 v2.9.0
 	gitlab.com/gitlab-org/api/client-go v1.46.0
 	go.opentelemetry.io/otel v1.47.0
@@ -51,9 +51,9 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.47.0
 	go.opentelemetry.io/otel/sdk v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
-	golang.org/x/oauth2 v0.37.0
-	golang.org/x/text v0.43.0
-	google.golang.org/api v0.308.0
+	golang.org/x/oauth2 v0.38.0
+	golang.org/x/text v0.44.0
+	google.golang.org/api v0.315.0
 	k8s.io/api v0.37.1
 	k8s.io/apimachinery v0.37.1
 	k8s.io/client-go v0.37.1
@@ -65,12 +65,12 @@ require (
 replace gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 
 require (
-	cel.dev/expr v0.25.2 // indirect
+	cel.dev/expr v0.25.3 // indirect
 	cloud.google.com/go v0.123.0 // indirect
 	cloud.google.com/go/auth v0.24.1 // indirect
-	cloud.google.com/go/auth/oauth2adapt v0.3.0 // indirect
+	cloud.google.com/go/auth/oauth2adapt v0.3.1 // indirect
 	cloud.google.com/go/compute/metadata v0.10.0 // indirect
-	cloud.google.com/go/iam v1.12.0 // indirect
+	cloud.google.com/go/iam v1.14.0 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/42wim/httpsig v1.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.15.0 // indirect
@@ -142,8 +142,8 @@ require (
 	github.com/google/go-github/v87 v87.0.0 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/s2a-go v0.1.11 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.3.23 // indirect
-	github.com/googleapis/gax-go/v2 v2.26.2 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.25 // indirect
+	github.com/googleapis/gax-go/v2 v2.27.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-version v1.9.0 // indirect
@@ -199,20 +199,20 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
-	go.yaml.in/yaml/v3 v3.0.5 // indirect
+	go.yaml.in/yaml/v3 v3.0.6 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa // indirect
-	golang.org/x/mod v0.42.0 // indirect
-	golang.org/x/net v0.61.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/mod v0.43.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
+	golang.org/x/sync v0.25.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
-	google.golang.org/genproto v0.0.0-20260715232425-e75dac1f907d // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b // indirect
-	google.golang.org/grpc v1.84.0 // indirect
+	google.golang.org/genproto v0.0.0-20261012220534-4341edf3f941 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20261012220534-4341edf3f941 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261104224025-d1e00e9f33ab // indirect
+	google.golang.org/grpc v1.85.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
