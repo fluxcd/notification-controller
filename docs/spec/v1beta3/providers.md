@@ -284,7 +284,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 When `.spec.type` is set to `slack`, the controller will send a message for an
 [Event](events.md#event-structure) to the provided Slack API [Address](#address). 
 
-The Event will be formatted into a Slack message using an [Attachment](https://api.slack.com/reference/messaging/attachments),
+The Event will be formatted into a Slack message using an [Attachment](https://docs.slack.dev/legacy/legacy-messaging/legacy-secondary-message-attachments/),
 with the metadata attached as fields, and the involved object as author.
 The severity of the Event is used to set the color of the attachment.
 
@@ -371,7 +371,7 @@ may be a [Microsoft Teams Incoming Webhook Workflow](https://support.microsoft.c
 the deprecated [Office 365 Connector](https://devblogs.microsoft.com/microsoft365dev/retirement-of-office-365-connectors-within-microsoft-teams/).
 
 **Note:** If the Address host contains the suffix `.webhook.office.com`, the controller will imply that
-the backend is the deprecated Office 365 Connector and is expecting the Event in the [connector message](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/connectors-using#example-of-connector-message) format. Otherwise, the controller will format the Event as a [Microsoft Adaptive Card](https://adaptivecards.io/explorer/) message.
+the backend is the deprecated Office 365 Connector and is expecting the Event in the [connector message](https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/connectors-using#example-of-connector-message) format. Otherwise, the controller will format the Event as a [Microsoft Adaptive Card](https://adaptivecards.microsoft.com/) message.
 
 In both cases the Event metadata is attached as facts, and the involved object as a summary/title.
 The severity of the Event is used to set the color of the message.
@@ -1311,7 +1311,7 @@ stringData:
 When `.spec.type` is set to `zoom`, the controller will send a payload for
 an [Event](events.md#event-structure) to the provided Zoom Team Chat [Address](#address).
 
-The Event will be formatted into a [Zoom rich message](https://developers.zoom.us/docs/team-chat/chatbot/customizing-messages/),
+The Event will be formatted into a [Zoom rich message](https://developers.zoom.us/docs/chat/customizing-messages/),
 with the event severity as sub head and the metadata added as a list of key-value fields.
 The controller appends `format=full` to the webhook URL unless a `format` query
 parameter is already present.
@@ -2089,7 +2089,7 @@ You can find out the ID by opening the project in the browser and clicking on th
 #### Gitea
 
 When `.spec.type` is set to `gitea`, the referenced secret must contain a key called `token` with the value set to a
-[Gitea token](https://docs.gitea.io/en-us/api-usage/#generating-and-listing-api-tokens).
+[Gitea token](https://docs.gitea.com/development/api-usage/#generating-and-listing-api-tokens).
 
 The token must have at least the `write:repository` permission for the provider to
 update the commit status for the Gitea repository specified in `.spec.address`.
@@ -2371,7 +2371,7 @@ which is updated whenever a new event is received.
 
 ##### Authentication
 
-The provider requires a [Gitea token](https://docs.gitea.io/en-us/api-usage/#generating-and-listing-api-tokens)
+The provider requires a [Gitea token](https://docs.gitea.com/development/api-usage/#generating-and-listing-api-tokens)
 with at least the `write:issue` permission to read and write pull request comments.
 
 ##### Gitea Pull Request Comment Example
