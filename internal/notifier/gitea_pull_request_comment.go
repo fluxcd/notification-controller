@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/sdk/gitea"
+	"gitea.dev/sdk"
 
 	eventv1 "github.com/fluxcd/pkg/apis/event/v1"
 )
@@ -62,7 +62,6 @@ func NewGiteaPullRequestComment(ctx context.Context, opts *notifierOptions) (Int
 // If the comment already exists (based on the comment key), it updates the existing comment
 // instead of creating a new one.
 func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event) error {
-	g.Client.SetContext(ctx)
 	body := g.formatCommentBody(&event)
 	prNumber, err := g.getPullRequestNumber(&event)
 	if err != nil {
@@ -80,7 +79,7 @@ func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event)
 	// Find comment from the authenticated user matching the comment key
 	commentKeyMarker := g.formatCommentKeyMarker(&event)
 	existingComment, found, err := findInPages(g.MaxPages, func() ([]*gitea.Comment, bool, error) {
-		comments, response, err := g.Client.ListIssueComments(g.Owner, g.Repo, int64(prNumber), opts)
+		comments, response, err := g.Client.ListIssueComments(ctx, g.Owner, g.Repo, int64(prNumber), opts)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to list pull request comments: %w", err)
 		}
@@ -98,7 +97,7 @@ func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event)
 
 	if found {
 		// Existing comment found, update it
-		_, _, err = g.Client.EditIssueComment(g.Owner, g.Repo, existingComment.ID, gitea.EditIssueCommentOption{
+		_, _, err = g.Client.EditIssueComment(ctx, g.Owner, g.Repo, existingComment.ID, gitea.EditIssueCommentOption{
 			Body: body,
 		})
 		if err != nil {
@@ -106,7 +105,7 @@ func (g *GiteaPullRequestComment) Post(ctx context.Context, event eventv1.Event)
 		}
 	} else {
 		// No existing comment found, create a new one
-		_, _, err = g.Client.CreateIssueComment(g.Owner, g.Repo, int64(prNumber), gitea.CreateIssueCommentOption{
+		_, _, err = g.Client.CreateIssueComment(ctx, g.Owner, g.Repo, int64(prNumber), gitea.CreateIssueCommentOption{
 			Body: body,
 		})
 		if err != nil {

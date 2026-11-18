@@ -2242,7 +2242,7 @@ func TestGetNotificationParamsRedactsSecretValues(t *testing.T) {
 }
 
 func TestHandleEventConstructsNotifiersAsynchronously(t *testing.T) {
-	for _, providerType := range []string{apiv1.GiteaProvider, apiv1.GitHubProvider} {
+	for _, providerType := range []string{apiv1.GiteaPullRequestCommentProvider, apiv1.GitHubProvider} {
 		t.Run(providerType, func(t *testing.T) {
 			g := NewWithT(t)
 			started := make(chan string, 1)
@@ -2293,6 +2293,9 @@ func TestHandleEventConstructsNotifiersAsynchronously(t *testing.T) {
 					Timeout:   &metav1.Duration{Duration: 2 * time.Second},
 				},
 			}
+			if providerType == apiv1.GiteaPullRequestCommentProvider {
+				slowProvider.UID = "slow-uid"
+			}
 			fastProvider := &apiv1.Provider{
 				Name: "fast", Namespace: "default",
 				Spec: apiv1.ProviderSpec{Type: apiv1.GenericProvider, Address: fast.URL},
@@ -2317,6 +2320,9 @@ func TestHandleEventConstructsNotifiersAsynchronously(t *testing.T) {
 					eventv1.Group + "/" + eventv1.MetaCommitKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
 				},
 			}
+			if providerType == apiv1.GiteaPullRequestCommentProvider {
+				event.Metadata[eventv1.Group+"/"+eventv1.MetaChangeRequestKey] = "1"
+			}
 			scheme := runtime.NewScheme()
 			g.Expect(apiv1.AddToScheme(scheme)).To(Succeed())
 			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
@@ -2338,7 +2344,7 @@ func TestHandleEventConstructsNotifiersAsynchronously(t *testing.T) {
 			g.Eventually(returned, "5s", "10ms").Should(Receive(Equal(http.StatusAccepted)))
 			cancel()
 			g.Eventually(sent, "5s", "10ms").Should(Receive())
-			wantPath := "/api/v1/version"
+			wantPath := "/api/v1/user"
 			if providerType == apiv1.GitHubProvider {
 				wantPath = "/app/installations/456/access_tokens"
 			}
