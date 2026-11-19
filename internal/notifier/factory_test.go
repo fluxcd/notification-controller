@@ -121,6 +121,8 @@ func TestFactoryHTTPTransport(t *testing.T) {
 						switch {
 						case strings.HasSuffix(r.URL.Path, "/user"):
 							body = `{"login":"flux","username":"flux"}`
+						case strings.HasSuffix(r.URL.Path, "/status"):
+							body = "{}"
 						case tt.provider != apiv1.BitbucketServerProvider:
 							body = "[]"
 						}

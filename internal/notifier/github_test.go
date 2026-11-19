@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -97,6 +98,9 @@ func TestGitHubWrappedErrors(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				body := "[]"
+				if strings.HasSuffix(r.URL.Path, "/status") {
+					body = "{}"
+				}
 				if r.Method == tt.method {
 					w.WriteHeader(http.StatusUnauthorized)
 					body = `{"message":"invalid credentials"}`
@@ -314,6 +318,73 @@ func TestNewGithubProvider(t *testing.T) {
 			} else {
 				gm.Expect(err).ToNot(HaveOccurred())
 			}
+		})
+	}
+}
+
+func TestGitHubPostDuplicateBehindOtherContexts(t *testing.T) {
+	const sha = "69b59063470310ebbd88a9156325322a124e55a3"
+	event := testEvent()
+	event.Metadata[eventv1.MetaRevisionKey] = "main@sha1:" + sha
+	_, desc := formatNameAndDescription(event)
+
+	others := func(n int) []*github.RepoStatus {
+		var statuses []*github.RepoStatus
+		for i := range n {
+			statuses = append(statuses, ghStatus("success", fmt.Sprintf("kustomization/app-%d", i), "reconciliation succeeded"))
+		}
+		return statuses
+	}
+
+	for _, tt := range []struct {
+		name   string
+		latest *github.RepoStatus
+		posts  int32
+	}{
+		{name: "unchanged", latest: ghStatus("success", "test-status", desc)},
+		{name: "changed state", latest: ghStatus("failure", "test-status", desc), posts: 1},
+		{name: "changed description", latest: ghStatus("success", "test-status", "other"), posts: 1},
+		{name: "no status yet", posts: 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// The combined status holds 150 other contexts, so the context's
+			// latest status is on page 2. The status history starts with 50
+			// newer statuses of other contexts.
+			combined := others(150)
+			if tt.latest != nil {
+				combined = append(combined, tt.latest)
+			}
+			var posts atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				var body any
+				switch {
+				case r.Method == http.MethodPost && strings.HasSuffix(r.URL.Path, "/statuses/"+sha):
+					posts.Add(1)
+					body = tt.latest
+				case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/commits/"+sha+"/statuses"):
+					body = others(50)
+				case r.Method == http.MethodGet && strings.HasSuffix(r.URL.Path, "/commits/"+sha+"/status"):
+					g.Expect(r.URL.Query().Get("per_page")).To(Equal("100"))
+					page := combined[100:]
+					if r.URL.Query().Get("page") != "2" {
+						page = combined[:100]
+						w.Header().Set("Link", fmt.Sprintf(`<http://%s%s?per_page=100&page=2>; rel="next"`, r.Host, r.URL.Path))
+					}
+					body = &github.CombinedStatus{Statuses: page}
+				default:
+					w.WriteHeader(http.StatusNotFound)
+				}
+				g.Expect(json.NewEncoder(w).Encode(body)).To(Succeed())
+			}))
+			defer server.Close()
+
+			n, err := NewGitHub(t.Context(), &notifierOptions{CommitStatus: "test-status", URL: server.URL + "/foo/bar", Token: "test-token"})
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(n.Post(t.Context(), event)).To(Succeed())
+			g.Expect(posts.Load()).To(Equal(tt.posts))
 		})
 	}
 }
