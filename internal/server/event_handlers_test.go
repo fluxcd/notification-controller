@@ -23,6 +23,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -37,6 +38,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr/funcr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1314,6 +1316,196 @@ func TestCreateCommitStatus(t *testing.T) {
 			commitStatus, err := createCommitStatus(context.TODO(), &tt.provider, &tt.notification, tt.alert)
 			g.Expect(err != nil).To(Equal(tt.wantErr))
 			g.Expect(commitStatus).To(Equal(tt.wantCommitStatus))
+		})
+	}
+}
+
+func TestCreateCommitStatusDescription(t *testing.T) {
+	tests := []struct {
+		name     string
+		provider apiv1.ProviderSpec
+		severity string
+		want     string
+		wantErr  bool
+	}{
+		{
+			name:     "non-git provider",
+			provider: apiv1.ProviderSpec{Type: apiv1.SlackProvider, CommitStatusDescriptionExpr: "event.message"},
+		},
+		{
+			name:     "git provider without commit status description expression",
+			provider: apiv1.ProviderSpec{Type: apiv1.GitHubProvider},
+		},
+		{
+			name:     "event message",
+			provider: apiv1.ProviderSpec{Type: apiv1.GitHubProvider, CommitStatusDescriptionExpr: "event.message"},
+			want:     "Helm upgrade failed",
+		},
+		{
+			name:     "event reason and message",
+			provider: apiv1.ProviderSpec{Type: apiv1.GitLabProvider, CommitStatusDescriptionExpr: "event.reason + ': ' + event.message"},
+			want:     "HealthCheckFailed: Helm upgrade failed",
+		},
+		{
+			name:     "event message for error events",
+			provider: apiv1.ProviderSpec{Type: apiv1.GiteaProvider, CommitStatusDescriptionExpr: "event.severity == 'error' ? event.message : ''"},
+			want:     "Helm upgrade failed",
+		},
+		{
+			name:     "empty for info events",
+			provider: apiv1.ProviderSpec{Type: apiv1.GiteaProvider, CommitStatusDescriptionExpr: "event.severity == 'error' ? event.message : ''"},
+			severity: eventv1.EventSeverityInfo,
+		},
+		{
+			name:     "alert and provider",
+			provider: apiv1.ProviderSpec{Type: apiv1.AzureDevOpsProvider, CommitStatusDescriptionExpr: "alert.metadata.name + '/' + provider.metadata.name"},
+			want:     "podinfo/github",
+		},
+		{
+			name:     "expression referencing non-existent event metadata",
+			provider: apiv1.ProviderSpec{Type: apiv1.GitHubProvider, CommitStatusDescriptionExpr: "event.metadata.notfound"},
+			wantErr:  true,
+		},
+		{
+			name:     "expression with non-string result",
+			provider: apiv1.ProviderSpec{Type: apiv1.GitHubProvider, CommitStatusDescriptionExpr: "event.severity == 'error'"},
+			wantErr:  true,
+		},
+		{
+			name:     "expression referencing undeclared variable",
+			provider: apiv1.ProviderSpec{Type: apiv1.GitHubProvider, CommitStatusDescriptionExpr: "notification.message"},
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var logs []string
+			ctx := log.IntoContext(t.Context(), funcr.New(func(_, args string) {
+				logs = append(logs, args)
+			}, funcr.Options{}))
+			provider := &apiv1.Provider{Name: "github", Spec: tt.provider}
+			alert := &apiv1.Alert{Name: "podinfo"}
+			event := &eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{Kind: "HelmRelease", Namespace: "apps", Name: "podinfo"},
+				Severity:       eventv1.EventSeverityError,
+				Reason:         "HealthCheckFailed",
+				Message:        "Helm upgrade failed",
+				Metadata:       map[string]string{"foo": "bar"},
+			}
+			if tt.severity != "" {
+				event.Severity = tt.severity
+			}
+
+			g.Expect(createCommitStatusDescription(ctx, provider, event, alert)).To(Equal(tt.want))
+			if tt.wantErr {
+				g.Expect(logs).To(ConsistOf(ContainSubstring("failed to evaluate the spec.commitStatusDescriptionExpr CEL expression")))
+			} else {
+				g.Expect(logs).To(BeEmpty())
+			}
+		})
+	}
+}
+
+func TestGetNotificationParamsCommitStatusDescription(t *testing.T) {
+	tests := []struct {
+		name    string
+		expr    string
+		want    string
+		wantLog bool
+	}{
+		{
+			name: "without commit status description expression",
+			want: "health check failed",
+		},
+		{
+			name: "with commit status description expression",
+			expr: "event.message",
+			want: "Helm upgrade failed",
+		},
+		{
+			name:    "falls back to the default description on evaluation error",
+			expr:    "event.metadata.notfound",
+			want:    "health check failed",
+			wantLog: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			created := make(chan string, 1)
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				if r.Method == http.MethodPost {
+					var status struct {
+						Description string `json:"description"`
+					}
+					g.Expect(json.NewDecoder(r.Body).Decode(&status)).To(Succeed())
+					created <- status.Description
+					_, _ = w.Write([]byte("{}"))
+					return
+				}
+				_, _ = w.Write([]byte("[]"))
+			}))
+			defer srv.Close()
+
+			secret := &corev1.Secret{
+				Name:      "github-token",
+				Namespace: "apps",
+				Data:      map[string][]byte{"token": []byte("token")},
+			}
+			provider := &apiv1.Provider{
+				Name:      "github",
+				Namespace: "apps",
+				Spec: apiv1.ProviderSpec{
+					Type:                        apiv1.GitHubProvider,
+					Address:                     srv.URL + "/org/repo",
+					SecretRef:                   &meta.LocalObjectReference{Name: secret.Name},
+					CommitStatusDescriptionExpr: tt.expr,
+				},
+			}
+			alert := &apiv1.Alert{
+				Name:      "podinfo",
+				Namespace: "apps",
+				Spec:      apiv1.AlertSpec{ProviderRef: meta.LocalObjectReference{Name: provider.Name}},
+			}
+			event := &eventv1.Event{
+				InvolvedObject: corev1.ObjectReference{Kind: "HelmRelease", Namespace: "apps", Name: "podinfo"},
+				Severity:       eventv1.EventSeverityError,
+				Reason:         "HealthCheckFailed",
+				Message:        "Helm upgrade failed",
+				Metadata: map[string]string{
+					eventv1.MetaRevisionKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
+				},
+			}
+
+			scheme := runtime.NewScheme()
+			g.Expect(apiv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			eventServer := EventServer{
+				kubeClient: fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(provider, secret).Build(),
+				logger:     log.Log,
+				Recorder:   events.NewFakeRecorder(32),
+			}
+
+			var logs []string
+			ctx := log.IntoContext(t.Context(), funcr.New(func(_, args string) {
+				logs = append(logs, args)
+			}, funcr.Options{}))
+			params, _, err := eventServer.getNotificationParams(ctx, event, alert)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(params).ToNot(BeNil())
+			n, err := params.createNotifier(ctx)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(n.Post(ctx, *params.event)).To(Succeed())
+			g.Expect(created).To(Receive(Equal(tt.want)))
+			if tt.wantLog {
+				g.Expect(logs).To(ContainElement(ContainSubstring("failed to evaluate the spec.commitStatusDescriptionExpr CEL expression")))
+			}
 		})
 	}
 }

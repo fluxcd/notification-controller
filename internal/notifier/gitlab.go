@@ -28,10 +28,15 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 )
 
+// gitlabCommitStatusDescriptionLimit is the maximum length of a GitLab commit
+// status description, see https://docs.gitlab.com/api/commits/.
+const gitlabCommitStatusDescriptionLimit = 255
+
 type GitLab struct {
-	Id           string
-	CommitStatus string
-	Client       *gitlab.Client
+	Id                      string
+	CommitStatus            string
+	CommitStatusDescription string
+	Client                  *gitlab.Client
 }
 
 func NewGitLab(_ context.Context, opts *notifierOptions) (Interface, error) {
@@ -64,9 +69,10 @@ func NewGitLab(_ context.Context, opts *notifierOptions) (Interface, error) {
 	}
 
 	gitlab := &GitLab{
-		Id:           id,
-		CommitStatus: opts.CommitStatus,
-		Client:       client,
+		Id:                      id,
+		CommitStatus:            opts.CommitStatus,
+		CommitStatusDescription: opts.CommitStatusDescription,
+		Client:                  client,
 	}
 
 	return gitlab, nil
@@ -92,7 +98,7 @@ func (g *GitLab) Post(ctx context.Context, event eventv1.Event) error {
 		return err
 	}
 
-	_, desc := formatNameAndDescription(event)
+	desc := commitStatusDescription(event, g.CommitStatusDescription, gitlabCommitStatusDescriptionLimit)
 	id := g.CommitStatus
 	status := &gitlab.CommitStatus{
 		Name:        id,

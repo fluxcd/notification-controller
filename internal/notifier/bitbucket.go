@@ -30,12 +30,18 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 )
 
+// bitbucketCommitStatusDescriptionLimit is the maximum length of a Bitbucket
+// Cloud commit status description. Bitbucket Cloud does not document a limit;
+// the limit of the GitHub API is used as a safe default.
+const bitbucketCommitStatusDescriptionLimit = 140
+
 // Bitbucket is a Bitbucket Cloud notifier.
 type Bitbucket struct {
-	Owner        string
-	Repo         string
-	CommitStatus string
-	Client       *bitbucket.Client
+	Owner                   string
+	Repo                    string
+	CommitStatus            string
+	CommitStatusDescription string
+	Client                  *bitbucket.Client
 }
 
 // NewBitbucket creates and returns a new Bitbucket notifier.
@@ -71,10 +77,11 @@ func NewBitbucket(_ context.Context, opts *notifierOptions) (Interface, error) {
 	client.HttpClient.Timeout = opts.Timeout
 
 	return &Bitbucket{
-		Owner:        owner,
-		Repo:         repo,
-		CommitStatus: opts.CommitStatus,
-		Client:       client,
+		Owner:                   owner,
+		Repo:                    repo,
+		CommitStatus:            opts.CommitStatus,
+		CommitStatusDescription: opts.CommitStatusDescription,
+		Client:                  client,
 	}, nil
 }
 
@@ -99,7 +106,7 @@ func (b Bitbucket) Post(ctx context.Context, event eventv1.Event) error {
 	}
 
 	// Use CommitStatus as Name (and its SHA-1 as Key) so commitStatusExpr is visible.
-	_, desc := formatNameAndDescription(event)
+	desc := commitStatusDescription(event, b.CommitStatusDescription, bitbucketCommitStatusDescriptionLimit)
 	id := b.CommitStatus
 	key := sha1String(id)
 

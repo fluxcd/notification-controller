@@ -55,6 +55,33 @@ func formatNameAndDescription(event eventv1.Event) (string, string) {
 	return name, desc
 }
 
+// commitStatusDescription returns the description of a commit status.
+// The custom description is collapsed to a single line and shortened in the
+// middle to at most limit runes. If it is empty, the description is derived
+// from the event reason.
+func commitStatusDescription(event eventv1.Event, custom string, limit int) string {
+	if desc := strings.Join(strings.Fields(custom), " "); desc != "" {
+		return truncateMiddle(desc, limit)
+	}
+	_, desc := formatNameAndDescription(event)
+	return desc
+}
+
+// truncateMiddle shortens s to at most limit runes by replacing the middle
+// with an ellipsis, keeping the start and the end of s.
+func truncateMiddle(s string, limit int) string {
+	if utf8.RuneCountInString(s) <= limit {
+		return s
+	}
+	if limit <= 0 {
+		return ""
+	}
+	runes := []rune(s)
+	head := (limit - 1) / 2
+	tail := limit - 1 - head
+	return string(runes[:head]) + "…" + string(runes[len(runes)-tail:])
+}
+
 func splitCamelcase(src string) (entries []string) {
 	// don't split invalid utf8
 	if !utf8.ValidString(src) {

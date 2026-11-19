@@ -20,12 +20,15 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	giteasdk "code.gitea.io/sdk/gitea"
 
 	apiv1 "github.com/fluxcd/notification-controller/api/v1"
 	testproxy "github.com/fluxcd/notification-controller/tests/proxy"
@@ -324,6 +327,63 @@ func TestGitea_Post(t *testing.T) {
 			g := NewWithT(t)
 			err := gitea.Post(context.Background(), tt.event)
 			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}
+
+func TestGitea_PostCommitStatusDescription(t *testing.T) {
+	const sha = "69b59063470310ebbd88a9156325322a124e55a3"
+	for _, tt := range []struct {
+		name        string
+		description string
+		existing    string
+		want        string
+	}{
+		{name: "default description", want: "reason"},
+		{name: "custom description", description: "Helm upgrade\nfailed", want: "Helm upgrade failed"},
+		{name: "custom description differs from existing", description: "Helm upgrade failed", existing: "reason", want: "Helm upgrade failed"},
+		{name: "custom description equals existing", description: "Helm upgrade failed", existing: "Helm upgrade failed"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			created := make(chan string, 1)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				switch {
+				case r.URL.Path == "/api/v1/version":
+					_, err := io.WriteString(w, `{"version":"1.18.3"}`)
+					g.Expect(err).ToNot(HaveOccurred())
+				case r.Method == http.MethodPost:
+					var opts giteasdk.CreateStatusOption
+					g.Expect(json.NewDecoder(r.Body).Decode(&opts)).To(Succeed())
+					created <- opts.Description
+					_, err := io.WriteString(w, "{}")
+					g.Expect(err).ToNot(HaveOccurred())
+				default:
+					statuses := []*giteasdk.Status{}
+					if tt.existing != "" {
+						statuses = append(statuses, &giteasdk.Status{State: giteasdk.StatusSuccess, Context: "test-status", Description: tt.existing})
+					}
+					g.Expect(json.NewEncoder(w).Encode(statuses)).To(Succeed())
+				}
+			}))
+			defer server.Close()
+
+			n, err := NewGitea(t.Context(), &notifierOptions{
+				CommitStatus:            "test-status",
+				CommitStatusDescription: tt.description,
+				URL:                     server.URL + "/foo/bar",
+				Token:                   "test-token",
+			})
+			g.Expect(err).ToNot(HaveOccurred())
+			event := testEvent()
+			event.Metadata[eventv1.MetaRevisionKey] = "main@sha1:" + sha
+			g.Expect(n.Post(t.Context(), event)).To(Succeed())
+			if tt.want == "" {
+				g.Expect(created).ToNot(Receive())
+			} else {
+				g.Expect(created).To(Receive(Equal(tt.want)))
+			}
 		})
 	}
 }

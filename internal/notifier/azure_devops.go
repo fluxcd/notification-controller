@@ -37,12 +37,18 @@ type azureDevOpsClient interface {
 	GetStatuses(context.Context, git.GetStatusesArgs) (*[]git.GitStatus, error)
 }
 
+// azureDevOpsCommitStatusDescriptionLimit is the maximum length of an Azure
+// DevOps commit status description. Azure DevOps does not document a limit;
+// the limit of the GitHub API is used as a safe default.
+const azureDevOpsCommitStatusDescriptionLimit = 140
+
 // AzureDevOps is an Azure DevOps notifier.
 type AzureDevOps struct {
-	Project      string
-	Repo         string
-	CommitStatus string
-	Client       azureDevOpsClient
+	Project                 string
+	Repo                    string
+	CommitStatus            string
+	CommitStatusDescription string
+	Client                  azureDevOpsClient
 }
 
 // NewAzureDevOps creates and returns a new AzureDevOps notifier.
@@ -87,10 +93,11 @@ func NewAzureDevOps(ctx context.Context, opts *notifierOptions) (Interface, erro
 		Client: *client,
 	}
 	return &AzureDevOps{
-		Project:      proj,
-		Repo:         repo,
-		CommitStatus: opts.CommitStatus,
-		Client:       gitClient,
+		Project:                 proj,
+		Repo:                    repo,
+		CommitStatus:            opts.CommitStatus,
+		CommitStatusDescription: opts.CommitStatusDescription,
+		Client:                  gitClient,
 	}, nil
 }
 
@@ -117,7 +124,7 @@ func (a AzureDevOps) Post(ctx context.Context, event eventv1.Event) error {
 	// Check if the exact status is already set
 	g := commitStatusGenre(event)
 
-	_, desc := formatNameAndDescription(event)
+	desc := commitStatusDescription(event, a.CommitStatusDescription, azureDevOpsCommitStatusDescriptionLimit)
 	id := a.CommitStatus
 	createArgs := git.CreateCommitStatusArgs{
 		Project:      &a.Project,

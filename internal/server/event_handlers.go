@@ -445,6 +445,10 @@ func (s *EventServer) getNotificationParams(ctx context.Context, event *eventv1.
 		return nil, droppedProviders{}, err
 	}
 
+	if desc := createCommitStatusDescription(ctx, &provider, &notification, alert); desc != "" {
+		params.options = append(params.options, notifier.WithCommitStatusDescription(desc))
+	}
+
 	params.event = &notification
 	return params, droppedProviders{}, nil
 }
@@ -469,6 +473,25 @@ func createCommitStatus(ctx context.Context, provider *apiv1.Provider, event *ev
 	}
 
 	return commitStatus, nil
+}
+
+// createCommitStatusDescription evaluates the commitStatusDescriptionExpr of
+// the given provider for the event. It returns an empty string if the provider
+// is not a git provider or has no commitStatusDescriptionExpr, in which case
+// the notifier uses the default description. Evaluation errors are logged and
+// result in an empty string, so that the commit status is still sent.
+func createCommitStatusDescription(ctx context.Context, provider *apiv1.Provider, event *eventv1.Event, alert *apiv1.Alert) string {
+	if !isCommitStatusProvider(provider.Spec.Type) || provider.Spec.CommitStatusDescriptionExpr == "" {
+		return ""
+	}
+
+	desc, err := newCommitStatusDescription(ctx, provider.Spec.CommitStatusDescriptionExpr, event, alert, provider)
+	if err != nil {
+		log.FromContext(ctx).Error(err, "failed to evaluate the spec.commitStatusDescriptionExpr CEL expression for the event, using the default description")
+		return ""
+	}
+
+	return desc
 }
 
 // extractAuthFromSecret processes notification-controller specific keys (address, proxy, headers)

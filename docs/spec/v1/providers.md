@@ -2397,6 +2397,66 @@ If the `spec.commitStatusExpr` field is not specified, the notification-controll
 
 A useful tool for building and testing CEL expressions is the [CEL Playground](https://playcel.undistro.io/).
 
+#### Custom Commit Status Descriptions
+
+Git providers supporting commit status updates can use a CEL expression to set
+the description of the commit status with the optional field
+`spec.commitStatusDescriptionExpr`. By default, the description is derived from
+the event reason, e.g. `health check failed` for the `HealthCheckFailed` reason.
+
+```yaml
+apiVersion: notification.toolkit.fluxcd.io/v1
+kind: Provider
+metadata:
+  name: github-status
+  namespace: apps
+spec:
+  type: github
+  address: https://github.com/org/repo
+  secretRef:
+    name: github-token
+  commitStatusDescriptionExpr: "event.severity == 'error' ? event.message : ''"
+```
+
+The CEL expression can access the same variables as `spec.commitStatusExpr`
+(`event`, `provider` and `alert`) and must evaluate to a string. Examples:
+
+| Expression                                       | Description                                                     |
+|--------------------------------------------------|-----------------------------------------------------------------|
+| `event.message`                                  | The event message, e.g. the error of a failed health check      |
+| `event.reason + ': ' + event.message`            | The event reason followed by the event message                  |
+| `event.severity == 'error' ? event.message : ''` | The event message for errors, the default description otherwise |
+
+The result is collapsed to a single line, with runs of whitespace replaced by a
+single space. If it exceeds the description length limit of the Git provider,
+it is shortened in the middle with `…`, keeping its start and end:
+
+| Provider type     | Description limit (characters) |
+|-------------------|--------------------------------|
+| `github`          | 140                            |
+| `gitlab`          | 255                            |
+| `gitea`           | 140                            |
+| `bitbucket`       | 140                            |
+| `bitbucketserver` | 255                            |
+| `azuredevops`     | 140                            |
+
+For example, the event message:
+
+```text
+health check failed after 5m0s: timeout waiting for: [HelmRelease/apps/podinfo status: 'InProgress': Helm upgrade failed for release apps/podinfo with chart podinfo@6.7.0: context deadline exceeded]
+```
+
+is shortened for GitHub to:
+
+```text
+health check failed after 5m0s: timeout waiting for: [HelmRelease/app…ease apps/podinfo with chart podinfo@6.7.0: context deadline exceeded]
+```
+
+If the result is empty, the default description is used. If the evaluation
+fails, e.g. because the expression references a missing event metadata key,
+the error is logged and the default description is used. In both cases, the
+commit status is still sent.
+
 ### Change Request Comments
 
 The notification-controller can post comments on pull requests / merge requests

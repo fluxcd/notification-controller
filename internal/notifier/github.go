@@ -27,11 +27,16 @@ import (
 	"github.com/fluxcd/pkg/apis/meta"
 )
 
+// githubCommitStatusDescriptionLimit is the maximum length of a GitHub commit
+// status description. GitHub rejects longer descriptions with HTTP 422.
+const githubCommitStatusDescriptionLimit = 140
+
 type GitHub struct {
-	Owner        string
-	Repo         string
-	CommitStatus string
-	Client       *github.Client
+	Owner                   string
+	Repo                    string
+	CommitStatus            string
+	CommitStatusDescription string
+	Client                  *github.Client
 }
 
 func NewGitHub(ctx context.Context, opts *notifierOptions) (Interface, error) {
@@ -45,10 +50,11 @@ func NewGitHub(ctx context.Context, opts *notifierOptions) (Interface, error) {
 	}
 
 	return &GitHub{
-		Owner:        clientInfo.Owner,
-		Repo:         clientInfo.Repo,
-		CommitStatus: opts.CommitStatus,
-		Client:       clientInfo.Client,
+		Owner:                   clientInfo.Owner,
+		Repo:                    clientInfo.Repo,
+		CommitStatus:            opts.CommitStatus,
+		CommitStatusDescription: opts.CommitStatusDescription,
+		Client:                  clientInfo.Client,
 	}, nil
 }
 
@@ -72,7 +78,7 @@ func (g *GitHub) Post(ctx context.Context, event eventv1.Event) error {
 		return err
 	}
 
-	_, desc := formatNameAndDescription(event)
+	desc := commitStatusDescription(event, g.CommitStatusDescription, githubCommitStatusDescriptionLimit)
 	id := g.CommitStatus
 	status := &github.RepoStatus{
 		State:       &state,

@@ -237,6 +237,66 @@ func TestBitbucketServer_Post_UsesCommitStatusAsName(t *testing.T) {
 	g.Expect(gotName).ToNot(Equal(formattedName + " [" + desc + "]"))
 }
 
+func TestBitbucketServer_PostCommitStatusDescription(t *testing.T) {
+	commitStatus := "test-status"
+	for _, tt := range []struct {
+		name        string
+		description string
+		existing    string
+		want        string
+	}{
+		{name: "default description", want: "reason"},
+		{name: "custom description", description: "Helm upgrade\nfailed", want: "Helm upgrade failed"},
+		{name: "custom description differs from existing", description: "Helm upgrade failed", existing: "reason", want: "Helm upgrade failed"},
+		{name: "custom description equals existing", description: "Helm upgrade failed", existing: "Helm upgrade failed"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			created := make(chan bbServerBuildStatusSetRequest, 1)
+			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodGet && tt.existing == "":
+					w.WriteHeader(http.StatusNotFound)
+				case r.Method == http.MethodGet:
+					w.Header().Set("Content-Type", "application/json")
+					g.Expect(json.NewEncoder(w).Encode(bbServerBuildStatus{
+						Name:        commitStatus + " [reason]",
+						Key:         sha1String(commitStatus),
+						State:       "SUCCESSFUL",
+						Description: tt.existing,
+					})).To(Succeed())
+				case r.Method == http.MethodPost:
+					var payload bbServerBuildStatusSetRequest
+					g.Expect(json.NewDecoder(r.Body).Decode(&payload)).To(Succeed())
+					created <- payload
+					w.WriteHeader(http.StatusNoContent)
+				}
+			}))
+			defer ts.Close()
+
+			b, err := newBitbucketServer(t.Context(), &notifierOptions{
+				CommitStatus:            commitStatus,
+				CommitStatusDescription: tt.description,
+				URL:                     ts.URL + "/scm/projectfoo/repobar.git",
+				Token:                   "token",
+			})
+			g.Expect(err).ToNot(HaveOccurred())
+			event := generateTestEventKustomization("info", map[string]string{
+				eventv1.MetaRevisionKey: "main@sha1:5394cb7f48332b2de7c17dd8b8384bbc84b7e738",
+			})
+			g.Expect(b.Post(t.Context(), event)).To(Succeed())
+			if tt.want == "" {
+				g.Expect(created).ToNot(Receive())
+				return
+			}
+			var payload bbServerBuildStatusSetRequest
+			g.Expect(created).To(Receive(&payload))
+			g.Expect(payload.Description).To(Equal(tt.want))
+			g.Expect(payload.Name).To(Equal(commitStatus + " [reason]"))
+		})
+	}
+}
+
 func TestPostBitbucketServerBadCommitHash(t *testing.T) {
 	g := NewWithT(t)
 	b, err := newBitbucketServer(t.Context(), &notifierOptions{CommitStatus: "kustomization/gitops-system/0c9c2e41", URL: "https://example.com:7990/scm/projectfoo/repobar.git", Token: "BBDC-ODIxODYxMzIyNzUyOttorMjO059P2rYTb6EH7mP", Username: "", Password: ""})

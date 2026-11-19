@@ -228,7 +228,8 @@ func azStatus(state git.GitStatusState, context string, description string) *git
 }
 
 type fakeDevOpsClient struct {
-	created []git.CreateCommitStatusArgs
+	created  []git.CreateCommitStatusArgs
+	statuses *[]git.GitStatus
 }
 
 func (c *fakeDevOpsClient) CreateCommitStatus(ctx context.Context, args git.CreateCommitStatusArgs) (*git.GitStatus, error) {
@@ -237,5 +238,56 @@ func (c *fakeDevOpsClient) CreateCommitStatus(ctx context.Context, args git.Crea
 }
 
 func (c *fakeDevOpsClient) GetStatuses(context.Context, git.GetStatusesArgs) (*[]git.GitStatus, error) {
-	return nil, nil
+	return c.statuses, nil
+}
+
+func TestAzureDevOps_PostCommitStatusDescription(t *testing.T) {
+	commitStatus := "kustomization/gitops-system/0c9c2e41"
+	for _, tt := range []struct {
+		name        string
+		description string
+		existing    string
+		want        string
+	}{
+		{name: "default description", want: "apply succeeded"},
+		{name: "custom description", description: "Helm upgrade\nfailed", want: "Helm upgrade failed"},
+		{name: "custom description differs from existing", description: "Helm upgrade failed", existing: "apply succeeded", want: "Helm upgrade failed"},
+		{name: "custom description equals existing", description: "Helm upgrade failed", existing: "Helm upgrade failed"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			n, err := NewAzureDevOps(t.Context(), &notifierOptions{
+				CommitStatus:            commitStatus,
+				CommitStatusDescription: tt.description,
+				URL:                     "https://example.com/foo/bar/_git/baz",
+				Token:                   "foo",
+			})
+			g.Expect(err).ToNot(HaveOccurred())
+			fakeClient := &fakeDevOpsClient{}
+			if tt.existing != "" {
+				fakeClient.statuses = &[]git.GitStatus{*azStatus(git.GitStatusStateValues.Succeeded, commitStatus, tt.existing)}
+			}
+			a := n.(*AzureDevOps)
+			a.Client = fakeClient
+
+			event := eventv1.Event{
+				Severity: eventv1.EventSeverityInfo,
+				InvolvedObject: corev1.ObjectReference{
+					Kind: "Kustomization",
+					Name: "gitops-system",
+				},
+				Metadata: map[string]string{
+					eventv1.MetaRevisionKey: "main@sha1:69b59063470310ebbd88a9156325322a124e55a3",
+				},
+				Reason: "ApplySucceeded",
+			}
+			g.Expect(a.Post(t.Context(), event)).To(Succeed())
+			if tt.want == "" {
+				g.Expect(fakeClient.created).To(BeEmpty())
+				return
+			}
+			g.Expect(fakeClient.created).To(HaveLen(1))
+			g.Expect(*fakeClient.created[0].GitCommitStatusToCreate.Description).To(Equal(tt.want))
+		})
+	}
 }
