@@ -2,6 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
+## 1.10.1
+
+**Release date:** 2026-11-20
+
+This patch release fixes the credentials cache key used for provider
+authentication. The key now includes the GCP workload identity provider, so
+changing the `gcp.auth.fluxcd.io/workload-identity-provider` ServiceAccount
+annotation takes effect on the next reconcile instead of continuing to use
+tokens cached for the previous provider until they expire.
+
+Fixes:
+- Update fluxcd/pkg dependencies
+  [#1428](https://github.com/fluxcd/notification-controller/pull/1428)
+
+Improvements:
+- Remove leftover object-level workload identity log message
+  [#1439](https://github.com/fluxcd/notification-controller/pull/1439)
+- Update fluxcd/pkg dependencies
+  [#1429](https://github.com/fluxcd/notification-controller/pull/1429)
+  [#1442](https://github.com/fluxcd/notification-controller/pull/1442)
+
 ## 1.10.0
 
 **Release date:** 2026-10-24
